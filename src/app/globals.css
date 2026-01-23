@@ -1,0 +1,124 @@
+
+@import 'tailwindcss';
+@import "tw-animate-css";
+
+@theme {
+  /* Dark Theme (Default) */
+  --color-bg-100: rgb(24 28 34);
+  --color-bg-200: rgb(31 36 43);
+  --color-bg-300: rgb(56 64 77);
+  --color-txt-100: rgb(232 230 227);
+  --color-txt-200: rgb(180 178 174);
+  --color-txt-300: rgb(130 129 126);
+  --color-acc-100: rgb(204 162 72);
+  --color-acc-200: rgb(80 110 200);
+  --color-fb-error: rgb(204 85 85);
+  
+  --radius: 0.625rem;
+  --color-background: var(--color-bg-100);
+  --color-foreground: var(--color-txt-100);
+  --color-card: var(--color-bg-200);
+  --color-card-foreground: var(--color-txt-100);
+  --color-popover: var(--color-bg-200);
+  --color-popover-foreground: var(--color-txt-100);
+  --color-primary: var(--color-acc-100);
+  --color-primary-foreground: var(--color-txt-100);
+  --color-secondary: var(--color-acc-200);
+  --color-secondary-foreground: var(--color-txt-100);
+  --color-muted: var(--color-bg-300);
+  --color-muted-foreground: var(--color-txt-100);
+  --color-accent: var(--color-bg-300);
+  --color-accent-foreground: var(--color-txt-100);
+  --color-destructive: var(--color-fb-error);
+  --color-border: var(--color-bg-300);
+  --color-input: var(--color-bg-300);
+  --color-ring: var(--color-acc-100);
+  --color-chart-1: var(--color-acc-100);
+  --color-chart-2: var(--color-acc-200);
+  --color-chart-3: var(--color-bg-100);
+  --color-chart-4: var(--color-bg-200);
+  --color-chart-5: var(--color-bg-300);
+  --color-sidebar: var(--color-bg-100);
+  --color-sidebar-foreground: var(--color-txt-100);
+  --color-sidebar-primary: var(--color-acc-100);
+  --color-sidebar-primary-foreground: var(--color-bg-100);
+  --color-sidebar-accent: var(--color-acc-200);
+  --color-sidebar-accent-foreground: var(--color-txt-100);
+  --color-sidebar-border: var(--color-bg-300);
+  --color-sidebar-ring: var(--color-acc-100);
+
+  --spacing-s-100: 4px;
+  --spacing-s-200: 8px;
+  --spacing-s-300: 12px;
+  --spacing-m-400: 16px;
+  --spacing-m-500: 20px;
+  --spacing-m-600: 24px;
+  --spacing-l-700: 32px;
+  --spacing-l-800: 48px;
+  --spacing-l-900: 64px;
+
+  --font-size-h1: 3rem; 
+  --font-size-h2: 2.25rem; 
+  --font-size-h3: 1.5rem; 
+  --font-size-body: 1rem; 
+  --font-size-small: 0.875rem; 
+  --font-size-tiny: 0.75rem;
+
+  --screen-xs: 480px;
+  --screen-sm: 640px;
+  --screen-md: 768px;
+  --screen-lg: 1024px;
+  --screen-xl: 1280px;
+  --screen-2xl: 1536px;
+
+  --box-shadow-small: 0 1px 2px rgb(0 0 0 / 0.1);
+  --box-shadow-medium: 0 4px 6px rgb(0 0 0 / 0.1), 0 2px 4px rgb(0 0 0 / 0.06);
+  --box-shadow-large: 0 10px 15px rgb(0 0 0 / 0.1), 0 4px 6px rgb(0 0 0 / 0.05);
+  --box-shadow-xl: 20px 25px rgb(0 0 0 / 0.1), 0 10px 10px rgb(0 0 0 / 0.04);
+  --box-shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.05);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] {
+  --color-bg-100: rgb(250 250 249);
+  --color-bg-200: rgb(245 245 244);
+  --color-bg-300: rgb(231 229 228);
+  --color-txt-100: rgb(41 37 36);
+  --color-txt-200: rgb(87 83 78);
+  --color-txt-300: rgb(120 113 108);
+  --color-acc-100: rgb(245, 194, 9);
+  --color-acc-200: rgb(59 130 246);
+  --color-fb-error: rgb(220 38 38);
+  
+  --color-background: var(--color-bg-100);
+  --color-foreground: var(--color-txt-100);
+  --color-card: var(--color-bg-200);
+  --color-card-foreground: var(--color-txt-100);
+  --color-popover: var(--color-bg-200);
+  --color-popover-foreground: var(--color-txt-100);
+  --color-primary: var(--color-acc-100);
+  --color-primary-foreground: var(--color-bg-100);
+  --color-secondary: var(--color-acc-200);
+  --color-secondary-foreground: var(--color-bg-100);
+  --color-muted: var(--color-bg-300);
+  --color-muted-foreground: var(--color-txt-300);
+  --color-accent: var(--color-bg-300);
+  --color-accent-foreground: var(--color-txt-100);
+  --color-destructive: var(--color-fb-error);
+  --color-border: var(--color-bg-300);
+  --color-input: var(--color-bg-300);
+  --color-ring: var(--color-acc-100);
+  --color-chart-1: var(--color-acc-100);
+  --color-chart-2: var(--color-acc-200);
+  --color-chart-3: var(--color-bg-300);
+  --color-chart-4: var(--color-bg-200);
+  --color-chart-5: var(--color-bg-100);
+  --color-sidebar: var(--color-bg-100);
+  --color-sidebar-foreground: var(--color-txt-100);
+  --color-sidebar-primary: var(--color-acc-100);
+  --color-sidebar-primary-foreground: var(--color-bg-100);
+  --color-sidebar-accent: var(--color-acc-200);
+  --color-sidebar-accent-foreground: var(--color-bg-100);
+  --color-sidebar-border: var(--color-bg-300);
+  --color-sidebar-ring: var(--color-acc-100);
+}

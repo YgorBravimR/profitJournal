@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__linear__get_issue",
+      "Bash(done)",
+      "Bash(mkdir:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
