@@ -11,7 +11,8 @@
       "Bash(npx shadcn@latest add:*)",
       "Bash(pnpm tsc:*)",
       "Bash(npm run type-check:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(pnpm drizzle-kit generate:*)"
     ],
     "deny": [],
     "ask": []

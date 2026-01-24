@@ -22,7 +22,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
-import type { Trade, Strategy, Tag } from "@/db/schema"
+import type { Trade, Strategy, Tag, Timeframe } from "@/db/schema"
+import type { AssetWithType } from "@/app/actions/assets"
+import { calculateAssetPnL } from "@/lib/calculations"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Info } from "lucide-react"
 
 interface TradeFormProps {
 	trade?: Trade & {
@@ -30,10 +34,12 @@ interface TradeFormProps {
 	}
 	strategies?: Strategy[]
 	tags?: Tag[]
+	assets?: AssetWithType[]
+	timeframes?: Timeframe[]
 	onSuccess?: () => void
 }
 
-const timeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const
+const legacyTimeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const
 
 // Format Date to datetime-local input value (YYYY-MM-DDTHH:mm)
 const formatDateTimeLocal = (date: Date): string => {
@@ -49,13 +55,25 @@ export const TradeForm = ({
 	trade,
 	strategies = [],
 	tags = [],
+	assets = [],
+	timeframes: configuredTimeframes = [],
 	onSuccess,
 }: TradeFormProps) => {
 	const router = useRouter()
 	const { showToast } = useToast()
 	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [selectedAsset, setSelectedAsset] = useState<AssetWithType | null>(
+		() => {
+			if (trade?.asset && assets.length > 0) {
+				return assets.find((a) => a.symbol === trade.asset) ?? null
+			}
+			return null
+		}
+	)
 
 	const isEditing = !!trade
+	const hasConfiguredAssets = assets.length > 0
+	const hasConfiguredTimeframes = configuredTimeframes.length > 0
 
 	const defaultValues: Partial<TradeFormInput> = trade
 		? {
@@ -134,16 +152,46 @@ export const TradeForm = ({
 		return Math.abs(rewardPerUnit / riskPerUnit)
 	}, [entryPrice, stopLoss, takeProfit, direction])
 
-	// Calculate P&L preview (fees applied from settings in future)
-	const calculatedPnL =
-		entryPrice && exitPrice && positionSize
-			? calculatePnL({
-					direction: direction || "long",
-					entryPrice: Number(entryPrice),
-					exitPrice: Number(exitPrice),
-					positionSize: Number(positionSize),
-				})
-			: null
+	// Calculate P&L preview using asset-based calculation when available
+	const calculatedPnLResult = useMemo(() => {
+		if (!entryPrice || !exitPrice || !positionSize) return null
+
+		const entry = Number(entryPrice)
+		const exit = Number(exitPrice)
+		const size = Number(positionSize)
+		const dir = direction || "long"
+
+		if (selectedAsset) {
+			// Use asset-based calculation with tick size and tick value
+			return calculateAssetPnL({
+				entryPrice: entry,
+				exitPrice: exit,
+				positionSize: size,
+				direction: dir,
+				tickSize: parseFloat(selectedAsset.tickSize),
+				tickValue: parseFloat(selectedAsset.tickValue),
+				commission: parseFloat(selectedAsset.commission ?? "0"),
+				fees: parseFloat(selectedAsset.fees ?? "0"),
+			})
+		}
+
+		// Fallback to simple P&L calculation
+		const simplePnl = calculatePnL({
+			direction: dir,
+			entryPrice: entry,
+			exitPrice: exit,
+			positionSize: size,
+		})
+
+		return {
+			ticksGained: 0,
+			grossPnl: simplePnl,
+			netPnl: simplePnl,
+			totalCosts: 0,
+		}
+	}, [entryPrice, exitPrice, positionSize, direction, selectedAsset])
+
+	const calculatedPnL = calculatedPnLResult?.netPnl ?? null
 
 	// Calculate R-Multiple preview
 	const calculatedR =
@@ -235,13 +283,62 @@ export const TradeForm = ({
 					{/* Asset and Timeframe */}
 					<div className="grid grid-cols-2 gap-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="asset">Asset *</Label>
-							<Input
-								id="asset"
-								placeholder="NVDA, SPY, BTC..."
-								className="uppercase"
-								{...register("asset")}
-							/>
+							<div className="flex items-center gap-s-200">
+								<Label htmlFor="asset">Asset *</Label>
+								{selectedAsset && (
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Info className="h-4 w-4 text-txt-300" />
+										</TooltipTrigger>
+										<TooltipContent>
+											<div className="space-y-1 text-tiny">
+												<p>
+													<span className="text-txt-300">Type:</span>{" "}
+													{selectedAsset.assetType.name}
+												</p>
+												<p>
+													<span className="text-txt-300">Tick Size:</span>{" "}
+													{parseFloat(selectedAsset.tickSize)}
+												</p>
+												<p>
+													<span className="text-txt-300">Tick Value:</span>{" "}
+													{selectedAsset.currency}{" "}
+													{parseFloat(selectedAsset.tickValue)}
+												</p>
+											</div>
+										</TooltipContent>
+									</Tooltip>
+								)}
+							</div>
+							{hasConfiguredAssets ? (
+								<Select
+									value={watch("asset") || ""}
+									onValueChange={(value) => {
+										setValue("asset", value)
+										const asset = assets.find((a) => a.symbol === value)
+										setSelectedAsset(asset ?? null)
+									}}
+								>
+									<SelectTrigger>
+										<SelectValue placeholder="Select asset" />
+									</SelectTrigger>
+									<SelectContent>
+										{assets.map((asset) => (
+											<SelectItem key={asset.id} value={asset.symbol}>
+												<span className="font-mono">{asset.symbol}</span>
+												<span className="ml-2 text-txt-300">{asset.name}</span>
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							) : (
+								<Input
+									id="asset"
+									placeholder="NVDA, SPY, BTC..."
+									className="uppercase"
+									{...register("asset")}
+								/>
+							)}
 							{errors.asset && (
 								<p className="text-tiny text-fb-error">{errors.asset.message}</p>
 							)}
@@ -251,18 +348,24 @@ export const TradeForm = ({
 							<Select
 								value={watch("timeframe") || ""}
 								onValueChange={(value) =>
-									setValue("timeframe", value as (typeof timeframes)[number])
+									setValue("timeframe", value as (typeof legacyTimeframes)[number])
 								}
 							>
 								<SelectTrigger>
 									<SelectValue placeholder="Select timeframe" />
 								</SelectTrigger>
 								<SelectContent>
-									{timeframes.map((tf) => (
-										<SelectItem key={tf} value={tf}>
-											{tf}
-										</SelectItem>
-									))}
+									{hasConfiguredTimeframes
+										? configuredTimeframes.map((tf) => (
+												<SelectItem key={tf.id} value={tf.code.toLowerCase()}>
+													{tf.name}
+												</SelectItem>
+										  ))
+										: legacyTimeframes.map((tf) => (
+												<SelectItem key={tf} value={tf}>
+													{tf}
+												</SelectItem>
+										  ))}
 								</SelectContent>
 							</Select>
 						</div>
@@ -451,16 +554,20 @@ export const TradeForm = ({
 					</div>
 
 					{/* P&L Preview */}
-					{calculatedPnL !== null && (
+					{calculatedPnLResult !== null && (
 						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
 							<p className="text-small text-txt-300">Calculated P&L</p>
 							<p
 								className={cn(
 									"font-mono text-h3 font-bold",
-									calculatedPnL >= 0 ? "text-trade-buy" : "text-trade-sell"
+									calculatedPnLResult.netPnl >= 0
+										? "text-trade-buy"
+										: "text-trade-sell"
 								)}
 							>
-								{calculatedPnL >= 0 ? "+" : ""}${calculatedPnL.toFixed(2)}
+								{calculatedPnLResult.netPnl >= 0 ? "+" : ""}
+								{selectedAsset?.currency ?? "$"}
+								{calculatedPnLResult.netPnl.toFixed(2)}
 								{calculatedR !== null && (
 									<span className="ml-2 text-body">
 										({calculatedR >= 0 ? "+" : ""}
@@ -468,6 +575,19 @@ export const TradeForm = ({
 									</span>
 								)}
 							</p>
+							{selectedAsset && calculatedPnLResult.ticksGained !== 0 && (
+								<div className="mt-s-200 flex gap-m-400 text-tiny text-txt-300">
+									<span>
+										{calculatedPnLResult.ticksGained.toFixed(1)} ticks
+									</span>
+									{calculatedPnLResult.totalCosts > 0 && (
+										<span>
+											Costs: {selectedAsset.currency}
+											{calculatedPnLResult.totalCosts.toFixed(2)}
+										</span>
+									)}
+								</div>
+							)}
 						</div>
 					)}
 				</TabsContent>

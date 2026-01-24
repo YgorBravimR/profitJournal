@@ -30,6 +30,75 @@ export const timeframeEnum = pgEnum("timeframe", [
 	"1w",
 ])
 export const tagTypeEnum = pgEnum("tag_type", ["setup", "mistake", "general"])
+export const timeframeTypeEnum = pgEnum("timeframe_type", [
+	"time_based",
+	"renko",
+])
+export const timeframeUnitEnum = pgEnum("timeframe_unit", [
+	"minutes",
+	"hours",
+	"days",
+	"weeks",
+	"ticks",
+	"points",
+])
+
+// Asset Types Table
+export const assetTypes = pgTable("asset_types", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	code: varchar("code", { length: 50 }).notNull().unique(),
+	name: varchar("name", { length: 100 }).notNull(),
+	description: text("description"),
+	isActive: boolean("is_active").default(true).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
+// Assets Table
+export const assets = pgTable(
+	"assets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		symbol: varchar("symbol", { length: 20 }).notNull().unique(),
+		name: varchar("name", { length: 100 }).notNull(),
+		assetTypeId: uuid("asset_type_id")
+			.notNull()
+			.references(() => assetTypes.id, { onDelete: "restrict" }),
+		tickSize: decimal("tick_size", { precision: 18, scale: 8 }).notNull(),
+		tickValue: decimal("tick_value", { precision: 18, scale: 4 }).notNull(),
+		currency: varchar("currency", { length: 10 }).notNull().default("BRL"),
+		multiplier: decimal("multiplier", { precision: 18, scale: 4 }).default("1"),
+		commission: decimal("commission", { precision: 18, scale: 4 }).default("0"),
+		fees: decimal("fees", { precision: 18, scale: 4 }).default("0"),
+		isActive: boolean("is_active").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("assets_symbol_idx").on(table.symbol),
+		index("assets_asset_type_idx").on(table.assetTypeId),
+	]
+)
+
+// Timeframes Table
+export const timeframes = pgTable("timeframes", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	code: varchar("code", { length: 20 }).notNull().unique(),
+	name: varchar("name", { length: 50 }).notNull(),
+	type: timeframeTypeEnum("type").notNull(),
+	value: integer("value").notNull(),
+	unit: timeframeUnitEnum("unit").notNull(),
+	sortOrder: integer("sort_order").notNull().default(0),
+	isActive: boolean("is_active").default(true).notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
 
 // Strategies Table
 export const strategies = pgTable("strategies", {
@@ -241,6 +310,17 @@ export const tradeTagsRelations = relations(tradeTags, ({ one }) => ({
 	}),
 }))
 
+export const assetTypesRelations = relations(assetTypes, ({ many }) => ({
+	assets: many(assets),
+}))
+
+export const assetsRelations = relations(assets, ({ one }) => ({
+	assetType: one(assetTypes, {
+		fields: [assets.assetTypeId],
+		references: [assetTypes.id],
+	}),
+}))
+
 // Type Exports
 export type Trade = typeof trades.$inferSelect
 export type NewTrade = typeof trades.$inferInsert
@@ -259,3 +339,12 @@ export type NewDailyJournal = typeof dailyJournals.$inferInsert
 
 export type Setting = typeof settings.$inferSelect
 export type NewSetting = typeof settings.$inferInsert
+
+export type AssetType = typeof assetTypes.$inferSelect
+export type NewAssetType = typeof assetTypes.$inferInsert
+
+export type Asset = typeof assets.$inferSelect
+export type NewAsset = typeof assets.$inferInsert
+
+export type Timeframe = typeof timeframes.$inferSelect
+export type NewTimeframe = typeof timeframes.$inferInsert

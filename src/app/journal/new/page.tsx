@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button"
 import { NewTradeTabs } from "@/components/journal"
 import { getStrategies } from "@/app/actions/strategies"
 import { getTags } from "@/app/actions/tags"
+import { getActiveAssets } from "@/app/actions/assets"
+import { getActiveTimeframes } from "@/app/actions/timeframes"
 
 const NewTradePage = async () => {
-	const [strategiesResult, tagsResult] = await Promise.all([
+	const [strategiesResult, tagsResult, assets, timeframes] = await Promise.all([
 		getStrategies(),
 		getTags(),
+		getActiveAssets().catch(() => []),
+		getActiveTimeframes().catch(() => []),
 	])
 
 	const strategies =
@@ -33,7 +37,12 @@ const NewTradePage = async () => {
 			<div className="flex-1 overflow-auto p-m-600">
 				<div className="mx-auto max-w-3xl">
 					<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-600">
-						<NewTradeTabs strategies={strategies} tags={tags} />
+						<NewTradeTabs
+							strategies={strategies}
+							tags={tags}
+							assets={assets}
+							timeframes={timeframes}
+						/>
 					</div>
 				</div>
 			</div>

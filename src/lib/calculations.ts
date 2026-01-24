@@ -127,3 +127,62 @@ export const formatRMultiple = (value: number): string => {
 	const sign = value >= 0 ? "+" : ""
 	return `${sign}${value.toFixed(2)}R`
 }
+
+/**
+ * P&L calculation input for asset-based calculation
+ */
+export interface AssetPnLInput {
+	entryPrice: number
+	exitPrice: number
+	positionSize: number
+	direction: "long" | "short"
+	tickSize: number
+	tickValue: number
+	commission?: number
+	fees?: number
+}
+
+/**
+ * P&L calculation result for asset-based calculation
+ */
+export interface AssetPnLResult {
+	ticksGained: number
+	grossPnl: number
+	netPnl: number
+	totalCosts: number
+}
+
+/**
+ * Calculate P&L for a trade using asset configuration (tick size, tick value)
+ * Example: WINFUT with tickSize=5, tickValue=0.20
+ * Entry: 128000, Exit: 128050, Size: 2 contracts
+ * Ticks gained: (128050 - 128000) / 5 = 10 ticks
+ * Gross P&L: 10 * 0.20 * 2 = R$4.00
+ */
+export const calculateAssetPnL = (input: AssetPnLInput): AssetPnLResult => {
+	const {
+		entryPrice,
+		exitPrice,
+		positionSize,
+		direction,
+		tickSize,
+		tickValue,
+		commission = 0,
+		fees = 0,
+	} = input
+
+	const priceDiff =
+		direction === "long" ? exitPrice - entryPrice : entryPrice - exitPrice
+
+	const ticksGained = priceDiff / tickSize
+	const grossPnl = ticksGained * tickValue * positionSize
+	const totalCosts = (commission + fees) * positionSize
+	const netPnl = grossPnl - totalCosts
+
+	return {
+		ticksGained,
+		grossPnl,
+		netPnl,
+		totalCosts,
+	}
+}

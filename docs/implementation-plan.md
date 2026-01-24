@@ -15,7 +15,8 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 3 | Command Center | ✅ Complete | Jan 2025 |
 | 4 | Deep Analytics | ✅ Complete | Jan 2025 |
 | 5 | Strategy Playbook | ✅ Complete | Jan 2025 |
-| 6 | Reports & Polish | 🔲 Pending | - |
+| 6 | Settings & Configuration | ✅ Complete | Jan 2025 |
+| 7 | i18n & Brazilian Market | 🔲 Pending | - |
 
 ---
 - Functional trade CRUD operations
@@ -384,50 +385,566 @@ src/
 
 ---
 
-## Phase 6: Reports & Polish
+## Phase 6: Settings, Configuration & Reports ✅ COMPLETE
 
-**Goal:** Automated reports, settings, UX improvements.
+**Goal:** Comprehensive asset/timeframe configuration, automated reports, and UX polish.
 
-### Backend Tasks
+---
 
-1. **Report Server Actions** (`src/app/actions/reports.ts`)
-   - [ ] `getWeeklyReport()` - week summary
-   - [ ] `getMonthlyReport()` - month summary
-   - [ ] `getMistakeCostAnalysis()` - sum losses by mistake tag
+### 6.1 Asset Configuration System ✅ COMPLETE
 
-2. **Per-Asset Fees Backend** (`src/app/actions/settings.ts`)
-   - [ ] `getAssetFees()` - get fees for an asset
-   - [ ] `setAssetFees()` - configure commission/fees per asset
-   - [ ] Auto-apply fees in P&L calculations based on trade asset
+**Goal:** Pre-defined assets with type-specific calculation logic.
 
-### Frontend Tasks
+#### Database Schema Changes
 
-1. **Reports Page** (`src/app/reports/page.tsx`)
-   - [ ] Replace placeholder with real components
+1. **Asset Types Table** (`asset_types`)
+   - [x] `id` (uuid, PK)
+   - [x] `code` (varchar, unique) - e.g., "FUTURE_INDEX", "STOCK", "CRYPTO", "FOREX"
+   - [x] `name` (varchar) - e.g., "Future Index", "Stock", "Cryptocurrency"
+   - [x] `description` (text)
+   - [x] `isActive` (boolean)
 
-2. **Weekly/Monthly Reports** (`src/components/reports/`)
-   - [ ] Summary statistics, day-by-day breakdown
-   - [ ] Top wins/losses, mistake cost section
+2. **Assets Table** (`assets`)
+   - [x] `id` (uuid, PK)
+   - [x] `symbol` (varchar, unique) - e.g., "WINFUT", "BTCUSD", "AAPL"
+   - [x] `name` (varchar) - e.g., "Mini Índice Bovespa"
+   - [x] `assetTypeId` (uuid, FK → asset_types)
+   - [x] `tickSize` (decimal) - minimum price variation (e.g., 5 for WINFUT)
+   - [x] `tickValue` (decimal) - money value per tick per contract (e.g., 1.00 BRL for WINFUT)
+   - [x] `currency` (varchar) - e.g., "BRL", "USD"
+   - [x] `multiplier` (decimal) - contract multiplier if applicable
+   - [x] `commission` (decimal) - default commission per contract
+   - [x] `fees` (decimal) - default fees per contract
+   - [x] `isActive` (boolean)
+   - [x] `createdAt`, `updatedAt`
 
-3. **Settings Page** (`src/app/settings/page.tsx`)
-   - [ ] Make settings editable
-   - [ ] Per-asset fee configuration (commission and fees applied automatically to P&L calculations)
-   - [ ] Asset fee management UI (add/edit/delete fee presets per asset)
+#### Backend Tasks (`src/app/actions/assets.ts`)
 
-4. **UX Polish**
-   - [ ] Loading states refinement
-   - [ ] Error handling improvements
-   - [ ] Toast notifications for actions
+- [x] `getAssetTypes()` - list all asset types
+- [x] `createAssetType()` - add new asset type (admin)
+- [x] `getAssets()` - list all assets with type info
+- [x] `getAsset()` - get single asset by symbol
+- [x] `createAsset()` - add new asset with configuration
+- [x] `updateAsset()` - edit asset configuration
+- [x] `deleteAsset()` - deactivate asset
+- [x] `getActiveAssets()` - for trade form dropdown (only active assets)
+
+#### Calculation Logic
+
+- [x] User enters prices in market terms (points/ticks)
+- [x] P&L calculation: `(exitPrice - entryPrice) / tickSize * tickValue * positionSize`
+- [x] Example WINFUT: Entry 128000, Exit 128050, Size 2 contracts
+  - Points gained: (128050 - 128000) / 5 = 10 ticks
+  - P&L: 10 ticks × R$1.00 × 2 contracts = R$20.00
+- [x] Apply commission and fees from asset config
+
+#### Seed Data - Brazilian Market ✅ Created in `scripts/seed-assets.sql`
+
+| Symbol | Name | Type | Tick Size | Tick Value | Currency |
+|--------|------|------|-----------|------------|----------|
+| WINFUT | Mini Índice | Future Index | 5 | 1.00 | BRL |
+| WDOFUT | Mini Dólar | Future FX | 0.5 | 5.00 | BRL |
+| PETR4 | Petrobras PN | Stock | 0.01 | 0.01 | BRL |
+| VALE3 | Vale ON | Stock | 0.01 | 0.01 | BRL |
+
+#### Seed Data - International ✅ Created in `scripts/seed-assets.sql`
+
+| Symbol | Name | Type | Tick Size | Tick Value | Currency |
+|--------|------|------|-----------|------------|----------|
+| BTCUSD | Bitcoin | Crypto | 0.01 | 0.01 | USD |
+| ETHUSD | Ethereum | Crypto | 0.01 | 0.01 | USD |
+| EURUSD | EUR/USD | Forex | 0.0001 | 10.00 | USD |
+| ES | E-mini S&P 500 | Future Index | 0.25 | 12.50 | USD |
+| NQ | E-mini Nasdaq | Future Index | 0.25 | 5.00 | USD |
+| AAPL | Apple Inc | Stock | 0.01 | 0.01 | USD |
+
+---
+
+### 6.2 Timeframe Configuration System ✅ COMPLETE
+
+**Goal:** Configurable timeframes including Renko support.
+
+#### Database Schema Changes
+
+1. **Timeframes Table** (`timeframes`)
+   - [x] `id` (uuid, PK)
+   - [x] `code` (varchar, unique) - e.g., "1M", "5M", "RENKO_10"
+   - [x] `name` (varchar) - e.g., "1 Minute", "Renko 10 ticks"
+   - [x] `type` (enum: "time_based", "renko")
+   - [x] `value` (integer) - e.g., 1, 5, 15, 60 for time; brick size for Renko
+   - [x] `unit` (enum: "minutes", "hours", "days", "weeks", "ticks", "points")
+   - [x] `sortOrder` (integer) - for display ordering
+   - [x] `isActive` (boolean)
+
+#### Backend Tasks (`src/app/actions/timeframes.ts`)
+
+- [x] `getTimeframes()` - list all timeframes
+- [x] `createTimeframe()` - add new timeframe
+- [x] `updateTimeframe()` - edit timeframe
+- [x] `deleteTimeframe()` - deactivate timeframe
+- [x] `getActiveTimeframes()` - for trade form dropdown
+
+#### Seed Data - Time-Based ✅ Created in `scripts/seed-timeframes.sql`
+
+| Code | Name | Type | Value | Unit |
+|------|------|------|-------|------|
+| 1M | 1 Minute | time_based | 1 | minutes |
+| 5M | 5 Minutes | time_based | 5 | minutes |
+| 15M | 15 Minutes | time_based | 15 | minutes |
+| 30M | 30 Minutes | time_based | 30 | minutes |
+| 1H | 1 Hour | time_based | 1 | hours |
+| 4H | 4 Hours | time_based | 4 | hours |
+| 1D | Daily | time_based | 1 | days |
+| 1W | Weekly | time_based | 1 | weeks |
+
+#### Seed Data - Renko ✅ Created in `scripts/seed-timeframes.sql`
+
+| Code | Name | Type | Value | Unit |
+|------|------|------|-------|------|
+| 5R | Renko 5 ticks | renko | 5 | ticks |
+| 10R | Renko 10 ticks | renko | 10 | ticks |
+| 13R | Renko 13 ticks | renko | 13 | ticks |
+| 15rR | Renko 15 ticks | renko | 15 | ticks |
+
+---
+
+### 6.3 Settings UI ✅ COMPLETE
+
+#### Frontend Tasks (`src/app/settings/page.tsx`)
+
+**Tab: Assets**
+- [x] Asset list with search/filter
+- [x] Add new asset button → form modal
+- [x] Edit asset configuration (tick size, tick value, fees)
+- [x] Toggle asset active/inactive
+- [x] Asset type filter dropdown
+- [ ] Bulk import assets (future enhancement)
+
+**Tab: Timeframes**
+- [x] Timeframe list (time-based and Renko separated)
+- [x] Add new timeframe button → form modal
+- [x] Edit timeframe
+- [x] Toggle timeframe active/inactive
+- [ ] Drag-and-drop reorder (future enhancement)
+
+**Tab: General**
+- [x] Default currency setting
+- [x] Date format preference
+- [x] Recalculate R Values button (existing)
+- [x] Theme toggle (if applicable)
+
+---
+
+### 6.4 Trade Form Updates ✅ COMPLETE
+
+- [x] Replace free-text asset input with searchable dropdown of active assets
+- [x] Replace timeframe enum with dropdown of active timeframes
+- [x] Show asset info tooltip (tick size, tick value, currency)
+- [x] Auto-calculate money P&L from price difference based on asset config
+- [x] Display both points/ticks P&L and money P&L
+- [x] Show calculated commission/fees from asset defaults
+
+---
+
+### 6.5 Reports ✅ COMPLETE
+
+#### Backend Tasks (`src/app/actions/reports.ts`)
+
+- [x] `getWeeklyReport()` - week summary with day-by-day breakdown
+- [x] `getMonthlyReport()` - month summary with week-by-week breakdown
+- [x] `getMistakeCostAnalysis()` - sum losses grouped by mistake tag
+
+#### Frontend Tasks
+
+**Reports Page** (`src/app/reports/page.tsx`)
+- [x] Weekly report card with expandable details
+- [x] Monthly report card with expandable details
+- [x] Mistake cost breakdown chart
+- [ ] Export report as PDF (future enhancement)
+
+**Report Components** (`src/components/reports/`)
+- [x] `WeeklyReport` - summary stats, daily P&L table, top wins/losses
+- [x] `MonthlyReport` - summary stats, weekly aggregates, performance trends
+- [x] `MistakeCostAnalysis` - bar chart of losses by mistake tag
+
+---
+
+### 6.6 Migration Path ✅ COMPLETE
+
+1. **Schema Migration**
+   - [x] Create `asset_types` table
+   - [x] Create `assets` table
+   - [x] Create `timeframes` table
+   - [x] Keep `trades.asset` (varchar) for backwards compatibility
+   - [x] Keep `trades.timeframe` (varchar) for backwards compatibility
+
+2. **Data Approach**
+   - [x] Trade form uses dropdowns when assets/timeframes exist
+   - [x] Falls back to free-text input for backwards compatibility
+   - [x] Seed scripts provide initial asset/timeframe data
+
+---
+
+### Files Created/Modified ✅
+
+```
+src/
+├── db/
+│   ├── schema.ts                      # ✅ Added asset_types, assets, timeframes tables
+│   └── migrations/
+│       └── 0002_flimsy_moonstone.sql  # ✅ Migration for Phase 6 tables
+├── app/
+│   ├── settings/
+│   │   └── page.tsx                   # ✅ Full settings with tabs
+│   ├── reports/
+│   │   └── page.tsx                   # ✅ Reports implementation
+│   └── actions/
+│       ├── assets.ts                  # ✅ Asset CRUD
+│       ├── timeframes.ts              # ✅ Timeframe CRUD
+│       └── reports.ts                 # ✅ Report generation
+├── components/
+│   ├── ui/
+│   │   └── dialog.tsx                 # ✅ shadcn dialog component
+│   ├── settings/
+│   │   ├── index.ts                   # ✅ Barrel exports
+│   │   ├── settings-content.tsx       # ✅ Tab container
+│   │   ├── asset-list.tsx             # ✅ Asset management table
+│   │   ├── asset-form.tsx             # ✅ Asset create/edit dialog
+│   │   ├── timeframe-list.tsx         # ✅ Timeframe cards
+│   │   ├── timeframe-form.tsx         # ✅ Timeframe create/edit dialog
+│   │   └── general-settings.tsx       # ✅ Theme, risk, data maintenance
+│   ├── reports/
+│   │   ├── index.ts                   # ✅ Barrel exports
+│   │   ├── reports-content.tsx        # ✅ Report container
+│   │   ├── weekly-report-card.tsx     # ✅ Weekly report with navigation
+│   │   ├── monthly-report-card.tsx    # ✅ Monthly report with breakdowns
+│   │   └── mistake-cost-card.tsx      # ✅ Mistake analysis visualization
+│   └── journal/
+│       └── trade-form.tsx             # ✅ Updated with asset/timeframe dropdowns
+├── lib/
+│   ├── validations/
+│   │   ├── asset.ts                   # ✅ Asset validation schema
+│   │   └── timeframe.ts               # ✅ Timeframe validation schema
+│   └── calculations.ts                # ✅ Added calculateAssetPnL
+└── scripts/
+    ├── seed-asset-types.sql           # ✅ 7 asset types
+    ├── seed-assets.sql                # ✅ Brazilian B3 + international assets
+    ├── seed-timeframes.sql            # ✅ Time-based + Renko timeframes
+    ├── seed-strategies.sql            # ✅ Trading strategies
+    ├── seed-trades.sql                # ✅ 40 sample trades from CSV
+    └── seed-all.sql                   # ✅ Master seed script
+```
+
+---
 
 ### Deliverables
-- Weekly and monthly automated reports
-- Mistake cost analysis
-- Complete settings page with per-asset fee configuration
-- Automatic fee application in P&L calculations
-- Polished user experience
+
+- [x] Asset configuration system with type-specific calculations
+- [x] Pre-defined assets selectable in trade form (with free-text fallback)
+- [x] Automatic P&L calculation from market price variation
+- [x] Commission/fees automatically applied per asset
+- [x] Extended timeframe support including Renko
+- [x] Full settings page with asset/timeframe management
+- [x] Weekly and monthly automated reports
+- [x] Mistake cost analysis
+- [x] Backwards-compatible approach for existing data
+- [x] Seed scripts for assets, timeframes, strategies, and sample trades
+
+---
 
 ### Note
-CSV Import was completed in Phase 3.
+CSV Import was completed in Phase 3. CSV parser will need update to support asset lookup by symbol.
+
+---
+
+## Phase 7: Internationalization & Brazilian Market Focus
+
+**Goal:** Full i18n support with next-intl, Brazilian Portuguese as primary language, and complete B3 market adaptation.
+
+---
+
+### 7.1 Core i18n Framework
+
+**Library:** `next-intl` (optimized for React Server Components)
+
+**Routing Strategy:** Dynamic `[locale]` segment for SEO and server-side locale awareness.
+
+#### Supported Locales
+
+| Code | Language | Region | Primary |
+|------|----------|--------|---------|
+| `pt-BR` | Portuguese | Brazil | ✅ Default |
+| `en` | English | International | Fallback |
+
+---
+
+### 7.2 State Synchronization
+
+**Source of Truth:** User database (`users.preferred_language`)
+
+**Edge Cache:** `NEXT_LOCALE` cookie for middleware performance
+
+#### Flow
+
+```
+1. User logs in → Read DB preference → Set NEXT_LOCALE cookie
+2. Middleware reads cookie → Determines locale without DB query
+3. Anonymous users → Fallback to browser Accept-Language header
+4. Profile update → Sync cookie with new DB preference
+```
+
+---
+
+### 7.3 Implementation Tasks
+
+#### Configuration Files
+
+- [ ] `src/i18n.ts` - `getRequestConfig` for server-side message loading
+- [ ] `src/middleware.ts` - next-intl middleware with cookie priority
+- [ ] `next.config.ts` - i18n plugin configuration
+
+#### Message Files Structure
+
+```
+messages/
+├── pt-BR/
+│   ├── common.json          # Shared UI (buttons, labels, errors)
+│   ├── dashboard.json       # Dashboard-specific
+│   ├── journal.json         # Trade journal
+│   ├── analytics.json       # Analytics page
+│   ├── playbook.json        # Strategy playbook
+│   ├── reports.json         # Reports
+│   ├── settings.json        # Settings
+│   └── validation.json      # Form validation messages
+└── en/
+    ├── common.json
+    ├── dashboard.json
+    ├── journal.json
+    ├── analytics.json
+    ├── playbook.json
+    ├── reports.json
+    ├── settings.json
+    └── validation.json
+```
+
+#### Route Structure Migration
+
+```
+src/app/
+├── [locale]/
+│   ├── layout.tsx           # Locale-aware layout with mismatch guard
+│   ├── page.tsx             # Dashboard
+│   ├── journal/
+│   │   ├── page.tsx
+│   │   ├── new/page.tsx
+│   │   └── [id]/
+│   │       ├── page.tsx
+│   │       └── edit/page.tsx
+│   ├── analytics/page.tsx
+│   ├── playbook/
+│   │   ├── page.tsx
+│   │   ├── new/page.tsx
+│   │   └── [id]/
+│   │       ├── page.tsx
+│   │       └── edit/page.tsx
+│   ├── reports/page.tsx
+│   └── settings/page.tsx
+└── api/                     # API routes (no locale prefix)
+```
+
+---
+
+### 7.4 Server Components (RSC)
+
+**Use `getTranslations()` (async) for Server Components:**
+
+```typescript
+// Server Component
+import { getTranslations } from 'next-intl/server'
+
+const DashboardPage = async () => {
+  const t = await getTranslations('dashboard')
+  return <h1>{t('title')}</h1>
+}
+```
+
+**Use `useTranslations()` only for Client Components with interactivity.**
+
+---
+
+### 7.5 Mismatch Guard
+
+In `[locale]/layout.tsx`, redirect if user's DB preference differs from URL:
+
+```typescript
+// Pseudocode
+const userLocale = await getUserPreferredLocale()
+if (userLocale && userLocale !== params.locale) {
+  redirect(`/${userLocale}${pathname}`)
+}
+```
+
+---
+
+### 7.6 Brazilian Market Adaptation (B3)
+
+#### Currency & Number Formatting
+
+- [ ] Default currency: BRL (R$)
+- [ ] Number format: `1.234,56` (dot for thousands, comma for decimals)
+- [ ] Date format: `DD/MM/YYYY`
+- [ ] Time format: 24-hour
+
+#### B3 Pre-configured Assets
+
+| Symbol | Name | Type | Tick Size | Tick Value |
+|--------|------|------|-----------|------------|
+| WINFUT | Mini Índice Bovespa | Future Index | 5 pts | R$ 0,20 |
+| WDOFUT | Mini Dólar | Future FX | 0,5 pts | R$ 10,00 |
+| INDFUT | Índice Cheio | Future Index | 5 pts | R$ 1,00 |
+| DOLFUT | Dólar Cheio | Future FX | 0,5 pts | R$ 50,00 |
+| PETR4 | Petrobras PN | Stock | R$ 0,01 | R$ 0,01 |
+| VALE3 | Vale ON | Stock | R$ 0,01 | R$ 0,01 |
+| ITUB4 | Itaú Unibanco PN | Stock | R$ 0,01 | R$ 0,01 |
+| BBDC4 | Bradesco PN | Stock | R$ 0,01 | R$ 0,01 |
+| ABEV3 | Ambev ON | Stock | R$ 0,01 | R$ 0,01 |
+| B3SA3 | B3 ON | Stock | R$ 0,01 | R$ 0,01 |
+| MGLU3 | Magazine Luiza ON | Stock | R$ 0,01 | R$ 0,01 |
+| BBAS3 | Banco do Brasil ON | Stock | R$ 0,01 | R$ 0,01 |
+
+#### B3 Trading Hours Context
+
+- [ ] Pre-market: 09:00 - 10:00
+- [ ] Regular session: 10:00 - 17:00
+- [ ] After-market: 17:30 - 18:00
+- [ ] Option to filter analytics by session type
+
+#### Brazilian Tax Context (Future Enhancement)
+
+- [ ] Day trade tax rate: 20%
+- [ ] Swing trade tax rate: 15%
+- [ ] Monthly exemption tracking for stocks (R$ 20,000)
+- [ ] DARF generation helper (future)
+
+---
+
+### 7.7 Translation Keys Structure
+
+#### Example: `messages/pt-BR/common.json`
+
+```json
+{
+  "nav": {
+    "dashboard": "Painel",
+    "journal": "Diário",
+    "analytics": "Análises",
+    "playbook": "Playbook",
+    "reports": "Relatórios",
+    "settings": "Configurações"
+  },
+  "actions": {
+    "save": "Salvar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "edit": "Editar",
+    "create": "Criar",
+    "confirm": "Confirmar"
+  },
+  "trade": {
+    "direction": {
+      "long": "Compra",
+      "short": "Venda"
+    },
+    "outcome": {
+      "win": "Gain",
+      "loss": "Loss",
+      "breakeven": "Empate"
+    }
+  },
+  "currency": {
+    "symbol": "R$",
+    "code": "BRL"
+  }
+}
+```
+
+#### Example: `messages/pt-BR/dashboard.json`
+
+```json
+{
+  "title": "Painel de Controle",
+  "kpi": {
+    "netPnl": "P&L Líquido",
+    "winRate": "Taxa de Acerto",
+    "profitFactor": "Fator de Lucro",
+    "avgR": "R Médio",
+    "discipline": "Disciplina"
+  },
+  "calendar": {
+    "title": "Calendário de Trades",
+    "noTrades": "Sem trades neste mês"
+  },
+  "equity": {
+    "title": "Curva de Capital",
+    "cumulative": "P&L Acumulado",
+    "drawdown": "Drawdown"
+  }
+}
+```
+
+---
+
+### 7.8 Files to Create/Modify
+
+```
+src/
+├── i18n.ts                           # next-intl configuration
+├── middleware.ts                     # Locale detection middleware
+├── app/
+│   └── [locale]/                     # All routes under locale segment
+│       ├── layout.tsx                # Locale provider + mismatch guard
+│       └── ...                       # All existing pages moved here
+├── messages/
+│   ├── pt-BR/
+│   │   ├── common.json
+│   │   ├── dashboard.json
+│   │   ├── journal.json
+│   │   ├── analytics.json
+│   │   ├── playbook.json
+│   │   ├── reports.json
+│   │   ├── settings.json
+│   │   └── validation.json
+│   └── en/
+│       └── ...                       # Same structure
+├── lib/
+│   ├── formatting.ts                 # Locale-aware number/date/currency formatting
+│   └── locale.ts                     # Locale utilities (get/set preference)
+└── scripts/
+    └── seed-b3-assets.sql            # B3 market seed data
+```
+
+---
+
+### 7.9 Dependencies
+
+```bash
+pnpm add next-intl
+```
+
+---
+
+### Deliverables
+
+- [ ] Full i18n setup with next-intl
+- [ ] Portuguese (Brazil) as default language
+- [ ] English as fallback language
+- [ ] All UI strings externalized to message files
+- [ ] Locale-aware routing (`/pt-BR/...`, `/en/...`)
+- [ ] Cookie-based locale persistence
+- [ ] Brazilian number/date/currency formatting
+- [ ] Complete B3 asset seed data
+- [ ] Trading session time context
+- [ ] Mismatch guard for authenticated users
 
 ---
 

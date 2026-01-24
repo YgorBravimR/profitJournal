@@ -4,16 +4,24 @@ import { useState } from "react"
 import { FileText, Upload } from "lucide-react"
 import { TradeForm } from "./trade-form"
 import { CsvImport } from "./csv-import"
-import type { Strategy, Tag } from "@/db/schema"
+import type { Strategy, Tag, Timeframe } from "@/db/schema"
+import type { AssetWithType } from "@/app/actions/assets"
 
 interface NewTradeTabsProps {
 	strategies: Strategy[]
 	tags: Tag[]
+	assets?: AssetWithType[]
+	timeframes?: Timeframe[]
 }
 
 type TabValue = "single" | "bulk"
 
-export const NewTradeTabs = ({ strategies, tags }: NewTradeTabsProps) => {
+export const NewTradeTabs = ({
+	strategies,
+	tags,
+	assets = [],
+	timeframes = [],
+}: NewTradeTabsProps) => {
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
 
 	return (
@@ -53,7 +61,12 @@ export const NewTradeTabs = ({ strategies, tags }: NewTradeTabsProps) => {
 			{/* Tab Content */}
 			<div role="tabpanel">
 				{activeTab === "single" ? (
-					<TradeForm strategies={strategies} tags={tags} />
+					<TradeForm
+						strategies={strategies}
+						tags={tags}
+						assets={assets}
+						timeframes={timeframes}
+					/>
 				) : (
 					<CsvImport />
 				)}
