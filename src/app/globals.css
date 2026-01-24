@@ -4,15 +4,23 @@
 
 @theme {
   /* Dark Theme (Default) */
-  --color-bg-100: rgb(24 28 34);
-  --color-bg-200: rgb(31 36 43);
-  --color-bg-300: rgb(56 64 77);
-  --color-txt-100: rgb(232 230 227);
-  --color-txt-200: rgb(180 178 174);
-  --color-txt-300: rgb(130 129 126);
+  --color-bg-100: rgb(11 14 17);
+  --color-bg-200: rgb(21 25 33);
+  --color-bg-300: rgb(43 47 54);
+  --color-bg-stripe: rgb(26 31 38);
+  --color-txt-100: rgb(230 232 234);
+  --color-txt-200: rgb(132 142 156);
+  --color-txt-300: rgb(90 96 106);
   --color-acc-100: rgb(204 162 72);
   --color-acc-200: rgb(80 110 200);
   --color-fb-error: rgb(204 85 85);
+
+  /* Trading Colors */
+  --color-trade-buy: rgb(0 255 150);
+  --color-trade-sell: rgb(128 128 255);
+  --color-warning: rgb(252 213 53);
+  --color-trade-buy-muted: rgb(0 255 150 / 0.2);
+  --color-trade-sell-muted: rgb(128 128 255 / 0.2);
   
   --radius: 0.625rem;
   --color-background: var(--color-bg-100);
@@ -46,6 +54,14 @@
   --color-sidebar-accent-foreground: var(--color-txt-100);
   --color-sidebar-border: var(--color-bg-300);
   --color-sidebar-ring: var(--color-acc-100);
+
+  /* Trading semantic colors */
+  --color-profit: var(--color-trade-buy);
+  --color-loss: var(--color-trade-sell);
+  --color-long: var(--color-trade-buy);
+  --color-short: var(--color-trade-sell);
+  --color-win: var(--color-trade-buy);
+  --color-lose: var(--color-trade-sell);
 
   --spacing-s-100: 4px;
   --spacing-s-200: 8px;
@@ -83,12 +99,20 @@
   --color-bg-100: rgb(250 250 249);
   --color-bg-200: rgb(245 245 244);
   --color-bg-300: rgb(231 229 228);
+  --color-bg-stripe: rgb(240 240 238);
   --color-txt-100: rgb(41 37 36);
   --color-txt-200: rgb(87 83 78);
   --color-txt-300: rgb(120 113 108);
-  --color-acc-100: rgb(245, 194, 9);
+  --color-acc-100: rgb(245 194 9);
   --color-acc-200: rgb(59 130 246);
   --color-fb-error: rgb(220 38 38);
+
+  /* Trading Colors - adjusted for light mode */
+  --color-trade-buy: rgb(0 180 100);
+  --color-trade-sell: rgb(100 100 220);
+  --color-warning: rgb(220 180 20);
+  --color-trade-buy-muted: rgb(0 180 100 / 0.15);
+  --color-trade-sell-muted: rgb(100 100 220 / 0.15);
   
   --color-background: var(--color-bg-100);
   --color-foreground: var(--color-txt-100);

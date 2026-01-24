@@ -6,171 +6,200 @@ A personal trading performance analysis platform with deep journaling, analytics
 
 ---
 
+## Progress Tracker
+
+| Phase | Name | Status | Completed |
+|-------|------|--------|-----------|
+| 1 | Foundation | ✅ Complete | Jan 2025 |
+| 2 | Trade Management | 🔲 Pending | - |
+| 3 | Command Center | 🔲 Pending | - |
+| 4 | Deep Analytics | 🔲 Pending | - |
+| 5 | Strategy Playbook | 🔲 Pending | - |
+| 6 | Reports & Polish | 🔲 Pending | - |
+
+---
+
 ## Current State Assessment
 
-### Already Implemented
+### Implemented (Phase 1 Complete)
+
+**Infrastructure:**
 - Next.js 16 + React 19 foundation with App Router
-- TailwindCSS 4 with custom design tokens (globals.css)
+- TailwindCSS 4 with custom design tokens
 - Drizzle ORM configured for PostgreSQL/Neon
-- Base UI components: Button, Card, Toast, ThemeToggle
-- Theme system with dark/light mode support
-- Error boundary and loading states
-- ESLint + Prettier configuration
+- ESLint 9 flat config + Prettier
 
-### Needs Replacement
-- Current `page.tsx` references a study tracker - needs complete rewrite for trading journal
+**Database Schema (`src/db/schema.ts`):**
+- `trades` - 32 columns (P&L, R-multiples, MFE/MAE, narrative)
+- `strategies` - playbook entries with criteria
+- `tags` - setup/mistake tags with colors
+- `trade_tags` - many-to-many relationship
+- `daily_journals` - session reflections
+- `settings` - user preferences
+- Migration generated: `src/db/migrations/0000_fat_justin_hammer.sql`
 
-### To Be Built
-- Database schema for trades, strategies, tags, reports
-- All server actions for CRUD operations
+**Theme System (`src/app/globals.css`):**
+- Trading colors: `--color-trade-buy` (Mint), `--color-trade-sell` (Periwinkle)
+- Warning color, muted variants, zebra stripes
+- Dark and light theme support
+
+**Layout Components (`src/components/layout/`):**
+- `Sidebar` - collapsible navigation
+- `MainLayout` - app shell wrapper
+- `PageHeader` - consistent headers
+
+**Routes (all with placeholder content):**
+- `/` - Dashboard (Command Center)
+- `/journal` - Trade list
+- `/journal/new` - New trade form
+- `/journal/[id]` - Trade detail
+- `/analytics` - Analytics page
+- `/playbook` - Strategy playbook
+- `/reports` - Performance reports
+- `/settings` - User preferences
+
+**Server Actions (`src/app/actions/`):**
+- `trades.ts` - placeholder CRUD
+- `strategies.ts` - placeholder CRUD
+- `tags.ts` - placeholder CRUD
+- `analytics.ts` - placeholder stats
+
+**Utilities:**
+- `src/lib/dates.ts` - date helpers
+- `src/lib/calculations.ts` - trading calculations
+- `src/types/index.ts` - TypeScript types
+
+**UI Components:**
+- Button, Card, Toast, ThemeToggle (shadcn)
+
+### To Be Built (Phases 2-6)
+- Functional trade CRUD operations
 - Dashboard components (KPIs, Calendar, Equity Curve)
-- Journal entry system
-- Analytics engine
-- Strategy playbook
+- Journal entry system with form
+- Analytics engine with filtering
+- Strategy playbook with compliance
 - Performance reports
+- CSV import/export
 
 ---
 
-## Implementation Phases
-
-The plan is divided into **6 phases**, each delivering frontend and backend work together to create functional increments.
-
-| Phase | Name | Focus | Estimated Scope |
-|-------|------|-------|-----------------|
-| 1 | Foundation | Database schema + Core layout | Schema, Navigation, Theming updates |
-| 2 | Trade Management | Trade CRUD + Journal basics | Trade entry, listing, detail view |
-| 3 | Command Center | Main dashboard | KPIs, Calendar, Basic stats |
-| 4 | Deep Analytics | Filtering + Analysis | Tag system, Filters, Variable comparison |
-| 5 | Strategy Playbook | Rules + Compliance | Setup definitions, Tracking |
-| 6 | Reports & Polish | Automation + UX | Weekly/Monthly reports, CSV import |
-
----
-
-## Phase 1: Foundation
+## Phase 1: Foundation ✅ COMPLETE
 
 **Goal:** Establish database structure, update theming for trading context, create app shell with navigation.
 
-### Backend Tasks
+### Completed Tasks
 
-1. **Database Schema Design** (`src/db/schema.ts`)
-   - `trades` table - core trade records
-   - `strategies` table - playbook entries
-   - `tags` table - setup/mistake tags
-   - `trade_tags` table - many-to-many relation
-   - `daily_journals` table - narrative entries
-   - `settings` table - user preferences
+#### Backend
+- [x] Database schema with 6 tables and relations
+- [x] Migration generated (`0000_fat_justin_hammer.sql`)
+- [x] Placeholder server actions for trades, strategies, tags, analytics
+- [x] Type definitions in `src/types/index.ts`
 
-2. **Run Initial Migration**
-   ```bash
-   pnpm db:generate && pnpm db:push
-   ```
+#### Frontend
+- [x] Trading colors added to globals.css (buy/sell/warning/muted)
+- [x] Sidebar with collapsible navigation
+- [x] MainLayout wrapper component
+- [x] PageHeader component
+- [x] All 8 route pages with placeholder UI
 
-3. **Create Base Server Actions** (`src/app/actions/`)
-   - `trades.ts` - placeholder structure
-   - `strategies.ts` - placeholder structure
-   - `analytics.ts` - placeholder structure
+#### Utilities
+- [x] `src/lib/dates.ts` - week/month boundaries, formatting
+- [x] `src/lib/calculations.ts` - win rate, profit factor, EV, R-multiple, position sizing
 
-### Frontend Tasks
+### Files Created/Modified
+```
+src/
+├── app/
+│   ├── page.tsx                    # Dashboard placeholder
+│   ├── layout.tsx                  # Updated with MainLayout
+│   ├── globals.css                 # Trading colors added
+│   ├── journal/
+│   │   ├── page.tsx               # Trade list placeholder
+│   │   ├── new/page.tsx           # New trade placeholder
+│   │   └── [id]/page.tsx          # Trade detail placeholder
+│   ├── analytics/page.tsx          # Analytics placeholder
+│   ├── playbook/page.tsx           # Playbook placeholder
+│   ├── reports/page.tsx            # Reports placeholder
+│   ├── settings/page.tsx           # Settings placeholder
+│   └── actions/
+│       ├── trades.ts              # Trade actions (placeholder)
+│       ├── strategies.ts          # Strategy actions (placeholder)
+│       ├── tags.ts                # Tag actions (placeholder)
+│       └── analytics.ts           # Analytics actions (placeholder)
+├── components/
+│   └── layout/
+│       ├── sidebar.tsx            # Navigation sidebar
+│       ├── main-layout.tsx        # App shell
+│       ├── page-header.tsx        # Page headers
+│       └── index.ts               # Barrel export
+├── db/
+│   ├── schema.ts                  # Full schema with 6 tables
+│   └── migrations/
+│       └── 0000_fat_justin_hammer.sql
+├── lib/
+│   ├── dates.ts                   # Date utilities
+│   └── calculations.ts            # Trading calculations
+├── types/
+│   └── index.ts                   # TypeScript types
+└── eslint.config.mjs              # ESLint 9 flat config
+```
 
-1. **Update Theme Colors** (`src/app/globals.css`)
-   - Add trading-specific colors:
-     - `--color-trade-buy: rgb(0, 255, 150)` (Mint)
-     - `--color-trade-sell: rgb(128, 128, 255)` (Periwinkle)
-     - `--color-warning: rgb(252, 213, 53)` (Yellow alerts)
-   - Add zebra stripe colors for tables
-
-2. **Create App Shell**
-   - Sidebar navigation component (`src/components/layout/sidebar.tsx`)
-   - Main layout wrapper (`src/components/layout/main-layout.tsx`)
-   - Page header component (`src/components/layout/page-header.tsx`)
-
-3. **Navigation Structure**
-   - Dashboard (Command Center)
-   - Journal (Trade List + Entry)
-   - Analytics
-   - Playbook
-   - Reports
-   - Settings
-
-4. **Create Route Structure**
-   ```
-   src/app/
-   ├── (dashboard)/
-   │   └── page.tsx           # Command Center
-   ├── journal/
-   │   ├── page.tsx           # Trade list
-   │   └── [id]/page.tsx      # Trade detail
-   ├── analytics/
-   │   └── page.tsx
-   ├── playbook/
-   │   └── page.tsx
-   ├── reports/
-   │   └── page.tsx
-   └── settings/
-       └── page.tsx
-   ```
-
-### Deliverables
-- Working database with all tables
-- App shell with navigation
-- All routes created (with placeholder content)
+### To Run the App
+```bash
+pnpm dev          # Start dev server
+pnpm db:push      # Push schema to database (requires DATABASE_URL)
+```
 
 ---
 
-## Phase 2: Trade Management
+## Phase 2: Trade Management 🔲 NEXT
 
 **Goal:** Build complete trade entry and journal system.
 
 ### Backend Tasks
 
-1. **Trade Server Actions** (`src/app/actions/trades.ts`)
-   - `createTrade()` - add new trade
-   - `updateTrade()` - edit existing trade
-   - `deleteTrade()` - remove trade
-   - `getTrade()` - single trade fetch
-   - `getTrades()` - paginated list with filters
-   - `getTradesForDate()` - calendar view
-   - `getTradesForDateRange()` - reports
+1. **Implement Trade Server Actions** (`src/app/actions/trades.ts`)
+   - [ ] `createTrade()` - validate with Zod, insert, handle tags
+   - [ ] `updateTrade()` - partial update, recalculate derived fields
+   - [ ] `deleteTrade()` - soft delete (isArchived)
+   - [ ] `getTrade()` - fetch with strategy and tags relations
+   - [ ] `getTrades()` - paginated list with filters
+   - [ ] `getTradesForDate()` - for calendar integration
 
 2. **Validation Schemas** (`src/lib/validations/trade.ts`)
-   - Trade input schema with Zod
-   - Filter parameters schema
-
-3. **Date Utilities** (`src/lib/dates.ts`)
-   - `getWeekBoundaries()`
-   - `getMonthBoundaries()`
-   - `formatCurrency()`
-   - `formatDate()`
+   - [ ] Trade input schema with Zod
+   - [ ] Filter parameters schema
 
 ### Frontend Tasks
 
 1. **Trade List Page** (`src/app/journal/page.tsx`)
-   - Server component with trade fetching
-   - Filter controls (date range, asset, outcome)
-   - Trade card list with key metrics
-   - Pagination
+   - [ ] Server component with trade fetching
+   - [ ] Filter controls (date range, asset, outcome)
+   - [ ] Trade card list with key metrics
+   - [ ] Pagination controls
 
 2. **Trade Entry Form** (`src/components/journal/trade-form.tsx`)
-   - Multi-step or tabbed form:
+   - [ ] Multi-section form:
      - Basic info (asset, direction, date/time)
      - Execution (entry price, exit price, size)
      - Risk management (stop loss, take profit, planned R)
      - Notes (pre-trade thoughts, post-trade reflection)
      - Tags (setup type, mistakes)
-   - Form validation with Zod + React Hook Form
+   - [ ] Form validation with Zod + React Hook Form
+   - [ ] Server action submission
 
 3. **Trade Detail Page** (`src/app/journal/[id]/page.tsx`)
-   - Full trade breakdown
-   - Planned vs Realized R visualization
-   - MFE/MAE display (manual input for now)
-   - Narrative sections
-   - Edit/Delete actions
+   - [ ] Full trade breakdown
+   - [ ] Planned vs Realized R visualization
+   - [ ] MFE/MAE display
+   - [ ] Narrative sections
+   - [ ] Edit/Delete actions
 
 4. **UI Components**
-   - `TradeCard` - summary card for list view
-   - `TradeMetric` - reusable metric display
-   - `PnLDisplay` - colored profit/loss with monospace font
-   - `RMultipleBar` - visual R comparison
+   - [ ] `TradeCard` - summary card for list view
+   - [ ] `TradeMetric` - reusable metric display
+   - [ ] `PnLDisplay` - colored profit/loss with monospace font
+   - [ ] `RMultipleBar` - visual R comparison
 
 ### Deliverables
 - Full trade CRUD functionality
@@ -186,51 +215,38 @@ The plan is divided into **6 phases**, each delivering frontend and backend work
 
 ### Backend Tasks
 
-1. **Analytics Server Actions** (`src/app/actions/analytics.ts`)
-   - `getOverallStats()` - Net P&L, Win Rate, Profit Factor, Avg R
-   - `getStreakData()` - winning/losing streaks
-   - `getDailyPnL()` - for calendar coloring
-   - `getEquityCurve()` - cumulative P&L over time
-   - `getDrawdownData()` - peak-to-trough calculations
-   - `getDisciplineScore()` - playbook compliance %
-
-2. **KPI Calculations** (`src/lib/calculations.ts`)
-   - Win rate calculation
-   - Profit factor calculation
-   - Average R-Multiple
-   - Drawdown percentage
-   - Expected value
+1. **Implement Analytics Server Actions** (`src/app/actions/analytics.ts`)
+   - [ ] `getOverallStats()` - Net P&L, Win Rate, Profit Factor, Avg R
+   - [ ] `getStreakData()` - winning/losing streaks
+   - [ ] `getDailyPnL()` - for calendar coloring
+   - [ ] `getEquityCurve()` - cumulative P&L over time
+   - [ ] `getDrawdownData()` - peak-to-trough calculations
+   - [ ] `getDisciplineScore()` - playbook compliance %
 
 ### Frontend Tasks
 
-1. **Dashboard Page** (`src/app/(dashboard)/page.tsx`)
-   - Server component orchestrating all data
-   - Grid layout with KPI cards, calendar, chart
+1. **Dashboard Page** (`src/app/page.tsx`)
+   - [ ] Replace placeholder with real data fetching
+   - [ ] Grid layout with KPI cards, calendar, chart
 
 2. **KPI Cards** (`src/components/dashboard/kpi-cards.tsx`)
-   - Net P&L (large, prominent)
-   - Win Rate
-   - Profit Factor
-   - Average R
-   - Discipline Score
+   - [ ] Net P&L (large, prominent)
+   - [ ] Win Rate, Profit Factor, Average R
+   - [ ] Discipline Score
 
 3. **Trading Calendar** (`src/components/dashboard/trading-calendar.tsx`)
-   - Monthly grid view
-   - Color-coded days (green/red intensity by P&L)
-   - Click to navigate to day's trades
-   - Month navigation
+   - [ ] Monthly grid view
+   - [ ] Color-coded days by P&L
+   - [ ] Click to navigate to day's trades
+   - [ ] Month navigation
 
 4. **Equity Curve Chart** (`src/components/dashboard/equity-curve.tsx`)
-   - Line chart with Recharts
-   - Gradient fill (green above, periwinkle below)
-   - Drawdown overlay
-   - Hover tooltips with date/value
+   - [ ] Line chart with Recharts
+   - [ ] Gradient fill (green/periwinkle)
+   - [ ] Drawdown overlay
 
 5. **Quick Stats Panel** (`src/components/dashboard/quick-stats.tsx`)
-   - Current streak
-   - Best day
-   - Worst day
-   - Total trades this period
+   - [ ] Current streak, Best/Worst day, Total trades
 
 ### Deliverables
 - Fully functional dashboard
@@ -246,58 +262,42 @@ The plan is divided into **6 phases**, each delivering frontend and backend work
 
 ### Backend Tasks
 
-1. **Tag Server Actions** (`src/app/actions/tags.ts`)
-   - `createTag()` - add new tag
-   - `getTags()` - list all tags
-   - `getTagStats()` - performance per tag
-   - `assignTagToTrade()` - link tag to trade
+1. **Implement Tag Server Actions** (`src/app/actions/tags.ts`)
+   - [ ] `createTag()` - add new tag
+   - [ ] `getTags()` - list all tags
+   - [ ] `getTagStats()` - performance per tag
 
-2. **Advanced Analytics** (`src/app/actions/analytics.ts` - extend)
-   - `getPerformanceByVariable()` - group by timeframe/asset/time
-   - `getTagCloudData()` - tag frequency + performance
-   - `getExpectedValue()` - EV calculation
-   - `getTradeDistribution()` - R-distribution histogram
+2. **Extend Analytics** (`src/app/actions/analytics.ts`)
+   - [ ] `getPerformanceByVariable()` - group by timeframe/asset/time
+   - [ ] `getTagCloudData()` - tag frequency + performance
+   - [ ] `getExpectedValue()` - EV calculation
+   - [ ] `getTradeDistribution()` - R-distribution histogram
 
 ### Frontend Tasks
 
 1. **Analytics Page** (`src/app/analytics/page.tsx`)
-   - Filter panel
-   - Multiple chart views
-   - Tag analysis section
+   - [ ] Replace placeholder with real components
 
 2. **Filter Panel** (`src/components/analytics/filter-panel.tsx`)
-   - Date range picker
-   - Asset selector (multi-select)
-   - Strategy selector
-   - Tag selector (setup/mistake)
-   - Time of day filter
+   - [ ] Date range picker, multi-selects for filters
 
 3. **Variable Comparison** (`src/components/analytics/variable-comparison.tsx`)
-   - Dropdown to select grouping variable
-   - Bar chart comparing performance
-   - Table with detailed breakdown
+   - [ ] Dropdown to select grouping, bar chart
 
 4. **Tag Cloud** (`src/components/analytics/tag-cloud.tsx`)
-   - Visual tag display with size = frequency
-   - Color = profitable/unprofitable
-   - Click to filter trades by tag
+   - [ ] Visual tag display with size/color coding
 
 5. **Expected Value Calculator** (`src/components/analytics/expected-value.tsx`)
-   - Display current EV
-   - Projection over N trades
-   - Interactive adjustments
+   - [ ] Current EV, projection over N trades
 
 6. **R-Distribution Histogram** (`src/components/analytics/r-distribution.tsx`)
-   - Bar chart of R outcomes
-   - Highlight "fat tail" winners
-   - Highlight cut losers
+   - [ ] Bar chart of R outcomes
 
 ### Deliverables
 - Full filtering system
 - Variable comparison tool
 - Tag analysis with cloud visualization
-- EV calculator
-- R-distribution chart
+- EV calculator, R-distribution chart
 
 ---
 
@@ -307,47 +307,26 @@ The plan is divided into **6 phases**, each delivering frontend and backend work
 
 ### Backend Tasks
 
-1. **Strategy Server Actions** (`src/app/actions/strategies.ts`)
-   - `createStrategy()` - add playbook entry
-   - `updateStrategy()` - edit strategy
-   - `deleteStrategy()` - remove strategy
-   - `getStrategies()` - list all
-   - `getStrategyCompliance()` - % of trades following rules
-
-2. **Compliance Calculation**
-   - Link trades to strategies
-   - Track rule adherence per trade
-   - Calculate compliance percentage
+1. **Implement Strategy Server Actions** (`src/app/actions/strategies.ts`)
+   - [ ] `createStrategy()` - add playbook entry
+   - [ ] `updateStrategy()` - edit strategy
+   - [ ] `deleteStrategy()` - remove strategy
+   - [ ] `getStrategies()` - list all with stats
+   - [ ] `getStrategyCompliance()` - % of trades following rules
 
 ### Frontend Tasks
 
 1. **Playbook Page** (`src/app/playbook/page.tsx`)
-   - Strategy list with compliance stats
-   - Add new strategy button
+   - [ ] Replace placeholder with real components
 
 2. **Strategy Card** (`src/components/playbook/strategy-card.tsx`)
-   - Strategy name + description
-   - Entry/Exit criteria
-   - Compliance percentage badge
-   - Trade count using this strategy
+   - [ ] Name, description, compliance badge
 
 3. **Strategy Form** (`src/components/playbook/strategy-form.tsx`)
-   - Name and description
-   - Entry criteria (rich text or structured)
-   - Exit criteria
-   - Risk rules (max R, stop placement)
-   - Screenshot upload (future: image storage)
+   - [ ] Entry/exit criteria, risk rules
 
-4. **Strategy Detail Modal** (`src/components/playbook/strategy-detail.tsx`)
-   - Full strategy view
-   - "Gold standard" reference area
-   - Linked trades list
-   - Edit/Delete actions
-
-5. **Compliance Dashboard** (`src/components/playbook/compliance-dashboard.tsx`)
-   - Overall compliance score
-   - Per-strategy breakdown
-   - Trend over time
+4. **Compliance Dashboard** (`src/components/playbook/compliance-dashboard.tsx`)
+   - [ ] Overall score, per-strategy breakdown
 
 ### Deliverables
 - Strategy CRUD functionality
@@ -363,57 +342,34 @@ The plan is divided into **6 phases**, each delivering frontend and backend work
 ### Backend Tasks
 
 1. **Report Server Actions** (`src/app/actions/reports.ts`)
-   - `getWeeklyReport()` - week summary data
-   - `getMonthlyReport()` - month summary data
-   - `getMistakeCostAnalysis()` - sum losses by mistake tag
+   - [ ] `getWeeklyReport()` - week summary
+   - [ ] `getMonthlyReport()` - month summary
+   - [ ] `getMistakeCostAnalysis()` - sum losses by mistake tag
 
 2. **CSV Import** (`src/app/actions/import.ts`)
-   - `parseCSV()` - validate and parse CSV
-   - `importTrades()` - bulk insert trades
-   - Template download endpoint
+   - [ ] `parseCSV()` - validate and parse
+   - [ ] `importTrades()` - bulk insert
 
 ### Frontend Tasks
 
 1. **Reports Page** (`src/app/reports/page.tsx`)
-   - Report type selector (weekly/monthly)
-   - Date range picker
-   - Generated report display
+   - [ ] Replace placeholder with real components
 
-2. **Weekly Report** (`src/components/reports/weekly-report.tsx`)
-   - Summary statistics
-   - Day-by-day breakdown
-   - Top wins/losses
-   - Mistake cost section
+2. **Weekly/Monthly Reports** (`src/components/reports/`)
+   - [ ] Summary statistics, day-by-day breakdown
+   - [ ] Top wins/losses, mistake cost section
 
-3. **Monthly Report** (`src/components/reports/monthly-report.tsx`)
-   - Month overview
-   - Week-by-week comparison
-   - Strategy performance
-   - Mistake analysis with cost
+3. **CSV Import** (`src/components/settings/csv-import.tsx`)
+   - [ ] File upload, column mapping, preview
 
-4. **Mistake Cost Analysis** (`src/components/reports/mistake-cost.tsx`)
-   - Table of mistake tags
-   - Total cost per mistake
-   - Psychological impact messaging
+4. **Settings Page** (`src/app/settings/page.tsx`)
+   - [ ] Make settings editable
 
-5. **CSV Import** (`src/components/settings/csv-import.tsx`)
-   - File upload dropzone
-   - Column mapping interface
-   - Preview before import
-   - Import progress + results
-
-6. **Settings Page** (`src/app/settings/page.tsx`)
-   - Account preferences
-   - Default risk settings
-   - CSV import section
-   - Data export
-
-7. **UX Polish**
-   - Loading states refinement
-   - Error handling improvements
-   - Toast notifications for actions
-   - Keyboard shortcuts
-   - Mobile responsiveness
+5. **UX Polish**
+   - [ ] Loading states refinement
+   - [ ] Error handling improvements
+   - [ ] Toast notifications for actions
+   - [ ] Mobile responsiveness
 
 ### Deliverables
 - Weekly and monthly automated reports
@@ -429,99 +385,49 @@ The plan is divided into **6 phases**, each delivering frontend and backend work
 ```
 src/
 ├── app/
-│   ├── (dashboard)/
-│   │   └── page.tsx
+│   ├── page.tsx                    # Dashboard
+│   ├── layout.tsx                  # Root layout with MainLayout
+│   ├── globals.css                 # Design tokens + trading colors
+│   ├── error.tsx                   # Error boundary
+│   ├── loading.tsx                 # Loading skeleton
 │   ├── journal/
-│   │   ├── page.tsx
-│   │   └── [id]/page.tsx
-│   ├── analytics/
-│   │   └── page.tsx
-│   ├── playbook/
-│   │   └── page.tsx
-│   ├── reports/
-│   │   └── page.tsx
-│   ├── settings/
-│   │   └── page.tsx
-│   ├── actions/
-│   │   ├── trades.ts
-│   │   ├── strategies.ts
-│   │   ├── tags.ts
-│   │   ├── analytics.ts
-│   │   ├── reports.ts
-│   │   └── import.ts
-│   ├── layout.tsx
-│   ├── globals.css
-│   ├── error.tsx
-│   └── loading.tsx
+│   │   ├── page.tsx               # Trade list
+│   │   ├── new/page.tsx           # New trade form
+│   │   └── [id]/page.tsx          # Trade detail
+│   ├── analytics/page.tsx
+│   ├── playbook/page.tsx
+│   ├── reports/page.tsx
+│   ├── settings/page.tsx
+│   └── actions/
+│       ├── trades.ts
+│       ├── strategies.ts
+│       ├── tags.ts
+│       ├── analytics.ts
+│       ├── reports.ts             # Phase 6
+│       └── import.ts              # Phase 6
 ├── components/
-│   ├── ui/                    # Base shadcn components
-│   ├── layout/
-│   │   ├── sidebar.tsx
-│   │   ├── main-layout.tsx
-│   │   └── page-header.tsx
-│   ├── dashboard/
-│   │   ├── kpi-cards.tsx
-│   │   ├── trading-calendar.tsx
-│   │   ├── equity-curve.tsx
-│   │   └── quick-stats.tsx
-│   ├── journal/
-│   │   ├── trade-form.tsx
-│   │   ├── trade-card.tsx
-│   │   ├── trade-detail.tsx
-│   │   └── trade-metric.tsx
-│   ├── analytics/
-│   │   ├── filter-panel.tsx
-│   │   ├── variable-comparison.tsx
-│   │   ├── tag-cloud.tsx
-│   │   ├── expected-value.tsx
-│   │   └── r-distribution.tsx
-│   ├── playbook/
-│   │   ├── strategy-card.tsx
-│   │   ├── strategy-form.tsx
-│   │   ├── strategy-detail.tsx
-│   │   └── compliance-dashboard.tsx
-│   ├── reports/
-│   │   ├── weekly-report.tsx
-│   │   ├── monthly-report.tsx
-│   │   └── mistake-cost.tsx
-│   └── settings/
-│       └── csv-import.tsx
+│   ├── ui/                        # Base shadcn components
+│   ├── layout/                    # ✅ Sidebar, MainLayout, PageHeader
+│   ├── dashboard/                 # Phase 3
+│   ├── journal/                   # Phase 2
+│   ├── analytics/                 # Phase 4
+│   ├── playbook/                  # Phase 5
+│   ├── reports/                   # Phase 6
+│   └── settings/                  # Phase 6
 ├── db/
-│   ├── drizzle.ts
-│   ├── schema.ts
-│   └── migrations/
+│   ├── drizzle.ts                 # Database client
+│   ├── schema.ts                  # ✅ Full schema
+│   └── migrations/                # ✅ Generated
 ├── lib/
-│   ├── utils.ts
-│   ├── dates.ts
-│   ├── calculations.ts
-│   └── validations/
+│   ├── utils.ts                   # cn() utility
+│   ├── dates.ts                   # ✅ Date utilities
+│   ├── calculations.ts            # ✅ Trading calculations
+│   └── validations/               # Phase 2
 │       ├── trade.ts
 │       └── strategy.ts
 └── types/
-    └── index.ts
+    └── index.ts                   # ✅ TypeScript types
 ```
-
----
-
-## Development Guidelines
-
-### Code Quality
-- Follow TypeScript strict mode
-- Use Zod for all form validations
-- Use server actions for all data mutations
-- Keep client components minimal
-- Document complex calculations
-
-### Testing Strategy
-- Manual testing during development
-- Focus on data integrity for trades
-- Validate calculations match expected formulas
-
-### Performance Considerations
-- Use React Server Components where possible
-- Implement pagination for trade lists
-- Optimize chart data fetching
-- Consider caching for analytics
 
 ---
 

@@ -3,7 +3,11 @@
     "allow": [
       "mcp__linear__get_issue",
       "Bash(done)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm add:*)",
+      "Bash(pnpm build:*)",
+      "Bash(pnpm db:generate:*)"
     ],
     "deny": [],
     "ask": []
