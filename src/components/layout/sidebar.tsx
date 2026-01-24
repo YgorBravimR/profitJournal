@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -31,18 +30,18 @@ const navItems: NavItem[] = [
 	{ label: "Settings", href: "/settings", icon: Settings },
 ]
 
-export const Sidebar = () => {
-	const [isCollapsed, setIsCollapsed] = useState(false)
-	const pathname = usePathname()
+interface SidebarProps {
+	isCollapsed: boolean
+	onToggleCollapse: () => void
+}
 
-	const handleToggleCollapse = () => {
-		setIsCollapsed((prev) => !prev)
-	}
+export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
+	const pathname = usePathname()
 
 	return (
 		<aside
 			className={cn(
-				"flex h-screen flex-col border-r border-bg-300 bg-bg-200 transition-all duration-300",
+				"fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-bg-300 bg-bg-200 transition-all duration-300",
 				isCollapsed ? "w-16" : "w-64"
 			)}
 		>
@@ -53,7 +52,7 @@ export const Sidebar = () => {
 				)}
 				<button
 					type="button"
-					onClick={handleToggleCollapse}
+					onClick={onToggleCollapse}
 					className="rounded-md p-2 text-txt-200 hover:bg-bg-300 hover:text-txt-100"
 					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				>

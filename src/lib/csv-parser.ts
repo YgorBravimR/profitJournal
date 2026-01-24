@@ -1,8 +1,13 @@
 import type { CreateTradeInput } from "./validations/trade"
 
+// Extended type that includes strategy code for CSV import
+export interface CsvTradeInput extends CreateTradeInput {
+	strategyCode?: string
+}
+
 export interface CsvParseResult {
 	success: boolean
-	trades: CreateTradeInput[]
+	trades: CsvTradeInput[]
 	errors: Array<{
 		row: number
 		field: string
@@ -115,6 +120,9 @@ const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 	disciplinenotes: "disciplineNotes",
 }
 
+// Strategy column mappings (separate because it's not part of CreateTradeInput)
+const STRATEGY_COLUMN_NAMES = ["strategy", "strategy_code", "strategycode", "strat"]
+
 const REQUIRED_FIELDS: Array<keyof CreateTradeInput> = [
 	"asset",
 	"direction",
@@ -219,8 +227,15 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 	// Map headers to fields
 	const columnMap: Array<{ index: number; field: keyof CreateTradeInput }> = []
 	const unmappedHeaders: string[] = []
+	let strategyColumnIndex: number | null = null
 
 	headers.forEach((header, index) => {
+		// Check if it's a strategy column
+		if (STRATEGY_COLUMN_NAMES.includes(header)) {
+			strategyColumnIndex = index
+			return
+		}
+
 		const field = COLUMN_MAPPINGS[header]
 		if (field) {
 			columnMap.push({ index, field })
@@ -259,8 +274,16 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 		if (!line) continue
 
 		const values = parseCSVLine(line)
-		const trade: Partial<CreateTradeInput> = {}
+		const trade: Partial<CsvTradeInput> = {}
 		let rowHasErrors = false
+
+		// Extract strategy code if column exists
+		if (strategyColumnIndex !== null) {
+			const strategyCode = values[strategyColumnIndex]?.trim().toUpperCase()
+			if (strategyCode) {
+				trade.strategyCode = strategyCode
+			}
+		}
 
 		for (const { index, field } of columnMap) {
 			const value = values[index]?.trim() || ""
@@ -382,7 +405,7 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 		}
 
 		if (!rowHasErrors) {
-			result.trades.push(trade as CreateTradeInput)
+			result.trades.push(trade as CsvTradeInput)
 		}
 	}
 

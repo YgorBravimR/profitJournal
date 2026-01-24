@@ -14,65 +14,10 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 2 | Trade Management | ✅ Complete | Jan 2025 |
 | 3 | Command Center | ✅ Complete | Jan 2025 |
 | 4 | Deep Analytics | ✅ Complete | Jan 2025 |
-| 5 | Strategy Playbook | 🔲 Pending | - |
+| 5 | Strategy Playbook | ✅ Complete | Jan 2025 |
 | 6 | Reports & Polish | 🔲 Pending | - |
 
 ---
-
-## Current State Assessment
-
-### Implemented (Phase 1 Complete)
-
-**Infrastructure:**
-- Next.js 16 + React 19 foundation with App Router
-- TailwindCSS 4 with custom design tokens
-- Drizzle ORM configured for PostgreSQL/Neon
-- ESLint 9 flat config + Prettier
-
-**Database Schema (`src/db/schema.ts`):**
-- `trades` - 32 columns (P&L, R-multiples, MFE/MAE, narrative)
-- `strategies` - playbook entries with criteria
-- `tags` - setup/mistake tags with colors
-- `trade_tags` - many-to-many relationship
-- `daily_journals` - session reflections
-- `settings` - user preferences
-- Migration generated: `src/db/migrations/0000_fat_justin_hammer.sql`
-
-**Theme System (`src/app/globals.css`):**
-- Trading colors: `--color-trade-buy` (Mint), `--color-trade-sell` (Periwinkle)
-- Warning color, muted variants, zebra stripes
-- Dark and light theme support
-
-**Layout Components (`src/components/layout/`):**
-- `Sidebar` - collapsible navigation
-- `MainLayout` - app shell wrapper
-- `PageHeader` - consistent headers
-
-**Routes (all with placeholder content):**
-- `/` - Dashboard (Command Center)
-- `/journal` - Trade list
-- `/journal/new` - New trade form
-- `/journal/[id]` - Trade detail
-- `/analytics` - Analytics page
-- `/playbook` - Strategy playbook
-- `/reports` - Performance reports
-- `/settings` - User preferences
-
-**Server Actions (`src/app/actions/`):**
-- `trades.ts` - placeholder CRUD
-- `strategies.ts` - placeholder CRUD
-- `tags.ts` - placeholder CRUD
-- `analytics.ts` - placeholder stats
-
-**Utilities:**
-- `src/lib/dates.ts` - date helpers
-- `src/lib/calculations.ts` - trading calculations
-- `src/types/index.ts` - TypeScript types
-
-**UI Components:**
-- Button, Card, Toast, ThemeToggle (shadcn)
-
-### To Be Built (Phases 2-6)
 - Functional trade CRUD operations
 - Dashboard components (KPIs, Calendar, Equity Curve)
 - Journal entry system with form
@@ -310,80 +255,132 @@ src/
 - [x] `updateTag()` - edit tag name/type/color
 - [x] `deleteTag()` - remove tag
 - [x] `getTags()` - list all tags with optional type filter
-- [x] `getTagStats()` - performance per tag (P&L, win rate, avg R, trade count)
-- [x] `getPerformanceByVariable()` - group by asset/timeframe/hour/dayOfWeek/strategy
-- [x] `getExpectedValue()` - EV calculation with win rate, avg win/loss, 100-trade projection
-- [x] `getRDistribution()` - R-multiple histogram buckets from <-2R to >3R
+- [x] `getTagStats()` - performance per tag (P&L, win rate, avg R, trade count) with full filter support
+- [x] `getPerformanceByVariable()` - group by asset/timeframe/hour/dayOfWeek/strategy with full filter support
+- [x] `getExpectedValue()` - EV calculation with win rate, avg win/loss, 100-trade projection with full filter support
+- [x] `getRDistribution()` - R-multiple histogram buckets from <-2R to >3R with full filter support
+- [x] `buildFilterConditions()` - helper function for applying TradeFilters (date, assets, directions, outcomes, timeframes)
+- [x] `recalculateRValues()` - recalculate plannedRiskAmount, plannedRMultiple, realizedRMultiple for all trades
 
 #### Frontend
 - [x] Analytics page with server-side data fetching (`src/app/analytics/page.tsx`)
-- [x] Filter Panel - date presets, custom date range, asset/direction/outcome/timeframe filters
+- [x] Filter Panel - date presets, custom date range, asset/direction/outcome/timeframe filters (all filters fully functional)
 - [x] Variable Comparison - bar chart with metric selector (P&L, win rate, avg R, trade count, profit factor)
 - [x] Tag Cloud - visual tag display by type with size/color coding and detailed stats table
 - [x] Expected Value - EV display with formula breakdown and interpretation
 - [x] R-Distribution Histogram - bar chart with Recharts, color-coded positive/negative R
+- [x] Tooltips - informative tooltips on all analytics metrics using shadcn tooltip component
+- [x] Profit Factor display - handles Infinity (∞) and zero edge cases properly
+
+#### Risk Calculation Improvements
+- [x] Auto-calculate `plannedRiskAmount` from stop loss (never user-inputted)
+- [x] Auto-calculate `plannedRMultiple` from take profit / stop loss ratio (never user-inputted)
+- [x] Removed plannedRiskAmount and plannedRMultiple from validation schema and CSV parser
+- [x] Trade form shows calculated risk values as read-only fields
+- [x] Settings page has "Recalculate R Values" button for fixing existing trades
+
+#### UI/UX Improvements
+- [x] Increased text contrast for better readability (txt-200, txt-300 colors brightened)
+- [x] Added shadcn tooltip component for metric explanations
 
 ### Files Created/Modified
 ```
 src/
 ├── app/
 │   ├── analytics/page.tsx              # Full implementation with data
+│   ├── settings/page.tsx               # Added recalculate R values button
+│   ├── globals.css                     # Improved text contrast colors
 │   └── actions/
-│       ├── tags.ts                     # Full CRUD + stats
-│       └── analytics.ts                # Extended with new functions
+│       ├── tags.ts                     # Full CRUD + stats with TradeFilters support
+│       ├── analytics.ts                # Extended with filter support + recalculateRValues
+│       └── trades.ts                   # Auto-calculate risk fields
 ├── components/
-│   └── analytics/
-│       ├── index.ts                    # Barrel exports
-│       ├── filter-panel.tsx            # Date/filter controls
-│       ├── variable-comparison.tsx     # Performance chart
-│       ├── tag-cloud.tsx               # Tag visualization
-│       ├── expected-value.tsx          # EV calculator
-│       ├── r-distribution.tsx          # R histogram
-│       └── analytics-content.tsx       # Client wrapper
+│   ├── ui/
+│   │   └── tooltip.tsx                 # shadcn tooltip component
+│   ├── analytics/
+│   │   ├── index.ts                    # Barrel exports
+│   │   ├── filter-panel.tsx            # Date/filter controls with FilterState type
+│   │   ├── variable-comparison.tsx     # Performance chart with tooltips
+│   │   ├── tag-cloud.tsx               # Tag visualization
+│   │   ├── expected-value.tsx          # EV calculator with tooltips
+│   │   ├── r-distribution.tsx          # R histogram with tooltips
+│   │   └── analytics-content.tsx       # Client wrapper with full filter passing
+│   └── journal/
+│       └── trade-form.tsx              # Read-only calculated risk fields
+├── lib/
+│   └── validations/
+│       └── trade.ts                    # Removed plannedRiskAmount/plannedRMultiple from schema
 └── types/
-    └── index.ts                        # Added PerformanceByGroup, ExpectedValueData, RDistributionBucket
+    └── index.ts                        # TradeFilters, PerformanceByGroup, ExpectedValueData, RDistributionBucket
 ```
 
 ### Deliverables
-- ✅ Full filtering system with date presets and multi-select filters
+- ✅ Full filtering system with date presets and multi-select filters (ALL filters functional)
 - ✅ Variable comparison tool with 5 grouping options and 5 metrics
 - ✅ Tag analysis with cloud visualization and detailed statistics table
 - ✅ EV calculator with formula explanation and 100-trade projection
 - ✅ R-distribution histogram with positive/negative color coding
+- ✅ Informative tooltips on all analytics metrics
+- ✅ Auto-calculated risk fields (plannedRiskAmount, plannedRMultiple)
+- ✅ Recalculate R values utility for fixing existing trades
+- ✅ Improved text contrast for better readability
 
 ---
 
-## Phase 5: Strategy Playbook 🔲 NEXT
+## Phase 5: Strategy Playbook ✅ COMPLETE
 
 **Goal:** Build strategy library and compliance tracking.
 
-### Backend Tasks
+### Completed Tasks
 
-1. **Implement Strategy Server Actions** (`src/app/actions/strategies.ts`)
-   - [ ] `createStrategy()` - add playbook entry
-   - [ ] `updateStrategy()` - edit strategy
-   - [ ] `deleteStrategy()` - remove strategy
-   - [ ] `getStrategies()` - list all with stats
-   - [ ] `getStrategyCompliance()` - % of trades following rules
+#### Backend
+- [x] `createStrategy()` - add playbook entry with validation
+- [x] `updateStrategy()` - edit strategy with partial updates
+- [x] `deleteStrategy()` - soft delete (deactivate) or hard delete
+- [x] `getStrategies()` - list all with stats (tradeCount, winRate, PnL, avgR, compliance, profitFactor)
+- [x] `getStrategy()` - single strategy by ID with full stats
+- [x] `getComplianceOverview()` - overall compliance, tracked trades, top/needs attention strategies
+- [x] Strategy validation schema with Zod (`src/lib/validations/strategy.ts`)
 
-### Frontend Tasks
+#### Frontend
+- [x] Playbook Page (`src/app/playbook/page.tsx`) - server-side data fetching
+- [x] Strategy Detail Page (`src/app/playbook/[id]/page.tsx`) - full strategy view with all rules and stats
 
-1. **Playbook Page** (`src/app/playbook/page.tsx`)
-   - [ ] Replace placeholder with real components
+#### UI Components (`src/components/playbook/`)
+- [x] `StrategyCard` - name, description, stats grid (trades, P&L, win rate, avg R), compliance bar, target R/risk display
+- [x] `StrategyForm` - multi-tab modal form (Basic Info, Rules & Criteria, Risk Settings) for create/edit
+- [x] `ComplianceDashboard` - circular progress, followed/deviated breakdown, top performing/needs attention strategies
+- [x] `PlaybookContent` - client wrapper with form state management
 
-2. **Strategy Card** (`src/components/playbook/strategy-card.tsx`)
-   - [ ] Name, description, compliance badge
-
-3. **Strategy Form** (`src/components/playbook/strategy-form.tsx`)
-   - [ ] Entry/exit criteria, risk rules
-
-4. **Compliance Dashboard** (`src/components/playbook/compliance-dashboard.tsx`)
-   - [ ] Overall score, per-strategy breakdown
+### Files Created/Modified
+```
+src/
+├── app/
+│   ├── playbook/
+│   │   ├── page.tsx                   # Server component with data fetching
+│   │   └── [id]/page.tsx              # Strategy detail page
+│   └── actions/
+│       └── strategies.ts              # Full CRUD + compliance actions
+├── components/
+│   └── playbook/
+│       ├── index.ts                   # Barrel exports
+│       ├── strategy-card.tsx          # Strategy summary card
+│       ├── strategy-form.tsx          # Create/edit form modal
+│       ├── compliance-dashboard.tsx   # Compliance overview widget
+│       └── playbook-content.tsx       # Client wrapper
+└── lib/
+    └── validations/
+        └── strategy.ts                # Zod validation schema
+```
 
 ### Deliverables
-- Strategy CRUD functionality
-- Compliance tracking per strategy
-- Playbook overview page
+- ✅ Full strategy CRUD functionality (create, update, soft/hard delete)
+- ✅ Strategy statistics (trade count, P&L, win rate, profit factor, avg R)
+- ✅ Compliance tracking per strategy and overall
+- ✅ Compliance overview dashboard with visual progress ring
+- ✅ Strategy detail page with full rules/criteria display
+- ✅ Multi-tab form for strategy entry/edit
+- ✅ Top performing and needs attention strategy highlights
 
 ---
 
@@ -421,7 +418,6 @@ src/
    - [ ] Loading states refinement
    - [ ] Error handling improvements
    - [ ] Toast notifications for actions
-   - [ ] Mobile responsiveness
 
 ### Deliverables
 - Weekly and monthly automated reports

@@ -15,6 +15,7 @@ import {
 	type TradeFilters,
 	type PaginationParams,
 } from "@/lib/validations/trade"
+import type { CsvTradeInput } from "@/lib/csv-parser"
 import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
 import { calculatePnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
@@ -546,7 +547,7 @@ export interface BulkCreateResult {
 }
 
 export const bulkCreateTrades = async (
-	inputs: CreateTradeInput[]
+	inputs: CsvTradeInput[]
 ): Promise<ActionResponse<BulkCreateResult>> => {
 	const result: BulkCreateResult = {
 		successCount: 0,
@@ -555,9 +556,29 @@ export const bulkCreateTrades = async (
 	}
 
 	try {
+		// Collect all unique strategy codes from the inputs
+		const strategyCodes = [
+			...new Set(
+				inputs
+					.map((i) => i.strategyCode)
+					.filter((code): code is string => !!code)
+			),
+		]
+
+		// Look up strategies by code
+		const strategyMap = new Map<string, string>()
+		if (strategyCodes.length > 0) {
+			const foundStrategies = await db.query.strategies.findMany({
+				where: inArray(strategies.code, strategyCodes),
+			})
+			for (const strategy of foundStrategies) {
+				strategyMap.set(strategy.code, strategy.id)
+			}
+		}
+
 		// Process trades in batches to avoid overwhelming the database
 		const BATCH_SIZE = 50
-		const batches: CreateTradeInput[][] = []
+		const batches: CsvTradeInput[][] = []
 
 		for (let i = 0; i < inputs.length; i += BATCH_SIZE) {
 			batches.push(inputs.slice(i, i + BATCH_SIZE))
@@ -571,8 +592,15 @@ export const bulkCreateTrades = async (
 				const globalIndex = inputs.indexOf(input)
 
 				try {
-					const validated = createTradeSchema.parse(input)
+					// Extract strategyCode before validation (not part of CreateTradeInput)
+					const { strategyCode, ...tradeInput } = input
+					const validated = createTradeSchema.parse(tradeInput)
 					const { tagIds, ...tradeData } = validated
+
+					// Look up strategy ID from code
+					const strategyId = strategyCode
+						? strategyMap.get(strategyCode) || null
+						: null
 
 					// Calculate derived fields
 					let pnl = tradeData.pnl
@@ -635,7 +663,7 @@ export const bulkCreateTrades = async (
 						mfe: tradeData.mfe?.toString(),
 						mae: tradeData.mae?.toString(),
 						followedPlan: tradeData.followedPlan,
-						strategyId: tradeData.strategyId || null,
+						strategyId: strategyId || tradeData.strategyId || null,
 						preTradeThoughts: tradeData.preTradeThoughts,
 						postTradeReflection: tradeData.postTradeReflection,
 						lessonLearned: tradeData.lessonLearned,

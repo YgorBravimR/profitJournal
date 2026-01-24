@@ -34,6 +34,7 @@ export const tagTypeEnum = pgEnum("tag_type", ["setup", "mistake", "general"])
 // Strategies Table
 export const strategies = pgTable("strategies", {
 	id: uuid("id").primaryKey().defaultRandom(),
+	code: varchar("code").notNull().unique(),
 	name: varchar("name", { length: 100 }).notNull(),
 	description: text("description"),
 	entryCriteria: text("entry_criteria"),
