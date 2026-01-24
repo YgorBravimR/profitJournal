@@ -1,11 +1,13 @@
-import Link from "next/link"
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import { Plus, Search } from "lucide-react"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { TradeCard } from "@/components/journal"
 import { getTrades } from "@/app/actions/trades"
+import { Link } from "@/i18n/routing"
 
 interface JournalPageProps {
+	params: Promise<{ locale: string }>
 	searchParams: Promise<{
 		page?: string
 		asset?: string
@@ -13,17 +15,24 @@ interface JournalPageProps {
 	}>
 }
 
-const JournalPage = async ({ searchParams }: JournalPageProps) => {
-	const params = await searchParams
-	const page = Number(params.page) || 1
+const JournalPage = async ({ params, searchParams }: JournalPageProps) => {
+	const { locale } = await params
+	setRequestLocale(locale)
+
+	const t = await getTranslations("journal")
+	const tCommon = await getTranslations("common")
+	const tTrade = await getTranslations("trade")
+
+	const searchParamsData = await searchParams
+	const page = Number(searchParamsData.page) || 1
 	const limit = 10
 	const offset = (page - 1) * limit
 
 	const result = await getTrades(
 		{
-			assets: params.asset ? [params.asset] : undefined,
-			outcomes: params.outcome
-				? [params.outcome as "win" | "loss" | "breakeven"]
+			assets: searchParamsData.asset ? [searchParamsData.asset] : undefined,
+			outcomes: searchParamsData.outcome
+				? [searchParamsData.outcome as "win" | "loss" | "breakeven"]
 				: undefined,
 		},
 		{ limit, offset }
@@ -37,13 +46,13 @@ const JournalPage = async ({ searchParams }: JournalPageProps) => {
 	return (
 		<div className="flex h-full flex-col">
 			<PageHeader
-				title="Trade Journal"
-				description="Review and analyze your trades"
+				title={t("title")}
+				description={t("description")}
 				action={
 					<Link href="/journal/new">
 						<Button>
 							<Plus className="mr-2 h-4 w-4" />
-							New Trade
+							{tTrade("newTrade")}
 						</Button>
 					</Link>
 				}
@@ -72,14 +81,14 @@ const JournalPage = async ({ searchParams }: JournalPageProps) => {
 							<div className="mb-m-400 flex h-16 w-16 items-center justify-center rounded-full bg-bg-300">
 								<Search className="h-8 w-8 text-txt-300" />
 							</div>
-							<p className="text-body text-txt-200">No trades recorded yet</p>
+							<p className="text-body text-txt-200">{tTrade("noTrades")}</p>
 							<p className="mt-s-200 text-small text-txt-300">
 								Start by adding your first trade
 							</p>
 							<Link href="/journal/new" className="mt-m-500">
 								<Button>
 									<Plus className="mr-2 h-4 w-4" />
-									Add Trade
+									{tCommon("add")} {tTrade("trade")}
 								</Button>
 							</Link>
 						</div>
@@ -92,7 +101,7 @@ const JournalPage = async ({ searchParams }: JournalPageProps) => {
 						{page > 1 && (
 							<Link href={`/journal?page=${page - 1}`}>
 								<Button variant="outline" size="sm">
-									Previous
+									{tCommon("previous")}
 								</Button>
 							</Link>
 						)}
@@ -102,7 +111,7 @@ const JournalPage = async ({ searchParams }: JournalPageProps) => {
 						{page < totalPages && (
 							<Link href={`/journal?page=${page + 1}`}>
 								<Button variant="outline" size="sm">
-									Next
+									{tCommon("next")}
 								</Button>
 							</Link>
 						)}

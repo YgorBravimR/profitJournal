@@ -1,23 +1,40 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { RecalculateButton } from "@/app/settings/recalculate-button"
-import Link from "next/link"
+import { RecalculateButton } from "@/components/settings/recalculate-button"
+import { LanguageSwitcher } from "@/components/settings/language-switcher"
+import { Link } from "@/i18n/routing"
 
 export const GeneralSettings = () => {
+	const t = useTranslations("settings.general")
+
 	return (
 		<div className="mx-auto max-w-2xl space-y-m-600">
 			{/* Appearance */}
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">Appearance</h2>
-				<div className="mt-m-400 flex items-center justify-between">
-					<div>
-						<p className="text-small text-txt-100">Theme</p>
-						<p className="text-tiny text-txt-300">
-							Switch between dark and light mode
-						</p>
+				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
+				<div className="mt-m-400 space-y-m-500">
+					{/* Theme */}
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-small text-txt-100">{t("theme")}</p>
+							<p className="text-tiny text-txt-300">
+								{t("themeLight")} / {t("themeDark")}
+							</p>
+						</div>
+						<ThemeToggle />
 					</div>
-					<ThemeToggle />
+					{/* Language */}
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-small text-txt-100">{t("language")}</p>
+							<p className="text-tiny text-txt-300">
+								Português (Brasil) / English
+							</p>
+						</div>
+						<LanguageSwitcher />
+					</div>
 				</div>
 			</div>
 

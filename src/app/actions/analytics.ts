@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { trades } from "@/db/schema"
+import { trades, settings } from "@/db/schema"
 import { eq, and, gte, lte, desc, asc, sql, inArray } from "drizzle-orm"
 import type {
 	ActionResponse,
@@ -220,12 +220,21 @@ export const getDisciplineScore = async (
 
 /**
  * Get equity curve data
+ * Returns both cumulative P&L (equity) and actual account value (accountEquity)
  */
 export const getEquityCurve = async (
 	dateFrom?: Date,
 	dateTo?: Date
 ): Promise<ActionResponse<EquityPoint[]>> => {
 	try {
+		// Get account balance from settings
+		const accountBalanceSetting = await db.query.settings.findFirst({
+			where: eq(settings.key, "account_balance"),
+		})
+		const initialBalance = accountBalanceSetting
+			? Number(accountBalanceSetting.value) || 10000
+			: 10000
+
 		const conditions = [eq(trades.isArchived, false)]
 
 		if (dateFrom) {
@@ -248,24 +257,27 @@ export const getEquityCurve = async (
 			}
 		}
 
-		// Build equity curve
-		let cumulativeEquity = 0
-		let peak = 0
+		// Build equity curve with both P&L and account equity
+		let cumulativePnL = 0
+		let accountEquity = initialBalance
+		let peak = initialBalance
 		const equityPoints: EquityPoint[] = []
 
 		for (const trade of result) {
 			const pnl = Number(trade.pnl) || 0
-			cumulativeEquity += pnl
+			cumulativePnL += pnl
+			accountEquity = initialBalance + cumulativePnL
 
-			if (cumulativeEquity > peak) {
-				peak = cumulativeEquity
+			if (accountEquity > peak) {
+				peak = accountEquity
 			}
 
-			const drawdown = peak > 0 ? ((peak - cumulativeEquity) / peak) * 100 : 0
+			const drawdown = peak > 0 ? ((peak - accountEquity) / peak) * 100 : 0
 
 			equityPoints.push({
 				date: formatDateKey(trade.entryDate),
-				equity: cumulativeEquity,
+				equity: cumulativePnL,
+				accountEquity,
 				drawdown,
 			})
 		}

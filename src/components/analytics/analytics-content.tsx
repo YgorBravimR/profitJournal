@@ -7,12 +7,14 @@ import {
 	TagCloud,
 	ExpectedValue,
 	RDistribution,
+	CumulativePnlChart,
 	type FilterState,
 } from "@/components/analytics"
 import {
 	getPerformanceByVariable,
 	getExpectedValue,
 	getRDistribution,
+	getEquityCurve,
 } from "@/app/actions/analytics"
 import { getTagStats } from "@/app/actions/tags"
 import type {
@@ -20,6 +22,7 @@ import type {
 	TagStats,
 	ExpectedValueData,
 	RDistributionBucket,
+	EquityPoint,
 } from "@/types"
 
 interface AnalyticsContentProps {
@@ -27,6 +30,7 @@ interface AnalyticsContentProps {
 	initialTagStats: TagStats[]
 	initialExpectedValue: ExpectedValueData | null
 	initialRDistribution: RDistributionBucket[]
+	initialEquityCurve: EquityPoint[]
 	availableAssets: string[]
 }
 
@@ -35,6 +39,7 @@ export const AnalyticsContent = ({
 	initialTagStats,
 	initialExpectedValue,
 	initialRDistribution,
+	initialEquityCurve,
 	availableAssets,
 }: AnalyticsContentProps) => {
 	const [isPending, startTransition] = useTransition()
@@ -59,6 +64,8 @@ export const AnalyticsContent = ({
 		useState<ExpectedValueData | null>(initialExpectedValue)
 	const [rDistribution, setRDistribution] =
 		useState<RDistributionBucket[]>(initialRDistribution)
+	const [equityCurve, setEquityCurve] =
+		useState<EquityPoint[]>(initialEquityCurve)
 
 	// Refetch data when filters or groupBy change
 	useEffect(() => {
@@ -73,11 +80,12 @@ export const AnalyticsContent = ({
 				timeframes: filters.timeframes.length > 0 ? filters.timeframes as ("1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w")[] : undefined,
 			}
 
-			const [perfResult, tagResult, evResult, rDistResult] = await Promise.all([
+			const [perfResult, tagResult, evResult, rDistResult, equityResult] = await Promise.all([
 				getPerformanceByVariable(groupBy, tradeFilters),
 				getTagStats(tradeFilters),
 				getExpectedValue(tradeFilters),
 				getRDistribution(tradeFilters),
+				getEquityCurve(filters.dateFrom || undefined, filters.dateTo || undefined),
 			])
 
 			if (perfResult.status === "success" && perfResult.data) {
@@ -91,6 +99,9 @@ export const AnalyticsContent = ({
 			}
 			if (rDistResult.status === "success" && rDistResult.data) {
 				setRDistribution(rDistResult.data)
+			}
+			if (equityResult.status === "success" && equityResult.data) {
+				setEquityCurve(equityResult.data)
 			}
 		})
 	}, [filters, groupBy])
@@ -126,6 +137,9 @@ export const AnalyticsContent = ({
 				groupBy={groupBy}
 				onGroupByChange={handleGroupByChange}
 			/>
+
+			{/* Cumulative P&L Chart - Full Width */}
+			<CumulativePnlChart data={equityCurve} />
 
 			{/* Two Column Grid */}
 			<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-2">

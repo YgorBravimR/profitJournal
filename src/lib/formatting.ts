@@ -1,0 +1,231 @@
+import type { Locale } from "@/i18n/config"
+
+/**
+ * Locale to BCP 47 language tag mapping
+ */
+const localeMap: Record<Locale, string> = {
+	"pt-BR": "pt-BR",
+	en: "en-US",
+}
+
+/**
+ * Currency mapping for each locale
+ */
+const localeCurrency: Record<Locale, string> = {
+	"pt-BR": "BRL",
+	en: "USD",
+}
+
+/**
+ * Format currency value according to locale
+ */
+export const formatCurrency = (
+	value: number,
+	locale: Locale,
+	currency?: string
+): string => {
+	const currencyCode = currency || localeCurrency[locale]
+	return new Intl.NumberFormat(localeMap[locale], {
+		style: "currency",
+		currency: currencyCode,
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	}).format(value)
+}
+
+/**
+ * Format currency value with sign (+ or -)
+ */
+export const formatCurrencyWithSign = (
+	value: number,
+	locale: Locale,
+	currency?: string
+): string => {
+	const formatted = formatCurrency(Math.abs(value), locale, currency)
+	if (value > 0) return `+${formatted}`
+	if (value < 0) return `-${formatted}`
+	return formatted
+}
+
+/**
+ * Format number according to locale (with thousands separator)
+ */
+export const formatNumber = (
+	value: number,
+	locale: Locale,
+	options?: Intl.NumberFormatOptions
+): string => {
+	const defaultOptions: Intl.NumberFormatOptions = {
+		minimumFractionDigits: 0,
+		maximumFractionDigits: 2,
+	}
+	return new Intl.NumberFormat(localeMap[locale], options || defaultOptions).format(
+		value
+	)
+}
+
+/**
+ * Format percentage according to locale
+ */
+export const formatPercent = (
+	value: number,
+	locale: Locale,
+	decimals = 1
+): string => {
+	return new Intl.NumberFormat(localeMap[locale], {
+		style: "percent",
+		minimumFractionDigits: decimals,
+		maximumFractionDigits: decimals,
+	}).format(value / 100)
+}
+
+/**
+ * Format R multiple (e.g., +2.5R, -1.2R)
+ */
+export const formatRMultiple = (value: number, locale: Locale): string => {
+	const formatted = formatNumber(Math.abs(value), locale, {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 2,
+	})
+	if (value > 0) return `+${formatted}R`
+	if (value < 0) return `-${formatted}R`
+	return `${formatted}R`
+}
+
+/**
+ * Format date according to locale
+ */
+export const formatDateLocale = (
+	date: Date,
+	locale: Locale,
+	options?: Intl.DateTimeFormatOptions
+): string => {
+	const defaultOptions: Intl.DateTimeFormatOptions = {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+	}
+	return new Intl.DateTimeFormat(localeMap[locale], options || defaultOptions).format(
+		date
+	)
+}
+
+/**
+ * Format date and time according to locale
+ */
+export const formatDateTimeLocale = (date: Date, locale: Locale): string => {
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(date)
+}
+
+/**
+ * Format short date according to locale (e.g., "24/01" for pt-BR, "01/24" for en)
+ */
+export const formatShortDate = (date: Date, locale: Locale): string => {
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		month: "2-digit",
+		day: "2-digit",
+	}).format(date)
+}
+
+/**
+ * Format full date according to locale
+ */
+export const formatFullDate = (date: Date, locale: Locale): string => {
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		weekday: "long",
+		year: "numeric",
+		month: "long",
+		day: "numeric",
+	}).format(date)
+}
+
+/**
+ * Format month and year according to locale
+ */
+export const formatMonthYear = (date: Date, locale: Locale): string => {
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		year: "numeric",
+		month: "long",
+	}).format(date)
+}
+
+/**
+ * Get relative time string according to locale (e.g., "2 days ago")
+ */
+export const getRelativeTimeLocale = (date: Date, locale: Locale): string => {
+	const rtf = new Intl.RelativeTimeFormat(localeMap[locale], { numeric: "auto" })
+	const now = new Date()
+	const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000)
+
+	const intervals = [
+		{ unit: "year" as const, seconds: 31536000 },
+		{ unit: "month" as const, seconds: 2592000 },
+		{ unit: "week" as const, seconds: 604800 },
+		{ unit: "day" as const, seconds: 86400 },
+		{ unit: "hour" as const, seconds: 3600 },
+		{ unit: "minute" as const, seconds: 60 },
+	]
+
+	for (const interval of intervals) {
+		const count = Math.floor(diffInSeconds / interval.seconds)
+		if (Math.abs(count) >= 1) {
+			return rtf.format(count, interval.unit)
+		}
+	}
+
+	return locale === "pt-BR" ? "agora mesmo" : "just now"
+}
+
+/**
+ * Get day of week name according to locale
+ */
+export const getDayOfWeekName = (
+	dayIndex: number,
+	locale: Locale,
+	format: "long" | "short" | "narrow" = "long"
+): string => {
+	const date = new Date(2024, 0, dayIndex) // January 2024 starts on Monday, so offset
+	// Adjust for Sunday-based index
+	date.setDate(date.getDate() + dayIndex)
+	return new Intl.DateTimeFormat(localeMap[locale], { weekday: format }).format(date)
+}
+
+/**
+ * Get month name according to locale
+ */
+export const getMonthName = (
+	monthIndex: number,
+	locale: Locale,
+	format: "long" | "short" | "narrow" = "long"
+): string => {
+	const date = new Date(2024, monthIndex, 1)
+	return new Intl.DateTimeFormat(localeMap[locale], { month: format }).format(date)
+}
+
+/**
+ * Format time according to locale
+ */
+export const formatTime = (date: Date, locale: Locale): string => {
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(date)
+}
+
+/**
+ * Format hour of day (e.g., "09:00" for pt-BR, "9:00 AM" for en)
+ */
+export const formatHourOfDay = (hour: number, locale: Locale): string => {
+	const date = new Date()
+	date.setHours(hour, 0, 0, 0)
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		hour: "numeric",
+		minute: "2-digit",
+	}).format(date)
+}

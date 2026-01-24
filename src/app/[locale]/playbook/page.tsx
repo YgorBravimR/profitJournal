@@ -1,8 +1,18 @@
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import { PageHeader } from "@/components/layout"
 import { PlaybookContent } from "@/components/playbook"
 import { getStrategies, getComplianceOverview } from "@/app/actions/strategies"
 
-const PlaybookPage = async () => {
+interface PlaybookPageProps {
+	params: Promise<{ locale: string }>
+}
+
+const PlaybookPage = async ({ params }: PlaybookPageProps) => {
+	const { locale } = await params
+	setRequestLocale(locale)
+
+	const t = await getTranslations("playbook")
+
 	const [strategiesResult, complianceResult] = await Promise.all([
 		getStrategies(),
 		getComplianceOverview(),
@@ -13,10 +23,7 @@ const PlaybookPage = async () => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title="Strategy Playbook"
-				description="Define and track your trading strategies"
-			/>
+			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 p-m-600">
 				<PlaybookContent
 					initialStrategies={strategies}

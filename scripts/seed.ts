@@ -242,6 +242,11 @@ const runSeed = async () => {
 
 		// Insert trades with simpler format
 		const tradesData = [
+			// January 1st - New Year trading session
+			{ asset: 'BTCUSD', dir: 'long', tf: '1h', entry: '2026-01-01 10:00:00+00', exit: '2026-01-01 14:00:00+00', entryP: 41800, exitP: 42150, size: 0.5, sl: 41500, tp: 42500, pnl: 175, rr: 1.17, outcome: 'win', plan: true, strat: breakoutId, thoughts: 'New Year momentum. Clean breakout setup', reflection: 'Good start to the year', lesson: 'New Year often sees trend continuation' },
+			{ asset: 'ETHUSD', dir: 'long', tf: '1h', entry: '2026-01-01 11:00:00+00', exit: '2026-01-01 15:00:00+00', entryP: 2250, exitP: 2290, size: 2, sl: 2220, tp: 2330, pnl: 80, rr: 1.33, outcome: 'win', plan: true, strat: trendId, thoughts: 'ETH following BTC momentum', reflection: 'Good correlation play', lesson: 'ETH follows BTC on trend days' },
+			{ asset: 'SOLUSD', dir: 'long', tf: '15m', entry: '2026-01-01 13:00:00+00', exit: '2026-01-01 14:30:00+00', entryP: 96.50, exitP: 95.80, size: 10, sl: 95.00, tp: 99.00, pnl: -70, rr: -0.47, outcome: 'loss', plan: false, strat: null, thoughts: 'Quick scalp attempt. FOMO on alt rally', reflection: 'Chased the move', lesson: 'Dont FOMO into alts' },
+			// January 2nd
 			{ asset: 'BTCUSD', dir: 'long', tf: '4h', entry: '2026-01-02 10:00:00+00', exit: '2026-01-02 18:00:00+00', entryP: 42150, exitP: 42580, size: 0.5, sl: 41800, tp: 43000, pnl: 215, rr: 1.23, outcome: 'win', plan: true, strat: breakoutId, thoughts: 'Clean breakout above 42000 resistance with volume', reflection: 'Good entry on retest', lesson: 'Patience on retest paid off' },
 			{ asset: 'ETHUSD', dir: 'long', tf: '1h', entry: '2026-01-02 14:00:00+00', exit: '2026-01-03 10:00:00+00', entryP: 2280, exitP: 2195, size: 2, sl: 2200, tp: 2400, pnl: -170, rr: -1.06, outcome: 'loss', plan: true, strat: srId, thoughts: 'Support bounce setup at 2280', reflection: 'Support failed', lesson: 'Need more confirmation on support bounces' },
 			{ asset: 'EURUSD', dir: 'short', tf: '15m', entry: '2026-01-03 09:00:00+00', exit: '2026-01-03 15:00:00+00', entryP: 1.0892, exitP: 1.0845, size: 50000, sl: 1.0920, tp: 1.0820, pnl: 235, rr: 1.68, outcome: 'win', plan: true, strat: trendId, thoughts: 'News driven move. ECB comments bearish', reflection: 'Perfect execution', lesson: 'News events accelerate trend moves' },

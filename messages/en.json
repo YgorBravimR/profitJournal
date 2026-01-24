@@ -1,0 +1,360 @@
+{
+	"common": {
+		"appName": "Profit Journal",
+		"loading": "Loading...",
+		"error": "Error",
+		"success": "Success",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"edit": "Edit",
+		"create": "Create",
+		"add": "Add",
+		"update": "Update",
+		"confirm": "Confirm",
+		"back": "Back",
+		"next": "Next",
+		"previous": "Previous",
+		"search": "Search",
+		"filter": "Filter",
+		"clear": "Clear",
+		"apply": "Apply",
+		"close": "Close",
+		"yes": "Yes",
+		"no": "No",
+		"all": "All",
+		"none": "None",
+		"noData": "No data available",
+		"noResults": "No results found"
+	},
+	"nav": {
+		"dashboard": "Dashboard",
+		"journal": "Journal",
+		"analytics": "Analytics",
+		"playbook": "Playbook",
+		"reports": "Reports",
+		"settings": "Settings"
+	},
+	"trade": {
+		"trade": "Trade",
+		"trades": "Trades",
+		"newTrade": "New Trade",
+		"editTrade": "Edit Trade",
+		"deleteTrade": "Delete Trade",
+		"tradeDetails": "Trade Details",
+		"direction": {
+			"label": "Direction",
+			"long": "Long",
+			"short": "Short"
+		},
+		"outcome": {
+			"label": "Outcome",
+			"win": "Win",
+			"loss": "Loss",
+			"breakeven": "Breakeven",
+			"open": "Open"
+		},
+		"asset": "Asset",
+		"timeframe": "Timeframe",
+		"entryDate": "Entry Date",
+		"exitDate": "Exit Date",
+		"entryPrice": "Entry Price",
+		"exitPrice": "Exit Price",
+		"positionSize": "Position Size",
+		"stopLoss": "Stop Loss",
+		"takeProfit": "Take Profit",
+		"pnl": "P&L",
+		"rMultiple": "R Multiple",
+		"plannedR": "Planned R",
+		"realizedR": "Realized R",
+		"riskAmount": "Risk Amount",
+		"followedPlan": "Followed Plan",
+		"preTradeThoughts": "Pre-Trade Thoughts",
+		"postTradeReflection": "Post-Trade Reflection",
+		"lessonLearned": "Lesson Learned",
+		"strategy": "Strategy",
+		"tags": "Tags",
+		"commission": "Commission",
+		"fees": "Fees",
+		"mfe": "MFE",
+		"mae": "MAE",
+		"noTrades": "No trades recorded",
+		"openPosition": "Open Position"
+	},
+	"dashboard": {
+		"title": "Dashboard",
+		"description": "Overview of your trading performance",
+		"kpi": {
+			"netPnl": "Net P&L",
+			"winRate": "Win Rate",
+			"profitFactor": "Profit Factor",
+			"avgR": "Avg R",
+			"discipline": "Discipline",
+			"totalTrades": "Total Trades",
+			"wins": "Wins",
+			"losses": "Losses"
+		},
+		"calendar": {
+			"title": "Trading Calendar",
+			"noTrades": "No trades this month"
+		},
+		"equity": {
+			"title": "Equity Curve",
+			"cumulative": "Cumulative P&L",
+			"drawdown": "Drawdown"
+		},
+		"quickStats": {
+			"title": "Quick Stats",
+			"currentStreak": "Current Streak",
+			"longestWinStreak": "Longest Win Streak",
+			"longestLossStreak": "Longest Loss Streak",
+			"bestDay": "Best Day",
+			"worstDay": "Worst Day"
+		}
+	},
+	"journal": {
+		"title": "Trade Journal",
+		"description": "Record and track your trades",
+		"newEntry": "New Entry",
+		"csvImport": "Import CSV",
+		"singleEntry": "Single Entry",
+		"form": {
+			"basicInfo": "Basic Info",
+			"riskManagement": "Risk Management",
+			"journalNotes": "Journal Notes",
+			"tagsSection": "Tags"
+		},
+		"filters": {
+			"dateRange": "Date Range",
+			"asset": "Asset",
+			"direction": "Direction",
+			"outcome": "Outcome",
+			"strategy": "Strategy"
+		},
+		"daily": {
+			"title": "Daily Journal",
+			"marketOutlook": "Market Outlook",
+			"focusGoals": "Focus Goals",
+			"mentalState": "Mental State",
+			"sessionReview": "Session Review",
+			"emotionalState": "Emotional State",
+			"keyTakeaways": "Key Takeaways"
+		}
+	},
+	"analytics": {
+		"title": "Analytics",
+		"description": "Analyze your performance and identify patterns",
+		"filters": {
+			"title": "Filters",
+			"datePresets": {
+				"today": "Today",
+				"thisWeek": "This Week",
+				"thisMonth": "This Month",
+				"last30Days": "Last 30 Days",
+				"last90Days": "Last 90 Days",
+				"thisYear": "This Year",
+				"allTime": "All Time",
+				"custom": "Custom"
+			}
+		},
+		"variableComparison": {
+			"title": "Variable Comparison",
+			"groupBy": "Group By",
+			"asset": "Asset",
+			"timeframe": "Timeframe",
+			"hour": "Hour of Day",
+			"dayOfWeek": "Day of Week",
+			"strategy": "Strategy",
+			"metric": "Metric",
+			"metrics": {
+				"pnl": "P&L",
+				"winRate": "Win Rate",
+				"avgR": "Avg R",
+				"tradeCount": "Trade Count",
+				"profitFactor": "Profit Factor"
+			}
+		},
+		"tagCloud": {
+			"title": "Tag Analysis",
+			"setup": "Setup",
+			"mistake": "Mistake",
+			"general": "General"
+		},
+		"expectedValue": {
+			"title": "Expected Value",
+			"formula": "EV = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)",
+			"projection": "Projection for 100 Trades",
+			"positive": "Positive EV - Keep it up!",
+			"negative": "Negative EV - Review your strategy"
+		},
+		"rDistribution": {
+			"title": "R Distribution",
+			"description": "Distribution of realized R multiples"
+		}
+	},
+	"playbook": {
+		"title": "Strategy Playbook",
+		"description": "Manage your strategies and track compliance",
+		"newStrategy": "New Strategy",
+		"editStrategy": "Edit Strategy",
+		"strategyDetails": "Strategy Details",
+		"compliance": {
+			"title": "Playbook Compliance",
+			"overall": "Overall Compliance",
+			"followed": "Trades with Plan",
+			"deviated": "Trades without Plan",
+			"topPerforming": "Top Performing",
+			"needsAttention": "Needs Attention"
+		},
+		"strategy": {
+			"name": "Name",
+			"code": "Code",
+			"description": "Description",
+			"entryCriteria": "Entry Criteria",
+			"exitCriteria": "Exit Criteria",
+			"riskRules": "Risk Rules",
+			"targetR": "Target R",
+			"maxRisk": "Max Risk %",
+			"trades": "Trades",
+			"winRate": "Win Rate",
+			"avgR": "Avg R",
+			"profitFactor": "Profit Factor"
+		},
+		"noStrategies": "No strategies registered"
+	},
+	"reports": {
+		"title": "Performance Reports",
+		"description": "Weekly and monthly summaries with mistake analysis",
+		"weekly": {
+			"title": "Weekly Report",
+			"week": "Week",
+			"summary": "Summary",
+			"dailyBreakdown": "Daily Breakdown",
+			"topWins": "Top Wins",
+			"topLosses": "Top Losses"
+		},
+		"monthly": {
+			"title": "Monthly Report",
+			"month": "Month",
+			"summary": "Summary",
+			"weeklyBreakdown": "Weekly Breakdown",
+			"assetBreakdown": "By Asset"
+		},
+		"mistakeCost": {
+			"title": "Mistake Cost",
+			"description": "How much you lost for each type of mistake",
+			"totalCost": "Total Cost",
+			"noMistakes": "No mistakes identified"
+		}
+	},
+	"settings": {
+		"title": "Settings",
+		"description": "Manage assets, timeframes, and preferences",
+		"tabs": {
+			"assets": "Assets",
+			"timeframes": "Timeframes",
+			"general": "General"
+		},
+		"assets": {
+			"title": "Manage Assets",
+			"newAsset": "New Asset",
+			"editAsset": "Edit Asset",
+			"symbol": "Symbol",
+			"name": "Name",
+			"type": "Type",
+			"tickSize": "Tick Size",
+			"tickValue": "Tick Value",
+			"currency": "Currency",
+			"commission": "Commission",
+			"fees": "Fees",
+			"active": "Active",
+			"inactive": "Inactive"
+		},
+		"timeframes": {
+			"title": "Manage Timeframes",
+			"newTimeframe": "New Timeframe",
+			"editTimeframe": "Edit Timeframe",
+			"code": "Code",
+			"name": "Name",
+			"type": "Type",
+			"timeBased": "Time Based",
+			"renko": "Renko",
+			"value": "Value",
+			"unit": "Unit"
+		},
+		"general": {
+			"title": "General Settings",
+			"theme": "Theme",
+			"themeLight": "Light",
+			"themeDark": "Dark",
+			"themeSystem": "System",
+			"language": "Language",
+			"currency": "Default Currency",
+			"riskPerTrade": "Risk per Trade %",
+			"accountBalance": "Account Balance",
+			"maxDailyLoss": "Max Daily Loss",
+			"maxDailyTrades": "Max Daily Trades",
+			"recalculateR": "Recalculate R Values",
+			"recalculateRDescription": "Recalculates R values for all existing trades",
+			"dataMaintenance": "Data Maintenance"
+		}
+	},
+	"assetTypes": {
+		"FUTURE_INDEX": "Future Index",
+		"FUTURE_FX": "Future FX",
+		"STOCK": "Stock",
+		"CRYPTO": "Cryptocurrency",
+		"FOREX": "Forex",
+		"OPTION": "Option",
+		"ETF": "ETF"
+	},
+	"timeframeUnits": {
+		"minutes": "minutes",
+		"hours": "hours",
+		"days": "days",
+		"weeks": "weeks",
+		"ticks": "ticks",
+		"points": "points"
+	},
+	"dayOfWeek": {
+		"0": "Sunday",
+		"1": "Monday",
+		"2": "Tuesday",
+		"3": "Wednesday",
+		"4": "Thursday",
+		"5": "Friday",
+		"6": "Saturday"
+	},
+	"months": {
+		"0": "January",
+		"1": "February",
+		"2": "March",
+		"3": "April",
+		"4": "May",
+		"5": "June",
+		"6": "July",
+		"7": "August",
+		"8": "September",
+		"9": "October",
+		"10": "November",
+		"11": "December"
+	},
+	"validation": {
+		"required": "Required field",
+		"invalidEmail": "Invalid email",
+		"minLength": "Minimum {min} characters",
+		"maxLength": "Maximum {max} characters",
+		"positiveNumber": "Must be a positive number",
+		"invalidDate": "Invalid date",
+		"exitAfterEntry": "Exit date must be after entry"
+	},
+	"tooltips": {
+		"winRate": "Percentage of winning trades out of total",
+		"profitFactor": "Sum of wins divided by sum of losses",
+		"avgR": "Average of realized R multiples",
+		"rMultiple": "Result in terms of initial risk (P&L / Risk)",
+		"mfe": "Maximum Favorable Excursion - highest potential profit during trade",
+		"mae": "Maximum Adverse Excursion - highest potential loss during trade",
+		"expectedValue": "Average expected return per trade based on win rate and averages"
+	}
+}

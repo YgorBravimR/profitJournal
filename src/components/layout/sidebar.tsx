@@ -1,7 +1,7 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { Link, usePathname } from "@/i18n/routing"
 import {
 	LayoutDashboard,
 	BookOpen,
@@ -16,18 +16,18 @@ import {
 import { cn } from "@/lib/utils"
 
 interface NavItem {
-	label: string
-	href: string
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/settings"
 	icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
-	{ label: "Dashboard", href: "/", icon: LayoutDashboard },
-	{ label: "Journal", href: "/journal", icon: BookOpen },
-	{ label: "Analytics", href: "/analytics", icon: BarChart3 },
-	{ label: "Playbook", href: "/playbook", icon: FileText },
-	{ label: "Reports", href: "/reports", icon: FileBarChart },
-	{ label: "Settings", href: "/settings", icon: Settings },
+	{ labelKey: "dashboard", href: "/", icon: LayoutDashboard },
+	{ labelKey: "journal", href: "/journal", icon: BookOpen },
+	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
+	{ labelKey: "playbook", href: "/playbook", icon: FileText },
+	{ labelKey: "reports", href: "/reports", icon: FileBarChart },
+	{ labelKey: "settings", href: "/settings", icon: Settings },
 ]
 
 interface SidebarProps {
@@ -36,6 +36,7 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
+	const t = useTranslations("nav")
 	const pathname = usePathname()
 
 	return (
@@ -86,7 +87,7 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 							aria-current={isActive ? "page" : undefined}
 						>
 							<item.icon className="h-5 w-5 flex-shrink-0" />
-							{!isCollapsed && <span>{item.label}</span>}
+							{!isCollapsed && <span>{t(item.labelKey)}</span>}
 						</Link>
 					)
 				})}

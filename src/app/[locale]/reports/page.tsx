@@ -1,3 +1,4 @@
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import { PageHeader } from "@/components/layout"
 import { ReportsContent } from "@/components/reports"
 import {
@@ -6,7 +7,16 @@ import {
 	getMistakeCostAnalysis,
 } from "@/app/actions/reports"
 
-const ReportsPage = async () => {
+interface ReportsPageProps {
+	params: Promise<{ locale: string }>
+}
+
+const ReportsPage = async ({ params }: ReportsPageProps) => {
+	const { locale } = await params
+	setRequestLocale(locale)
+
+	const t = await getTranslations("reports")
+
 	const [weeklyResult, monthlyResult, mistakeResult] = await Promise.all([
 		getWeeklyReport(0).catch(() => ({ status: "error" as const, data: null })),
 		getMonthlyReport(0).catch(() => ({ status: "error" as const, data: null })),
@@ -25,10 +35,7 @@ const ReportsPage = async () => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title="Performance Reports"
-				description="Weekly and monthly trading summaries with mistake analysis"
-			/>
+			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 overflow-auto p-m-600">
 				<ReportsContent
 					weeklyReport={weeklyReport}

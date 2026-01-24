@@ -1,8 +1,5 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
-import { ThemeProvider } from "next-themes"
-import { ToastProvider } from "@/components/ui/toast"
-import { MainLayout } from "@/components/layout"
 import "./globals.css"
 
 const geistSans = Geist({
@@ -20,26 +17,17 @@ export const metadata: Metadata = {
 	description: "Personal trading performance analysis and journaling platform",
 }
 
-const RootLayout = ({
-	children,
-}: Readonly<{
+interface RootLayoutProps {
 	children: React.ReactNode
-}>) => {
+}
+
+const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html suppressHydrationWarning>
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>
-				<ThemeProvider
-					attribute="data-theme"
-					defaultTheme="dark"
-					enableSystem={false}
-					disableTransitionOnChange={false}
-				>
-					<ToastProvider>
-						<MainLayout>{children}</MainLayout>
-					</ToastProvider>
-				</ThemeProvider>
+				{children}
 			</body>
 		</html>
 	)

@@ -12,7 +12,8 @@
       "Bash(pnpm tsc:*)",
       "Bash(npm run type-check:*)",
       "Bash(npx tsc:*)",
-      "Bash(pnpm drizzle-kit generate:*)"
+      "Bash(pnpm drizzle-kit generate:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

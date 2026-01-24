@@ -1,3 +1,4 @@
+import { getTranslations, setRequestLocale } from "next-intl/server"
 import { PageHeader } from "@/components/layout"
 import { DashboardContent } from "@/components/dashboard"
 import {
@@ -8,16 +9,26 @@ import {
 	getDailyPnL,
 } from "@/app/actions/analytics"
 
-const DashboardPage = async () => {
-	const currentMonth = new Date()
+interface DashboardPageProps {
+	params: Promise<{ locale: string }>
+}
+
+const DashboardPage = async ({ params }: DashboardPageProps) => {
+	const { locale } = await params
+	setRequestLocale(locale)
+
+	const t = await getTranslations("dashboard")
+	const now = new Date()
+	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+	const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
 	const [statsResult, disciplineResult, equityCurveResult, streakResult, dailyPnLResult] =
 		await Promise.all([
 			getOverallStats(),
 			getDisciplineScore(),
-			getEquityCurve(),
+			getEquityCurve(monthStart, monthEnd),
 			getStreakData(),
-			getDailyPnL(currentMonth),
+			getDailyPnL(now),
 		])
 
 	const stats = statsResult.status === "success" ? statsResult.data ?? null : null
@@ -28,10 +39,7 @@ const DashboardPage = async () => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title="Command Center"
-				description="Your trading performance at a glance"
-			/>
+			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 p-m-600">
 				<DashboardContent
 					initialStats={stats}
@@ -39,7 +47,7 @@ const DashboardPage = async () => {
 					initialEquityCurve={equityCurve}
 					initialStreakData={streakData}
 					initialDailyPnL={dailyPnL}
-					initialMonth={currentMonth}
+					initialMonth={now}
 				/>
 			</div>
 		</div>

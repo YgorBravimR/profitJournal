@@ -235,14 +235,49 @@ export const TradeForm = ({
 	const setupTags = tags.filter((t) => t.type === "setup")
 	const mistakeTags = tags.filter((t) => t.type === "mistake")
 
+	// Map fields to tabs for error highlighting
+	const basicFields = ["asset", "entryDate", "entryPrice", "positionSize", "direction", "timeframe", "exitDate", "exitPrice", "strategyId"] as const
+	const riskFields = ["stopLoss", "takeProfit", "mfe", "mae"] as const
+	const journalFields = ["preTradeThoughts", "postTradeReflection", "lessonLearned", "followedPlan", "disciplineNotes"] as const
+	const tagFields = ["tagIds"] as const
+
+	const hasBasicErrors = basicFields.some((field) => errors[field])
+	const hasRiskErrors = riskFields.some((field) => errors[field])
+	const hasJournalErrors = journalFields.some((field) => errors[field])
+	const hasTagErrors = tagFields.some((field) => errors[field])
+
 	return (
 		<form onSubmit={handleSubmit(onSubmit)} className="space-y-m-600">
 			<Tabs defaultValue="basic" className="w-full">
 				<TabsList className="grid w-full grid-cols-4">
-					<TabsTrigger value="basic">Basic</TabsTrigger>
-					<TabsTrigger value="risk">Risk</TabsTrigger>
-					<TabsTrigger value="journal">Journal</TabsTrigger>
-					<TabsTrigger value="tags">Tags</TabsTrigger>
+					<TabsTrigger
+						value="basic"
+						className={cn(hasBasicErrors && "text-fb-error data-[state=active]:text-fb-error")}
+					>
+						Basic
+						{hasBasicErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+					</TabsTrigger>
+					<TabsTrigger
+						value="risk"
+						className={cn(hasRiskErrors && "text-fb-error data-[state=active]:text-fb-error")}
+					>
+						Risk
+						{hasRiskErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+					</TabsTrigger>
+					<TabsTrigger
+						value="journal"
+						className={cn(hasJournalErrors && "text-fb-error data-[state=active]:text-fb-error")}
+					>
+						Journal
+						{hasJournalErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+					</TabsTrigger>
+					<TabsTrigger
+						value="tags"
+						className={cn(hasTagErrors && "text-fb-error data-[state=active]:text-fb-error")}
+					>
+						Tags
+						{hasTagErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+					</TabsTrigger>
 				</TabsList>
 
 				{/* Basic Info Tab */}
@@ -319,7 +354,7 @@ export const TradeForm = ({
 										setSelectedAsset(asset ?? null)
 									}}
 								>
-									<SelectTrigger>
+									<SelectTrigger aria-invalid={!!errors.asset}>
 										<SelectValue placeholder="Select asset" />
 									</SelectTrigger>
 									<SelectContent>
@@ -336,6 +371,7 @@ export const TradeForm = ({
 									id="asset"
 									placeholder="NVDA, SPY, BTC..."
 									className="uppercase"
+									aria-invalid={!!errors.asset}
 									{...register("asset")}
 								/>
 							)}
@@ -378,6 +414,7 @@ export const TradeForm = ({
 							<Input
 								id="entryDate"
 								type="datetime-local"
+								aria-invalid={!!errors.entryDate}
 								{...register("entryDate")}
 							/>
 							{errors.entryDate && (
@@ -405,6 +442,7 @@ export const TradeForm = ({
 								type="number"
 								step="any"
 								placeholder="0.00"
+								aria-invalid={!!errors.entryPrice}
 								{...register("entryPrice")}
 							/>
 							{errors.entryPrice && (
@@ -433,6 +471,7 @@ export const TradeForm = ({
 							type="number"
 							step="any"
 							placeholder="Number of shares/contracts"
+							aria-invalid={!!errors.positionSize}
 							{...register("positionSize")}
 						/>
 						{errors.positionSize && (

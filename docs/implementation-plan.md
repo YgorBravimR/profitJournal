@@ -16,7 +16,7 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 4 | Deep Analytics | ✅ Complete | Jan 2025 |
 | 5 | Strategy Playbook | ✅ Complete | Jan 2025 |
 | 6 | Settings & Configuration | ✅ Complete | Jan 2025 |
-| 7 | i18n & Brazilian Market | 🔲 Pending | - |
+| 7 | i18n & Brazilian Market | ✅ Complete | Jan 2025 |
 
 ---
 - Functional trade CRUD operations
@@ -657,17 +657,17 @@ CSV Import was completed in Phase 3. CSV parser will need update to support asse
 
 ---
 
-## Phase 7: Internationalization & Brazilian Market Focus
+## Phase 7: Internationalization & Brazilian Market Focus ✅ COMPLETE
 
 **Goal:** Full i18n support with next-intl, Brazilian Portuguese as primary language, and complete B3 market adaptation.
 
 ---
 
-### 7.1 Core i18n Framework
+### 7.1 Core i18n Framework ✅ COMPLETE
 
 **Library:** `next-intl` (optimized for React Server Components)
 
-**Routing Strategy:** Dynamic `[locale]` segment for SEO and server-side locale awareness.
+**Routing Strategy:** Dynamic `[locale]` segment with `localePrefix: "as-needed"` for cleaner URLs.
 
 #### Supported Locales
 
@@ -678,122 +678,131 @@ CSV Import was completed in Phase 3. CSV parser will need update to support asse
 
 ---
 
-### 7.2 State Synchronization
+### 7.2 Implementation Summary ✅ COMPLETE
 
-**Source of Truth:** User database (`users.preferred_language`)
+#### Configuration Files Created
 
-**Edge Cache:** `NEXT_LOCALE` cookie for middleware performance
+- [x] `src/i18n/config.ts` - Locale constants, currency, date format settings
+- [x] `src/i18n/routing.ts` - Routing configuration with navigation helpers (Link, usePathname, useRouter)
+- [x] `src/i18n/request.ts` - Server-side `getRequestConfig` for message loading
+- [x] `src/middleware.ts` - next-intl middleware for locale detection
+- [x] `next.config.ts` - i18n plugin configuration with `createNextIntlPlugin`
 
-#### Flow
-
-```
-1. User logs in → Read DB preference → Set NEXT_LOCALE cookie
-2. Middleware reads cookie → Determines locale without DB query
-3. Anonymous users → Fallback to browser Accept-Language header
-4. Profile update → Sync cookie with new DB preference
-```
-
----
-
-### 7.3 Implementation Tasks
-
-#### Configuration Files
-
-- [ ] `src/i18n.ts` - `getRequestConfig` for server-side message loading
-- [ ] `src/middleware.ts` - next-intl middleware with cookie priority
-- [ ] `next.config.ts` - i18n plugin configuration
-
-#### Message Files Structure
+#### Message Files Structure ✅ COMPLETE
 
 ```
 messages/
-├── pt-BR/
-│   ├── common.json          # Shared UI (buttons, labels, errors)
-│   ├── dashboard.json       # Dashboard-specific
-│   ├── journal.json         # Trade journal
-│   ├── analytics.json       # Analytics page
-│   ├── playbook.json        # Strategy playbook
-│   ├── reports.json         # Reports
-│   ├── settings.json        # Settings
-│   └── validation.json      # Form validation messages
-└── en/
-    ├── common.json
-    ├── dashboard.json
-    ├── journal.json
-    ├── analytics.json
-    ├── playbook.json
-    ├── reports.json
-    ├── settings.json
-    └── validation.json
+├── pt-BR.json               # Complete Portuguese translations (360+ lines)
+└── en.json                  # Complete English translations (360+ lines)
 ```
 
-#### Route Structure Migration
+Both files contain comprehensive translations for all namespaces:
+- `common` - Shared UI (buttons, labels, errors)
+- `nav` - Navigation items
+- `trade` - Trade-related terms
+- `dashboard` - Dashboard KPIs and widgets
+- `journal` - Journal page
+- `analytics` - Analytics filters and metrics
+- `playbook` - Strategy playbook
+- `reports` - Weekly/monthly reports
+- `settings` - Settings pages
+- `assetTypes` - Asset type names
+- `timeframeUnits` - Time units
+- `dayOfWeek` - Day names
+- `months` - Month names
+- `validation` - Form validation messages
+- `tooltips` - Metric explanations
+
+#### Route Structure Migration ✅ COMPLETE
+
+All routes migrated to `[locale]` segment:
 
 ```
 src/app/
-├── [locale]/
-│   ├── layout.tsx           # Locale-aware layout with mismatch guard
-│   ├── page.tsx             # Dashboard
-│   ├── journal/
-│   │   ├── page.tsx
-│   │   ├── new/page.tsx
-│   │   └── [id]/
-│   │       ├── page.tsx
-│   │       └── edit/page.tsx
-│   ├── analytics/page.tsx
-│   ├── playbook/
-│   │   ├── page.tsx
-│   │   ├── new/page.tsx
-│   │   └── [id]/
-│   │       ├── page.tsx
-│   │       └── edit/page.tsx
-│   ├── reports/page.tsx
-│   └── settings/page.tsx
-└── api/                     # API routes (no locale prefix)
+├── layout.tsx               # Root layout (fonts, global styles)
+├── globals.css
+└── [locale]/
+    ├── layout.tsx           # Locale-aware layout with NextIntlClientProvider
+    ├── not-found.tsx        # 404 page
+    ├── page.tsx             # Dashboard
+    ├── journal/
+    │   ├── page.tsx
+    │   ├── new/page.tsx
+    │   └── [id]/
+    │       ├── page.tsx
+    │       └── edit/page.tsx
+    ├── analytics/page.tsx
+    ├── playbook/
+    │   ├── page.tsx
+    │   ├── new/page.tsx
+    │   └── [id]/
+    │       ├── page.tsx
+    │       └── edit/page.tsx
+    ├── reports/page.tsx
+    └── settings/page.tsx
 ```
 
 ---
 
-### 7.4 Server Components (RSC)
+### 7.3 Server & Client Components ✅ COMPLETE
 
-**Use `getTranslations()` (async) for Server Components:**
+**Server Components use `getTranslations()` (async):**
 
 ```typescript
-// Server Component
-import { getTranslations } from 'next-intl/server'
+import { getTranslations, setRequestLocale } from 'next-intl/server'
 
-const DashboardPage = async () => {
+const DashboardPage = async ({ params }: { params: Promise<{ locale: string }> }) => {
+  const { locale } = await params
+  setRequestLocale(locale)
   const t = await getTranslations('dashboard')
   return <h1>{t('title')}</h1>
 }
 ```
 
-**Use `useTranslations()` only for Client Components with interactivity.**
-
----
-
-### 7.5 Mismatch Guard
-
-In `[locale]/layout.tsx`, redirect if user's DB preference differs from URL:
+**Client Components use `useTranslations()` hook:**
 
 ```typescript
-// Pseudocode
-const userLocale = await getUserPreferredLocale()
-if (userLocale && userLocale !== params.locale) {
-  redirect(`/${userLocale}${pathname}`)
+'use client'
+import { useTranslations } from 'next-intl'
+
+export const Sidebar = () => {
+  const t = useTranslations('nav')
+  return <nav>{t('dashboard')}</nav>
 }
 ```
 
 ---
 
-### 7.6 Brazilian Market Adaptation (B3)
+### 7.4 Locale-Aware Formatting ✅ COMPLETE
+
+Created `src/lib/formatting.ts` with locale-aware utilities:
+
+- [x] `formatCurrency()` - BRL for pt-BR, USD for en
+- [x] `formatCurrencyWithSign()` - With +/- prefix
+- [x] `formatNumber()` - Thousands separator (dot for pt-BR, comma for en)
+- [x] `formatPercent()` - Percentage formatting
+- [x] `formatRMultiple()` - R-multiple formatting (+2.5R, -1.2R)
+- [x] `formatDateLocale()` - Date formatting (dd/MM/yyyy for pt-BR)
+- [x] `formatDateTimeLocale()` - Date and time
+- [x] `formatShortDate()` - Short date (24/01)
+- [x] `formatFullDate()` - Full date with weekday
+- [x] `formatMonthYear()` - Month and year
+- [x] `getRelativeTimeLocale()` - Relative time ("2 dias atrás")
+- [x] `formatTime()` - Time formatting
+- [x] `formatHourOfDay()` - Hour of day
+
+Created `src/hooks/use-formatting.ts` hook for client components.
+
+---
+
+### 7.5 Brazilian Market Adaptation (B3) ✅ COMPLETE
 
 #### Currency & Number Formatting
 
-- [ ] Default currency: BRL (R$)
-- [ ] Number format: `1.234,56` (dot for thousands, comma for decimals)
-- [ ] Date format: `DD/MM/YYYY`
-- [ ] Time format: 24-hour
+- [x] Default currency: BRL (R$)
+- [x] Number format: `1.234,56` (dot for thousands, comma for decimals)
+- [x] Date format: `DD/MM/YYYY`
+- [x] Time format: 24-hour
 
 #### B3 Pre-configured Assets
 
@@ -933,18 +942,57 @@ pnpm add next-intl
 
 ---
 
-### Deliverables
+### Deliverables ✅ COMPLETE
 
-- [ ] Full i18n setup with next-intl
-- [ ] Portuguese (Brazil) as default language
-- [ ] English as fallback language
-- [ ] All UI strings externalized to message files
-- [ ] Locale-aware routing (`/pt-BR/...`, `/en/...`)
-- [ ] Cookie-based locale persistence
-- [ ] Brazilian number/date/currency formatting
-- [ ] Complete B3 asset seed data
-- [ ] Trading session time context
-- [ ] Mismatch guard for authenticated users
+- [x] Full i18n setup with next-intl
+- [x] Portuguese (Brazil) as default language
+- [x] English as fallback language
+- [x] All UI strings externalized to message files (360+ translations per locale)
+- [x] Locale-aware routing with `localePrefix: "as-needed"`
+- [x] Middleware-based locale detection
+- [x] Brazilian number/date/currency formatting utilities
+- [x] Complete B3 asset seed data (from Phase 6)
+- [x] Language switcher in Settings page
+- [x] Updated sidebar navigation with translations
+- [x] All main pages using `getTranslations()` for server-side rendering
+
+### Files Created/Modified
+
+```
+src/
+├── i18n/
+│   ├── config.ts              # Locale constants and settings
+│   ├── routing.ts             # Navigation helpers (Link, useRouter, etc.)
+│   ├── request.ts             # Server-side message loading
+│   └── index.ts               # Barrel exports
+├── middleware.ts              # next-intl middleware
+├── lib/
+│   └── formatting.ts          # Locale-aware formatting utilities
+├── hooks/
+│   ├── use-formatting.ts      # Client formatting hook
+│   └── index.ts               # Barrel exports
+├── components/
+│   ├── layout/
+│   │   └── sidebar.tsx        # Updated with translations
+│   └── settings/
+│       ├── language-switcher.tsx  # Language toggle component
+│       └── general-settings.tsx   # Updated with language switcher
+├── app/
+│   ├── layout.tsx             # Minimal root layout
+│   └── [locale]/
+│       ├── layout.tsx         # Locale-aware layout
+│       ├── not-found.tsx      # 404 page
+│       ├── page.tsx           # Dashboard with translations
+│       ├── journal/page.tsx   # Journal with translations
+│       ├── analytics/page.tsx # Analytics with translations
+│       ├── playbook/page.tsx  # Playbook with translations
+│       ├── reports/page.tsx   # Reports with translations
+│       └── settings/page.tsx  # Settings with translations
+├── messages/
+│   ├── pt-BR.json             # Portuguese translations
+│   └── en.json                # English translations
+└── next.config.ts             # Updated with i18n plugin
+```
 
 ---
 

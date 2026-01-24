@@ -1,0 +1,360 @@
+{
+	"common": {
+		"appName": "Profit Journal",
+		"loading": "Carregando...",
+		"error": "Erro",
+		"success": "Sucesso",
+		"save": "Salvar",
+		"cancel": "Cancelar",
+		"delete": "Excluir",
+		"edit": "Editar",
+		"create": "Criar",
+		"add": "Adicionar",
+		"update": "Atualizar",
+		"confirm": "Confirmar",
+		"back": "Voltar",
+		"next": "Próximo",
+		"previous": "Anterior",
+		"search": "Buscar",
+		"filter": "Filtrar",
+		"clear": "Limpar",
+		"apply": "Aplicar",
+		"close": "Fechar",
+		"yes": "Sim",
+		"no": "Não",
+		"all": "Todos",
+		"none": "Nenhum",
+		"noData": "Nenhum dado disponível",
+		"noResults": "Nenhum resultado encontrado"
+	},
+	"nav": {
+		"dashboard": "Painel",
+		"journal": "Diário",
+		"analytics": "Análises",
+		"playbook": "Playbook",
+		"reports": "Relatórios",
+		"settings": "Configurações"
+	},
+	"trade": {
+		"trade": "Trade",
+		"trades": "Trades",
+		"newTrade": "Novo Trade",
+		"editTrade": "Editar Trade",
+		"deleteTrade": "Excluir Trade",
+		"tradeDetails": "Detalhes do Trade",
+		"direction": {
+			"label": "Direção",
+			"long": "Compra",
+			"short": "Venda"
+		},
+		"outcome": {
+			"label": "Resultado",
+			"win": "Gain",
+			"loss": "Loss",
+			"breakeven": "Empate",
+			"open": "Aberto"
+		},
+		"asset": "Ativo",
+		"timeframe": "Timeframe",
+		"entryDate": "Data de Entrada",
+		"exitDate": "Data de Saída",
+		"entryPrice": "Preço de Entrada",
+		"exitPrice": "Preço de Saída",
+		"positionSize": "Tamanho da Posição",
+		"stopLoss": "Stop Loss",
+		"takeProfit": "Take Profit",
+		"pnl": "P&L",
+		"rMultiple": "R Múltiplo",
+		"plannedR": "R Planejado",
+		"realizedR": "R Realizado",
+		"riskAmount": "Risco em R$",
+		"followedPlan": "Seguiu o Plano",
+		"preTradeThoughts": "Pensamentos Pré-Trade",
+		"postTradeReflection": "Reflexão Pós-Trade",
+		"lessonLearned": "Lição Aprendida",
+		"strategy": "Estratégia",
+		"tags": "Tags",
+		"commission": "Comissão",
+		"fees": "Taxas",
+		"mfe": "MFE",
+		"mae": "MAE",
+		"noTrades": "Nenhum trade registrado",
+		"openPosition": "Posição Aberta"
+	},
+	"dashboard": {
+		"title": "Painel de Controle",
+		"description": "Visão geral do seu desempenho de trading",
+		"kpi": {
+			"netPnl": "P&L Líquido",
+			"winRate": "Taxa de Acerto",
+			"profitFactor": "Fator de Lucro",
+			"avgR": "R Médio",
+			"discipline": "Disciplina",
+			"totalTrades": "Total de Trades",
+			"wins": "Gains",
+			"losses": "Losses"
+		},
+		"calendar": {
+			"title": "Calendário de Trades",
+			"noTrades": "Sem trades neste mês"
+		},
+		"equity": {
+			"title": "Curva de Capital",
+			"cumulative": "P&L Acumulado",
+			"drawdown": "Drawdown"
+		},
+		"quickStats": {
+			"title": "Estatísticas Rápidas",
+			"currentStreak": "Sequência Atual",
+			"longestWinStreak": "Maior Sequência de Gains",
+			"longestLossStreak": "Maior Sequência de Losses",
+			"bestDay": "Melhor Dia",
+			"worstDay": "Pior Dia"
+		}
+	},
+	"journal": {
+		"title": "Diário de Trades",
+		"description": "Registre e acompanhe seus trades",
+		"newEntry": "Nova Entrada",
+		"csvImport": "Importar CSV",
+		"singleEntry": "Entrada Individual",
+		"form": {
+			"basicInfo": "Informações Básicas",
+			"riskManagement": "Gestão de Risco",
+			"journalNotes": "Anotações",
+			"tagsSection": "Tags"
+		},
+		"filters": {
+			"dateRange": "Período",
+			"asset": "Ativo",
+			"direction": "Direção",
+			"outcome": "Resultado",
+			"strategy": "Estratégia"
+		},
+		"daily": {
+			"title": "Diário do Dia",
+			"marketOutlook": "Perspectiva de Mercado",
+			"focusGoals": "Metas e Foco",
+			"mentalState": "Estado Mental",
+			"sessionReview": "Revisão da Sessão",
+			"emotionalState": "Estado Emocional",
+			"keyTakeaways": "Principais Aprendizados"
+		}
+	},
+	"analytics": {
+		"title": "Análises",
+		"description": "Analise seu desempenho e identifique padrões",
+		"filters": {
+			"title": "Filtros",
+			"datePresets": {
+				"today": "Hoje",
+				"thisWeek": "Esta Semana",
+				"thisMonth": "Este Mês",
+				"last30Days": "Últimos 30 Dias",
+				"last90Days": "Últimos 90 Dias",
+				"thisYear": "Este Ano",
+				"allTime": "Todo Período",
+				"custom": "Personalizado"
+			}
+		},
+		"variableComparison": {
+			"title": "Comparação por Variável",
+			"groupBy": "Agrupar por",
+			"asset": "Ativo",
+			"timeframe": "Timeframe",
+			"hour": "Hora do Dia",
+			"dayOfWeek": "Dia da Semana",
+			"strategy": "Estratégia",
+			"metric": "Métrica",
+			"metrics": {
+				"pnl": "P&L",
+				"winRate": "Taxa de Acerto",
+				"avgR": "R Médio",
+				"tradeCount": "Número de Trades",
+				"profitFactor": "Fator de Lucro"
+			}
+		},
+		"tagCloud": {
+			"title": "Análise de Tags",
+			"setup": "Setup",
+			"mistake": "Erro",
+			"general": "Geral"
+		},
+		"expectedValue": {
+			"title": "Valor Esperado",
+			"formula": "EV = (Taxa de Acerto × Gain Médio) - (Taxa de Erro × Loss Médio)",
+			"projection": "Projeção para 100 Trades",
+			"positive": "EV Positivo - Continue assim!",
+			"negative": "EV Negativo - Revise sua estratégia"
+		},
+		"rDistribution": {
+			"title": "Distribuição de R",
+			"description": "Distribuição dos múltiplos de R realizados"
+		}
+	},
+	"playbook": {
+		"title": "Playbook de Estratégias",
+		"description": "Gerencie suas estratégias e acompanhe a aderência",
+		"newStrategy": "Nova Estratégia",
+		"editStrategy": "Editar Estratégia",
+		"strategyDetails": "Detalhes da Estratégia",
+		"compliance": {
+			"title": "Aderência ao Playbook",
+			"overall": "Aderência Geral",
+			"followed": "Trades com Plano",
+			"deviated": "Trades sem Plano",
+			"topPerforming": "Melhores Estratégias",
+			"needsAttention": "Precisam de Atenção"
+		},
+		"strategy": {
+			"name": "Nome",
+			"code": "Código",
+			"description": "Descrição",
+			"entryCriteria": "Critérios de Entrada",
+			"exitCriteria": "Critérios de Saída",
+			"riskRules": "Regras de Risco",
+			"targetR": "R Alvo",
+			"maxRisk": "Risco Máximo %",
+			"trades": "Trades",
+			"winRate": "Taxa de Acerto",
+			"avgR": "R Médio",
+			"profitFactor": "Fator de Lucro"
+		},
+		"noStrategies": "Nenhuma estratégia cadastrada"
+	},
+	"reports": {
+		"title": "Relatórios de Performance",
+		"description": "Resumos semanais e mensais com análise de erros",
+		"weekly": {
+			"title": "Relatório Semanal",
+			"week": "Semana",
+			"summary": "Resumo",
+			"dailyBreakdown": "Detalhamento Diário",
+			"topWins": "Maiores Gains",
+			"topLosses": "Maiores Losses"
+		},
+		"monthly": {
+			"title": "Relatório Mensal",
+			"month": "Mês",
+			"summary": "Resumo",
+			"weeklyBreakdown": "Detalhamento Semanal",
+			"assetBreakdown": "Por Ativo"
+		},
+		"mistakeCost": {
+			"title": "Custo dos Erros",
+			"description": "Quanto você perdeu por cada tipo de erro",
+			"totalCost": "Custo Total",
+			"noMistakes": "Nenhum erro identificado"
+		}
+	},
+	"settings": {
+		"title": "Configurações",
+		"description": "Gerencie ativos, timeframes e preferências",
+		"tabs": {
+			"assets": "Ativos",
+			"timeframes": "Timeframes",
+			"general": "Geral"
+		},
+		"assets": {
+			"title": "Gerenciar Ativos",
+			"newAsset": "Novo Ativo",
+			"editAsset": "Editar Ativo",
+			"symbol": "Símbolo",
+			"name": "Nome",
+			"type": "Tipo",
+			"tickSize": "Tamanho do Tick",
+			"tickValue": "Valor do Tick",
+			"currency": "Moeda",
+			"commission": "Comissão",
+			"fees": "Taxas",
+			"active": "Ativo",
+			"inactive": "Inativo"
+		},
+		"timeframes": {
+			"title": "Gerenciar Timeframes",
+			"newTimeframe": "Novo Timeframe",
+			"editTimeframe": "Editar Timeframe",
+			"code": "Código",
+			"name": "Nome",
+			"type": "Tipo",
+			"timeBased": "Baseado em Tempo",
+			"renko": "Renko",
+			"value": "Valor",
+			"unit": "Unidade"
+		},
+		"general": {
+			"title": "Configurações Gerais",
+			"theme": "Tema",
+			"themeLight": "Claro",
+			"themeDark": "Escuro",
+			"themeSystem": "Sistema",
+			"language": "Idioma",
+			"currency": "Moeda Padrão",
+			"riskPerTrade": "Risco por Trade %",
+			"accountBalance": "Saldo da Conta",
+			"maxDailyLoss": "Loss Máximo Diário",
+			"maxDailyTrades": "Trades Máximos por Dia",
+			"recalculateR": "Recalcular Valores de R",
+			"recalculateRDescription": "Recalcula os valores de R para todos os trades existentes",
+			"dataMaintenance": "Manutenção de Dados"
+		}
+	},
+	"assetTypes": {
+		"FUTURE_INDEX": "Futuro de Índice",
+		"FUTURE_FX": "Futuro de Câmbio",
+		"STOCK": "Ação",
+		"CRYPTO": "Criptomoeda",
+		"FOREX": "Forex",
+		"OPTION": "Opção",
+		"ETF": "ETF"
+	},
+	"timeframeUnits": {
+		"minutes": "minutos",
+		"hours": "horas",
+		"days": "dias",
+		"weeks": "semanas",
+		"ticks": "ticks",
+		"points": "pontos"
+	},
+	"dayOfWeek": {
+		"0": "Domingo",
+		"1": "Segunda",
+		"2": "Terça",
+		"3": "Quarta",
+		"4": "Quinta",
+		"5": "Sexta",
+		"6": "Sábado"
+	},
+	"months": {
+		"0": "Janeiro",
+		"1": "Fevereiro",
+		"2": "Março",
+		"3": "Abril",
+		"4": "Maio",
+		"5": "Junho",
+		"6": "Julho",
+		"7": "Agosto",
+		"8": "Setembro",
+		"9": "Outubro",
+		"10": "Novembro",
+		"11": "Dezembro"
+	},
+	"validation": {
+		"required": "Campo obrigatório",
+		"invalidEmail": "Email inválido",
+		"minLength": "Mínimo de {min} caracteres",
+		"maxLength": "Máximo de {max} caracteres",
+		"positiveNumber": "Deve ser um número positivo",
+		"invalidDate": "Data inválida",
+		"exitAfterEntry": "Data de saída deve ser após a entrada"
+	},
+	"tooltips": {
+		"winRate": "Porcentagem de trades vencedores em relação ao total",
+		"profitFactor": "Soma dos gains dividida pela soma dos losses",
+		"avgR": "Média dos múltiplos de R realizados",
+		"rMultiple": "Resultado em termos de risco inicial (P&L / Risco)",
+		"mfe": "Maximum Favorable Excursion - maior lucro potencial durante o trade",
+		"mae": "Maximum Adverse Excursion - maior perda potencial durante o trade",
+		"expectedValue": "Retorno médio esperado por trade baseado na taxa de acerto e médias"
+	}
+}

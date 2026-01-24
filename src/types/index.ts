@@ -71,6 +71,7 @@ export interface DisciplineData {
 export interface EquityPoint {
 	date: string
 	equity: number
+	accountEquity: number
 	drawdown: number
 }
 
