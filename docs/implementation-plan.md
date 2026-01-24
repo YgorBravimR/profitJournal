@@ -11,7 +11,7 @@ A personal trading performance analysis platform with deep journaling, analytics
 | Phase | Name | Status | Completed |
 |-------|------|--------|-----------|
 | 1 | Foundation | ✅ Complete | Jan 2025 |
-| 2 | Trade Management | 🔲 Pending | - |
+| 2 | Trade Management | ✅ Complete | Jan 2025 |
 | 3 | Command Center | 🔲 Pending | - |
 | 4 | Deep Analytics | 🔲 Pending | - |
 | 5 | Strategy Playbook | 🔲 Pending | - |
@@ -152,64 +152,87 @@ pnpm db:push      # Push schema to database (requires DATABASE_URL)
 
 ---
 
-## Phase 2: Trade Management 🔲 NEXT
+## Phase 2: Trade Management ✅ COMPLETE
 
 **Goal:** Build complete trade entry and journal system.
 
-### Backend Tasks
+### Completed Tasks
 
-1. **Implement Trade Server Actions** (`src/app/actions/trades.ts`)
-   - [ ] `createTrade()` - validate with Zod, insert, handle tags
-   - [ ] `updateTrade()` - partial update, recalculate derived fields
-   - [ ] `deleteTrade()` - soft delete (isArchived)
-   - [ ] `getTrade()` - fetch with strategy and tags relations
-   - [ ] `getTrades()` - paginated list with filters
-   - [ ] `getTradesForDate()` - for calendar integration
+#### Backend
+- [x] `createTrade()` - validate with Zod, insert, handle tags, auto-calculate P&L/outcome/R
+- [x] `updateTrade()` - partial update, recalculate derived fields
+- [x] `deleteTrade()` - soft delete (isArchived)
+- [x] `getTrade()` - fetch with strategy and tags relations
+- [x] `getTrades()` - paginated list with filters (date, asset, direction, outcome, strategy, tags)
+- [x] `getTradesForDate()` - for calendar integration
+- [x] `getUniqueAssets()` - for filter dropdowns
+- [x] Trade validation schemas with Zod (`src/lib/validations/trade.ts`)
 
-2. **Validation Schemas** (`src/lib/validations/trade.ts`)
-   - [ ] Trade input schema with Zod
-   - [ ] Filter parameters schema
+#### Frontend
+- [x] Trade list page with pagination and empty state (`src/app/journal/page.tsx`)
+- [x] New trade form page (`src/app/journal/new/page.tsx`)
+- [x] Trade detail page with full breakdown (`src/app/journal/[id]/page.tsx`)
+- [x] Edit trade page (`src/app/journal/[id]/edit/page.tsx`)
+- [x] Delete trade button with confirmation (`src/app/journal/[id]/delete-button.tsx`)
 
-### Frontend Tasks
+#### UI Components (`src/components/journal/`)
+- [x] `TradeCard` - summary card with P&L, R, direction badge, tags
+- [x] `TradeMetric` - reusable metric display
+- [x] `PnLDisplay` - colored profit/loss with monospace font
+- [x] `RMultipleBar` - visual planned vs realized R comparison
+- [x] `TradeForm` - multi-tab form (Basic, Risk, Journal, Tags)
 
-1. **Trade List Page** (`src/app/journal/page.tsx`)
-   - [ ] Server component with trade fetching
-   - [ ] Filter controls (date range, asset, outcome)
-   - [ ] Trade card list with key metrics
-   - [ ] Pagination controls
+#### shadcn Components Added
+- [x] Input, Label, Textarea
+- [x] Select, SelectTrigger, SelectContent, SelectItem
+- [x] Tabs, TabsList, TabsTrigger, TabsContent
+- [x] Badge, Separator
 
-2. **Trade Entry Form** (`src/components/journal/trade-form.tsx`)
-   - [ ] Multi-section form:
-     - Basic info (asset, direction, date/time)
-     - Execution (entry price, exit price, size)
-     - Risk management (stop loss, take profit, planned R)
-     - Notes (pre-trade thoughts, post-trade reflection)
-     - Tags (setup type, mistakes)
-   - [ ] Form validation with Zod + React Hook Form
-   - [ ] Server action submission
-
-3. **Trade Detail Page** (`src/app/journal/[id]/page.tsx`)
-   - [ ] Full trade breakdown
-   - [ ] Planned vs Realized R visualization
-   - [ ] MFE/MAE display
-   - [ ] Narrative sections
-   - [ ] Edit/Delete actions
-
-4. **UI Components**
-   - [ ] `TradeCard` - summary card for list view
-   - [ ] `TradeMetric` - reusable metric display
-   - [ ] `PnLDisplay` - colored profit/loss with monospace font
-   - [ ] `RMultipleBar` - visual R comparison
+### Files Created/Modified
+```
+src/
+├── app/
+│   ├── journal/
+│   │   ├── page.tsx               # Trade list with pagination
+│   │   ├── new/page.tsx           # New trade form
+│   │   └── [id]/
+│   │       ├── page.tsx           # Trade detail view
+│   │       ├── edit/page.tsx      # Edit trade form
+│   │       └── delete-button.tsx  # Client delete component
+│   └── actions/
+│       └── trades.ts              # Full CRUD implementation
+├── components/
+│   ├── ui/
+│   │   ├── input.tsx
+│   │   ├── label.tsx
+│   │   ├── textarea.tsx
+│   │   ├── select.tsx
+│   │   ├── tabs.tsx
+│   │   ├── badge.tsx
+│   │   └── separator.tsx
+│   └── journal/
+│       ├── index.ts
+│       ├── trade-card.tsx
+│       ├── trade-form.tsx
+│       ├── trade-metric.tsx
+│       ├── pnl-display.tsx
+│       └── r-multiple-bar.tsx
+├── db/
+│   └── drizzle.ts                 # Added schema for typed queries
+└── lib/
+    └── validations/
+        └── trade.ts               # Zod schemas for trades
+```
 
 ### Deliverables
-- Full trade CRUD functionality
-- Trade list with filtering
-- Trade detail view with all metrics
-- Working trade entry form
+- ✅ Full trade CRUD functionality
+- ✅ Trade list with filtering and pagination
+- ✅ Trade detail view with all metrics
+- ✅ Working trade entry/edit forms with validation
 
 ---
 
-## Phase 3: Command Center
+## Phase 3: Command Center 🔲 NEXT
 
 **Goal:** Build the main dashboard with KPIs and calendar.
 
@@ -364,8 +387,15 @@ pnpm db:push      # Push schema to database (requires DATABASE_URL)
 
 4. **Settings Page** (`src/app/settings/page.tsx`)
    - [ ] Make settings editable
+   - [ ] Per-asset fee configuration (commission and fees applied automatically to P&L calculations)
+   - [ ] Asset fee management UI (add/edit/delete fee presets per asset)
 
-5. **UX Polish**
+5. **Per-Asset Fees Backend** (`src/app/actions/settings.ts`)
+   - [ ] `getAssetFees()` - get fees for an asset
+   - [ ] `setAssetFees()` - configure commission/fees per asset
+   - [ ] Auto-apply fees in P&L calculations based on trade asset
+
+6. **UX Polish**
    - [ ] Loading states refinement
    - [ ] Error handling improvements
    - [ ] Toast notifications for actions
@@ -375,7 +405,8 @@ pnpm db:push      # Push schema to database (requires DATABASE_URL)
 - Weekly and monthly automated reports
 - Mistake cost analysis
 - CSV import functionality
-- Complete settings page
+- Complete settings page with per-asset fee configuration
+- Automatic fee application in P&L calculations
 - Polished user experience
 
 ---
