@@ -1,16 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-	ArrowUpRight,
-	ArrowDownRight,
-	Save,
-	Loader2,
-	Calculator,
-} from "lucide-react"
+import { ArrowUpRight, ArrowDownRight, Save, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { createTradeSchema, type TradeFormInput } from "@/lib/validations/trade"
 import { createTrade, updateTrade } from "@/app/actions/trades"
@@ -77,12 +71,7 @@ export const TradeForm = ({
 				positionSize: Number(trade.positionSize),
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
-				plannedRiskAmount: trade.plannedRiskAmount
-					? Number(trade.plannedRiskAmount)
-					: undefined,
-				plannedRMultiple: trade.plannedRMultiple
-					? Number(trade.plannedRMultiple)
-					: undefined,
+				// plannedRiskAmount and plannedRMultiple are auto-calculated, not stored in form
 				pnl: trade.pnl ? Number(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
@@ -117,8 +106,33 @@ export const TradeForm = ({
 	const exitPrice = watch("exitPrice")
 	const positionSize = watch("positionSize")
 	const stopLoss = watch("stopLoss")
-	const plannedRiskAmount = watch("plannedRiskAmount")
+	const takeProfit = watch("takeProfit")
 	const selectedTagIds = watch("tagIds") || []
+
+	// Auto-calculate planned risk from stop loss (always derived, never user input)
+	const calculatedRisk = useMemo(() => {
+		if (!entryPrice || !stopLoss || !positionSize) return null
+		const entry = Number(entryPrice)
+		const sl = Number(stopLoss)
+		const size = Number(positionSize)
+		if (isNaN(entry) || isNaN(sl) || isNaN(size)) return null
+		const riskPerUnit =
+			direction === "long" ? entry - sl : sl - entry
+		return Math.abs(riskPerUnit * size)
+	}, [entryPrice, stopLoss, positionSize, direction])
+
+	// Auto-calculate planned R target from TP/SL ratio (always derived, never user input)
+	const calculatedPlannedR = useMemo(() => {
+		if (!entryPrice || !stopLoss || !takeProfit) return null
+		const entry = Number(entryPrice)
+		const sl = Number(stopLoss)
+		const tp = Number(takeProfit)
+		if (isNaN(entry) || isNaN(sl) || isNaN(tp)) return null
+		const riskPerUnit = direction === "long" ? entry - sl : sl - entry
+		if (riskPerUnit === 0) return null
+		const rewardPerUnit = direction === "long" ? tp - entry : entry - tp
+		return Math.abs(rewardPerUnit / riskPerUnit)
+	}, [entryPrice, stopLoss, takeProfit, direction])
 
 	// Calculate P&L preview (fees applied from settings in future)
 	const calculatedPnL =
@@ -133,18 +147,9 @@ export const TradeForm = ({
 
 	// Calculate R-Multiple preview
 	const calculatedR =
-		calculatedPnL !== null && plannedRiskAmount
-			? calculateRMultiple(calculatedPnL, Number(plannedRiskAmount))
+		calculatedPnL !== null && calculatedRisk
+			? calculateRMultiple(calculatedPnL, calculatedRisk)
 			: null
-
-	// Calculate planned risk from stop loss
-	const handleCalculateRisk = () => {
-		if (entryPrice && stopLoss && positionSize) {
-			const riskPerShare = Math.abs(Number(entryPrice) - Number(stopLoss))
-			const totalRisk = riskPerShare * Number(positionSize)
-			setValue("plannedRiskAmount", totalRisk)
-		}
-	}
 
 	const handleTagToggle = (tagId: string) => {
 		const current = selectedTagIds || []
@@ -383,40 +388,42 @@ export const TradeForm = ({
 						</div>
 					</div>
 
-					{/* Planned Risk */}
+					{/* Planned Risk (calculated from SL) */}
 					<div className="space-y-s-200">
-						<div className="flex items-center justify-between">
-							<Label htmlFor="plannedRiskAmount">Planned Risk ($)</Label>
-							<Button
-								type="button"
-								variant="ghost"
-								size="sm"
-								onClick={handleCalculateRisk}
-								disabled={!entryPrice || !stopLoss || !positionSize}
-							>
-								<Calculator className="mr-1 h-3 w-3" />
-								Calculate from SL
-							</Button>
+						<Label>Planned Risk ($)</Label>
+						<div className="flex h-10 items-center rounded-md border border-bg-300 bg-bg-100 px-s-300">
+							{calculatedRisk !== null ? (
+								<span className="text-small font-medium text-txt-100">
+									${calculatedRisk.toFixed(2)}
+								</span>
+							) : (
+								<span className="text-small text-txt-300">
+									Enter stop loss to calculate
+								</span>
+							)}
 						</div>
-						<Input
-							id="plannedRiskAmount"
-							type="number"
-							step="any"
-							placeholder="Dollar amount at risk"
-							{...register("plannedRiskAmount")}
-						/>
+						<p className="text-tiny text-txt-300">
+							Auto-calculated from entry, stop loss, and position size
+						</p>
 					</div>
 
-					{/* Planned R-Multiple */}
+					{/* Planned R-Multiple (calculated from TP/SL) */}
 					<div className="space-y-s-200">
-						<Label htmlFor="plannedRMultiple">Planned R Target</Label>
-						<Input
-							id="plannedRMultiple"
-							type="number"
-							step="0.1"
-							placeholder="e.g., 2.0"
-							{...register("plannedRMultiple")}
-						/>
+						<Label>Planned R Target</Label>
+						<div className="flex h-10 items-center rounded-md border border-bg-300 bg-bg-100 px-s-300">
+							{calculatedPlannedR !== null ? (
+								<span className="text-small font-medium text-txt-100">
+									{calculatedPlannedR.toFixed(2)}R
+								</span>
+							) : (
+								<span className="text-small text-txt-300">
+									Enter TP & SL to calculate
+								</span>
+							)}
+						</div>
+						<p className="text-tiny text-txt-300">
+							Auto-calculated from take profit / stop loss ratio
+						</p>
 					</div>
 
 					{/* MFE/MAE */}

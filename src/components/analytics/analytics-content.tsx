@@ -1,0 +1,143 @@
+"use client"
+
+import { useState, useEffect, useTransition } from "react"
+import {
+	FilterPanel,
+	VariableComparison,
+	TagCloud,
+	ExpectedValue,
+	RDistribution,
+	type FilterState,
+} from "@/components/analytics"
+import {
+	getPerformanceByVariable,
+	getExpectedValue,
+	getRDistribution,
+} from "@/app/actions/analytics"
+import { getTagStats } from "@/app/actions/tags"
+import type {
+	PerformanceByGroup,
+	TagStats,
+	ExpectedValueData,
+	RDistributionBucket,
+} from "@/types"
+
+interface AnalyticsContentProps {
+	initialPerformance: PerformanceByGroup[]
+	initialTagStats: TagStats[]
+	initialExpectedValue: ExpectedValueData | null
+	initialRDistribution: RDistributionBucket[]
+	availableAssets: string[]
+}
+
+export const AnalyticsContent = ({
+	initialPerformance,
+	initialTagStats,
+	initialExpectedValue,
+	initialRDistribution,
+	availableAssets,
+}: AnalyticsContentProps) => {
+	const [isPending, startTransition] = useTransition()
+
+	const [filters, setFilters] = useState<FilterState>({
+		dateFrom: null,
+		dateTo: null,
+		assets: [],
+		directions: [],
+		outcomes: [],
+		timeframes: [],
+	})
+
+	const [groupBy, setGroupBy] = useState<
+		"asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
+	>("asset")
+
+	const [performance, setPerformance] =
+		useState<PerformanceByGroup[]>(initialPerformance)
+	const [tagStats, setTagStats] = useState<TagStats[]>(initialTagStats)
+	const [expectedValue, setExpectedValue] =
+		useState<ExpectedValueData | null>(initialExpectedValue)
+	const [rDistribution, setRDistribution] =
+		useState<RDistributionBucket[]>(initialRDistribution)
+
+	// Refetch data when filters or groupBy change
+	useEffect(() => {
+		startTransition(async () => {
+			// Convert FilterState to TradeFilters for server actions
+			const tradeFilters = {
+				dateFrom: filters.dateFrom || undefined,
+				dateTo: filters.dateTo || undefined,
+				assets: filters.assets.length > 0 ? filters.assets : undefined,
+				directions: filters.directions.length > 0 ? filters.directions : undefined,
+				outcomes: filters.outcomes.length > 0 ? filters.outcomes : undefined,
+				timeframes: filters.timeframes.length > 0 ? filters.timeframes as ("1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w")[] : undefined,
+			}
+
+			const [perfResult, tagResult, evResult, rDistResult] = await Promise.all([
+				getPerformanceByVariable(groupBy, tradeFilters),
+				getTagStats(tradeFilters),
+				getExpectedValue(tradeFilters),
+				getRDistribution(tradeFilters),
+			])
+
+			if (perfResult.status === "success" && perfResult.data) {
+				setPerformance(perfResult.data)
+			}
+			if (tagResult.status === "success" && tagResult.data) {
+				setTagStats(tagResult.data)
+			}
+			if (evResult.status === "success" && evResult.data) {
+				setExpectedValue(evResult.data)
+			}
+			if (rDistResult.status === "success" && rDistResult.data) {
+				setRDistribution(rDistResult.data)
+			}
+		})
+	}, [filters, groupBy])
+
+	const handleGroupByChange = (
+		newGroupBy: "asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
+	) => {
+		setGroupBy(newGroupBy)
+	}
+
+	return (
+		<div className="space-y-m-600">
+			{/* Filter Panel */}
+			<FilterPanel
+				filters={filters}
+				onFiltersChange={setFilters}
+				availableAssets={availableAssets}
+			/>
+
+			{/* Loading Indicator */}
+			{isPending && (
+				<div className="flex items-center justify-center py-s-200">
+					<div className="h-4 w-4 animate-spin rounded-full border-2 border-acc-100 border-t-transparent" />
+					<span className="ml-s-200 text-small text-txt-300">
+						Updating analytics...
+					</span>
+				</div>
+			)}
+
+			{/* Variable Comparison - Full Width */}
+			<VariableComparison
+				data={performance}
+				groupBy={groupBy}
+				onGroupByChange={handleGroupByChange}
+			/>
+
+			{/* Two Column Grid */}
+			<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-2">
+				{/* Expected Value */}
+				<ExpectedValue data={expectedValue} />
+
+				{/* R Distribution */}
+				<RDistribution data={rDistribution} />
+			</div>
+
+			{/* Tag Cloud - Full Width */}
+			<TagCloud data={tagStats} />
+		</div>
+	)
+}

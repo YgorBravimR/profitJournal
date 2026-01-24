@@ -74,12 +74,7 @@ const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 	take_profit: "takeProfit",
 	takeprofit: "takeProfit",
 	tp: "takeProfit",
-	planned_risk: "plannedRiskAmount",
-	plannedrisk: "plannedRiskAmount",
-	risk_amount: "plannedRiskAmount",
-	riskamount: "plannedRiskAmount",
-	planned_r: "plannedRMultiple",
-	plannedr: "plannedRMultiple",
+	// Note: plannedRiskAmount and plannedRMultiple are always calculated, not imported
 
 	// Results
 	pnl: "pnl",
@@ -344,8 +339,6 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 				case "positionSize":
 				case "stopLoss":
 				case "takeProfit":
-				case "plannedRiskAmount":
-				case "plannedRMultiple":
 				case "pnl":
 				case "realizedRMultiple":
 				case "mfe":

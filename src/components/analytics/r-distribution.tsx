@@ -1,0 +1,233 @@
+"use client"
+
+import {
+	BarChart,
+	Bar,
+	XAxis,
+	YAxis,
+	CartesianGrid,
+	Tooltip as RechartsTooltip,
+	ResponsiveContainer,
+	Cell,
+	ReferenceLine,
+} from "recharts"
+import { BarChart3, Info } from "lucide-react"
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipTrigger,
+} from "@/components/ui/tooltip"
+import type { RDistributionBucket } from "@/types"
+
+const StatLabel = ({
+	label,
+	tooltip,
+}: {
+	label: string
+	tooltip: string
+}) => (
+	<Tooltip>
+		<TooltipTrigger asChild>
+			<p className="inline-flex cursor-help items-center gap-s-100 text-tiny text-txt-300">
+				{label}
+				<Info className="h-3 w-3" />
+			</p>
+		</TooltipTrigger>
+		<TooltipContent
+			side="top"
+			className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+		>
+			{tooltip}
+		</TooltipContent>
+	</Tooltip>
+)
+
+interface RDistributionProps {
+	data: RDistributionBucket[]
+}
+
+const formatCurrency = (value: number): string => {
+	const absValue = Math.abs(value)
+	if (absValue >= 1000) {
+		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
+	}
+	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
+}
+
+interface CustomTooltipProps {
+	active?: boolean
+	payload?: Array<{
+		value: number
+		payload: RDistributionBucket
+	}>
+}
+
+const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	if (active && payload && payload.length > 0) {
+		const data = payload[0].payload
+		return (
+			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg">
+				<p className="text-small font-semibold text-txt-100">{data.range}</p>
+				<div className="mt-s-200 space-y-s-100 text-tiny">
+					<p className="text-txt-200">Trades: {data.count}</p>
+					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
+						Total P&L: {formatCurrency(data.pnl)}
+					</p>
+				</div>
+			</div>
+		)
+	}
+	return null
+}
+
+export const RDistribution = ({ data }: RDistributionProps) => {
+	if (data.length === 0) {
+		return (
+			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+				<div className="flex items-center gap-s-200">
+					<BarChart3 className="h-5 w-5 text-txt-300" />
+					<h3 className="text-body font-semibold text-txt-100">
+						R-Multiple Distribution
+					</h3>
+				</div>
+				<div className="mt-m-400 flex h-48 items-center justify-center text-txt-300">
+					No R-multiple data available. Add planned risk to your trades to see distribution.
+				</div>
+			</div>
+		)
+	}
+
+	// Calculate stats
+	const totalTrades = data.reduce((sum, b) => sum + b.count, 0)
+	const totalPnl = data.reduce((sum, b) => sum + b.pnl, 0)
+	const positiveBuckets = data.filter((b) => b.rangeMin >= 0)
+	const negativeBuckets = data.filter((b) => b.rangeMax <= 0)
+	const positiveCount = positiveBuckets.reduce((sum, b) => sum + b.count, 0)
+	const negativeCount = negativeBuckets.reduce((sum, b) => sum + b.count, 0)
+
+	// Find mode (most common R range)
+	const mode = data.reduce((max, b) => (b.count > max.count ? b : max), data[0])
+
+	return (
+		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+			<div className="flex items-center gap-s-200">
+				<BarChart3 className="h-5 w-5 text-txt-300" />
+				<h3 className="text-body font-semibold text-txt-100">
+					R-Multiple Distribution
+				</h3>
+			</div>
+
+			{/* Summary Stats */}
+			<div className="mt-m-400 grid grid-cols-2 gap-m-400 md:grid-cols-4">
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label="Total Trades"
+						tooltip="Number of trades with R-multiple data (requires stop loss)"
+					/>
+					<p className="mt-s-100 text-body font-bold text-txt-100">
+						{totalTrades}
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label="Positive R"
+						tooltip="Trades that made more than planned risk (R > 0)"
+					/>
+					<p className="mt-s-100 text-body font-bold text-trade-buy">
+						{positiveCount} ({((positiveCount / totalTrades) * 100).toFixed(0)}%)
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label="Negative R"
+						tooltip="Trades that lost money (R < 0)"
+					/>
+					<p className="mt-s-100 text-body font-bold text-trade-sell">
+						{negativeCount} ({((negativeCount / totalTrades) * 100).toFixed(0)}%)
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label="Most Common"
+						tooltip="The R-multiple range with the highest frequency"
+					/>
+					<p className="mt-s-100 text-body font-bold text-acc-100">
+						{mode.range}
+					</p>
+				</div>
+			</div>
+
+			{/* Chart */}
+			<div className="mt-m-500 h-64">
+				<ResponsiveContainer width="100%" height="100%">
+					<BarChart
+						data={data}
+						margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
+					>
+						<CartesianGrid
+							strokeDasharray="3 3"
+							stroke="rgb(43 47 54)"
+							vertical={false}
+						/>
+						<XAxis
+							dataKey="range"
+							stroke="rgb(90 96 106)"
+							tick={{ fill: "rgb(90 96 106)", fontSize: 10 }}
+							tickLine={false}
+							axisLine={false}
+							angle={-45}
+							textAnchor="end"
+							height={50}
+						/>
+						<YAxis
+							stroke="rgb(90 96 106)"
+							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							tickLine={false}
+							axisLine={false}
+							allowDecimals={false}
+						/>
+						<RechartsTooltip content={<CustomTooltip />} />
+						<ReferenceLine x="0R to 0.5R" stroke="rgb(90 96 106)" strokeDasharray="3 3" />
+						<Bar dataKey="count" radius={[4, 4, 0, 0]}>
+							{data.map((entry, index) => (
+								<Cell
+									key={`cell-${index}`}
+									fill={
+										entry.rangeMin >= 0
+											? "rgb(0 255 150)"
+											: "rgb(128 128 255)"
+									}
+									opacity={0.8}
+								/>
+							))}
+						</Bar>
+					</BarChart>
+				</ResponsiveContainer>
+			</div>
+
+			{/* Insight */}
+			<div className="mt-m-400 rounded-lg bg-bg-100 p-m-400">
+				<p className="text-small text-txt-200">
+					{positiveCount > negativeCount ? (
+						<>
+							<span className="font-semibold text-trade-buy">
+								{((positiveCount / totalTrades) * 100).toFixed(0)}%
+							</span>{" "}
+							of your trades achieved positive R. Your most common outcome is{" "}
+							<span className="font-semibold text-acc-100">{mode.range}</span> with{" "}
+							{mode.count} trades.
+						</>
+					) : (
+						<>
+							<span className="font-semibold text-trade-sell">
+								{((negativeCount / totalTrades) * 100).toFixed(0)}%
+							</span>{" "}
+							of your trades resulted in negative R. Focus on cutting losers earlier
+							or improving entry timing.
+						</>
+					)}
+				</p>
+			</div>
+		</div>
+	)
+}

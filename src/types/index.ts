@@ -106,3 +106,29 @@ export interface StrategyStats {
 	compliance: number
 	totalPnl: number
 }
+
+export interface PerformanceByGroup {
+	group: string
+	tradeCount: number
+	pnl: number
+	winRate: number
+	avgR: number
+	profitFactor: number
+}
+
+export interface ExpectedValueData {
+	winRate: number
+	avgWin: number
+	avgLoss: number
+	expectedValue: number
+	projectedPnl100: number
+	sampleSize: number
+}
+
+export interface RDistributionBucket {
+	range: string
+	rangeMin: number
+	rangeMax: number
+	count: number
+	pnl: number
+}

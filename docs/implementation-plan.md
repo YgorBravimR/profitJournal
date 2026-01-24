@@ -12,8 +12,8 @@ A personal trading performance analysis platform with deep journaling, analytics
 |-------|------|--------|-----------|
 | 1 | Foundation | ✅ Complete | Jan 2025 |
 | 2 | Trade Management | ✅ Complete | Jan 2025 |
-| 3 | Command Center | 🔲 Pending | - |
-| 4 | Deep Analytics | 🔲 Pending | - |
+| 3 | Command Center | ✅ Complete | Jan 2025 |
+| 4 | Deep Analytics | ✅ Complete | Jan 2025 |
 | 5 | Strategy Playbook | 🔲 Pending | - |
 | 6 | Reports & Polish | 🔲 Pending | - |
 
@@ -232,99 +232,128 @@ src/
 
 ---
 
-## Phase 3: Command Center 🔲 NEXT
+## Phase 3: Command Center ✅ COMPLETE
 
 **Goal:** Build the main dashboard with KPIs and calendar.
 
-### Backend Tasks
+### Completed Tasks
 
-1. **Implement Analytics Server Actions** (`src/app/actions/analytics.ts`)
-   - [ ] `getOverallStats()` - Net P&L, Win Rate, Profit Factor, Avg R
-   - [ ] `getStreakData()` - winning/losing streaks
-   - [ ] `getDailyPnL()` - for calendar coloring
-   - [ ] `getEquityCurve()` - cumulative P&L over time
-   - [ ] `getDrawdownData()` - peak-to-trough calculations
-   - [ ] `getDisciplineScore()` - playbook compliance %
+#### Backend
+- [x] `getOverallStats()` - Net P&L, Win Rate, Profit Factor, Avg R, Win/Loss counts
+- [x] `getStreakData()` - current streak, longest win/loss streaks, best/worst days
+- [x] `getDailyPnL()` - daily P&L aggregation for calendar
+- [x] `getEquityCurve()` - cumulative P&L with drawdown calculation
+- [x] `getDisciplineScore()` - playbook compliance % with trend
+- [x] `formatDateKey()` - timezone-safe date formatting helper
+- [x] `bulkCreateTrades()` - batch import from CSV
 
-### Frontend Tasks
+#### Frontend
+- [x] Dashboard page with real data fetching (`src/app/page.tsx`)
+- [x] KPI Cards - Net P&L, Win Rate, Profit Factor, Avg R, Discipline Score
+- [x] Trading Calendar - monthly grid, color-coded by P&L, month navigation
+- [x] Equity Curve - Recharts area chart with gradient, drawdown tooltip
+- [x] Quick Stats - current streak, best/worst day, longest streaks
+- [x] CSV Import - drag & drop upload, preview table, bulk import
 
-1. **Dashboard Page** (`src/app/page.tsx`)
-   - [ ] Replace placeholder with real data fetching
-   - [ ] Grid layout with KPI cards, calendar, chart
+#### CSV Import Feature
+- [x] CSV parser with flexible column mapping (`src/lib/csv-parser.ts`)
+- [x] Support for multiple header name variations
+- [x] Validation with detailed error/warning reporting
+- [x] CSV template generator
+- [x] Preview table before import
+- [x] New trade page tabs (Single Entry / CSV Import)
 
-2. **KPI Cards** (`src/components/dashboard/kpi-cards.tsx`)
-   - [ ] Net P&L (large, prominent)
-   - [ ] Win Rate, Profit Factor, Average R
-   - [ ] Discipline Score
-
-3. **Trading Calendar** (`src/components/dashboard/trading-calendar.tsx`)
-   - [ ] Monthly grid view
-   - [ ] Color-coded days by P&L
-   - [ ] Click to navigate to day's trades
-   - [ ] Month navigation
-
-4. **Equity Curve Chart** (`src/components/dashboard/equity-curve.tsx`)
-   - [ ] Line chart with Recharts
-   - [ ] Gradient fill (green/periwinkle)
-   - [ ] Drawdown overlay
-
-5. **Quick Stats Panel** (`src/components/dashboard/quick-stats.tsx`)
-   - [ ] Current streak, Best/Worst day, Total trades
+### Files Created/Modified
+```
+src/
+├── app/
+│   ├── page.tsx                       # Dashboard with real data
+│   ├── journal/new/page.tsx           # Updated with tabs
+│   └── actions/
+│       └── analytics.ts               # Full implementation
+├── components/
+│   ├── dashboard/
+│   │   ├── index.ts
+│   │   ├── kpi-cards.tsx
+│   │   ├── trading-calendar.tsx
+│   │   ├── equity-curve.tsx
+│   │   ├── quick-stats.tsx
+│   │   └── dashboard-content.tsx      # Client wrapper
+│   └── journal/
+│       ├── csv-import.tsx
+│       └── new-trade-tabs.tsx
+├── lib/
+│   ├── dates.ts                       # Added formatDateKey()
+│   └── csv-parser.ts                  # CSV parsing utility
+└── types/
+    └── index.ts                       # Added StreakData type
+```
 
 ### Deliverables
-- Fully functional dashboard
-- Real-time KPI calculations
-- Interactive trading calendar
-- Equity curve visualization
+- ✅ Fully functional dashboard with real-time data
+- ✅ KPI calculations (P&L, Win Rate, Profit Factor, Avg R, Discipline)
+- ✅ Interactive trading calendar with month navigation
+- ✅ Equity curve visualization with Recharts
+- ✅ Quick stats panel with streaks
+- ✅ CSV bulk import with preview and validation
 
 ---
 
-## Phase 4: Deep Analytics
+## Phase 4: Deep Analytics ✅ COMPLETE
 
 **Goal:** Build filtering system and analytical tools.
 
-### Backend Tasks
+### Completed Tasks
 
-1. **Implement Tag Server Actions** (`src/app/actions/tags.ts`)
-   - [ ] `createTag()` - add new tag
-   - [ ] `getTags()` - list all tags
-   - [ ] `getTagStats()` - performance per tag
+#### Backend
+- [x] `createTag()` - add new tag with validation
+- [x] `updateTag()` - edit tag name/type/color
+- [x] `deleteTag()` - remove tag
+- [x] `getTags()` - list all tags with optional type filter
+- [x] `getTagStats()` - performance per tag (P&L, win rate, avg R, trade count)
+- [x] `getPerformanceByVariable()` - group by asset/timeframe/hour/dayOfWeek/strategy
+- [x] `getExpectedValue()` - EV calculation with win rate, avg win/loss, 100-trade projection
+- [x] `getRDistribution()` - R-multiple histogram buckets from <-2R to >3R
 
-2. **Extend Analytics** (`src/app/actions/analytics.ts`)
-   - [ ] `getPerformanceByVariable()` - group by timeframe/asset/time
-   - [ ] `getTagCloudData()` - tag frequency + performance
-   - [ ] `getExpectedValue()` - EV calculation
-   - [ ] `getTradeDistribution()` - R-distribution histogram
+#### Frontend
+- [x] Analytics page with server-side data fetching (`src/app/analytics/page.tsx`)
+- [x] Filter Panel - date presets, custom date range, asset/direction/outcome/timeframe filters
+- [x] Variable Comparison - bar chart with metric selector (P&L, win rate, avg R, trade count, profit factor)
+- [x] Tag Cloud - visual tag display by type with size/color coding and detailed stats table
+- [x] Expected Value - EV display with formula breakdown and interpretation
+- [x] R-Distribution Histogram - bar chart with Recharts, color-coded positive/negative R
 
-### Frontend Tasks
-
-1. **Analytics Page** (`src/app/analytics/page.tsx`)
-   - [ ] Replace placeholder with real components
-
-2. **Filter Panel** (`src/components/analytics/filter-panel.tsx`)
-   - [ ] Date range picker, multi-selects for filters
-
-3. **Variable Comparison** (`src/components/analytics/variable-comparison.tsx`)
-   - [ ] Dropdown to select grouping, bar chart
-
-4. **Tag Cloud** (`src/components/analytics/tag-cloud.tsx`)
-   - [ ] Visual tag display with size/color coding
-
-5. **Expected Value Calculator** (`src/components/analytics/expected-value.tsx`)
-   - [ ] Current EV, projection over N trades
-
-6. **R-Distribution Histogram** (`src/components/analytics/r-distribution.tsx`)
-   - [ ] Bar chart of R outcomes
+### Files Created/Modified
+```
+src/
+├── app/
+│   ├── analytics/page.tsx              # Full implementation with data
+│   └── actions/
+│       ├── tags.ts                     # Full CRUD + stats
+│       └── analytics.ts                # Extended with new functions
+├── components/
+│   └── analytics/
+│       ├── index.ts                    # Barrel exports
+│       ├── filter-panel.tsx            # Date/filter controls
+│       ├── variable-comparison.tsx     # Performance chart
+│       ├── tag-cloud.tsx               # Tag visualization
+│       ├── expected-value.tsx          # EV calculator
+│       ├── r-distribution.tsx          # R histogram
+│       └── analytics-content.tsx       # Client wrapper
+└── types/
+    └── index.ts                        # Added PerformanceByGroup, ExpectedValueData, RDistributionBucket
+```
 
 ### Deliverables
-- Full filtering system
-- Variable comparison tool
-- Tag analysis with cloud visualization
-- EV calculator, R-distribution chart
+- ✅ Full filtering system with date presets and multi-select filters
+- ✅ Variable comparison tool with 5 grouping options and 5 metrics
+- ✅ Tag analysis with cloud visualization and detailed statistics table
+- ✅ EV calculator with formula explanation and 100-trade projection
+- ✅ R-distribution histogram with positive/negative color coding
 
 ---
 
-## Phase 5: Strategy Playbook
+## Phase 5: Strategy Playbook 🔲 NEXT
 
 **Goal:** Build strategy library and compliance tracking.
 
@@ -360,7 +389,7 @@ src/
 
 ## Phase 6: Reports & Polish
 
-**Goal:** Automated reports, CSV import, UX improvements.
+**Goal:** Automated reports, settings, UX improvements.
 
 ### Backend Tasks
 
@@ -369,9 +398,10 @@ src/
    - [ ] `getMonthlyReport()` - month summary
    - [ ] `getMistakeCostAnalysis()` - sum losses by mistake tag
 
-2. **CSV Import** (`src/app/actions/import.ts`)
-   - [ ] `parseCSV()` - validate and parse
-   - [ ] `importTrades()` - bulk insert
+2. **Per-Asset Fees Backend** (`src/app/actions/settings.ts`)
+   - [ ] `getAssetFees()` - get fees for an asset
+   - [ ] `setAssetFees()` - configure commission/fees per asset
+   - [ ] Auto-apply fees in P&L calculations based on trade asset
 
 ### Frontend Tasks
 
@@ -382,20 +412,12 @@ src/
    - [ ] Summary statistics, day-by-day breakdown
    - [ ] Top wins/losses, mistake cost section
 
-3. **CSV Import** (`src/components/settings/csv-import.tsx`)
-   - [ ] File upload, column mapping, preview
-
-4. **Settings Page** (`src/app/settings/page.tsx`)
+3. **Settings Page** (`src/app/settings/page.tsx`)
    - [ ] Make settings editable
    - [ ] Per-asset fee configuration (commission and fees applied automatically to P&L calculations)
    - [ ] Asset fee management UI (add/edit/delete fee presets per asset)
 
-5. **Per-Asset Fees Backend** (`src/app/actions/settings.ts`)
-   - [ ] `getAssetFees()` - get fees for an asset
-   - [ ] `setAssetFees()` - configure commission/fees per asset
-   - [ ] Auto-apply fees in P&L calculations based on trade asset
-
-6. **UX Polish**
+4. **UX Polish**
    - [ ] Loading states refinement
    - [ ] Error handling improvements
    - [ ] Toast notifications for actions
@@ -404,10 +426,12 @@ src/
 ### Deliverables
 - Weekly and monthly automated reports
 - Mistake cost analysis
-- CSV import functionality
 - Complete settings page with per-asset fee configuration
 - Automatic fee application in P&L calculations
 - Polished user experience
+
+### Note
+CSV Import was completed in Phase 3.
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { db } from "@/db/drizzle"
 import { trades } from "@/db/schema"
-import { eq, and, gte, lte, desc, asc, sql } from "drizzle-orm"
+import { eq, and, gte, lte, desc, asc, sql, inArray } from "drizzle-orm"
 import type {
 	ActionResponse,
 	OverallStats,
@@ -10,12 +10,44 @@ import type {
 	EquityPoint,
 	DailyPnL,
 	StreakData,
+	PerformanceByGroup,
+	ExpectedValueData,
+	RDistributionBucket,
+	TradeFilters,
 } from "@/types"
 import {
 	calculateWinRate,
 	calculateProfitFactor,
 } from "@/lib/calculations"
 import { getStartOfMonth, getEndOfMonth, formatDateKey } from "@/lib/dates"
+
+/**
+ * Build filter conditions from TradeFilters
+ */
+const buildFilterConditions = (filters?: TradeFilters) => {
+	const conditions = [eq(trades.isArchived, false)]
+
+	if (filters?.dateFrom) {
+		conditions.push(gte(trades.entryDate, filters.dateFrom))
+	}
+	if (filters?.dateTo) {
+		conditions.push(lte(trades.entryDate, filters.dateTo))
+	}
+	if (filters?.assets && filters.assets.length > 0) {
+		conditions.push(inArray(trades.asset, filters.assets))
+	}
+	if (filters?.directions && filters.directions.length > 0) {
+		conditions.push(inArray(trades.direction, filters.directions))
+	}
+	if (filters?.outcomes && filters.outcomes.length > 0) {
+		conditions.push(inArray(trades.outcome, filters.outcomes))
+	}
+	if (filters?.timeframes && filters.timeframes.length > 0) {
+		conditions.push(inArray(trades.timeframe, filters.timeframes))
+	}
+
+	return conditions
+}
 
 /**
  * Get overall trading statistics
@@ -424,55 +456,269 @@ export const getStreakData = async (
 
 /**
  * Get performance grouped by variable
- * Implementation in Phase 4
  */
 export const getPerformanceByVariable = async (
-	_groupBy: "asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy",
-	_dateFrom?: Date,
-	_dateTo?: Date
-): Promise<
-	ActionResponse<
-		Array<{
-			group: string
-			tradeCount: number
-			pnl: number
-			winRate: number
-			avgR: number
-		}>
-	>
-> => {
-	return {
-		status: "success",
-		message: "Performance data retrieved",
-		data: [],
+	groupBy: "asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy",
+	filters?: TradeFilters
+): Promise<ActionResponse<PerformanceByGroup[]>> => {
+	try {
+		const conditions = buildFilterConditions(filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+			with: {
+				strategy: true,
+			},
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Group trades by the specified variable
+		const groups = new Map<
+			string,
+			{
+				trades: typeof result
+				pnl: number
+				winCount: number
+				lossCount: number
+				totalR: number
+				rCount: number
+				grossProfit: number
+				grossLoss: number
+			}
+		>()
+
+		for (const trade of result) {
+			let groupKey: string
+
+			switch (groupBy) {
+				case "asset":
+					groupKey = trade.asset
+					break
+				case "timeframe":
+					groupKey = trade.timeframe || "Unknown"
+					break
+				case "hour": {
+					const hour = trade.entryDate.getHours()
+					groupKey = `${hour.toString().padStart(2, "0")}:00`
+					break
+				}
+				case "dayOfWeek": {
+					const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+					groupKey = days[trade.entryDate.getDay()]
+					break
+				}
+				case "strategy":
+					groupKey = trade.strategy?.name || "No Strategy"
+					break
+				default:
+					groupKey = "Unknown"
+			}
+
+			const existing = groups.get(groupKey) || {
+				trades: [],
+				pnl: 0,
+				winCount: 0,
+				lossCount: 0,
+				totalR: 0,
+				rCount: 0,
+				grossProfit: 0,
+				grossLoss: 0,
+			}
+
+			const pnl = Number(trade.pnl) || 0
+			existing.trades.push(trade)
+			existing.pnl += pnl
+
+			if (trade.outcome === "win") {
+				existing.winCount++
+				existing.grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				existing.lossCount++
+				existing.grossLoss += Math.abs(pnl)
+			}
+
+			if (trade.realizedRMultiple) {
+				existing.totalR += Number(trade.realizedRMultiple)
+				existing.rCount++
+			}
+
+			groups.set(groupKey, existing)
+		}
+
+		// Convert to array and calculate final stats
+		const performanceData: PerformanceByGroup[] = Array.from(groups.entries())
+			.map(([group, data]) => ({
+				group,
+				tradeCount: data.trades.length,
+				pnl: data.pnl,
+				winRate: calculateWinRate(data.winCount, data.winCount + data.lossCount),
+				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
+			}))
+			.sort((a, b) => b.pnl - a.pnl)
+
+		return {
+			status: "success",
+			message: "Performance data retrieved",
+			data: performanceData,
+		}
+	} catch (error) {
+		console.error("Get performance by variable error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve performance data",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
 	}
 }
 
 /**
  * Get expected value calculation
- * Implementation in Phase 4
  */
 export const getExpectedValue = async (
-	_dateFrom?: Date,
-	_dateTo?: Date
-): Promise<
-	ActionResponse<{
-		winRate: number
-		avgWin: number
-		avgLoss: number
-		expectedValue: number
-		projectedPnl100: number
-	}>
-> => {
-	return {
-		status: "success",
-		message: "Expected value calculated",
-		data: {
-			winRate: 0,
-			avgWin: 0,
-			avgLoss: 0,
-			expectedValue: 0,
-			projectedPnl100: 0,
-		},
+	filters?: TradeFilters
+): Promise<ActionResponse<ExpectedValueData>> => {
+	try {
+		const conditions = buildFilterConditions(filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		const tradesWithOutcome = result.filter((t) => t.outcome === "win" || t.outcome === "loss")
+
+		if (tradesWithOutcome.length === 0) {
+			return {
+				status: "success",
+				message: "No completed trades found",
+				data: {
+					winRate: 0,
+					avgWin: 0,
+					avgLoss: 0,
+					expectedValue: 0,
+					projectedPnl100: 0,
+					sampleSize: 0,
+				},
+			}
+		}
+
+		const wins: number[] = []
+		const losses: number[] = []
+
+		for (const trade of tradesWithOutcome) {
+			const pnl = Number(trade.pnl) || 0
+			if (trade.outcome === "win") {
+				wins.push(pnl)
+			} else if (trade.outcome === "loss") {
+				losses.push(Math.abs(pnl))
+			}
+		}
+
+		const winRate = wins.length / tradesWithOutcome.length
+		const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
+		const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
+
+		// EV = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)
+		const expectedValue = winRate * avgWin - (1 - winRate) * avgLoss
+
+		// Project over 100 trades
+		const projectedPnl100 = expectedValue * 100
+
+		return {
+			status: "success",
+			message: "Expected value calculated",
+			data: {
+				winRate: winRate * 100,
+				avgWin,
+				avgLoss,
+				expectedValue,
+				projectedPnl100,
+				sampleSize: tradesWithOutcome.length,
+			},
+		}
+	} catch (error) {
+		console.error("Get expected value error:", error)
+		return {
+			status: "error",
+			message: "Failed to calculate expected value",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get R-multiple distribution for histogram
+ */
+export const getRDistribution = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<RDistributionBucket[]>> => {
+	try {
+		const conditions = buildFilterConditions(filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		// Filter trades with R-multiple data
+		const tradesWithR = result.filter((t) => t.realizedRMultiple !== null)
+
+		if (tradesWithR.length === 0) {
+			return {
+				status: "success",
+				message: "No trades with R-multiple data",
+				data: [],
+			}
+		}
+
+		// Define buckets: -3R to +4R in 0.5R increments
+		const buckets: RDistributionBucket[] = [
+			{ range: "< -2R", rangeMin: -Infinity, rangeMax: -2, count: 0, pnl: 0 },
+			{ range: "-2R to -1.5R", rangeMin: -2, rangeMax: -1.5, count: 0, pnl: 0 },
+			{ range: "-1.5R to -1R", rangeMin: -1.5, rangeMax: -1, count: 0, pnl: 0 },
+			{ range: "-1R to -0.5R", rangeMin: -1, rangeMax: -0.5, count: 0, pnl: 0 },
+			{ range: "-0.5R to 0R", rangeMin: -0.5, rangeMax: 0, count: 0, pnl: 0 },
+			{ range: "0R to 0.5R", rangeMin: 0, rangeMax: 0.5, count: 0, pnl: 0 },
+			{ range: "0.5R to 1R", rangeMin: 0.5, rangeMax: 1, count: 0, pnl: 0 },
+			{ range: "1R to 1.5R", rangeMin: 1, rangeMax: 1.5, count: 0, pnl: 0 },
+			{ range: "1.5R to 2R", rangeMin: 1.5, rangeMax: 2, count: 0, pnl: 0 },
+			{ range: "2R to 3R", rangeMin: 2, rangeMax: 3, count: 0, pnl: 0 },
+			{ range: "> 3R", rangeMin: 3, rangeMax: Infinity, count: 0, pnl: 0 },
+		]
+
+		for (const trade of tradesWithR) {
+			const r = Number(trade.realizedRMultiple)
+			const pnl = Number(trade.pnl) || 0
+
+			for (const bucket of buckets) {
+				if (r >= bucket.rangeMin && r < bucket.rangeMax) {
+					bucket.count++
+					bucket.pnl += pnl
+					break
+				}
+			}
+		}
+
+		// Filter out empty buckets at the extremes
+		const nonEmptyBuckets = buckets.filter((b) => b.count > 0)
+
+		return {
+			status: "success",
+			message: "R-distribution calculated",
+			data: nonEmptyBuckets.length > 0 ? nonEmptyBuckets : buckets.filter((b) => b.rangeMin >= -2 && b.rangeMax <= 3),
+		}
+	} catch (error) {
+		console.error("Get R-distribution error:", error)
+		return {
+			status: "error",
+			message: "Failed to calculate R-distribution",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
 	}
 }

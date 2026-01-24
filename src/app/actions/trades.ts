@@ -42,6 +42,26 @@ export const createTrade = async (
 		let outcome: "win" | "loss" | "breakeven" | undefined
 		let realizedR = tradeData.realizedRMultiple
 
+		// Always calculate plannedRiskAmount from stopLoss (never user input)
+		let plannedRiskAmount: number | undefined
+		let plannedRMultiple: number | undefined
+		if (tradeData.stopLoss) {
+			const riskPerUnit =
+				tradeData.direction === "long"
+					? tradeData.entryPrice - tradeData.stopLoss
+					: tradeData.stopLoss - tradeData.entryPrice
+			plannedRiskAmount = Math.abs(riskPerUnit * tradeData.positionSize)
+
+			// Calculate plannedRMultiple from take profit (reward/risk ratio)
+			if (tradeData.takeProfit && riskPerUnit !== 0) {
+				const rewardPerUnit =
+					tradeData.direction === "long"
+						? tradeData.takeProfit - tradeData.entryPrice
+						: tradeData.entryPrice - tradeData.takeProfit
+				plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+			}
+		}
+
 		if (tradeData.exitPrice && !pnl) {
 			// TODO: Apply per-asset fees from settings when implemented
 			pnl = calculatePnL({
@@ -56,8 +76,8 @@ export const createTrade = async (
 			outcome = determineOutcome(pnl)
 		}
 
-		if (pnl !== undefined && tradeData.plannedRiskAmount) {
-			realizedR = calculateRMultiple(pnl, tradeData.plannedRiskAmount)
+		if (pnl !== undefined && plannedRiskAmount && plannedRiskAmount > 0) {
+			realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 		}
 
 		// Insert trade - convert numeric fields to strings for Drizzle
@@ -74,8 +94,8 @@ export const createTrade = async (
 				positionSize: tradeData.positionSize.toString(),
 				stopLoss: tradeData.stopLoss?.toString(),
 				takeProfit: tradeData.takeProfit?.toString(),
-				plannedRiskAmount: tradeData.plannedRiskAmount?.toString(),
-				plannedRMultiple: tradeData.plannedRMultiple?.toString(),
+				plannedRiskAmount: plannedRiskAmount?.toString(),
+				plannedRMultiple: plannedRMultiple?.toString(),
 				pnl: pnl?.toString(),
 				outcome,
 				realizedRMultiple: realizedR?.toString(),
@@ -155,8 +175,26 @@ export const updateTrade = async (
 		const entryPrice = tradeData.entryPrice ?? Number(existing.entryPrice)
 		const positionSize = tradeData.positionSize ?? Number(existing.positionSize)
 		const direction = tradeData.direction ?? existing.direction
-		const plannedRiskAmount =
-			tradeData.plannedRiskAmount ?? (existing.plannedRiskAmount ? Number(existing.plannedRiskAmount) : undefined)
+		const stopLoss = tradeData.stopLoss ?? (existing.stopLoss ? Number(existing.stopLoss) : undefined)
+		const takeProfit = tradeData.takeProfit ?? (existing.takeProfit ? Number(existing.takeProfit) : undefined)
+
+		// Always calculate plannedRiskAmount and plannedRMultiple from SL/TP (never user input)
+		let plannedRiskAmount: number | undefined
+		let plannedRMultiple: number | undefined
+		if (stopLoss) {
+			const riskPerUnit =
+				direction === "long" ? entryPrice - stopLoss : stopLoss - entryPrice
+			plannedRiskAmount = Math.abs(riskPerUnit * positionSize)
+
+			// Calculate plannedRMultiple from take profit (reward/risk ratio)
+			if (takeProfit && riskPerUnit !== 0) {
+				const rewardPerUnit =
+					direction === "long"
+						? takeProfit - entryPrice
+						: entryPrice - takeProfit
+				plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+			}
+		}
 
 		// Always recalculate derived fields when we have exit data
 		let pnl: number | undefined
@@ -173,7 +211,7 @@ export const updateTrade = async (
 			})
 			outcome = determineOutcome(pnl)
 
-			if (plannedRiskAmount) {
+			if (plannedRiskAmount && plannedRiskAmount > 0) {
 				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 			}
 		}
@@ -194,8 +232,9 @@ export const updateTrade = async (
 		if (tradeData.positionSize !== undefined) updateData.positionSize = tradeData.positionSize.toString()
 		if (tradeData.stopLoss !== undefined) updateData.stopLoss = tradeData.stopLoss.toString()
 		if (tradeData.takeProfit !== undefined) updateData.takeProfit = tradeData.takeProfit.toString()
-		if (tradeData.plannedRiskAmount !== undefined) updateData.plannedRiskAmount = tradeData.plannedRiskAmount.toString()
-		if (tradeData.plannedRMultiple !== undefined) updateData.plannedRMultiple = tradeData.plannedRMultiple.toString()
+		// Always update calculated risk values (derived from SL/TP)
+		if (plannedRiskAmount !== undefined) updateData.plannedRiskAmount = plannedRiskAmount.toString()
+		if (plannedRMultiple !== undefined) updateData.plannedRMultiple = plannedRMultiple.toString()
 		if (tradeData.mfe !== undefined) updateData.mfe = tradeData.mfe.toString()
 		if (tradeData.mae !== undefined) updateData.mae = tradeData.mae.toString()
 		if (tradeData.followedPlan !== undefined) updateData.followedPlan = tradeData.followedPlan
@@ -540,6 +579,26 @@ export const bulkCreateTrades = async (
 					let outcome: "win" | "loss" | "breakeven" | undefined
 					let realizedR = tradeData.realizedRMultiple
 
+					// Always calculate plannedRiskAmount and plannedRMultiple from SL/TP (never user input)
+					let plannedRiskAmount: number | undefined
+					let plannedRMultiple: number | undefined
+					if (tradeData.stopLoss) {
+						const riskPerUnit =
+							tradeData.direction === "long"
+								? tradeData.entryPrice - tradeData.stopLoss
+								: tradeData.stopLoss - tradeData.entryPrice
+						plannedRiskAmount = Math.abs(riskPerUnit * tradeData.positionSize)
+
+						// Calculate plannedRMultiple from take profit (reward/risk ratio)
+						if (tradeData.takeProfit && riskPerUnit !== 0) {
+							const rewardPerUnit =
+								tradeData.direction === "long"
+									? tradeData.takeProfit - tradeData.entryPrice
+									: tradeData.entryPrice - tradeData.takeProfit
+							plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+						}
+					}
+
 					if (tradeData.exitPrice && !pnl) {
 						pnl = calculatePnL({
 							direction: tradeData.direction,
@@ -553,8 +612,8 @@ export const bulkCreateTrades = async (
 						outcome = determineOutcome(pnl)
 					}
 
-					if (pnl !== undefined && tradeData.plannedRiskAmount) {
-						realizedR = calculateRMultiple(pnl, tradeData.plannedRiskAmount)
+					if (pnl !== undefined && plannedRiskAmount && plannedRiskAmount > 0) {
+						realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 					}
 
 					tradeValues.push({
@@ -568,8 +627,8 @@ export const bulkCreateTrades = async (
 						positionSize: tradeData.positionSize.toString(),
 						stopLoss: tradeData.stopLoss?.toString(),
 						takeProfit: tradeData.takeProfit?.toString(),
-						plannedRiskAmount: tradeData.plannedRiskAmount?.toString(),
-						plannedRMultiple: tradeData.plannedRMultiple?.toString(),
+						plannedRiskAmount: plannedRiskAmount?.toString(),
+						plannedRMultiple: plannedRMultiple?.toString(),
 						pnl: pnl?.toString(),
 						outcome,
 						realizedRMultiple: realizedR?.toString(),
@@ -616,6 +675,90 @@ export const bulkCreateTrades = async (
 			status: "error",
 			message: "Failed to import trades",
 			errors: [{ code: "BULK_CREATE_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Recalculate R values for all trades that have stopLoss but no plannedRiskAmount
+ * This is useful for fixing trades imported before R calculation was added
+ */
+export const recalculateRValues = async (): Promise<
+	ActionResponse<{ updatedCount: number }>
+> => {
+	try {
+		// Get all non-archived trades that have stopLoss but missing plannedRiskAmount
+		const allTrades = await db.query.trades.findMany({
+			where: eq(trades.isArchived, false),
+		})
+
+		let updatedCount = 0
+
+		for (const trade of allTrades) {
+			const stopLoss = trade.stopLoss ? Number(trade.stopLoss) : null
+			const takeProfit = trade.takeProfit ? Number(trade.takeProfit) : null
+			const entryPrice = Number(trade.entryPrice)
+			const positionSize = Number(trade.positionSize)
+			const pnl = trade.pnl ? Number(trade.pnl) : null
+
+			// Only process trades that have stopLoss and entry data
+			if (!stopLoss || !entryPrice || !positionSize) continue
+
+			// Calculate plannedRiskAmount from stopLoss
+			const riskPerUnit =
+				trade.direction === "long"
+					? entryPrice - stopLoss
+					: stopLoss - entryPrice
+			const plannedRiskAmount = Math.abs(riskPerUnit * positionSize)
+
+			// Skip if risk is 0 or negative
+			if (plannedRiskAmount <= 0) continue
+
+			// Calculate plannedRMultiple from take profit (reward/risk ratio)
+			let plannedRMultiple: number | null = null
+			if (takeProfit && riskPerUnit !== 0) {
+				const rewardPerUnit =
+					trade.direction === "long"
+						? takeProfit - entryPrice
+						: entryPrice - takeProfit
+				plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+			}
+
+			// Calculate realizedR if we have pnl
+			let realizedR: number | null = null
+			if (pnl !== null) {
+				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
+			}
+
+			// Update the trade
+			await db
+				.update(trades)
+				.set({
+					plannedRiskAmount: plannedRiskAmount.toString(),
+					plannedRMultiple: plannedRMultiple?.toString() ?? null,
+					realizedRMultiple: realizedR?.toString() ?? null,
+				})
+				.where(eq(trades.id, trade.id))
+
+			updatedCount++
+		}
+
+		// Revalidate all pages that might show trade data
+		revalidatePath("/")
+		revalidatePath("/journal")
+		revalidatePath("/analytics")
+
+		return {
+			status: "success",
+			message: `Recalculated R values for ${updatedCount} trades`,
+			data: { updatedCount },
+		}
+	} catch (error) {
+		console.error("Recalculate R values error:", error)
+		return {
+			status: "error",
+			message: "Failed to recalculate R values",
+			errors: [{ code: "RECALCULATE_FAILED", detail: String(error) }],
 		}
 	}
 }

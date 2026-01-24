@@ -9,7 +9,9 @@
       "Bash(pnpm build:*)",
       "Bash(pnpm db:generate:*)",
       "Bash(npx shadcn@latest add:*)",
-      "Bash(pnpm tsc:*)"
+      "Bash(pnpm tsc:*)",
+      "Bash(npm run type-check:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": [],
     "ask": []
