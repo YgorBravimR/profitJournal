@@ -493,3 +493,129 @@ export const getUniqueAssets = async (): Promise<ActionResponse<string[]>> => {
 		}
 	}
 }
+
+/**
+ * Bulk create trades from CSV import
+ */
+export interface BulkCreateResult {
+	successCount: number
+	failedCount: number
+	errors: Array<{
+		index: number
+		message: string
+	}>
+}
+
+export const bulkCreateTrades = async (
+	inputs: CreateTradeInput[]
+): Promise<ActionResponse<BulkCreateResult>> => {
+	const result: BulkCreateResult = {
+		successCount: 0,
+		failedCount: 0,
+		errors: [],
+	}
+
+	try {
+		// Process trades in batches to avoid overwhelming the database
+		const BATCH_SIZE = 50
+		const batches: CreateTradeInput[][] = []
+
+		for (let i = 0; i < inputs.length; i += BATCH_SIZE) {
+			batches.push(inputs.slice(i, i + BATCH_SIZE))
+		}
+
+		for (const batch of batches) {
+			const tradeValues: Array<typeof trades.$inferInsert> = []
+
+			for (let i = 0; i < batch.length; i++) {
+				const input = batch[i]
+				const globalIndex = inputs.indexOf(input)
+
+				try {
+					const validated = createTradeSchema.parse(input)
+					const { tagIds, ...tradeData } = validated
+
+					// Calculate derived fields
+					let pnl = tradeData.pnl
+					let outcome: "win" | "loss" | "breakeven" | undefined
+					let realizedR = tradeData.realizedRMultiple
+
+					if (tradeData.exitPrice && !pnl) {
+						pnl = calculatePnL({
+							direction: tradeData.direction,
+							entryPrice: tradeData.entryPrice,
+							exitPrice: tradeData.exitPrice,
+							positionSize: tradeData.positionSize,
+						})
+					}
+
+					if (pnl !== undefined) {
+						outcome = determineOutcome(pnl)
+					}
+
+					if (pnl !== undefined && tradeData.plannedRiskAmount) {
+						realizedR = calculateRMultiple(pnl, tradeData.plannedRiskAmount)
+					}
+
+					tradeValues.push({
+						asset: tradeData.asset,
+						direction: tradeData.direction,
+						timeframe: tradeData.timeframe,
+						entryDate: tradeData.entryDate,
+						exitDate: tradeData.exitDate,
+						entryPrice: tradeData.entryPrice.toString(),
+						exitPrice: tradeData.exitPrice?.toString(),
+						positionSize: tradeData.positionSize.toString(),
+						stopLoss: tradeData.stopLoss?.toString(),
+						takeProfit: tradeData.takeProfit?.toString(),
+						plannedRiskAmount: tradeData.plannedRiskAmount?.toString(),
+						plannedRMultiple: tradeData.plannedRMultiple?.toString(),
+						pnl: pnl?.toString(),
+						outcome,
+						realizedRMultiple: realizedR?.toString(),
+						mfe: tradeData.mfe?.toString(),
+						mae: tradeData.mae?.toString(),
+						followedPlan: tradeData.followedPlan,
+						strategyId: tradeData.strategyId || null,
+						preTradeThoughts: tradeData.preTradeThoughts,
+						postTradeReflection: tradeData.postTradeReflection,
+						lessonLearned: tradeData.lessonLearned,
+						disciplineNotes: tradeData.disciplineNotes,
+					})
+				} catch (error) {
+					result.failedCount++
+					result.errors.push({
+						index: globalIndex,
+						message: error instanceof Error ? error.message : String(error),
+					})
+				}
+			}
+
+			// Bulk insert valid trades
+			if (tradeValues.length > 0) {
+				await db.insert(trades).values(tradeValues)
+				result.successCount += tradeValues.length
+			}
+		}
+
+		// Revalidate journal pages
+		revalidatePath("/journal")
+		revalidatePath("/")
+
+		return {
+			status: result.failedCount === inputs.length ? "error" : "success",
+			message:
+				result.failedCount === 0
+					? `Successfully imported ${result.successCount} trades`
+					: `Imported ${result.successCount} trades, ${result.failedCount} failed`,
+			data: result,
+		}
+	} catch (error) {
+		console.error("Bulk create trades error:", error)
+		return {
+			status: "error",
+			message: "Failed to import trades",
+			errors: [{ code: "BULK_CREATE_FAILED", detail: String(error) }],
+		}
+	}
+}

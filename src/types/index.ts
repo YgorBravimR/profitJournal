@@ -80,6 +80,15 @@ export interface DailyPnL {
 	tradeCount: number
 }
 
+export interface StreakData {
+	currentStreak: number
+	currentStreakType: "win" | "loss" | "none"
+	longestWinStreak: number
+	longestLossStreak: number
+	bestDay: { date: string; pnl: number } | null
+	worstDay: { date: string; pnl: number } | null
+}
+
 export interface TagStats {
 	tagId: string
 	tagName: string

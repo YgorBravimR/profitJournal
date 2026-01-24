@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
-import { TradeForm } from "@/components/journal"
+import { NewTradeTabs } from "@/components/journal"
 import { getStrategies } from "@/app/actions/strategies"
 import { getTags } from "@/app/actions/tags"
 
@@ -20,7 +20,7 @@ const NewTradePage = async () => {
 		<div className="flex h-full flex-col">
 			<PageHeader
 				title="New Trade"
-				description="Record a new trade entry"
+				description="Record a new trade entry or import from CSV"
 				action={
 					<Link href="/journal">
 						<Button variant="ghost">
@@ -31,9 +31,9 @@ const NewTradePage = async () => {
 				}
 			/>
 			<div className="flex-1 overflow-auto p-m-600">
-				<div className="mx-auto max-w-2xl">
+				<div className="mx-auto max-w-3xl">
 					<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-600">
-						<TradeForm strategies={strategies} tags={tags} />
+						<NewTradeTabs strategies={strategies} tags={tags} />
 					</div>
 				</div>
 			</div>
