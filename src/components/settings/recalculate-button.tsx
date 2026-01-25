@@ -1,9 +1,11 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useTranslations } from "next-intl"
 import { recalculateRValues } from "@/app/actions/trades"
 
 export const RecalculateButton = () => {
+	const t = useTranslations("settings.timeframes")
 	const [isPending, startTransition] = useTransition()
 	const [result, setResult] = useState<{
 		message: string
@@ -29,7 +31,7 @@ export const RecalculateButton = () => {
 				disabled={isPending}
 				className="rounded-md bg-acc-100 px-m-400 py-s-200 text-small font-medium text-bg-100 transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
 			>
-				{isPending ? "Recalculating..." : "Recalculate R Values"}
+				{isPending ? t("recalculating") : t("recalculateRValues")}
 			</button>
 			{result && (
 				<p

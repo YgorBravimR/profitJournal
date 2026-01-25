@@ -1,6 +1,7 @@
 "use client"
 
 import { Calculator, TrendingUp, TrendingDown, Info } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
 	Tooltip,
 	TooltipContent,
@@ -44,17 +45,19 @@ const formatCurrency = (value: number): string => {
 }
 
 export const ExpectedValue = ({ data }: ExpectedValueProps) => {
+	const t = useTranslations("analytics.expectedValue")
+
 	if (!data || data.sampleSize === 0) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<div className="flex items-center gap-s-200">
 					<Calculator className="h-5 w-5 text-txt-300" />
 					<h3 className="text-body font-semibold text-txt-100">
-						Expected Value
+						{t("title")}
 					</h3>
 				</div>
 				<div className="mt-m-400 flex h-32 items-center justify-center text-txt-300">
-					Not enough trade data to calculate expected value
+					{t("noData")}
 				</div>
 			</div>
 		)
@@ -68,18 +71,18 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 				<div className="flex items-center gap-s-200">
 					<Calculator className="h-5 w-5 text-txt-300" />
 					<h3 className="text-body font-semibold text-txt-100">
-						Expected Value
+						{t("title")}
 					</h3>
 				</div>
 				<span className="text-tiny text-txt-300">
-					Based on {data.sampleSize} trades
+					{t("basedOn")} {data.sampleSize} trades
 				</span>
 			</div>
 
 			{/* Main EV Display */}
 			<div className="mt-m-500 flex items-center justify-center">
 				<div className="text-center">
-					<p className="text-tiny text-txt-300">Expected Value per Trade</p>
+					<p className="text-tiny text-txt-300">{t("perTrade")}</p>
 					<div className="mt-s-200 flex items-center justify-center gap-s-200">
 						{isPositiveEV ? (
 							<TrendingUp className="h-8 w-8 text-trade-buy" />
@@ -101,8 +104,8 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 			<div className="mt-m-600 grid grid-cols-2 gap-m-400 md:grid-cols-4">
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Win Rate"
-						tooltip="Percentage of trades that were profitable"
+						label={t("winRateLabel")}
+						tooltip={t("winRateDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-txt-100">
 						{data.winRate.toFixed(1)}%
@@ -110,8 +113,8 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Avg Win"
-						tooltip="Average profit on winning trades"
+						label={t("avgWinLabel")}
+						tooltip={t("avgWinDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-buy">
 						+${data.avgWin.toFixed(2)}
@@ -119,8 +122,8 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Avg Loss"
-						tooltip="Average loss on losing trades"
+						label={t("avgLossLabel")}
+						tooltip={t("avgLossDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-sell">
 						-${data.avgLoss.toFixed(2)}
@@ -128,8 +131,8 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="100 Trade Projection"
-						tooltip="Expected total P&L if you take 100 trades with the same edge"
+						label={t("projection100")}
+						tooltip={t("projectionDesc")}
 					/>
 					<p
 						className={`mt-s-100 text-body font-bold ${
@@ -146,9 +149,9 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 				<div className="flex items-start gap-s-200">
 					<Info className="mt-s-100 h-4 w-4 shrink-0 text-txt-300" />
 					<div className="text-tiny text-txt-300">
-						<p className="font-medium text-txt-200">Expected Value Formula:</p>
+						<p className="font-medium text-txt-200">{t("formulaTitle")}</p>
 						<p className="mt-s-100 font-mono">
-							EV = (Win% × Avg Win) - (Loss% × Avg Loss)
+							{t("formula")}
 						</p>
 						<p className="mt-s-200">
 							EV = ({data.winRate.toFixed(1)}% × ${data.avgWin.toFixed(2)}) - (
@@ -175,22 +178,22 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 					{isPositiveEV ? (
 						<>
 							Your trading system has a{" "}
-							<span className="font-semibold text-trade-buy">positive edge</span>.
+							<span className="font-semibold text-trade-buy">{t("positiveEdge")}</span>.
 							On average, you can expect to make{" "}
 							<span className="font-semibold text-trade-buy">
 								{formatCurrency(data.expectedValue)}
 							</span>{" "}
-							per trade over the long run.
+							{t("perTradeOverLongRun")}.
 						</>
 					) : (
 						<>
 							Your trading system currently has a{" "}
-							<span className="font-semibold text-trade-sell">negative edge</span>.
+							<span className="font-semibold text-trade-sell">{t("negativeEdge")}</span>.
 							On average, you can expect to lose{" "}
 							<span className="font-semibold text-trade-sell">
 								{formatCurrency(Math.abs(data.expectedValue))}
 							</span>{" "}
-							per trade. Consider reviewing your strategy or risk management.
+							{t("perTradeOverLongRun")}.
 						</>
 					)}
 				</p>

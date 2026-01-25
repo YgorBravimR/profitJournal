@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -36,6 +37,9 @@ export const TimeframeForm = ({
 	onOpenChange,
 	onSuccess,
 }: TimeframeFormProps) => {
+	const t = useTranslations("settings.timeframes")
+	const tCommon = useTranslations("common")
+	const tUnits = useTranslations("timeframeUnits")
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
 
@@ -111,14 +115,14 @@ export const TimeframeForm = ({
 	const unitOptions =
 		formData.type === "time_based"
 			? [
-					{ value: "minutes", label: "Minutes" },
-					{ value: "hours", label: "Hours" },
-					{ value: "days", label: "Days" },
-					{ value: "weeks", label: "Weeks" },
+					{ value: "minutes", label: tUnits("minutes") },
+					{ value: "hours", label: tUnits("hours") },
+					{ value: "days", label: tUnits("days") },
+					{ value: "weeks", label: tUnits("weeks") },
 			  ]
 			: [
-					{ value: "ticks", label: "Ticks" },
-					{ value: "points", label: "Points" },
+					{ value: "ticks", label: tUnits("ticks") },
+					{ value: "points", label: tUnits("points") },
 			  ]
 
 	return (
@@ -126,12 +130,10 @@ export const TimeframeForm = ({
 			<DialogContent className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						{timeframe ? "Edit Timeframe" : "Add Timeframe"}
+						{timeframe ? t("editTimeframe") : t("addTimeframe")}
 					</DialogTitle>
 					<DialogDescription>
-						{timeframe
-							? "Update the timeframe configuration"
-							: "Add a new timeframe for your trades"}
+						{timeframe ? t("updateTimeframe") : t("addTimeframeDesc")}
 					</DialogDescription>
 				</DialogHeader>
 
@@ -144,10 +146,10 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-2 gap-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="code">Code</Label>
+							<Label htmlFor="code">{t("code")}</Label>
 							<Input
 								id="code"
-								placeholder="5M"
+								placeholder={t("codePlaceholder")}
 								value={formData.code}
 								onChange={(e) =>
 									handleChange("code", e.target.value.toUpperCase())
@@ -157,7 +159,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="type">Type</Label>
+							<Label htmlFor="type">{t("type")}</Label>
 							<Select
 								value={formData.type}
 								onValueChange={(value) => {
@@ -172,18 +174,18 @@ export const TimeframeForm = ({
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
-									<SelectItem value="time_based">Time Based</SelectItem>
-									<SelectItem value="renko">Renko</SelectItem>
+									<SelectItem value="time_based">{t("timeBased")}</SelectItem>
+									<SelectItem value="renko">{t("renko")}</SelectItem>
 								</SelectContent>
 							</Select>
 						</div>
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="name">Name</Label>
+						<Label htmlFor="name">{t("name")}</Label>
 						<Input
 							id="name"
-							placeholder="5 Minutes"
+							placeholder={t("namePlaceholder")}
 							value={formData.name}
 							onChange={(e) => handleChange("name", e.target.value)}
 							required
@@ -192,7 +194,7 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-3 gap-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="value">Value</Label>
+							<Label htmlFor="value">{t("value")}</Label>
 							<Input
 								id="value"
 								type="number"
@@ -204,7 +206,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="unit">Unit</Label>
+							<Label htmlFor="unit">{t("unit")}</Label>
 							<Select
 								value={formData.unit}
 								onValueChange={(value) => handleChange("unit", value)}
@@ -223,7 +225,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="sortOrder">Sort Order</Label>
+							<Label htmlFor="sortOrder">{t("sortOrder")}</Label>
 							<Input
 								id="sortOrder"
 								type="number"
@@ -240,11 +242,11 @@ export const TimeframeForm = ({
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 						>
-							Cancel
+							{tCommon("cancel")}
 						</Button>
 						<Button type="submit" disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							{timeframe ? "Save Changes" : "Add Timeframe"}
+							{timeframe ? tCommon("saveChanges") : t("addTimeframe")}
 						</Button>
 					</DialogFooter>
 				</form>

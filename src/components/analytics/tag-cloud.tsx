@@ -1,6 +1,7 @@
 "use client"
 
 import { Tag } from "lucide-react"
+import { useTranslations } from "next-intl"
 import type { TagStats, TagType } from "@/types"
 
 interface TagCloudProps {
@@ -28,20 +29,21 @@ const getTagTypeColor = (type: TagType): string => {
 	}
 }
 
-const getTagTypeLabel = (type: TagType): string => {
-	switch (type) {
-		case "setup":
-			return "Setup"
-		case "mistake":
-			return "Mistake"
-		case "general":
-			return "General"
-		default:
-			return type
-	}
-}
-
 export const TagCloud = ({ data }: TagCloudProps) => {
+	const t = useTranslations("analytics.tagCloud")
+
+	const getTagTypeLabel = (type: TagType): string => {
+		switch (type) {
+			case "setup":
+				return t("setup")
+			case "mistake":
+				return t("mistake")
+			case "general":
+				return t("general")
+			default:
+				return type
+		}
+	}
 	// Separate tags by type
 	const setupTags = data.filter((t) => t.tagType === "setup")
 	const mistakeTags = data.filter((t) => t.tagType === "mistake")
@@ -105,34 +107,34 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 	if (data.length === 0) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h3 className="text-body font-semibold text-txt-100">Tag Analysis</h3>
+				<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 				<div className="mt-m-400 flex h-32 items-center justify-center text-txt-300">
-					No tags found. Add tags to your trades to see analysis here.
+					{t("noTags")}
 				</div>
 			</div>
 		)
 	}
 
 	// Calculate mistake cost
-	const totalMistakeCost = mistakeTags.reduce((sum, t) => sum + Math.abs(Math.min(0, t.totalPnl)), 0)
-	const bestSetup = setupTags.reduce((best, t) =>
-		(!best || t.totalPnl > best.totalPnl) ? t : best,
+	const totalMistakeCost = mistakeTags.reduce((sum, tag) => sum + Math.abs(Math.min(0, tag.totalPnl)), 0)
+	const bestSetup = setupTags.reduce((best, tag) =>
+		(!best || tag.totalPnl > best.totalPnl) ? tag : best,
 		null as TagStats | null
 	)
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-			<h3 className="text-body font-semibold text-txt-100">Tag Analysis</h3>
+			<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 
 			{/* Summary Stats */}
 			<div className="mt-m-400 grid grid-cols-2 gap-m-400 md:grid-cols-3">
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
-					<p className="text-tiny text-txt-300">Total Tags</p>
+					<p className="text-tiny text-txt-300">{t("totalTags")}</p>
 					<p className="mt-s-100 text-h3 font-bold text-txt-100">{data.length}</p>
 				</div>
 				{bestSetup && (
 					<div className="rounded-lg bg-bg-100 p-s-300 text-center">
-						<p className="text-tiny text-txt-300">Best Setup</p>
+						<p className="text-tiny text-txt-300">{t("bestSetup")}</p>
 						<p className="mt-s-100 text-small font-bold text-trade-buy">
 							{bestSetup.tagName}
 						</p>
@@ -143,7 +145,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 				)}
 				{totalMistakeCost > 0 && (
 					<div className="rounded-lg bg-bg-100 p-s-300 text-center">
-						<p className="text-tiny text-txt-300">Mistake Cost</p>
+						<p className="text-tiny text-txt-300">{t("mistakeCost")}</p>
 						<p className="mt-s-100 text-small font-bold text-trade-sell">
 							-{formatCurrency(totalMistakeCost)}
 						</p>
@@ -159,17 +161,17 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 			</div>
 
 			{/* Detailed Table */}
-			{data.filter((t) => t.tradeCount > 0).length > 0 && (
+			{data.filter((tag) => tag.tradeCount > 0).length > 0 && (
 				<div className="mt-m-500">
 					<h4 className="mb-s-300 text-small font-medium text-txt-200">
-						Detailed Statistics
+						{t("detailedStats")}
 					</h4>
 					<div className="overflow-x-auto">
 						<table className="w-full">
 							<thead>
 								<tr className="border-b border-bg-300">
 									<th className="px-s-300 py-s-200 text-left text-tiny font-medium text-txt-300">
-										Tag
+										{t("tag")}
 									</th>
 									<th className="px-s-300 py-s-200 text-left text-tiny font-medium text-txt-300">
 										Type
@@ -190,7 +192,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							</thead>
 							<tbody>
 								{data
-									.filter((t) => t.tradeCount > 0)
+									.filter((tag) => tag.tradeCount > 0)
 									.sort((a, b) => b.totalPnl - a.totalPnl)
 									.map((tag) => (
 										<tr key={tag.tagId} className="border-b border-bg-300/50">

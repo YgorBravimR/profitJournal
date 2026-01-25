@@ -8,6 +8,7 @@ import type { ActionResponse, TagStats, TagType, TradeFilters } from "@/types"
 import { eq, and, asc, sql } from "drizzle-orm"
 import { z } from "zod"
 import { calculateWinRate } from "@/lib/calculations"
+import { fromCents } from "@/lib/money"
 
 // Validation schema for creating a tag
 const createTagSchema = z.object({
@@ -198,7 +199,7 @@ export const getTagStats = async (
 					if (filters?.assets && filters.assets.length > 0 && !filters.assets.includes(trade.asset)) return false
 					if (filters?.directions && filters.directions.length > 0 && !filters.directions.includes(trade.direction)) return false
 					if (filters?.outcomes && filters.outcomes.length > 0 && trade.outcome && !filters.outcomes.includes(trade.outcome)) return false
-					if (filters?.timeframes && filters.timeframes.length > 0 && trade.timeframe && !filters.timeframes.includes(trade.timeframe as TradeFilters["timeframes"] extends Array<infer T> ? T : never)) return false
+					if (filters?.timeframeIds && filters.timeframeIds.length > 0 && trade.timeframeId && !filters.timeframeIds.includes(trade.timeframeId)) return false
 					return true
 				})
 
@@ -223,7 +224,7 @@ export const getTagStats = async (
 			let lossCount = 0
 
 			for (const trade of filteredTrades) {
-				totalPnl += Number(trade.pnl) || 0
+				totalPnl += fromCents(trade.pnl)
 
 				if (trade.realizedRMultiple) {
 					totalR += Number(trade.realizedRMultiple)

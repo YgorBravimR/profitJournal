@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { FileText, Upload } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { TradeForm } from "./trade-form"
 import { CsvImport } from "./csv-import"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
@@ -22,6 +23,7 @@ export const NewTradeTabs = ({
 	assets = [],
 	timeframes = [],
 }: NewTradeTabsProps) => {
+	const t = useTranslations("journal")
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
 
 	return (
@@ -40,7 +42,7 @@ export const NewTradeTabs = ({
 					role="tab"
 				>
 					<FileText className="h-4 w-4" />
-					Single Entry
+					{t("singleEntry")}
 				</button>
 				<button
 					type="button"
@@ -54,7 +56,7 @@ export const NewTradeTabs = ({
 					role="tab"
 				>
 					<Upload className="h-4 w-4" />
-					CSV Import
+					{t("csvImport")}
 				</button>
 			</div>
 

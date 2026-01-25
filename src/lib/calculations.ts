@@ -102,7 +102,7 @@ export const determineOutcome = (
 }
 
 /**
- * Format currency value
+ * Format currency value (expects value in dollars, not cents)
  */
 export const formatCurrency = (value: number, currency = "USD"): string => {
 	return new Intl.NumberFormat("en-US", {
@@ -111,6 +111,13 @@ export const formatCurrency = (value: number, currency = "USD"): string => {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2,
 	}).format(value)
+}
+
+/**
+ * Format cents as currency string
+ */
+export const formatCurrencyFromCents = (cents: number, currency = "USD"): string => {
+	return formatCurrency(cents / 100, currency)
 }
 
 /**

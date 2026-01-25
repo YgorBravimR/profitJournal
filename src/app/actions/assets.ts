@@ -14,6 +14,7 @@ import {
 	type CreateAssetInput,
 	type UpdateAssetInput,
 } from "@/lib/validations/asset"
+import { toCents } from "@/lib/money"
 
 // ============================================================================
 // ASSET TYPES
@@ -187,11 +188,11 @@ export const createAsset = async (
 			name: validated.data.name,
 			assetTypeId: validated.data.assetTypeId,
 			tickSize: validated.data.tickSize.toString(),
-			tickValue: validated.data.tickValue.toString(),
+			tickValue: toCents(validated.data.tickValue),
 			currency: validated.data.currency,
 			multiplier: validated.data.multiplier?.toString() ?? "1",
-			commission: validated.data.commission?.toString() ?? "0",
-			fees: validated.data.fees?.toString() ?? "0",
+			commission: toCents(validated.data.commission ?? 0),
+			fees: toCents(validated.data.fees ?? 0),
 			isActive: validated.data.isActive,
 		})
 		.returning()
@@ -226,15 +227,14 @@ export const updateAsset = async (
 	if (updateData.tickSize !== undefined)
 		updateValues.tickSize = updateData.tickSize.toString()
 	if (updateData.tickValue !== undefined)
-		updateValues.tickValue = updateData.tickValue.toString()
+		updateValues.tickValue = toCents(updateData.tickValue)
 	if (updateData.currency !== undefined)
 		updateValues.currency = updateData.currency
 	if (updateData.multiplier !== undefined)
 		updateValues.multiplier = updateData.multiplier.toString()
 	if (updateData.commission !== undefined)
-		updateValues.commission = updateData.commission.toString()
-	if (updateData.fees !== undefined)
-		updateValues.fees = updateData.fees.toString()
+		updateValues.commission = toCents(updateData.commission)
+	if (updateData.fees !== undefined) updateValues.fees = toCents(updateData.fees)
 	if (updateData.isActive !== undefined)
 		updateValues.isActive = updateData.isActive
 

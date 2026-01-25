@@ -2,9 +2,11 @@
 	"common": {
 		"appName": "Profit Journal",
 		"loading": "Loading...",
+		"saving": "Saving...",
 		"error": "Error",
 		"success": "Success",
 		"save": "Save",
+		"saveChanges": "Save Changes",
 		"cancel": "Cancel",
 		"delete": "Delete",
 		"edit": "Edit",
@@ -25,7 +27,23 @@
 		"all": "All",
 		"none": "None",
 		"noData": "No data available",
-		"noResults": "No results found"
+		"noResults": "No results found",
+		"to": "to",
+		"of": "of",
+		"and": "and",
+		"or": "or",
+		"active": "Active",
+		"inactive": "Inactive",
+		"status": "Status",
+		"actions": "Actions",
+		"details": "Details",
+		"expand": "Expand",
+		"collapse": "Collapse",
+		"showDetails": "Show Details",
+		"hideDetails": "Hide Details",
+		"version": "Trading Journal v1.0",
+		"expandSidebar": "Expand sidebar",
+		"collapseSidebar": "Collapse sidebar"
 	},
 	"nav": {
 		"dashboard": "Dashboard",
@@ -41,6 +59,8 @@
 		"newTrade": "New Trade",
 		"editTrade": "Edit Trade",
 		"deleteTrade": "Delete Trade",
+		"saveTrade": "Save Trade",
+		"updateTrade": "Update Trade",
 		"tradeDetails": "Trade Details",
 		"direction": {
 			"label": "Direction",
@@ -55,31 +75,70 @@
 			"open": "Open"
 		},
 		"asset": "Asset",
+		"assetRequired": "Asset *",
+		"selectAsset": "Select asset",
+		"noAssets": "No assets configured",
 		"timeframe": "Timeframe",
+		"selectTimeframe": "Select timeframe",
+		"noTimeframes": "No timeframes configured",
 		"entryDate": "Entry Date",
+		"entryDateRequired": "Entry Date *",
 		"exitDate": "Exit Date",
 		"entryPrice": "Entry Price",
+		"entryPriceRequired": "Entry Price *",
 		"exitPrice": "Exit Price",
+		"entry": "Entry",
+		"exit": "Exit",
 		"positionSize": "Position Size",
+		"positionSizeRequired": "Position Size *",
+		"positionSizeHint": "Number of shares/contracts",
+		"size": "Size",
 		"stopLoss": "Stop Loss",
 		"takeProfit": "Take Profit",
 		"pnl": "P&L",
+		"calculatedPnl": "Calculated P&L",
 		"rMultiple": "R Multiple",
 		"plannedR": "Planned R",
+		"plannedRTarget": "Planned R Target",
 		"realizedR": "Realized R",
 		"riskAmount": "Risk Amount",
+		"plannedRisk": "Planned Risk ($)",
+		"enterStopToCalculate": "Enter stop loss to calculate",
+		"autoCalculatedRisk": "Auto-calculated from entry, stop loss, and position size",
+		"enterTpSlToCalculate": "Enter TP & SL to calculate",
+		"autoCalculatedR": "Auto-calculated from take profit / stop loss ratio",
 		"followedPlan": "Followed Plan",
+		"didYouFollowPlan": "Did you follow your plan?",
+		"whatWentWrong": "What went wrong?",
+		"describeBreach": "Describe the discipline breach...",
 		"preTradeThoughts": "Pre-Trade Thoughts",
+		"preTradeHint": "Why did I take this trade? What was my thesis?",
 		"postTradeReflection": "Post-Trade Reflection",
+		"postTradeHint": "How did I feel during the trade? What happened?",
 		"lessonLearned": "Lesson Learned",
+		"lessonHint": "What can I learn from this trade?",
 		"strategy": "Strategy",
+		"selectStrategy": "Select strategy",
 		"tags": "Tags",
+		"setupType": "Setup Type",
+		"mistakes": "Mistakes (if any)",
+		"noTagsYet": "No tags available yet",
+		"createTagsHint": "Create tags in the Analytics section",
 		"commission": "Commission",
 		"fees": "Fees",
+		"costs": "Costs",
+		"ticks": "ticks",
 		"mfe": "MFE",
+		"mfeFull": "MFE (Max Favorable)",
+		"mfeHint": "Best price during trade",
 		"mae": "MAE",
+		"maeFull": "MAE (Max Adverse)",
+		"maeHint": "Worst price during trade",
 		"noTrades": "No trades recorded",
-		"openPosition": "Open Position"
+		"openPosition": "Open Position",
+		"tickSize": "Tick Size",
+		"tickValue": "Tick Value",
+		"type": "Type"
 	},
 	"dashboard": {
 		"title": "Dashboard",
@@ -88,28 +147,60 @@
 			"netPnl": "Net P&L",
 			"winRate": "Win Rate",
 			"profitFactor": "Profit Factor",
+			"pf": "PF",
 			"avgR": "Avg R",
 			"discipline": "Discipline",
 			"totalTrades": "Total Trades",
 			"wins": "Wins",
-			"losses": "Losses"
+			"losses": "Losses",
+			"avgWin": "Avg Win",
+			"avgLoss": "Avg Loss",
+			"followed": "followed",
+			"w": "W",
+			"l": "L"
 		},
 		"calendar": {
 			"title": "Trading Calendar",
-			"noTrades": "No trades this month"
+			"noTrades": "No trades this month",
+			"previousMonth": "Previous month",
+			"nextMonth": "Next month",
+			"days": {
+				"sun": "Sun",
+				"mon": "Mon",
+				"tue": "Tue",
+				"wed": "Wed",
+				"thu": "Thu",
+				"fri": "Fri",
+				"sat": "Sat"
+			}
 		},
 		"equity": {
 			"title": "Equity Curve",
 			"cumulative": "Cumulative P&L",
-			"drawdown": "Drawdown"
+			"drawdown": "Drawdown",
+			"noData": "No trade data available",
+			"period": {
+				"month": "Month",
+				"year": "Year",
+				"all": "All"
+			},
+			"viewMode": {
+				"days": "Days",
+				"trades": "Trades"
+			}
 		},
 		"quickStats": {
 			"title": "Quick Stats",
 			"currentStreak": "Current Streak",
+			"longestWin": "Longest Win",
+			"longestLoss": "Longest Loss",
 			"longestWinStreak": "Longest Win Streak",
 			"longestLossStreak": "Longest Loss Streak",
 			"bestDay": "Best Day",
-			"worstDay": "Worst Day"
+			"worstDay": "Worst Day",
+			"totalTrades": "Total Trades",
+			"w": "W",
+			"l": "L"
 		}
 	},
 	"journal": {
@@ -120,8 +211,11 @@
 		"singleEntry": "Single Entry",
 		"form": {
 			"basicInfo": "Basic Info",
+			"basic": "Basic",
 			"riskManagement": "Risk Management",
+			"risk": "Risk",
 			"journalNotes": "Journal Notes",
+			"journal": "Journal",
 			"tagsSection": "Tags"
 		},
 		"filters": {
@@ -139,6 +233,22 @@
 			"sessionReview": "Session Review",
 			"emotionalState": "Emotional State",
 			"keyTakeaways": "Key Takeaways"
+		},
+		"csv": {
+			"dropHere": "Drop your CSV file here",
+			"orClick": "or click to browse",
+			"selectFile": "Select File",
+			"downloadTemplate": "Download Template",
+			"validTrades": "Valid Trades",
+			"errors": "Errors",
+			"warnings": "Warnings",
+			"preview": "Preview (first 10 trades)",
+			"andMore": "...and {count} more trades",
+			"readyToImport": "Ready to import {count} trades",
+			"importTrades": "Import {count} Trades",
+			"formatGuide": "CSV Format Guide",
+			"requiredColumns": "Your CSV should include these required columns:",
+			"optionalColumns": "Optional columns: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan"
 		}
 	},
 	"analytics": {
@@ -146,6 +256,15 @@
 		"description": "Analyze your performance and identify patterns",
 		"filters": {
 			"title": "Filters",
+			"active": "Active",
+			"clear": "Clear",
+			"expand": "Expand",
+			"collapse": "Collapse",
+			"customDateRange": "Custom Date Range",
+			"assets": "Assets",
+			"direction": "Direction",
+			"outcome": "Outcome",
+			"timeframes": "Timeframes",
 			"datePresets": {
 				"today": "Today",
 				"thisWeek": "This Week",
@@ -158,7 +277,7 @@
 			}
 		},
 		"variableComparison": {
-			"title": "Variable Comparison",
+			"title": "Performance by Variable",
 			"groupBy": "Group By",
 			"asset": "Asset",
 			"timeframe": "Timeframe",
@@ -166,38 +285,78 @@
 			"dayOfWeek": "Day of Week",
 			"strategy": "Strategy",
 			"metric": "Metric",
+			"noData": "No data available for the selected filters",
 			"metrics": {
 				"pnl": "P&L",
 				"winRate": "Win Rate",
 				"avgR": "Avg R",
 				"tradeCount": "Trade Count",
 				"profitFactor": "Profit Factor"
+			},
+			"profitFactorLegend": {
+				"excellent": "Excellent (>2.0)",
+				"good": "Good (1.5-2.0)",
+				"acceptable": "Acceptable (1.0-1.5)",
+				"poor": "Poor (<1.0)"
 			}
 		},
 		"tagCloud": {
 			"title": "Tag Analysis",
+			"noTags": "No tags found. Add tags to your trades to see analysis here.",
+			"totalTags": "Total Tags",
+			"bestSetup": "Best Setup",
+			"mistakeCost": "Mistake Cost",
+			"detailedStats": "Detailed Statistics",
+			"tag": "Tag",
 			"setup": "Setup",
 			"mistake": "Mistake",
 			"general": "General"
 		},
 		"expectedValue": {
 			"title": "Expected Value",
-			"formula": "EV = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)",
-			"projection": "Projection for 100 Trades",
+			"noData": "Not enough trade data to calculate expected value",
+			"basedOn": "Based on",
+			"perTrade": "Expected Value per Trade",
+			"winRateLabel": "Win Rate",
+			"winRateDesc": "Percentage of trades that were profitable",
+			"avgWinLabel": "Avg Win",
+			"avgWinDesc": "Average profit on winning trades",
+			"avgLossLabel": "Avg Loss",
+			"avgLossDesc": "Average loss on losing trades",
+			"projection100": "100 Trade Projection",
+			"projectionDesc": "Expected total P&L if you take 100 trades with the same edge",
+			"formulaTitle": "Expected Value Formula:",
+			"formula": "EV = (Win% × Avg Win) - (Loss% × Avg Loss)",
+			"positiveEdge": "positive edge",
+			"negativeEdge": "negative edge",
+			"perTradeOverLongRun": "per trade over the long run",
 			"positive": "Positive EV - Keep it up!",
 			"negative": "Negative EV - Review your strategy"
 		},
 		"rDistribution": {
-			"title": "R Distribution",
+			"title": "R-Multiple Distribution",
+			"noData": "No R-multiple data available. Add planned risk to your trades to see distribution.",
+			"totalTrades": "Total Trades",
+			"totalTradesDesc": "Number of trades with R-multiple data (requires stop loss)",
+			"positiveR": "Positive R",
+			"positiveRDesc": "Trades that made more than planned risk (R > 0)",
+			"negativeR": "Negative R",
+			"negativeRDesc": "Trades that lost money (R < 0)",
+			"mostCommon": "Most Common",
+			"mostCommonDesc": "The R-multiple range with the highest frequency",
 			"description": "Distribution of realized R multiples"
 		}
 	},
 	"playbook": {
 		"title": "Strategy Playbook",
 		"description": "Manage your strategies and track compliance",
+		"yourStrategies": "Your Strategies",
 		"newStrategy": "New Strategy",
+		"addStrategy": "Add Strategy",
 		"editStrategy": "Edit Strategy",
 		"strategyDetails": "Strategy Details",
+		"noStrategies": "No strategies defined yet",
+		"noStrategiesHint": "Create your first trading strategy to track performance and compliance",
 		"compliance": {
 			"title": "Playbook Compliance",
 			"overall": "Overall Compliance",
@@ -219,8 +378,7 @@
 			"winRate": "Win Rate",
 			"avgR": "Avg R",
 			"profitFactor": "Profit Factor"
-		},
-		"noStrategies": "No strategies registered"
+		}
 	},
 	"reports": {
 		"title": "Performance Reports",
@@ -228,23 +386,54 @@
 		"weekly": {
 			"title": "Weekly Report",
 			"week": "Week",
+			"thisWeek": "This Week",
+			"lastWeek": "Last Week",
+			"weeksAgo": "{n} weeks ago",
 			"summary": "Summary",
 			"dailyBreakdown": "Daily Breakdown",
 			"topWins": "Top Wins",
-			"topLosses": "Top Losses"
+			"topLosses": "Top Losses",
+			"noTrades": "No trades recorded for this week"
 		},
 		"monthly": {
 			"title": "Monthly Report",
 			"month": "Month",
 			"summary": "Summary",
 			"weeklyBreakdown": "Weekly Breakdown",
-			"assetBreakdown": "By Asset"
+			"assetBreakdown": "Performance by Asset",
+			"thisMonth": "This Month",
+			"lastMonth": "Last Month",
+			"monthsAgo": "{n} months ago",
+			"avgR": "Avg R",
+			"bestDay": "Best Day",
+			"worstDay": "Worst Day",
+			"noTrades": "No trades recorded for this month",
+			"trades": "trades",
+			"wr": "WR"
 		},
 		"mistakeCost": {
-			"title": "Mistake Cost",
+			"title": "Mistake Cost Analysis",
 			"description": "How much you lost for each type of mistake",
-			"totalCost": "Total Cost",
-			"noMistakes": "No mistakes identified"
+			"totalCost": "Total Mistake Cost",
+			"mostCostlyMistake": "Most Costly Mistake",
+			"costBreakdown": "Cost Breakdown by Mistake",
+			"noData": "No mistake data available. Tag your losing trades with mistake tags to see this analysis.",
+			"noMistakes": "No mistakes identified",
+			"avg": "Avg",
+			"insight": "Insight",
+			"insightText": "By eliminating your top mistake ({mistake}), you could have saved {amount} during this period."
+		},
+		"stats": {
+			"netPnl": "Net P&L",
+			"winRate": "Win Rate",
+			"trades": "Trades",
+			"profitFactor": "Profit Factor",
+			"wins": "Wins",
+			"losses": "Losses",
+			"avgWin": "Avg Win",
+			"avgLoss": "Avg Loss",
+			"bestTrade": "Best Trade",
+			"worstTrade": "Worst Trade"
 		}
 	},
 	"settings": {
@@ -258,29 +447,55 @@
 		"assets": {
 			"title": "Manage Assets",
 			"newAsset": "New Asset",
+			"addAsset": "Add Asset",
 			"editAsset": "Edit Asset",
+			"updateAsset": "Update the asset configuration",
+			"addAssetDesc": "Add a new asset to your trading portfolio",
+			"searchAssets": "Search assets...",
+			"showingInactive": "Showing inactive",
+			"hidingInactive": "Hiding inactive",
 			"symbol": "Symbol",
+			"symbolPlaceholder": "WINFUT",
 			"name": "Name",
+			"namePlaceholder": "Mini Índice Bovespa",
 			"type": "Type",
+			"selectType": "Select type",
 			"tickSize": "Tick Size",
+			"tickSizePlaceholder": "5",
 			"tickValue": "Tick Value",
+			"tickValuePlaceholder": "0.20",
 			"currency": "Currency",
+			"multiplier": "Multiplier",
 			"commission": "Commission",
 			"fees": "Fees",
 			"active": "Active",
-			"inactive": "Inactive"
+			"inactive": "Inactive",
+			"noAssets": "No assets found"
 		},
 		"timeframes": {
 			"title": "Manage Timeframes",
 			"newTimeframe": "New Timeframe",
+			"addTimeframe": "Add Timeframe",
 			"editTimeframe": "Edit Timeframe",
+			"updateTimeframe": "Update the timeframe configuration",
+			"addTimeframeDesc": "Add a new timeframe for your trades",
 			"code": "Code",
+			"codePlaceholder": "5M",
 			"name": "Name",
+			"namePlaceholder": "5 Minutes",
 			"type": "Type",
 			"timeBased": "Time Based",
 			"renko": "Renko",
 			"value": "Value",
-			"unit": "Unit"
+			"unit": "Unit",
+			"sortOrder": "Sort Order",
+			"showingInactive": "Showing inactive",
+			"hidingInactive": "Hiding inactive",
+			"noTimeframes": "No timeframes found",
+			"active": "Active",
+			"inactive": "Inactive",
+			"recalculating": "Recalculating...",
+			"recalculateRValues": "Recalculate R Values"
 		},
 		"general": {
 			"title": "General Settings",
@@ -290,14 +505,26 @@
 			"themeSystem": "System",
 			"language": "Language",
 			"currency": "Default Currency",
+			"riskSettings": "Risk Settings",
 			"riskPerTrade": "Risk per Trade %",
+			"defaultRisk": "Default Risk %",
+			"defaultRiskDesc": "Default position risk percentage",
 			"accountBalance": "Account Balance",
+			"accountBalanceDesc": "Initial trading capital (used for equity curve)",
 			"maxDailyLoss": "Max Daily Loss",
 			"maxDailyTrades": "Max Daily Trades",
+			"dataMaintenance": "Data Maintenance",
 			"recalculateR": "Recalculate R Values",
-			"recalculateRDescription": "Recalculates R values for all existing trades",
-			"dataMaintenance": "Data Maintenance"
-		}
+			"recalculateRDescription": "Updates all trades that have stop loss data to calculate planned risk and realized R-multiple",
+			"dataImport": "Data Import",
+			"dataImportDesc": "Import trades from CSV file",
+			"goTo": "Go to",
+			"toImport": "to import trades",
+			"dataExport": "Data Export",
+			"dataExportDesc": "Export your trade data for backup or analysis",
+			"exportComingSoon": "Export functionality coming in a future update"
+		},
+		"goToSettings": "Settings → {section}"
 	},
 	"assetTypes": {
 		"FUTURE_INDEX": "Future Index",
@@ -323,7 +550,14 @@
 		"3": "Wednesday",
 		"4": "Thursday",
 		"5": "Friday",
-		"6": "Saturday"
+		"6": "Saturday",
+		"sunShort": "Sun",
+		"monShort": "Mon",
+		"tueShort": "Tue",
+		"wedShort": "Wed",
+		"thuShort": "Thu",
+		"friShort": "Fri",
+		"satShort": "Sat"
 	},
 	"months": {
 		"0": "January",

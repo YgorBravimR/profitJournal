@@ -2,9 +2,11 @@
 	"common": {
 		"appName": "Profit Journal",
 		"loading": "Carregando...",
+		"saving": "Salvando...",
 		"error": "Erro",
 		"success": "Sucesso",
 		"save": "Salvar",
+		"saveChanges": "Salvar Alterações",
 		"cancel": "Cancelar",
 		"delete": "Excluir",
 		"edit": "Editar",
@@ -25,7 +27,23 @@
 		"all": "Todos",
 		"none": "Nenhum",
 		"noData": "Nenhum dado disponível",
-		"noResults": "Nenhum resultado encontrado"
+		"noResults": "Nenhum resultado encontrado",
+		"to": "até",
+		"of": "de",
+		"and": "e",
+		"or": "ou",
+		"active": "Ativo",
+		"inactive": "Inativo",
+		"status": "Status",
+		"actions": "Ações",
+		"details": "Detalhes",
+		"expand": "Expandir",
+		"collapse": "Recolher",
+		"showDetails": "Mostrar Detalhes",
+		"hideDetails": "Ocultar Detalhes",
+		"version": "Trading Journal v1.0",
+		"expandSidebar": "Expandir menu",
+		"collapseSidebar": "Recolher menu"
 	},
 	"nav": {
 		"dashboard": "Painel",
@@ -41,6 +59,8 @@
 		"newTrade": "Novo Trade",
 		"editTrade": "Editar Trade",
 		"deleteTrade": "Excluir Trade",
+		"saveTrade": "Salvar Trade",
+		"updateTrade": "Atualizar Trade",
 		"tradeDetails": "Detalhes do Trade",
 		"direction": {
 			"label": "Direção",
@@ -55,31 +75,70 @@
 			"open": "Aberto"
 		},
 		"asset": "Ativo",
+		"assetRequired": "Ativo *",
+		"selectAsset": "Selecione o ativo",
+		"noAssets": "Nenhum ativo configurado",
 		"timeframe": "Timeframe",
+		"selectTimeframe": "Selecione o timeframe",
+		"noTimeframes": "Nenhum timeframe configurado",
 		"entryDate": "Data de Entrada",
+		"entryDateRequired": "Data de Entrada *",
 		"exitDate": "Data de Saída",
 		"entryPrice": "Preço de Entrada",
+		"entryPriceRequired": "Preço de Entrada *",
 		"exitPrice": "Preço de Saída",
+		"entry": "Entrada",
+		"exit": "Saída",
 		"positionSize": "Tamanho da Posição",
+		"positionSizeRequired": "Tamanho da Posição *",
+		"positionSizeHint": "Número de contratos/ações",
+		"size": "Qtd",
 		"stopLoss": "Stop Loss",
 		"takeProfit": "Take Profit",
 		"pnl": "P&L",
+		"calculatedPnl": "P&L Calculado",
 		"rMultiple": "R Múltiplo",
 		"plannedR": "R Planejado",
+		"plannedRTarget": "R Alvo",
 		"realizedR": "R Realizado",
-		"riskAmount": "Risco em R$",
+		"riskAmount": "Valor em Risco",
+		"plannedRisk": "Risco Planejado (R$)",
+		"enterStopToCalculate": "Insira o stop para calcular",
+		"autoCalculatedRisk": "Calculado automaticamente a partir da entrada, stop e tamanho",
+		"enterTpSlToCalculate": "Insira TP e SL para calcular",
+		"autoCalculatedR": "Calculado automaticamente pela razão take profit / stop loss",
 		"followedPlan": "Seguiu o Plano",
+		"didYouFollowPlan": "Você seguiu seu plano?",
+		"whatWentWrong": "O que deu errado?",
+		"describeBreach": "Descreva a quebra de disciplina...",
 		"preTradeThoughts": "Pensamentos Pré-Trade",
+		"preTradeHint": "Por que entrei nesse trade? Qual era minha tese?",
 		"postTradeReflection": "Reflexão Pós-Trade",
+		"postTradeHint": "Como me senti durante o trade? O que aconteceu?",
 		"lessonLearned": "Lição Aprendida",
+		"lessonHint": "O que posso aprender com esse trade?",
 		"strategy": "Estratégia",
+		"selectStrategy": "Selecione a estratégia",
 		"tags": "Tags",
+		"setupType": "Tipo de Setup",
+		"mistakes": "Erros (se houver)",
+		"noTagsYet": "Nenhuma tag disponível",
+		"createTagsHint": "Crie tags na seção de Análises",
 		"commission": "Comissão",
 		"fees": "Taxas",
+		"costs": "Custos",
+		"ticks": "ticks",
 		"mfe": "MFE",
+		"mfeFull": "MFE (Máx. Favorável)",
+		"mfeHint": "Melhor preço durante o trade",
 		"mae": "MAE",
+		"maeFull": "MAE (Máx. Adversa)",
+		"maeHint": "Pior preço durante o trade",
 		"noTrades": "Nenhum trade registrado",
-		"openPosition": "Posição Aberta"
+		"openPosition": "Posição Aberta",
+		"tickSize": "Tamanho do Tick",
+		"tickValue": "Valor do Tick",
+		"type": "Tipo"
 	},
 	"dashboard": {
 		"title": "Painel de Controle",
@@ -88,28 +147,60 @@
 			"netPnl": "P&L Líquido",
 			"winRate": "Taxa de Acerto",
 			"profitFactor": "Fator de Lucro",
+			"pf": "FL",
 			"avgR": "R Médio",
 			"discipline": "Disciplina",
 			"totalTrades": "Total de Trades",
 			"wins": "Gains",
-			"losses": "Losses"
+			"losses": "Losses",
+			"avgWin": "Gain Médio",
+			"avgLoss": "Loss Médio",
+			"followed": "seguidos",
+			"w": "G",
+			"l": "L"
 		},
 		"calendar": {
 			"title": "Calendário de Trades",
-			"noTrades": "Sem trades neste mês"
+			"noTrades": "Sem trades neste mês",
+			"previousMonth": "Mês anterior",
+			"nextMonth": "Próximo mês",
+			"days": {
+				"sun": "Dom",
+				"mon": "Seg",
+				"tue": "Ter",
+				"wed": "Qua",
+				"thu": "Qui",
+				"fri": "Sex",
+				"sat": "Sáb"
+			}
 		},
 		"equity": {
 			"title": "Curva de Capital",
 			"cumulative": "P&L Acumulado",
-			"drawdown": "Drawdown"
+			"drawdown": "Drawdown",
+			"noData": "Nenhum dado de trade disponível",
+			"period": {
+				"month": "Mês",
+				"year": "Ano",
+				"all": "Tudo"
+			},
+			"viewMode": {
+				"days": "Dias",
+				"trades": "Trades"
+			}
 		},
 		"quickStats": {
 			"title": "Estatísticas Rápidas",
 			"currentStreak": "Sequência Atual",
+			"longestWin": "Maior Sequência+",
+			"longestLoss": "Maior Sequência-",
 			"longestWinStreak": "Maior Sequência de Gains",
 			"longestLossStreak": "Maior Sequência de Losses",
 			"bestDay": "Melhor Dia",
-			"worstDay": "Pior Dia"
+			"worstDay": "Pior Dia",
+			"totalTrades": "Total de Trades",
+			"w": "G",
+			"l": "L"
 		}
 	},
 	"journal": {
@@ -120,8 +211,11 @@
 		"singleEntry": "Entrada Individual",
 		"form": {
 			"basicInfo": "Informações Básicas",
+			"basic": "Básico",
 			"riskManagement": "Gestão de Risco",
+			"risk": "Risco",
 			"journalNotes": "Anotações",
+			"journal": "Diário",
 			"tagsSection": "Tags"
 		},
 		"filters": {
@@ -139,6 +233,22 @@
 			"sessionReview": "Revisão da Sessão",
 			"emotionalState": "Estado Emocional",
 			"keyTakeaways": "Principais Aprendizados"
+		},
+		"csv": {
+			"dropHere": "Arraste seu arquivo CSV aqui",
+			"orClick": "ou clique para selecionar",
+			"selectFile": "Selecionar Arquivo",
+			"downloadTemplate": "Baixar Template",
+			"validTrades": "Trades Válidos",
+			"errors": "Erros",
+			"warnings": "Avisos",
+			"preview": "Preview (primeiros 10 trades)",
+			"andMore": "...e mais {count} trades",
+			"readyToImport": "Pronto para importar {count} trades",
+			"importTrades": "Importar {count} Trades",
+			"formatGuide": "Guia do Formato CSV",
+			"requiredColumns": "Seu CSV deve incluir estas colunas obrigatórias:",
+			"optionalColumns": "Colunas opcionais: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan"
 		}
 	},
 	"analytics": {
@@ -146,6 +256,15 @@
 		"description": "Analise seu desempenho e identifique padrões",
 		"filters": {
 			"title": "Filtros",
+			"active": "Ativos",
+			"clear": "Limpar",
+			"expand": "Expandir",
+			"collapse": "Recolher",
+			"customDateRange": "Período Personalizado",
+			"assets": "Ativos",
+			"direction": "Direção",
+			"outcome": "Resultado",
+			"timeframes": "Timeframes",
 			"datePresets": {
 				"today": "Hoje",
 				"thisWeek": "Esta Semana",
@@ -158,7 +277,7 @@
 			}
 		},
 		"variableComparison": {
-			"title": "Comparação por Variável",
+			"title": "Performance por Variável",
 			"groupBy": "Agrupar por",
 			"asset": "Ativo",
 			"timeframe": "Timeframe",
@@ -166,38 +285,78 @@
 			"dayOfWeek": "Dia da Semana",
 			"strategy": "Estratégia",
 			"metric": "Métrica",
+			"noData": "Nenhum dado disponível para os filtros selecionados",
 			"metrics": {
 				"pnl": "P&L",
 				"winRate": "Taxa de Acerto",
 				"avgR": "R Médio",
-				"tradeCount": "Número de Trades",
+				"tradeCount": "Qtd de Trades",
 				"profitFactor": "Fator de Lucro"
+			},
+			"profitFactorLegend": {
+				"excellent": "Excelente (>2.0)",
+				"good": "Bom (1.5-2.0)",
+				"acceptable": "Aceitável (1.0-1.5)",
+				"poor": "Ruim (<1.0)"
 			}
 		},
 		"tagCloud": {
 			"title": "Análise de Tags",
+			"noTags": "Nenhuma tag encontrada. Adicione tags aos seus trades para ver a análise.",
+			"totalTags": "Total de Tags",
+			"bestSetup": "Melhor Setup",
+			"mistakeCost": "Custo dos Erros",
+			"detailedStats": "Estatísticas Detalhadas",
+			"tag": "Tag",
 			"setup": "Setup",
 			"mistake": "Erro",
 			"general": "Geral"
 		},
 		"expectedValue": {
 			"title": "Valor Esperado",
-			"formula": "EV = (Taxa de Acerto × Gain Médio) - (Taxa de Erro × Loss Médio)",
-			"projection": "Projeção para 100 Trades",
+			"noData": "Dados insuficientes para calcular o valor esperado",
+			"basedOn": "Baseado em",
+			"perTrade": "Valor Esperado por Trade",
+			"winRateLabel": "Taxa de Acerto",
+			"winRateDesc": "Porcentagem de trades que foram lucrativos",
+			"avgWinLabel": "Gain Médio",
+			"avgWinDesc": "Lucro médio em trades vencedores",
+			"avgLossLabel": "Loss Médio",
+			"avgLossDesc": "Perda média em trades perdedores",
+			"projection100": "Projeção para 100 Trades",
+			"projectionDesc": "P&L total esperado se você fizer 100 trades com a mesma edge",
+			"formulaTitle": "Fórmula do Valor Esperado:",
+			"formula": "EV = (Taxa Acerto × Gain Médio) - (Taxa Erro × Loss Médio)",
+			"positiveEdge": "edge positiva",
+			"negativeEdge": "edge negativa",
+			"perTradeOverLongRun": "por trade no longo prazo",
 			"positive": "EV Positivo - Continue assim!",
 			"negative": "EV Negativo - Revise sua estratégia"
 		},
 		"rDistribution": {
 			"title": "Distribuição de R",
+			"noData": "Nenhum dado de R disponível. Adicione risco planejado aos seus trades para ver a distribuição.",
+			"totalTrades": "Total de Trades",
+			"totalTradesDesc": "Número de trades com dados de R (requer stop loss)",
+			"positiveR": "R Positivo",
+			"positiveRDesc": "Trades que ganharam mais que o risco planejado (R > 0)",
+			"negativeR": "R Negativo",
+			"negativeRDesc": "Trades que perderam dinheiro (R < 0)",
+			"mostCommon": "Mais Comum",
+			"mostCommonDesc": "A faixa de R múltiplo com maior frequência",
 			"description": "Distribuição dos múltiplos de R realizados"
 		}
 	},
 	"playbook": {
 		"title": "Playbook de Estratégias",
 		"description": "Gerencie suas estratégias e acompanhe a aderência",
+		"yourStrategies": "Suas Estratégias",
 		"newStrategy": "Nova Estratégia",
+		"addStrategy": "Adicionar Estratégia",
 		"editStrategy": "Editar Estratégia",
 		"strategyDetails": "Detalhes da Estratégia",
+		"noStrategies": "Nenhuma estratégia definida",
+		"noStrategiesHint": "Crie sua primeira estratégia de trading para acompanhar performance e aderência",
 		"compliance": {
 			"title": "Aderência ao Playbook",
 			"overall": "Aderência Geral",
@@ -219,8 +378,7 @@
 			"winRate": "Taxa de Acerto",
 			"avgR": "R Médio",
 			"profitFactor": "Fator de Lucro"
-		},
-		"noStrategies": "Nenhuma estratégia cadastrada"
+		}
 	},
 	"reports": {
 		"title": "Relatórios de Performance",
@@ -228,23 +386,54 @@
 		"weekly": {
 			"title": "Relatório Semanal",
 			"week": "Semana",
+			"thisWeek": "Esta Semana",
+			"lastWeek": "Semana Passada",
+			"weeksAgo": "{n} semanas atrás",
 			"summary": "Resumo",
 			"dailyBreakdown": "Detalhamento Diário",
 			"topWins": "Maiores Gains",
-			"topLosses": "Maiores Losses"
+			"topLosses": "Maiores Losses",
+			"noTrades": "Nenhum trade registrado nesta semana"
 		},
 		"monthly": {
 			"title": "Relatório Mensal",
 			"month": "Mês",
 			"summary": "Resumo",
 			"weeklyBreakdown": "Detalhamento Semanal",
-			"assetBreakdown": "Por Ativo"
+			"assetBreakdown": "Performance por Ativo",
+			"thisMonth": "Este Mês",
+			"lastMonth": "Mês Passado",
+			"monthsAgo": "{n} meses atrás",
+			"avgR": "R Médio",
+			"bestDay": "Melhor Dia",
+			"worstDay": "Pior Dia",
+			"noTrades": "Nenhum trade registrado neste mês",
+			"trades": "trades",
+			"wr": "TA"
 		},
 		"mistakeCost": {
-			"title": "Custo dos Erros",
+			"title": "Análise de Custo dos Erros",
 			"description": "Quanto você perdeu por cada tipo de erro",
-			"totalCost": "Custo Total",
-			"noMistakes": "Nenhum erro identificado"
+			"totalCost": "Custo Total dos Erros",
+			"mostCostlyMistake": "Erro Mais Custoso",
+			"costBreakdown": "Detalhamento por Tipo de Erro",
+			"noData": "Nenhum dado de erro disponível. Marque seus trades perdedores com tags de erro para ver esta análise.",
+			"noMistakes": "Nenhum erro identificado",
+			"avg": "Média",
+			"insight": "Insight",
+			"insightText": "Eliminando seu principal erro ({mistake}), você poderia ter economizado {amount} neste período."
+		},
+		"stats": {
+			"netPnl": "P&L Líquido",
+			"winRate": "Taxa de Acerto",
+			"trades": "Trades",
+			"profitFactor": "Fator de Lucro",
+			"wins": "Gains",
+			"losses": "Losses",
+			"avgWin": "Gain Médio",
+			"avgLoss": "Loss Médio",
+			"bestTrade": "Melhor Trade",
+			"worstTrade": "Pior Trade"
 		}
 	},
 	"settings": {
@@ -258,29 +447,55 @@
 		"assets": {
 			"title": "Gerenciar Ativos",
 			"newAsset": "Novo Ativo",
+			"addAsset": "Adicionar Ativo",
 			"editAsset": "Editar Ativo",
+			"updateAsset": "Atualizar configuração do ativo",
+			"addAssetDesc": "Adicionar um novo ativo ao seu portfólio de trading",
+			"searchAssets": "Buscar ativos...",
+			"showingInactive": "Mostrando inativos",
+			"hidingInactive": "Ocultando inativos",
 			"symbol": "Símbolo",
+			"symbolPlaceholder": "WINFUT",
 			"name": "Nome",
+			"namePlaceholder": "Mini Índice Bovespa",
 			"type": "Tipo",
+			"selectType": "Selecione o tipo",
 			"tickSize": "Tamanho do Tick",
+			"tickSizePlaceholder": "5",
 			"tickValue": "Valor do Tick",
+			"tickValuePlaceholder": "0.20",
 			"currency": "Moeda",
+			"multiplier": "Multiplicador",
 			"commission": "Comissão",
 			"fees": "Taxas",
 			"active": "Ativo",
-			"inactive": "Inativo"
+			"inactive": "Inativo",
+			"noAssets": "Nenhum ativo encontrado"
 		},
 		"timeframes": {
 			"title": "Gerenciar Timeframes",
 			"newTimeframe": "Novo Timeframe",
+			"addTimeframe": "Adicionar Timeframe",
 			"editTimeframe": "Editar Timeframe",
+			"updateTimeframe": "Atualizar configuração do timeframe",
+			"addTimeframeDesc": "Adicionar um novo timeframe para seus trades",
 			"code": "Código",
+			"codePlaceholder": "5M",
 			"name": "Nome",
+			"namePlaceholder": "5 Minutos",
 			"type": "Tipo",
 			"timeBased": "Baseado em Tempo",
 			"renko": "Renko",
 			"value": "Valor",
-			"unit": "Unidade"
+			"unit": "Unidade",
+			"sortOrder": "Ordenação",
+			"showingInactive": "Mostrando inativos",
+			"hidingInactive": "Ocultando inativos",
+			"noTimeframes": "Nenhum timeframe encontrado",
+			"active": "Ativo",
+			"inactive": "Inativo",
+			"recalculating": "Recalculando...",
+			"recalculateRValues": "Recalcular Valores de R"
 		},
 		"general": {
 			"title": "Configurações Gerais",
@@ -290,14 +505,26 @@
 			"themeSystem": "Sistema",
 			"language": "Idioma",
 			"currency": "Moeda Padrão",
+			"riskSettings": "Configurações de Risco",
 			"riskPerTrade": "Risco por Trade %",
+			"defaultRisk": "Risco Padrão %",
+			"defaultRiskDesc": "Porcentagem de risco padrão por posição",
 			"accountBalance": "Saldo da Conta",
+			"accountBalanceDesc": "Capital inicial de trading (usado na curva de capital)",
 			"maxDailyLoss": "Loss Máximo Diário",
 			"maxDailyTrades": "Trades Máximos por Dia",
+			"dataMaintenance": "Manutenção de Dados",
 			"recalculateR": "Recalcular Valores de R",
-			"recalculateRDescription": "Recalcula os valores de R para todos os trades existentes",
-			"dataMaintenance": "Manutenção de Dados"
-		}
+			"recalculateRDescription": "Atualiza todos os trades que possuem stop loss para calcular risco planejado e R realizado",
+			"dataImport": "Importação de Dados",
+			"dataImportDesc": "Importar trades de arquivo CSV",
+			"goTo": "Ir para",
+			"toImport": "para importar trades",
+			"dataExport": "Exportação de Dados",
+			"dataExportDesc": "Exporte seus dados de trades para backup ou análise",
+			"exportComingSoon": "Funcionalidade de exportação em breve"
+		},
+		"goToSettings": "Configurações → {section}"
 	},
 	"assetTypes": {
 		"FUTURE_INDEX": "Futuro de Índice",
@@ -323,7 +550,14 @@
 		"3": "Quarta",
 		"4": "Quinta",
 		"5": "Sexta",
-		"6": "Sábado"
+		"6": "Sábado",
+		"sunShort": "Dom",
+		"monShort": "Seg",
+		"tueShort": "Ter",
+		"wedShort": "Qua",
+		"thuShort": "Qui",
+		"friShort": "Sex",
+		"satShort": "Sáb"
 	},
 	"months": {
 		"0": "Janeiro",

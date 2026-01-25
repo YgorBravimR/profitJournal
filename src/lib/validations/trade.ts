@@ -3,16 +3,7 @@ import { z } from "zod"
 // Direction and outcome enums
 export const tradeDirectionSchema = z.enum(["long", "short"])
 export const tradeOutcomeSchema = z.enum(["win", "loss", "breakeven"])
-export const timeframeSchema = z.enum([
-	"1m",
-	"5m",
-	"15m",
-	"30m",
-	"1h",
-	"4h",
-	"1d",
-	"1w",
-])
+
 
 // Create trade input schema
 export const createTradeSchema = z.object({
@@ -23,7 +14,7 @@ export const createTradeSchema = z.object({
 		.max(20, "Asset must be 20 characters or less")
 		.transform((val) => val.toUpperCase()),
 	direction: tradeDirectionSchema,
-	timeframe: timeframeSchema.optional(),
+	timeframeId: z.string().uuid().optional().nullable(),
 
 	// Timing
 	entryDate: z.coerce.date({ message: "Entry date is required" }),
@@ -33,7 +24,10 @@ export const createTradeSchema = z.object({
 	entryPrice: z.coerce
 		.number({ message: "Entry price is required" })
 		.positive("Entry price must be positive"),
-	exitPrice: z.coerce.number().positive("Exit price must be positive").optional(),
+	exitPrice: z.coerce
+		.number()
+		.positive("Exit price must be positive")
+		.optional(),
 	positionSize: z.coerce
 		.number({ message: "Position size is required" })
 		.positive("Position size must be positive"),
@@ -78,7 +72,7 @@ export type CreateTradeOutput = z.output<typeof createTradeSchema>
 export interface CreateTradeInput {
 	asset: string
 	direction: "long" | "short"
-	timeframe?: "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w"
+	timeframeId?: string | null
 	entryDate: Date | string | number
 	exitDate?: Date | string | number
 	entryPrice: number | string
@@ -86,8 +80,6 @@ export interface CreateTradeInput {
 	positionSize: number | string
 	stopLoss?: number | string
 	takeProfit?: number | string
-	// Note: plannedRiskAmount is always calculated from stopLoss
-	// Note: plannedRMultiple is always calculated from takeProfit/stopLoss ratio
 	pnl?: number | string
 	realizedRMultiple?: number | string
 	mfe?: number | string
@@ -119,7 +111,7 @@ export const tradeFiltersSchema = z.object({
 	outcomes: z.array(tradeOutcomeSchema).optional(),
 	strategyIds: z.array(z.string().uuid()).optional(),
 	tagIds: z.array(z.string().uuid()).optional(),
-	timeframes: z.array(timeframeSchema).optional(),
+	timeframeIds: z.array(z.string().uuid()).optional(),
 })
 
 export type TradeFilters = z.infer<typeof tradeFiltersSchema>

@@ -25,7 +25,6 @@ export interface PaginatedResponse<T> {
 // Trade Types
 export type TradeDirection = "long" | "short"
 export type TradeOutcome = "win" | "loss" | "breakeven"
-export type Timeframe = "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w"
 export type TagType = "setup" | "mistake" | "general"
 
 // Filter Types
@@ -37,7 +36,7 @@ export interface TradeFilters {
 	outcomes?: TradeOutcome[]
 	strategyIds?: string[]
 	tagIds?: string[]
-	timeframes?: Timeframe[]
+	timeframeIds?: string[]
 }
 
 export interface PaginationParams {
@@ -73,6 +72,7 @@ export interface EquityPoint {
 	equity: number
 	accountEquity: number
 	drawdown: number
+	tradeNumber?: number
 }
 
 export interface DailyPnL {

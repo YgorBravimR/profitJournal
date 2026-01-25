@@ -13,6 +13,7 @@ import {
 	subWeeks,
 	subMonths,
 } from "date-fns"
+import { fromCents } from "@/lib/money"
 
 // ============================================================================
 // TYPES
@@ -161,56 +162,43 @@ export const getWeeklyReport = async (
 		const lossTrades = weekTrades.filter((t) => t.outcome === "loss")
 		const breakevenTrades = weekTrades.filter((t) => t.outcome === "breakeven")
 
-		const netPnl = weekTrades.reduce(
-			(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-			0
-		)
-		const grossProfit = winTrades.reduce(
-			(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-			0
-		)
+		const netPnl = weekTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		const grossLoss = Math.abs(
-			lossTrades.reduce((sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0), 0)
+			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		)
 		const avgWin =
 			winTrades.length > 0
-				? winTrades.reduce(
-						(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-						0
-					) / winTrades.length
+				? winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+					winTrades.length
 				: 0
 		const avgLoss =
 			lossTrades.length > 0
-				? lossTrades.reduce(
-						(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-						0
-					) / lossTrades.length
+				? lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+					lossTrades.length
 				: 0
 		const avgR =
 			weekTrades.filter((t) => t.realizedRMultiple).length > 0
 				? weekTrades
 						.filter((t) => t.realizedRMultiple)
 						.reduce(
-							(sum, t) => sum + (parseFloat(t.realizedRMultiple ?? "0") || 0),
+							(sum, t) =>
+								sum + (t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
 							0
 						) / weekTrades.filter((t) => t.realizedRMultiple).length
 				: 0
 
-		const pnlValues = weekTrades
-			.map((t) => parseFloat(t.pnl ?? "0") || 0)
-			.filter((p) => p !== 0)
+		const pnlValues = weekTrades.map((t) => fromCents(t.pnl)).filter((p) => p !== 0)
 
 		// Daily breakdown
 		const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
 		const dailyBreakdown: DailyBreakdown[] = days.map((day) => {
 			const dayTrades = weekTrades.filter(
-				(t) => format(new Date(t.entryDate), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+				(t) =>
+					format(new Date(t.entryDate), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
 			)
 			const dayWins = dayTrades.filter((t) => t.outcome === "win").length
-			const dayPnl = dayTrades.reduce(
-				(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-				0
-			)
+			const dayPnl = dayTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 			return {
 				date: format(day, "yyyy-MM-dd"),
 				tradeCount: dayTrades.length,
@@ -221,31 +209,31 @@ export const getWeeklyReport = async (
 			}
 		})
 
-		// Top wins/losses
+		// Top wins/losses - pnl is stored in cents, convert to dollars
 		const sortedByPnl = [...weekTrades]
 			.filter((t) => t.pnl)
-			.sort((a, b) => parseFloat(b.pnl ?? "0") - parseFloat(a.pnl ?? "0"))
+			.sort((a, b) => fromCents(b.pnl) - fromCents(a.pnl))
 
 		const topWins = sortedByPnl
-			.filter((t) => parseFloat(t.pnl ?? "0") > 0)
+			.filter((t) => fromCents(t.pnl) > 0)
 			.slice(0, 3)
 			.map((t) => ({
 				id: t.id,
 				asset: t.asset,
-				pnl: parseFloat(t.pnl ?? "0"),
+				pnl: fromCents(t.pnl),
 				r: t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : null,
 				direction: t.direction,
 				date: format(new Date(t.entryDate), "yyyy-MM-dd"),
 			}))
 
 		const topLosses = sortedByPnl
-			.filter((t) => parseFloat(t.pnl ?? "0") < 0)
+			.filter((t) => fromCents(t.pnl) < 0)
 			.slice(-3)
 			.reverse()
 			.map((t) => ({
 				id: t.id,
 				asset: t.asset,
-				pnl: parseFloat(t.pnl ?? "0"),
+				pnl: fromCents(t.pnl),
 				r: t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : null,
 				direction: t.direction,
 				date: format(new Date(t.entryDate), "yyyy-MM-dd"),
@@ -336,37 +324,28 @@ export const getMonthlyReport = async (
 		const lossTrades = monthTrades.filter((t) => t.outcome === "loss")
 		const breakevenTrades = monthTrades.filter((t) => t.outcome === "breakeven")
 
-		const netPnl = monthTrades.reduce(
-			(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-			0
-		)
-		const grossProfit = winTrades.reduce(
-			(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-			0
-		)
+		const netPnl = monthTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		const grossLoss = Math.abs(
-			lossTrades.reduce((sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0), 0)
+			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		)
 		const avgWin =
 			winTrades.length > 0
-				? winTrades.reduce(
-						(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-						0
-					) / winTrades.length
+				? winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+					winTrades.length
 				: 0
 		const avgLoss =
 			lossTrades.length > 0
-				? lossTrades.reduce(
-						(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-						0
-					) / lossTrades.length
+				? lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+					lossTrades.length
 				: 0
 		const avgR =
 			monthTrades.filter((t) => t.realizedRMultiple).length > 0
 				? monthTrades
 						.filter((t) => t.realizedRMultiple)
 						.reduce(
-							(sum, t) => sum + (parseFloat(t.realizedRMultiple ?? "0") || 0),
+							(sum, t) =>
+								sum + (t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
 							0
 						) / monthTrades.filter((t) => t.realizedRMultiple).length
 				: 0
@@ -376,7 +355,7 @@ export const getMonthlyReport = async (
 		for (const trade of monthTrades) {
 			const day = format(new Date(trade.entryDate), "yyyy-MM-dd")
 			const currentPnl = dailyPnl.get(day) || 0
-			dailyPnl.set(day, currentPnl + (parseFloat(trade.pnl ?? "0") || 0))
+			dailyPnl.set(day, currentPnl + (fromCents(trade.pnl)))
 		}
 
 		let bestDay: { date: string; pnl: number } | null = null
@@ -404,10 +383,7 @@ export const getMonthlyReport = async (
 
 			if (weekTrades.length > 0) {
 				const weekWins = weekTrades.filter((t) => t.outcome === "win").length
-				const weekPnl = weekTrades.reduce(
-					(sum, t) => sum + (parseFloat(t.pnl ?? "0") || 0),
-					0
-				)
+				const weekPnl = weekTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 
 				weeklyBreakdown.push({
 					weekStart: format(currentWeekStart, "yyyy-MM-dd"),
@@ -436,7 +412,7 @@ export const getMonthlyReport = async (
 			}
 			assetMap.set(trade.asset, {
 				tradeCount: current.tradeCount + 1,
-				pnl: current.pnl + (parseFloat(trade.pnl ?? "0") || 0),
+				pnl: current.pnl + (fromCents(trade.pnl)),
 				winCount:
 					current.winCount + (trade.outcome === "win" ? 1 : 0),
 			})
@@ -527,7 +503,7 @@ export const getMistakeCostAnalysis = async (): Promise<{
 		>()
 
 		for (const association of tradeTagAssociations) {
-			const pnl = parseFloat(association.trade.pnl ?? "0") || 0
+			const pnl = fromCents(association.trade.pnl)
 
 			// Only count losses (negative P&L)
 			if (pnl < 0) {

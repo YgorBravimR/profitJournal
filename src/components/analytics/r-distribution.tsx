@@ -12,6 +12,7 @@ import {
 	ReferenceLine,
 } from "recharts"
 import { BarChart3, Info } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
 	Tooltip,
 	TooltipContent,
@@ -81,17 +82,19 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 }
 
 export const RDistribution = ({ data }: RDistributionProps) => {
+	const t = useTranslations("analytics.rDistribution")
+
 	if (data.length === 0) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<div className="flex items-center gap-s-200">
 					<BarChart3 className="h-5 w-5 text-txt-300" />
 					<h3 className="text-body font-semibold text-txt-100">
-						R-Multiple Distribution
+						{t("title")}
 					</h3>
 				</div>
 				<div className="mt-m-400 flex h-48 items-center justify-center text-txt-300">
-					No R-multiple data available. Add planned risk to your trades to see distribution.
+					{t("noData")}
 				</div>
 			</div>
 		)
@@ -113,7 +116,7 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 			<div className="flex items-center gap-s-200">
 				<BarChart3 className="h-5 w-5 text-txt-300" />
 				<h3 className="text-body font-semibold text-txt-100">
-					R-Multiple Distribution
+					{t("title")}
 				</h3>
 			</div>
 
@@ -121,8 +124,8 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 			<div className="mt-m-400 grid grid-cols-2 gap-m-400 md:grid-cols-4">
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Total Trades"
-						tooltip="Number of trades with R-multiple data (requires stop loss)"
+						label={t("totalTrades")}
+						tooltip={t("totalTradesDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-txt-100">
 						{totalTrades}
@@ -130,8 +133,8 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Positive R"
-						tooltip="Trades that made more than planned risk (R > 0)"
+						label={t("positiveR")}
+						tooltip={t("positiveRDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-buy">
 						{positiveCount} ({((positiveCount / totalTrades) * 100).toFixed(0)}%)
@@ -139,8 +142,8 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Negative R"
-						tooltip="Trades that lost money (R < 0)"
+						label={t("negativeR")}
+						tooltip={t("negativeRDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-sell">
 						{negativeCount} ({((negativeCount / totalTrades) * 100).toFixed(0)}%)
@@ -148,8 +151,8 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 					<StatLabel
-						label="Most Common"
-						tooltip="The R-multiple range with the highest frequency"
+						label={t("mostCommon")}
+						tooltip={t("mostCommonDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-acc-100">
 						{mode.range}

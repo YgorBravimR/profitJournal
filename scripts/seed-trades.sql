@@ -1,168 +1,144 @@
 -- Seed data for trades table
--- Generated from sample-trades.csv
+-- Only Mini Índice (WINFUT) and Mini Dólar (WDOFUT) trades
 -- Run with: psql $DATABASE_URL -f scripts/seed-trades.sql
+-- NOTE: pnl is stored in CENTS (integers), timeframe_id is UUID FK
 
 INSERT INTO trades (
-  id, asset, direction, timeframe, entry_date, exit_date,
+  id, asset, direction, timeframe_id, entry_date, exit_date,
   entry_price, exit_price, position_size, stop_loss, take_profit,
   pnl, outcome, followed_plan, pre_trade_thoughts, is_archived
 ) VALUES
-  -- BTCUSD long 2026-01-02
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-02 10:00:00+00', '2026-01-02 18:00:00+00',
-   42150, 42580, 0.5, 41800, 43000, 215, 'win', true, 'Breakout above resistance', false),
+  -- WINFUT trades - January 2nd (Big winning day)
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-02 09:15:00+00', '2026-01-02 10:45:00+00',
+   127500, 128200, 5, 127200, 128500, 70000, 'win', true, 'Opening momentum. Clean breakout above 127500', false),
 
-  -- ETHUSD long 2026-01-02
-  (gen_random_uuid(), 'ETHUSD', 'long', '1h', '2026-01-02 14:00:00+00', '2026-01-03 10:00:00+00',
-   2280, 2195, 2, 2200, 2400, -170, 'loss', true, 'Failed support bounce', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-02 11:30:00+00', '2026-01-02 14:00:00+00',
+   128050, 129100, 8, 127700, 129500, 168000, 'win', true, 'Trend continuation after pullback to 128000', false),
 
-  -- EURUSD short 2026-01-03
-  (gen_random_uuid(), 'EURUSD', 'short', '15m', '2026-01-03 09:00:00+00', '2026-01-03 15:00:00+00',
-   1.0892, 1.0845, 50000, 1.0920, 1.0820, 235, 'win', true, 'News driven move', false),
+  -- WDOFUT trade - January 2nd
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-02 10:00:00+00', '2026-01-02 11:30:00+00',
+   4985, 4962, 3, 4995, 4950, 138000, 'win', true, 'Dollar weakness after USD data', false),
 
-  -- BTCUSD short 2026-01-04
-  (gen_random_uuid(), 'BTCUSD', 'short', '4h', '2026-01-04 10:00:00+00', '2026-01-04 18:00:00+00',
-   43200, 43850, 0.3, 43500, 42600, -195, 'loss', false, 'Counter trend mistake', false),
+  -- January 3rd - Breakeven day with small loss
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-03 09:30:00+00', '2026-01-03 10:15:00+00',
+   129200, 129450, 4, 129500, 128800, -20000, 'loss', true, 'Failed breakdown attempt', false),
 
-  -- SOLUSD long 2026-01-05
-  (gen_random_uuid(), 'SOLUSD', 'long', '1h', '2026-01-05 11:00:00+00', '2026-01-06 14:00:00+00',
-   98.50, 105.20, 15, 95.00, 110.00, 100.50, 'win', true, 'Momentum play', false),
+  (gen_random_uuid(), 'WDOFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-03 11:00:00+00', '2026-01-03 13:30:00+00',
+   4958, 4975, 2, 4945, 4990, 34000, 'win', true, 'Dollar recovery play', false),
 
-  -- GBPUSD long 2026-01-06
-  (gen_random_uuid(), 'GBPUSD', 'long', '1h', '2026-01-06 08:00:00+00', '2026-01-06 16:00:00+00',
-   1.2520, 1.2580, 30000, 1.2480, 1.2620, 180, 'win', true, 'Clean breakout', false),
+  -- January 6th - HUGE DRAWDOWN DAY (revenge trading disaster)
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-06 09:10:00+00', '2026-01-06 09:35:00+00',
+   128800, 128200, 10, 128500, 129500, -120000, 'loss', false, 'FOMO entry on gap. No confirmation', false),
 
-  -- ETHUSD short 2026-01-07
-  (gen_random_uuid(), 'ETHUSD', 'short', '4h', '2026-01-07 10:00:00+00', '2026-01-07 18:00:00+00',
-   2150, 2090, 3, 2200, 2050, 180, 'win', true, 'Rejection at resistance', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-06 09:45:00+00', '2026-01-06 10:10:00+00',
+   128100, 127500, 15, 127800, 128800, -180000, 'loss', false, 'Revenge trade. Doubled down on losing position', false),
 
-  -- BTCUSD long 2026-01-07
-  (gen_random_uuid(), 'BTCUSD', 'long', '1d', '2026-01-07 12:00:00+00', '2026-01-08 12:00:00+00',
-   41800, 42400, 0.4, 41200, 43000, 240, 'win', true, 'Daily support hold', false),
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-06 10:30:00+00', '2026-01-06 11:00:00+00',
+   127600, 128000, 12, 128100, 127000, -96000, 'loss', false, 'Another revenge trade. Should have stopped', false),
 
-  -- XAUUSD long 2026-01-08
-  (gen_random_uuid(), 'XAUUSD', 'long', '15m', '2026-01-08 09:00:00+00', '2026-01-08 11:00:00+00',
-   2045, 2038, 5, 2035, 2065, -35, 'loss', true, 'Stopped out early', false),
+  -- January 7th - Recovery day
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-07 09:30:00+00', '2026-01-07 12:30:00+00',
+   127200, 128500, 6, 126800, 128800, 156000, 'win', true, 'Clean setup. Waited for confirmation', false),
 
-  -- SOLUSD short 2026-01-09
-  (gen_random_uuid(), 'SOLUSD', 'short', '1h', '2026-01-09 10:00:00+00', '2026-01-09 16:00:00+00',
-   102.30, 99.80, 20, 105.00, 97.00, 50, 'win', true, 'Bearish divergence', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-07 10:00:00+00', '2026-01-07 11:30:00+00',
+   5025, 4995, 4, 5040, 4980, 120000, 'win', true, 'Dollar reversal at resistance', false),
 
-  -- BTCUSD long 2026-01-09
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-09 14:00:00+00', '2026-01-10 10:00:00+00',
-   42600, 41900, 0.5, 42000, 44000, -350, 'loss', false, 'Breakdown surprise', false),
+  -- January 8th - Consistent wins
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-08 09:20:00+00', '2026-01-08 10:45:00+00',
+   128600, 129200, 5, 128300, 129500, 60000, 'win', true, 'Breakout with volume', false),
 
-  -- EURUSD long 2026-01-10
-  (gen_random_uuid(), 'EURUSD', 'long', '1h', '2026-01-10 08:00:00+00', '2026-01-10 14:00:00+00',
-   1.0780, 1.0825, 40000, 1.0750, 1.0850, 180, 'win', true, 'Reversal setup', false),
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-08 13:00:00+00', '2026-01-08 15:00:00+00',
+   129500, 128800, 6, 129800, 128500, 84000, 'win', true, 'End of day reversal setup', false),
 
-  -- ETHUSD long 2026-01-11
-  (gen_random_uuid(), 'ETHUSD', 'long', '4h', '2026-01-11 10:00:00+00', '2026-01-11 18:00:00+00',
-   2050, 2120, 4, 2000, 2150, 280, 'win', true, 'Oversold bounce', false),
+  -- January 9th - Another bad day
+  (gen_random_uuid(), 'WDOFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-09 09:30:00+00', '2026-01-09 10:00:00+00',
+   4980, 4955, 5, 4965, 5010, -125000, 'loss', false, 'Wrong read on dollar direction', false),
 
-  -- AVAXUSD long 2026-01-11
-  (gen_random_uuid(), 'AVAXUSD', 'long', '1h', '2026-01-11 14:00:00+00', '2026-01-12 10:00:00+00',
-   35.20, 37.80, 50, 33.50, 40.00, 130, 'win', true, 'Alt season play', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-09 10:30:00+00', '2026-01-09 11:15:00+00',
+   128200, 127700, 8, 127900, 128700, -80000, 'loss', true, 'Stopped out on volatility spike', false),
 
-  -- BTCUSD short 2026-01-12
-  (gen_random_uuid(), 'BTCUSD', 'short', '1h', '2026-01-12 09:00:00+00', '2026-01-12 15:00:00+00',
-   43500, 43200, 0.6, 44000, 42500, 180, 'win', true, 'Double top pattern', false),
+  -- January 10th - BIG WINNING DAY
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-10 09:15:00+00', '2026-01-10 11:00:00+00',
+   127000, 128500, 10, 126700, 129000, 300000, 'win', true, 'Perfect trend day. Scaled in properly', false),
 
-  -- GBPUSD short 2026-01-13
-  (gen_random_uuid(), 'GBPUSD', 'short', '15m', '2026-01-13 10:00:00+00', '2026-01-13 14:00:00+00',
-   1.2680, 1.2720, 25000, 1.2720, 1.2600, -100, 'loss', false, 'False breakdown', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-10 11:30:00+00', '2026-01-10 14:30:00+00',
+   128400, 129800, 12, 128100, 130000, 336000, 'win', true, 'Trend continuation. Added on strength', false),
 
-  -- LINKUSD long 2026-01-13
-  (gen_random_uuid(), 'LINKUSD', 'long', '4h', '2026-01-13 12:00:00+00', '2026-01-14 16:00:00+00',
-   14.50, 15.80, 100, 13.80, 16.50, 130, 'win', true, 'Accumulation breakout', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-10 10:00:00+00', '2026-01-10 12:00:00+00',
+   5050, 4990, 6, 5070, 4970, 360000, 'win', true, 'Dollar collapse. Rode the move', false),
 
-  -- BTCUSD long 2026-01-14
-  (gen_random_uuid(), 'BTCUSD', 'long', '1h', '2026-01-14 11:00:00+00', '2026-01-14 17:00:00+00',
-   42800, 43350, 0.4, 42200, 44000, 220, 'win', true, 'Higher low formation', false),
+  -- January 13th - Mixed day
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-13 09:30:00+00', '2026-01-13 10:30:00+00',
+   129800, 129300, 5, 130100, 129000, 50000, 'win', true, 'Overbought reversal setup', false),
 
-  -- ETHUSD short 2026-01-15
-  (gen_random_uuid(), 'ETHUSD', 'short', '1h', '2026-01-15 09:00:00+00', '2026-01-15 15:00:00+00',
-   2180, 2220, 2.5, 2230, 2100, -100, 'loss', false, 'Wrong direction call', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-13 11:00:00+00', '2026-01-13 11:45:00+00',
+   129200, 128800, 6, 128900, 129800, -48000, 'loss', true, 'False breakout. Tight stop hit', false),
 
-  -- SOLUSD long 2026-01-15
-  (gen_random_uuid(), 'SOLUSD', 'long', '4h', '2026-01-15 14:00:00+00', '2026-01-16 10:00:00+00',
-   95.40, 99.20, 25, 92.00, 102.00, 95, 'win', true, 'Support bounce', false),
+  (gen_random_uuid(), 'WDOFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-13 13:00:00+00', '2026-01-13 15:30:00+00',
+   4975, 5010, 4, 4960, 5030, 140000, 'win', true, 'Dollar afternoon rally', false),
 
-  -- XAUUSD short 2026-01-16
-  (gen_random_uuid(), 'XAUUSD', 'short', '1h', '2026-01-16 08:00:00+00', '2026-01-16 14:00:00+00',
-   2058, 2048, 8, 2068, 2038, 80, 'win', true, 'Resistance rejection', false),
+  -- January 14th - HUGE WINNING DAY (best day of the month)
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-14 09:10:00+00', '2026-01-14 12:00:00+00',
+   128000, 130200, 15, 127700, 130500, 660000, 'win', true, 'Gap up continuation. Heavy size on A+ setup', false),
 
-  -- BTCUSD long 2026-01-16
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-16 10:00:00+00', '2026-01-17 14:00:00+00',
-   43100, 44200, 0.5, 42500, 45000, 550, 'win', true, 'Trend continuation', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-14 09:30:00+00', '2026-01-14 11:30:00+00',
+   5080, 5020, 8, 5100, 5000, 480000, 'win', true, 'Dollar weakness correlation with index strength', false),
 
-  -- EURUSD short 2026-01-17
-  (gen_random_uuid(), 'EURUSD', 'short', '1h', '2026-01-17 13:00:00+00', '2026-01-17 17:00:00+00',
-   1.0920, 1.0880, 60000, 1.0950, 1.0850, 240, 'win', true, 'ECB speech reaction', false),
+  -- January 15th - Small loss day
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-15 09:30:00+00', '2026-01-15 10:15:00+00',
+   130100, 130400, 5, 130500, 129600, -30000, 'loss', true, 'Counter-trend fade failed', false),
 
-  -- DOGEUSD long 2026-01-17
-  (gen_random_uuid(), 'DOGEUSD', 'long', '1h', '2026-01-17 16:00:00+00', '2026-01-18 10:00:00+00',
-   0.0820, 0.0795, 10000, 0.0780, 0.0880, -250, 'loss', false, 'Meme pump fade', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-15 11:00:00+00', '2026-01-15 13:00:00+00',
+   130300, 130150, 4, 130000, 130800, -12000, 'loss', true, 'Chopped out on range day', false),
 
-  -- BTCUSD short 2026-01-18
-  (gen_random_uuid(), 'BTCUSD', 'short', '15m', '2026-01-18 09:00:00+00', '2026-01-18 10:30:00+00',
-   44500, 44100, 0.3, 45000, 43500, 120, 'win', true, 'Scalp trade', false),
+  -- January 16th - Solid day
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-16 09:20:00+00', '2026-01-16 11:00:00+00',
+   129800, 130700, 8, 129500, 131000, 144000, 'win', true, 'Strong open. Rode the momentum', false),
 
-  -- ETHUSD long 2026-01-18
-  (gen_random_uuid(), 'ETHUSD', 'long', '4h', '2026-01-18 14:00:00+00', '2026-01-19 10:00:00+00',
-   2240, 2320, 3, 2180, 2380, 240, 'win', true, 'ETH/BTC ratio play', false),
+  (gen_random_uuid(), 'WDOFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-16 10:00:00+00', '2026-01-16 12:00:00+00',
+   5005, 5045, 5, 4990, 5060, 200000, 'win', true, 'Dollar strength on risk-off', false),
 
-  -- MATICUSD long 2026-01-19
-  (gen_random_uuid(), 'MATICUSD', 'long', '1h', '2026-01-19 11:00:00+00', '2026-01-19 17:00:00+00',
-   0.92, 0.88, 500, 0.85, 1.00, -200, 'loss', true, 'Layer 2 narrative', false),
+  -- January 17th - Another drawdown (overtrading)
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-17 09:10:00+00', '2026-01-17 09:30:00+00',
+   130500, 130100, 8, 130200, 131000, -64000, 'loss', false, 'Early entry no confirmation', false),
 
-  -- BTCUSD long 2026-01-19
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-19 15:00:00+00', '2026-01-20 11:00:00+00',
-   44800, 45600, 0.4, 44200, 46500, 320, 'win', true, 'Weekend breakout', false),
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-17 09:45:00+00', '2026-01-17 10:15:00+00',
+   130200, 130600, 10, 130700, 129700, -80000, 'loss', false, 'Flip-flopping direction', false),
 
-  -- GBPUSD long 2026-01-20
-  (gen_random_uuid(), 'GBPUSD', 'long', '1h', '2026-01-20 08:00:00+00', '2026-01-20 14:00:00+00',
-   1.2750, 1.2810, 35000, 1.2700, 1.2850, 210, 'win', true, 'Clean setup', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-17 10:30:00+00', '2026-01-17 11:00:00+00',
+   130500, 130000, 8, 130100, 131000, -80000, 'loss', false, 'More revenge trading. Disaster', false),
 
-  -- SOLUSD short 2026-01-20
-  (gen_random_uuid(), 'SOLUSD', 'short', '4h', '2026-01-20 14:00:00+00', '2026-01-21 10:00:00+00',
-   108.50, 105.20, 20, 112.00, 100.00, 66, 'win', true, 'Overbought condition', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-17 11:30:00+00', '2026-01-17 12:30:00+00',
+   5035, 5055, 5, 5055, 5000, -100000, 'loss', false, 'Stopped at the exact high. Bad day', false),
 
-  -- BTCUSD short 2026-01-21
-  (gen_random_uuid(), 'BTCUSD', 'short', '1h', '2026-01-21 09:00:00+00', '2026-01-21 13:00:00+00',
-   45800, 46200, 0.25, 46500, 44500, -100, 'loss', false, 'Caught in squeeze', false),
+  -- January 20th - Recovery and discipline
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-20 09:30:00+00', '2026-01-20 13:00:00+00',
+   129500, 131000, 6, 129100, 131500, 180000, 'win', true, 'Patient entry. Waited for setup', false),
 
-  -- ETHUSD long 2026-01-21
-  (gen_random_uuid(), 'ETHUSD', 'long', '4h', '2026-01-21 14:00:00+00', '2026-01-22 10:00:00+00',
-   2380, 2450, 2, 2320, 2500, 140, 'win', true, 'Bullish continuation', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-20 10:30:00+00', '2026-01-20 12:00:00+00',
+   5080, 5050, 4, 5095, 5030, 120000, 'win', true, 'Dollar weakness on index strength', false),
 
-  -- XAUUSD long 2026-01-22
-  (gen_random_uuid(), 'XAUUSD', 'long', '1h', '2026-01-22 09:00:00+00', '2026-01-22 15:00:00+00',
-   2072, 2085, 6, 2060, 2095, 78, 'win', true, 'Risk off move', false),
+  -- January 21st - Consistent
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-21 09:20:00+00', '2026-01-21 10:30:00+00',
+   130800, 131400, 5, 130500, 131800, 60000, 'win', true, 'Breakout continuation', false),
 
-  -- BTCUSD long 2026-01-22
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-22 11:00:00+00', '2026-01-23 11:00:00+00',
-   45200, 46100, 0.5, 44500, 47000, 450, 'win', true, 'Institutional buying', false),
+  (gen_random_uuid(), 'WINFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-21 13:00:00+00', '2026-01-21 14:00:00+00',
+   131600, 131200, 4, 131900, 130800, 32000, 'win', true, 'End of day profit taking', false),
 
-  -- AVAXUSD short 2026-01-22
-  (gen_random_uuid(), 'AVAXUSD', 'short', '1h', '2026-01-22 15:00:00+00', '2026-01-23 09:00:00+00',
-   42.50, 44.20, 30, 45.00, 38.00, -51, 'loss', false, 'Misjudged momentum', false),
+  -- January 22nd - Small loss
+  (gen_random_uuid(), 'WDOFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-22 09:30:00+00', '2026-01-22 10:15:00+00',
+   5040, 5020, 3, 5025, 5070, -60000, 'loss', true, 'Wrong direction. Quick exit', false),
 
-  -- EURUSD long 2026-01-23
-  (gen_random_uuid(), 'EURUSD', 'long', '15m', '2026-01-23 13:30:00+00', '2026-01-23 15:00:00+00',
-   1.0850, 1.0890, 50000, 1.0820, 1.0920, 200, 'win', true, 'NFP reaction', false),
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-22 11:00:00+00', '2026-01-22 14:00:00+00',
+   131000, 131600, 5, 130700, 132000, 60000, 'win', true, 'Recovered with clean setup', false),
 
-  -- BTCUSD long 2026-01-23
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-23 14:00:00+00', '2026-01-24 10:00:00+00',
-   46500, 47200, 0.6, 45800, 48000, 420, 'win', true, 'ATH attempt', false),
+  -- January 23rd - Good day
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-23 09:15:00+00', '2026-01-23 11:30:00+00',
+   131200, 132500, 8, 130900, 132800, 208000, 'win', true, 'Strong trend day. Scaled in', false),
 
-  -- ETHUSD short 2026-01-24
-  (gen_random_uuid(), 'ETHUSD', 'short', '1h', '2026-01-24 09:00:00+00', '2026-01-24 13:00:00+00',
-   2520, 2480, 2, 2580, 2420, 80, 'win', true, 'Profit taking setup', false),
+  (gen_random_uuid(), 'WDOFUT', 'short', (SELECT id FROM timeframes WHERE code = '5m'), '2026-01-23 10:00:00+00', '2026-01-23 12:00:00+00',
+   5065, 5025, 5, 5080, 5000, 200000, 'win', true, 'Dollar selloff with index rally', false),
 
-  -- SOLUSD long 2026-01-24
-  (gen_random_uuid(), 'SOLUSD', 'long', '1h', '2026-01-24 11:00:00+00', '2026-01-24 15:00:00+00',
-   112.80, 115.40, 15, 109.00, 120.00, 39, 'win', true, 'Alt momentum', false),
-
-  -- BTCUSD long 2026-01-24 (open position)
-  (gen_random_uuid(), 'BTCUSD', 'long', '4h', '2026-01-24 14:00:00+00', NULL,
-   47500, NULL, 0.4, 46500, 49000, NULL, NULL, true, 'Open position', false);
+  -- January 24th - Open position
+  (gen_random_uuid(), 'WINFUT', 'long', (SELECT id FROM timeframes WHERE code = '15m'), '2026-01-24 09:30:00+00', NULL,
+   132300, NULL, 6, 131900, 133500, NULL, NULL, true, 'Trend continuation setup. Position open', false);

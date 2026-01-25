@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import type { DailyPnL } from "@/types"
 
@@ -10,8 +11,6 @@ interface TradingCalendarProps {
 	month: Date
 	onMonthChange: (month: Date) => void
 }
-
-const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
 const formatCurrency = (value: number): string => {
 	const absValue = Math.abs(value)
@@ -29,8 +28,22 @@ const formatDateKey = (date: Date): string => {
 }
 
 export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarProps) => {
+	const t = useTranslations("dashboard.calendar")
+	const tDays = useTranslations("dayOfWeek")
+	const locale = useLocale()
+
 	const year = month.getFullYear()
 	const monthIndex = month.getMonth()
+
+	const daysOfWeek = [
+		tDays("sunShort"),
+		tDays("monShort"),
+		tDays("tueShort"),
+		tDays("wedShort"),
+		tDays("thuShort"),
+		tDays("friShort"),
+		tDays("satShort"),
+	]
 
 	const dailyPnLMap = useMemo(() => {
 		const map = new Map<string, DailyPnL>()
@@ -72,18 +85,18 @@ export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarP
 		onMonthChange(new Date(year, monthIndex + 1, 1))
 	}
 
-	const monthName = month.toLocaleDateString("en-US", { month: "long", year: "numeric" })
+	const monthName = month.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", { month: "long", year: "numeric" })
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			<div className="flex items-center justify-between">
-				<h2 className="text-body font-semibold text-txt-100">Trading Calendar</h2>
+				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
 				<div className="flex items-center gap-s-200">
 					<Button
 						variant="ghost"
 						size="icon"
 						onClick={handlePreviousMonth}
-						aria-label="Previous month"
+						aria-label={t("previousMonth")}
 					>
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
@@ -94,7 +107,7 @@ export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarP
 						variant="ghost"
 						size="icon"
 						onClick={handleNextMonth}
-						aria-label="Next month"
+						aria-label={t("nextMonth")}
 					>
 						<ChevronRight className="h-4 w-4" />
 					</Button>
@@ -104,9 +117,9 @@ export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarP
 			<div className="mt-m-400">
 				{/* Days of week header */}
 				<div className="grid grid-cols-7 gap-s-100">
-					{DAYS_OF_WEEK.map((day) => (
+					{daysOfWeek.map((day, index) => (
 						<div
-							key={day}
+							key={index}
 							className="py-s-200 text-center text-tiny font-medium text-txt-300"
 						>
 							{day}

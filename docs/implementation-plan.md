@@ -17,6 +17,8 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 5 | Strategy Playbook | ✅ Complete | Jan 2025 |
 | 6 | Settings & Configuration | ✅ Complete | Jan 2025 |
 | 7 | i18n & Brazilian Market | ✅ Complete | Jan 2025 |
+| 8 | Monthly Results & Prop Trading | 🔲 Planned | - |
+| 9 | Position Scaling & Execution Management | 🔲 Planned | - |
 
 ---
 - Functional trade CRUD operations
@@ -1044,6 +1046,992 @@ src/
 └── types/
     └── index.ts                   # ✅ TypeScript types
 ```
+
+---
+
+## Phase 8: Monthly Results & Prop Trading 🔲 PLANNED
+
+**Goal:** Create a comprehensive monthly results page with prop trading profit calculations, tax deductions, and month-over-month comparison.
+
+---
+
+### 8.1 Problem Statement
+
+Traders using prop trading accounts (Mesa Proprietária) need to track:
+
+1. **Profit Share** - Prop firms typically give traders 50-90% of profits
+2. **Tax Obligations** - Day trading in Brazil has 20% tax on profits
+3. **Monthly Performance** - Compare month-to-month results
+4. **Projections** - Understand potential earnings based on current performance
+
+Currently, the dashboard shows overall and weekly performance but lacks:
+- Monthly breakdown with navigation
+- Prop trading profit share calculations
+- Tax estimates
+- Month comparison features
+
+---
+
+### 8.2 Database Schema Changes
+
+#### New Table: `user_settings`
+
+Stores user-specific trading settings including prop trading configuration.
+
+```sql
+CREATE TABLE user_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL, -- For future multi-user support
+
+  -- Prop Trading Settings
+  profit_share_percentage DECIMAL(5, 2) DEFAULT 100.00, -- % of profit user keeps (100 = no prop)
+  is_prop_account BOOLEAN DEFAULT FALSE,
+  prop_firm_name VARCHAR(100), -- e.g., "Atom", "Raise", "SoloTrader"
+
+  -- Tax Settings
+  day_trade_tax_rate DECIMAL(5, 2) DEFAULT 20.00, -- Brazil: 20%
+  swing_trade_tax_rate DECIMAL(5, 2) DEFAULT 15.00, -- Brazil: 15%
+  tax_exempt_threshold INTEGER DEFAULT 0, -- Monthly exempt amount in cents (stocks: R$20,000)
+
+  -- Display Preferences
+  default_currency VARCHAR(3) DEFAULT 'BRL',
+  show_tax_estimates BOOLEAN DEFAULT TRUE,
+  show_prop_calculations BOOLEAN DEFAULT TRUE,
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(user_id)
+);
+```
+
+#### Note on Current Implementation
+
+For now, since we have a single-user app, we'll use a single row with `user_id = 'default'`. Future multi-user support can expand on this.
+
+---
+
+### 8.3 Calculation Logic
+
+#### Prop Trading Profit Calculation
+
+```typescript
+interface MonthlyPropCalculation {
+  grossProfit: number          // Total P&L for the month
+  propFirmShare: number        // Amount kept by prop firm
+  traderShare: number          // Amount the trader receives
+  estimatedTax: number         // Tax on trader's share
+  netProfit: number            // Final amount after tax
+}
+
+const calculatePropProfit = (
+  grossProfit: number,
+  profitSharePercentage: number,  // e.g., 80 for 80%
+  taxRate: number                 // e.g., 20 for 20%
+): MonthlyPropCalculation => {
+  // Only calculate shares if profitable
+  if (grossProfit <= 0) {
+    return {
+      grossProfit,
+      propFirmShare: 0,
+      traderShare: grossProfit, // Trader absorbs the loss (no profit share on losses)
+      estimatedTax: 0,          // No tax on losses
+      netProfit: grossProfit
+    }
+  }
+
+  const traderShare = grossProfit * (profitSharePercentage / 100)
+  const propFirmShare = grossProfit - traderShare
+  const estimatedTax = traderShare * (taxRate / 100)
+  const netProfit = traderShare - estimatedTax
+
+  return {
+    grossProfit,
+    propFirmShare,
+    traderShare,
+    estimatedTax,
+    netProfit
+  }
+}
+```
+
+#### Monthly Projection Calculation
+
+```typescript
+interface MonthlyProjection {
+  daysTraded: number
+  totalTradingDays: number      // ~22 business days
+  currentProfit: number
+  projectedMonthlyProfit: number
+  projectedNetProfit: number     // After prop share and tax
+  dailyAverage: number
+}
+
+const calculateMonthlyProjection = (
+  currentProfit: number,
+  daysTraded: number,
+  tradingDaysInMonth: number = 22,
+  profitSharePercentage: number,
+  taxRate: number
+): MonthlyProjection => {
+  const remainingDays = tradingDaysInMonth - daysTraded
+  const dailyAverage = daysTraded > 0 ? currentProfit / daysTraded : 0
+  const projectedMonthlyProfit = currentProfit + (dailyAverage * remainingDays)
+
+  const propCalc = calculatePropProfit(projectedMonthlyProfit, profitSharePercentage, taxRate)
+
+  return {
+    daysTraded,
+    totalTradingDays: tradingDaysInMonth,
+    currentProfit,
+    projectedMonthlyProfit,
+    projectedNetProfit: propCalc.netProfit,
+    dailyAverage
+  }
+}
+```
+
+#### Month Comparison
+
+```typescript
+interface MonthComparison {
+  currentMonth: MonthlyReport
+  previousMonth: MonthlyReport | null
+  changes: {
+    profitChange: number           // Absolute change
+    profitChangePercent: number    // Percentage change
+    winRateChange: number
+    avgRChange: number
+    tradeCountChange: number
+  }
+}
+```
+
+---
+
+### 8.4 Backend Tasks
+
+#### Settings Actions (`src/app/actions/settings.ts`)
+
+- [ ] `getUserSettings()` - Get user trading settings
+- [ ] `updateUserSettings()` - Update profit share %, tax rates, etc.
+- [ ] `getDefaultSettings()` - Return default values for new users
+
+#### Enhanced Reports (`src/app/actions/reports.ts`)
+
+- [ ] `getMonthlyResultsWithProp()` - Monthly P&L with prop calculations
+- [ ] `getMonthlyProjection()` - Current month projection
+- [ ] `getMonthComparison()` - Compare two months
+- [ ] `getYearlyOverview()` - 12-month summary for navigation
+
+---
+
+### 8.5 Frontend Components
+
+#### Monthly Results Page (`src/app/[locale]/monthly/page.tsx`)
+
+New page dedicated to monthly results with navigation.
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Resultados Mensais                                                       │
+│                                                                          │
+│  ◀ Dezembro 2024        Janeiro 2025         Fevereiro 2025 ▶           │
+│                         ═══════════                                      │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
+│  │  Lucro Bruto    │  │  Sua Parte      │  │  Líquido        │         │
+│  │  R$ 5.400,00    │  │  R$ 4.320,00    │  │  R$ 3.456,00    │         │
+│  │                 │  │  (80%)          │  │  (após IR 20%)  │         │
+│  │  +12% vs dez    │  │                 │  │                 │         │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────┐         │
+│  │  Projeção do Mês                                           │         │
+│  │  ─────────────────────────────────────────────────────────│         │
+│  │  15 de 22 dias operados                                    │         │
+│  │  ████████████████████░░░░░░░░  68%                        │         │
+│  │                                                            │         │
+│  │  Média diária: R$ 360,00                                   │         │
+│  │  Projeção mensal: R$ 7.920,00                             │         │
+│  │  Projeção líquida: R$ 5.068,80                            │         │
+│  └────────────────────────────────────────────────────────────┘         │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────┐         │
+│  │  Comparação com Dezembro                                   │         │
+│  │  ─────────────────────────────────────────────────────────│         │
+│  │  Lucro:     R$ 4.820,00 → R$ 5.400,00   ▲ +12%           │         │
+│  │  Win Rate:  62% → 68%                    ▲ +6pp           │         │
+│  │  Avg R:     1.2R → 1.5R                  ▲ +0.3R          │         │
+│  │  Trades:    45 → 52                      ▲ +7             │         │
+│  └────────────────────────────────────────────────────────────┘         │
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────┐         │
+│  │  Breakdown por Semana                                      │         │
+│  │  ─────────────────────────────────────────────────────────│         │
+│  │  Sem 1 (01-05): R$ 1.200,00  ████████░░░░░  22%           │         │
+│  │  Sem 2 (08-12): R$ 2.100,00  █████████████░  39%          │         │
+│  │  Sem 3 (15-19): R$ 1.400,00  ████████████░░  26%          │         │
+│  │  Sem 4 (22-26): R$   700,00  █████░░░░░░░░░  13%          │         │
+│  └────────────────────────────────────────────────────────────┘         │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### New Components (`src/components/monthly/`)
+
+**MonthNavigator** - Month selection with arrows and year dropdown
+```typescript
+interface MonthNavigatorProps {
+  currentMonth: Date
+  onMonthChange: (month: Date) => void
+  availableRange: { start: Date; end: Date }
+}
+```
+
+**PropProfitSummary** - Shows gross → trader share → net breakdown
+```typescript
+interface PropProfitSummaryProps {
+  grossProfit: number
+  profitSharePercentage: number
+  taxRate: number
+  showBreakdown?: boolean
+}
+```
+
+**MonthlyProjection** - Progress bar with projection
+```typescript
+interface MonthlyProjectionProps {
+  daysTraded: number
+  totalDays: number
+  currentProfit: number
+  projectedProfit: number
+  projectedNetProfit: number
+}
+```
+
+**MonthComparison** - Side-by-side comparison
+```typescript
+interface MonthComparisonProps {
+  current: MonthlyReport
+  previous: MonthlyReport | null
+  metrics: Array<'profit' | 'winRate' | 'avgR' | 'trades' | 'profitFactor'>
+}
+```
+
+**WeeklyBreakdown** - Weekly bars within the month
+```typescript
+interface WeeklyBreakdownProps {
+  weeks: Array<{
+    weekNumber: number
+    dateRange: string
+    profit: number
+    trades: number
+  }>
+}
+```
+
+---
+
+### 8.6 Settings UI Updates
+
+Add new section to Settings page for Prop Trading configuration.
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│ Configurações de Conta                                          │
+├────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  Tipo de Conta:                                                  │
+│  ○ Conta Própria (100% do lucro)                                │
+│  ◉ Mesa Proprietária (Prop Trading)                              │
+│                                                                  │
+│  ┌──────────────────────────────────────────────────────┐       │
+│  │  Configurações Mesa Proprietária                      │       │
+│  │  ─────────────────────────────────────────────────── │       │
+│  │                                                       │       │
+│  │  Nome da Mesa: [Atom                    ▼]           │       │
+│  │                                                       │       │
+│  │  Porcentagem do Lucro: [80         ] %               │       │
+│  │  (Parte que você recebe)                              │       │
+│  │                                                       │       │
+│  └──────────────────────────────────────────────────────┘       │
+│                                                                  │
+│  Configurações de Impostos:                                      │
+│  ─────────────────────────────────────────────────────────      │
+│                                                                  │
+│  IR Day Trade:    [20] %                                        │
+│  IR Swing Trade:  [15] %                                        │
+│                                                                  │
+│  ☑ Mostrar estimativas de impostos                              │
+│  ☑ Mostrar cálculos de mesa proprietária                        │
+│                                                                  │
+│                              [Salvar Configurações]              │
+└────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 8.7 Navigation Integration
+
+Add "Mensal" to sidebar navigation between "Relatórios" and "Configurações".
+
+```typescript
+// Sidebar navigation items
+{
+  icon: Calendar,
+  label: t('nav.monthly'),
+  href: '/monthly'
+}
+```
+
+---
+
+### 8.8 Implementation Order
+
+1. **Settings Schema & Actions** (Day 1)
+   - [ ] Create `user_settings` table
+   - [ ] Generate migration
+   - [ ] Implement settings CRUD actions
+   - [ ] Add validation schema
+
+2. **Settings UI** (Day 2)
+   - [ ] Add "Trading Account" section to Settings page
+   - [ ] Prop trading toggle and configuration form
+   - [ ] Tax rate inputs
+   - [ ] Translations for new settings
+
+3. **Backend Report Functions** (Day 3)
+   - [ ] `getMonthlyResultsWithProp()` with calculations
+   - [ ] `getMonthlyProjection()`
+   - [ ] `getMonthComparison()`
+   - [ ] `getYearlyOverview()` for navigation
+
+4. **Monthly Page - Core** (Day 4)
+   - [ ] Create `/monthly/page.tsx`
+   - [ ] `MonthNavigator` component
+   - [ ] `PropProfitSummary` component
+   - [ ] Basic layout and data fetching
+
+5. **Monthly Page - Enhanced** (Day 5)
+   - [ ] `MonthlyProjection` component
+   - [ ] `MonthComparison` component
+   - [ ] `WeeklyBreakdown` component
+   - [ ] Responsive design
+
+6. **Polish & Translations** (Day 6)
+   - [ ] Full i18n support (pt-BR and en)
+   - [ ] Empty states
+   - [ ] Loading skeletons
+   - [ ] Navigation integration
+
+---
+
+### 8.9 Files to Create/Modify
+
+```
+src/
+├── db/
+│   ├── schema.ts                      # Add user_settings table
+│   └── migrations/
+│       └── 0003_xxx.sql               # Phase 8 migration
+├── app/
+│   ├── [locale]/
+│   │   └── monthly/
+│   │       └── page.tsx               # NEW: Monthly results page
+│   └── actions/
+│       ├── settings.ts                # UPDATE: Add user settings CRUD
+│       └── reports.ts                 # UPDATE: Add prop calculations
+├── components/
+│   ├── monthly/
+│   │   ├── index.ts                   # NEW: Barrel exports
+│   │   ├── month-navigator.tsx        # NEW: Month navigation
+│   │   ├── prop-profit-summary.tsx    # NEW: Profit breakdown
+│   │   ├── monthly-projection.tsx     # NEW: Projection display
+│   │   ├── month-comparison.tsx       # NEW: Compare months
+│   │   ├── weekly-breakdown.tsx       # NEW: Week-by-week
+│   │   └── monthly-content.tsx        # NEW: Client wrapper
+│   ├── settings/
+│   │   ├── trading-account-settings.tsx  # NEW: Prop trading config
+│   │   └── general-settings.tsx          # UPDATE: Include new section
+│   └── layout/
+│       └── sidebar.tsx                # UPDATE: Add monthly nav item
+├── lib/
+│   ├── calculations.ts                # UPDATE: Add prop profit calculations
+│   └── validations/
+│       └── settings.ts                # NEW: Settings validation
+├── types/
+│   └── index.ts                       # UPDATE: Add settings types
+└── messages/
+    ├── en.json                        # UPDATE: Add monthly translations
+    └── pt-BR.json                     # UPDATE: Add monthly translations
+```
+
+---
+
+### 8.10 Translation Keys to Add
+
+```json
+{
+  "nav": {
+    "monthly": "Monthly"
+  },
+  "monthly": {
+    "title": "Monthly Results",
+    "grossProfit": "Gross Profit",
+    "traderShare": "Your Share",
+    "propShare": "Prop Firm Share",
+    "netProfit": "Net Profit",
+    "afterTax": "after {taxRate}% tax",
+    "projection": {
+      "title": "Month Projection",
+      "daysTraded": "{current} of {total} days traded",
+      "dailyAverage": "Daily Average",
+      "projectedMonthly": "Projected Monthly",
+      "projectedNet": "Projected Net"
+    },
+    "comparison": {
+      "title": "Comparison with {month}",
+      "profit": "Profit",
+      "winRate": "Win Rate",
+      "avgR": "Avg R",
+      "trades": "Trades",
+      "change": "Change"
+    },
+    "weeklyBreakdown": {
+      "title": "Weekly Breakdown",
+      "week": "Week {number}"
+    },
+    "noData": "No trades recorded for this month"
+  },
+  "settings": {
+    "tradingAccount": {
+      "title": "Trading Account",
+      "accountType": "Account Type",
+      "personal": "Personal Account (100% profit)",
+      "prop": "Prop Trading Firm",
+      "propSettings": "Prop Trading Settings",
+      "firmName": "Firm Name",
+      "profitShare": "Profit Share",
+      "profitShareHelp": "Percentage you receive",
+      "taxSettings": "Tax Settings",
+      "dayTradeTax": "Day Trade Tax",
+      "swingTradeTax": "Swing Trade Tax",
+      "showTaxEstimates": "Show tax estimates",
+      "showPropCalculations": "Show prop calculations"
+    }
+  }
+}
+```
+
+---
+
+### Deliverables
+
+- [ ] `user_settings` table for trading account configuration
+- [ ] Settings UI for prop trading and tax configuration
+- [ ] Monthly results page with navigation between months
+- [ ] Prop profit calculation (gross → trader share → net)
+- [ ] Monthly projection based on days traded
+- [ ] Month-over-month comparison
+- [ ] Weekly breakdown within month
+- [ ] Navigation sidebar integration
+- [ ] Full i18n support for new features
+- [ ] Responsive design for all new components
+
+---
+
+## Phase 9: Position Scaling & Execution Management 🔲 PLANNED
+
+**Goal:** Support multiple entries and exits within a single trade position, including scale-in, scale-out, and partial position management.
+
+---
+
+### 9.1 Problem Statement
+
+Currently, each trade is a single record with one entry price and one exit price. Real trading often involves:
+
+1. **Scaling In** - Adding to a winning or averaging down on a losing position
+   - Example: Buy 2 contracts at 128000, add 2 more at 128100, add 1 more at 128200
+
+2. **Scaling Out** - Taking partial profits or reducing risk
+   - Example: Close 3 contracts at 128500, close remaining 2 at 128300
+
+3. **Mixed Scaling** - Multiple entries AND multiple exits
+   - Example: Build position over 3 entries, exit over 2 partial closes
+
+4. **Averaging** - Calculating weighted average entry/exit prices for proper P&L tracking
+
+---
+
+### 9.2 Database Schema Changes
+
+#### New Table: `trade_executions`
+
+Stores individual buy/sell executions that make up a trade position.
+
+```sql
+CREATE TABLE trade_executions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  trade_id UUID NOT NULL REFERENCES trades(id) ON DELETE CASCADE,
+
+  -- Execution details
+  execution_type VARCHAR(10) NOT NULL, -- 'entry' | 'exit'
+  execution_date TIMESTAMP WITH TIME ZONE NOT NULL,
+  price DECIMAL(20, 8) NOT NULL,
+  quantity DECIMAL(20, 8) NOT NULL, -- contracts/shares for this execution
+
+  -- Optional metadata
+  order_type VARCHAR(20), -- 'market' | 'limit' | 'stop' | 'stop_limit'
+  notes TEXT,
+
+  -- Costs for this specific execution
+  commission INTEGER DEFAULT 0, -- in cents
+  fees INTEGER DEFAULT 0, -- in cents
+  slippage INTEGER DEFAULT 0, -- in cents (difference from intended price)
+
+  -- Calculated fields (stored for performance)
+  execution_value INTEGER NOT NULL, -- quantity * price in cents
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_trade_executions_trade_id ON trade_executions(trade_id);
+CREATE INDEX idx_trade_executions_type ON trade_executions(execution_type);
+```
+
+#### Modified Table: `trades`
+
+Add fields to track aggregated execution data:
+
+```sql
+ALTER TABLE trades ADD COLUMN execution_mode VARCHAR(20) DEFAULT 'simple';
+-- 'simple' = single entry/exit (legacy behavior)
+-- 'scaled' = multiple entries/exits via trade_executions
+
+ALTER TABLE trades ADD COLUMN total_entry_quantity DECIMAL(20, 8);
+ALTER TABLE trades ADD COLUMN total_exit_quantity DECIMAL(20, 8);
+ALTER TABLE trades ADD COLUMN avg_entry_price DECIMAL(20, 8);
+ALTER TABLE trades ADD COLUMN avg_exit_price DECIMAL(20, 8);
+ALTER TABLE trades ADD COLUMN remaining_quantity DECIMAL(20, 8) DEFAULT 0;
+-- For tracking open positions with partial exits
+```
+
+---
+
+### 9.3 Calculation Logic
+
+#### Weighted Average Price Calculation
+
+```typescript
+// Calculate weighted average entry price
+const calculateAvgEntryPrice = (executions: Execution[]): number => {
+  const entries = executions.filter(e => e.executionType === 'entry')
+  const totalValue = entries.reduce((sum, e) => sum + (e.price * e.quantity), 0)
+  const totalQuantity = entries.reduce((sum, e) => sum + e.quantity, 0)
+  return totalQuantity > 0 ? totalValue / totalQuantity : 0
+}
+
+// Calculate weighted average exit price
+const calculateAvgExitPrice = (executions: Execution[]): number => {
+  const exits = executions.filter(e => e.executionType === 'exit')
+  const totalValue = exits.reduce((sum, e) => sum + (e.price * e.quantity), 0)
+  const totalQuantity = exits.reduce((sum, e) => sum + e.quantity, 0)
+  return totalQuantity > 0 ? totalValue / totalQuantity : 0
+}
+```
+
+#### P&L Calculation for Scaled Positions
+
+```typescript
+// FIFO-based P&L calculation (First In, First Out)
+const calculateScaledPnL = (
+  executions: Execution[],
+  direction: 'long' | 'short',
+  asset: Asset
+): { realizedPnl: number; unrealizedPnl: number } => {
+  // Sort entries by date (FIFO)
+  const entries = [...executions]
+    .filter(e => e.executionType === 'entry')
+    .sort((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
+
+  const exits = [...executions]
+    .filter(e => e.executionType === 'exit')
+    .sort((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
+
+  let realizedPnl = 0
+  let entryIndex = 0
+  let remainingEntryQty = entries[0]?.quantity || 0
+
+  for (const exit of exits) {
+    let exitQtyRemaining = exit.quantity
+
+    while (exitQtyRemaining > 0 && entryIndex < entries.length) {
+      const matchQty = Math.min(exitQtyRemaining, remainingEntryQty)
+      const entryPrice = entries[entryIndex].price
+      const exitPrice = exit.price
+
+      // Calculate P&L for this matched quantity
+      const priceDiff = direction === 'long'
+        ? exitPrice - entryPrice
+        : entryPrice - exitPrice
+
+      const tickPnl = (priceDiff / asset.tickSize) * asset.tickValue * matchQty
+      realizedPnl += tickPnl
+
+      exitQtyRemaining -= matchQty
+      remainingEntryQty -= matchQty
+
+      if (remainingEntryQty <= 0) {
+        entryIndex++
+        remainingEntryQty = entries[entryIndex]?.quantity || 0
+      }
+    }
+  }
+
+  return { realizedPnl, unrealizedPnl: 0 } // unrealizedPnl requires current market price
+}
+```
+
+#### Position Status Tracking
+
+```typescript
+type PositionStatus =
+  | 'open'      // Has entries but no exits yet
+  | 'partial'   // Some exits but position still open
+  | 'closed'    // All entries matched with exits
+  | 'over_exit' // More exits than entries (error state)
+
+const getPositionStatus = (executions: Execution[]): PositionStatus => {
+  const totalEntries = executions
+    .filter(e => e.executionType === 'entry')
+    .reduce((sum, e) => sum + e.quantity, 0)
+
+  const totalExits = executions
+    .filter(e => e.executionType === 'exit')
+    .reduce((sum, e) => sum + e.quantity, 0)
+
+  if (totalExits === 0) return 'open'
+  if (totalExits < totalEntries) return 'partial'
+  if (totalExits === totalEntries) return 'closed'
+  return 'over_exit'
+}
+```
+
+---
+
+### 9.4 Backend Tasks (`src/app/actions/executions.ts`)
+
+- [ ] `addExecution()` - Add entry or exit to a trade
+- [ ] `updateExecution()` - Modify execution details
+- [ ] `deleteExecution()` - Remove execution (with position recalculation)
+- [ ] `getExecutions()` - List executions for a trade
+- [ ] `recalculateTradeFromExecutions()` - Update trade aggregates from executions
+
+#### Modified Actions (`src/app/actions/trades.ts`)
+
+- [ ] `createTrade()` - Support `executionMode: 'scaled'` with initial executions
+- [ ] `updateTrade()` - Handle execution updates properly
+- [ ] `getTrade()` - Include executions in response
+- [ ] `convertToScaled()` - Convert simple trade to scaled mode
+
+---
+
+### 9.5 Frontend Components
+
+#### New Components (`src/components/journal/`)
+
+**ExecutionList** - Display all executions for a trade
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Executions                                          + Add   │
+├─────────────────────────────────────────────────────────────┤
+│ ▲ ENTRY   Jan 15, 10:30   2 contracts @ 128,000    R$ -     │
+│ ▲ ENTRY   Jan 15, 11:15   2 contracts @ 128,100    R$ -     │
+│ ▲ ENTRY   Jan 15, 14:00   1 contract  @ 128,200    R$ -     │
+├─────────────────────────────────────────────────────────────┤
+│ ▼ EXIT    Jan 15, 15:30   3 contracts @ 128,500    +R$ 180  │
+│ ▼ EXIT    Jan 15, 16:00   2 contracts @ 128,300    +R$ 60   │
+├─────────────────────────────────────────────────────────────┤
+│ Summary: 5 in → 5 out | Avg Entry: 128,080 | Avg Exit: 128,420│
+│ Total P&L: +R$ 240.00 | Position: CLOSED                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**ExecutionForm** - Modal to add/edit execution
+```
+┌────────────────────────────────────────┐
+│ Add Execution                      [x] │
+├────────────────────────────────────────┤
+│ Type:    ◉ Entry  ○ Exit               │
+│                                        │
+│ Date:    [Jan 15, 2025    ] [10:30  ]  │
+│                                        │
+│ Price:   [128,000                   ]  │
+│                                        │
+│ Quantity: [2                        ]  │
+│                                        │
+│ Order Type: [Market          ▼]        │
+│                                        │
+│ Commission: [R$ 0.40            ]      │
+│                                        │
+│ Notes:   [                         ]   │
+│          [                         ]   │
+│                                        │
+│         [Cancel]          [Add Entry]  │
+└────────────────────────────────────────┘
+```
+
+**PositionSummary** - Visual summary of position
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Position Summary                                             │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  Entry Avg: 128,080          Exit Avg: 128,420               │
+│       ──────────────────────────────────────►                │
+│            +340 pts (+R$ 68.00 per contract)                 │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │████████████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░│    │
+│  │        60% closed                   40% open       │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  5 contracts entered → 3 closed, 2 remaining                 │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**ScaledTradeForm** - Enhanced trade form for scaled positions
+- Toggle between "Simple" and "Scaled" mode
+- In scaled mode, show execution list with add button
+- Real-time P&L calculation as executions are added
+
+---
+
+### 9.6 Trade Form UX Flow
+
+#### Option A: Start Simple, Convert to Scaled
+
+1. User creates simple trade (current behavior)
+2. If user needs to add execution, click "Convert to Scaled Position"
+3. Original entry/exit become first executions
+4. Can now add more entries/exits
+
+#### Option B: Choose Mode at Creation
+
+1. User selects "Simple Trade" or "Scaled Position" at start
+2. Simple: Current form (one entry, one exit)
+3. Scaled: Execution-based form from the start
+
+**Recommended: Option A** - Less friction for simple trades, easy upgrade path
+
+---
+
+### 9.7 Migration Strategy
+
+#### Backwards Compatibility
+
+1. **Existing trades** remain in `execution_mode: 'simple'`
+2. Simple trades use current `entryPrice`, `exitPrice`, `positionSize` fields
+3. Scaled trades use `trade_executions` table
+4. All reports/analytics work with both modes transparently
+
+#### Data Access Layer
+
+```typescript
+// Unified interface for getting trade data
+interface TradeWithCalculations {
+  // ... existing trade fields ...
+
+  // These are calculated differently based on execution_mode
+  effectiveEntryPrice: number  // single price or weighted avg
+  effectiveExitPrice: number   // single price or weighted avg
+  effectiveSize: number        // single size or total quantity
+
+  // New fields for scaled trades
+  executions?: TradeExecution[]
+  remainingQuantity?: number
+  positionStatus: 'open' | 'partial' | 'closed'
+}
+
+const getTradeWithCalculations = async (tradeId: string): Promise<TradeWithCalculations> => {
+  const trade = await getTrade(tradeId)
+
+  if (trade.executionMode === 'simple') {
+    return {
+      ...trade,
+      effectiveEntryPrice: trade.entryPrice,
+      effectiveExitPrice: trade.exitPrice,
+      effectiveSize: trade.positionSize,
+      positionStatus: trade.exitPrice ? 'closed' : 'open'
+    }
+  }
+
+  // Scaled mode: calculate from executions
+  const executions = await getExecutions(tradeId)
+  return {
+    ...trade,
+    executions,
+    effectiveEntryPrice: calculateAvgEntryPrice(executions),
+    effectiveExitPrice: calculateAvgExitPrice(executions),
+    effectiveSize: calculateTotalEntryQuantity(executions),
+    remainingQuantity: calculateRemainingQuantity(executions),
+    positionStatus: getPositionStatus(executions)
+  }
+}
+```
+
+---
+
+### 9.8 Analytics Integration
+
+#### Updated Calculations
+
+All analytics functions need to work with effective prices:
+
+- [ ] `getOverallStats()` - Use effective prices for P&L
+- [ ] `getDailyPnL()` - Aggregate by execution date or trade date
+- [ ] `getEquityCurve()` - Account for partial closes on different dates
+- [ ] `getRDistribution()` - Calculate R from effective entry to effective exit
+- [ ] `getPerformanceByVariable()` - Group by trade, not execution
+
+#### New Analytics Possibilities
+
+- [ ] **Scaling Efficiency**: Compare scaled vs simple trade performance
+- [ ] **Add-on Analysis**: Performance of trades where positions were added
+- [ ] **Partial Exit Analysis**: Effectiveness of taking partial profits
+- [ ] **Average Down Analysis**: Performance of averaging down vs cutting losses
+
+---
+
+### 9.9 Implementation Order
+
+1. **Schema & Migration** (Day 1)
+   - [ ] Create `trade_executions` table
+   - [ ] Add new fields to `trades` table
+   - [ ] Generate and run migration
+
+2. **Backend Actions** (Day 2-3)
+   - [ ] `addExecution()`, `updateExecution()`, `deleteExecution()`
+   - [ ] `recalculateTradeFromExecutions()`
+   - [ ] Update `getTrade()` to include executions
+   - [ ] Update `createTrade()` for scaled mode
+
+3. **UI Components** (Day 4-5)
+   - [ ] `ExecutionList` component
+   - [ ] `ExecutionForm` modal
+   - [ ] `PositionSummary` component
+   - [ ] Update `TradeForm` with execution mode toggle
+
+4. **Trade Detail Page** (Day 6)
+   - [ ] Display execution list
+   - [ ] Show position summary visualization
+   - [ ] Add execution directly from detail page
+
+5. **Analytics Updates** (Day 7)
+   - [ ] Update calculation functions for effective prices
+   - [ ] Add scaling-specific analytics (optional)
+
+6. **Testing & Polish** (Day 8)
+   - [ ] Test FIFO P&L calculation
+   - [ ] Test partial position scenarios
+   - [ ] Update translations
+
+---
+
+### 9.10 Files to Create/Modify
+
+```
+src/
+├── db/
+│   ├── schema.ts                      # Add trade_executions table
+│   └── migrations/
+│       └── 0004_xxx.sql               # Phase 9 migration
+├── app/
+│   └── actions/
+│       ├── executions.ts              # NEW: Execution CRUD
+│       ├── trades.ts                  # Update for scaled mode
+│       └── analytics.ts               # Update calculations
+├── components/
+│   └── journal/
+│       ├── execution-list.tsx         # NEW: Execution table
+│       ├── execution-form.tsx         # NEW: Add/edit execution
+│       ├── position-summary.tsx       # NEW: Visual summary
+│       └── trade-form.tsx             # Update for scaled mode
+├── lib/
+│   ├── calculations.ts                # Add FIFO P&L calculation
+│   └── validations/
+│       └── execution.ts               # NEW: Execution validation
+├── types/
+│   └── index.ts                       # Add Execution types
+└── messages/
+    ├── en.json                        # Add execution translations
+    └── pt-BR.json                     # Add execution translations
+```
+
+---
+
+### 9.11 Translation Keys to Add
+
+```json
+{
+  "execution": {
+    "title": "Executions",
+    "add": "Add Execution",
+    "edit": "Edit Execution",
+    "entry": "Entry",
+    "exit": "Exit",
+    "date": "Date",
+    "price": "Price",
+    "quantity": "Quantity",
+    "orderType": "Order Type",
+    "market": "Market",
+    "limit": "Limit",
+    "stop": "Stop",
+    "stopLimit": "Stop Limit",
+    "commission": "Commission",
+    "fees": "Fees",
+    "slippage": "Slippage",
+    "notes": "Notes",
+    "avgEntry": "Avg Entry",
+    "avgExit": "Avg Exit",
+    "totalIn": "Total In",
+    "totalOut": "Total Out",
+    "remaining": "Remaining",
+    "positionStatus": {
+      "open": "Open",
+      "partial": "Partial",
+      "closed": "Closed"
+    },
+    "convertToScaled": "Convert to Scaled Position",
+    "scaledMode": "Scaled Position",
+    "simpleMode": "Simple Trade"
+  }
+}
+```
+
+---
+
+### Deliverables
+
+- [ ] `trade_executions` table with proper indexes
+- [ ] Execution CRUD operations
+- [ ] Weighted average price calculations
+- [ ] FIFO P&L calculation for scaled positions
+- [ ] Position status tracking (open/partial/closed)
+- [ ] `ExecutionList` component with add/edit/delete
+- [ ] `ExecutionForm` modal for entry/exit
+- [ ] `PositionSummary` visualization
+- [ ] Updated trade form with scaling support
+- [ ] Updated trade detail page
+- [ ] Backwards compatible with simple trades
+- [ ] Updated analytics for effective prices
+- [ ] Full i18n support for new features
 
 ---
 

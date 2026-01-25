@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1769248992470,
-      "tag": "0000_fat_justin_hammer",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1769264476035,
-      "tag": "0001_red_aqueduct",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1769270349614,
-      "tag": "0002_flimsy_moonstone",
+      "when": 1769357470846,
+      "tag": "0000_familiar_frank_castle",
       "breakpoints": true
     }
   ]

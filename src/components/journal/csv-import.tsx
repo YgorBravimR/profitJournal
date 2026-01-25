@@ -12,6 +12,7 @@ import {
 	X,
 	Loader2,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { parseCsvContent, generateCsvTemplate } from "@/lib/csv-parser"
@@ -19,6 +20,9 @@ import type { CsvParseResult } from "@/lib/csv-parser"
 import { bulkCreateTrades } from "@/app/actions/trades"
 
 export const CsvImport = () => {
+	const t = useTranslations("journal.csv")
+	const tTrade = useTranslations("trade")
+	const tCommon = useTranslations("common")
 	const router = useRouter()
 	const { showToast } = useToast()
 	const fileInputRef = useRef<HTMLInputElement>(null)
@@ -150,10 +154,10 @@ export const CsvImport = () => {
 
 					<Upload className="mx-auto h-12 w-12 text-txt-300" />
 					<h3 className="mt-m-400 text-body font-semibold text-txt-100">
-						Drop your CSV file here
+						{t("dropHere")}
 					</h3>
 					<p className="mt-s-200 text-small text-txt-300">
-						or click to browse
+						{t("orClick")}
 					</p>
 
 					<div className="mt-m-500 flex items-center justify-center gap-m-400">
@@ -162,11 +166,11 @@ export const CsvImport = () => {
 							onClick={() => fileInputRef.current?.click()}
 						>
 							<FileText className="mr-2 h-4 w-4" />
-							Select File
+							{t("selectFile")}
 						</Button>
 						<Button variant="outline" onClick={handleDownloadTemplate}>
 							<Download className="mr-2 h-4 w-4" />
-							Download Template
+							{t("downloadTemplate")}
 						</Button>
 					</div>
 				</div>
@@ -199,19 +203,19 @@ export const CsvImport = () => {
 							<p className="text-h3 font-bold text-trade-buy">
 								{parseResult.trades.length}
 							</p>
-							<p className="text-tiny text-txt-300">Valid Trades</p>
+							<p className="text-tiny text-txt-300">{t("validTrades")}</p>
 						</div>
 						<div className="rounded-lg bg-bg-200 p-m-400 text-center">
 							<p className="text-h3 font-bold text-fb-error">
 								{parseResult.errors.length}
 							</p>
-							<p className="text-tiny text-txt-300">Errors</p>
+							<p className="text-tiny text-txt-300">{t("errors")}</p>
 						</div>
 						<div className="rounded-lg bg-bg-200 p-m-400 text-center">
 							<p className="text-h3 font-bold text-warning">
 								{parseResult.warnings.length}
 							</p>
-							<p className="text-tiny text-txt-300">Warnings</p>
+							<p className="text-tiny text-txt-300">{t("warnings")}</p>
 						</div>
 					</div>
 
@@ -268,7 +272,7 @@ export const CsvImport = () => {
 						<div className="rounded-lg border border-bg-300 bg-bg-200">
 							<div className="border-b border-bg-300 p-m-400">
 								<h3 className="text-small font-semibold text-txt-100">
-									Preview (first 10 trades)
+									{t("preview")}
 								</h3>
 							</div>
 							<div className="overflow-x-auto">
@@ -276,25 +280,25 @@ export const CsvImport = () => {
 									<thead>
 										<tr className="border-b border-bg-300 bg-bg-100">
 											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												Asset
+												{tTrade("asset")}
 											</th>
 											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												Direction
+												{tTrade("direction.label")}
 											</th>
 											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												Entry Date
+												{tTrade("entryDate")}
 											</th>
 											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												Entry Price
+												{tTrade("entryPrice")}
 											</th>
 											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												Exit Price
+												{tTrade("exitPrice")}
 											</th>
 											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												Size
+												{tTrade("size")}
 											</th>
 											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												P&L
+												{tTrade("pnl")}
 											</th>
 										</tr>
 									</thead>
@@ -354,7 +358,7 @@ export const CsvImport = () => {
 							</div>
 							{parseResult.trades.length > 10 && (
 								<div className="border-t border-bg-300 p-s-300 text-center text-tiny text-txt-300">
-									...and {parseResult.trades.length - 10} more trades
+									{t("andMore", { count: parseResult.trades.length - 10 })}
 								</div>
 							)}
 						</div>
@@ -365,7 +369,7 @@ export const CsvImport = () => {
 						<div className="flex items-center gap-s-200 rounded-lg border border-trade-buy/30 bg-trade-buy/10 p-m-400 text-trade-buy">
 							<CheckCircle2 className="h-4 w-4" />
 							<span className="text-small font-medium">
-								Ready to import {parseResult.trades.length} trades
+								{t("readyToImport", { count: parseResult.trades.length })}
 							</span>
 						</div>
 					)}
@@ -373,7 +377,7 @@ export const CsvImport = () => {
 					{/* Actions */}
 					<div className="flex items-center justify-end gap-m-400">
 						<Button variant="outline" onClick={handleClear}>
-							Cancel
+							{tCommon("cancel")}
 						</Button>
 						<Button
 							onClick={handleImport}
@@ -386,12 +390,12 @@ export const CsvImport = () => {
 							{isImporting ? (
 								<>
 									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									Importing...
+									{tCommon("loading")}
 								</>
 							) : (
 								<>
 									<Upload className="mr-2 h-4 w-4" />
-									Import {parseResult.trades.length} Trades
+									{t("importTrades", { count: parseResult.trades.length })}
 								</>
 							)}
 						</Button>
@@ -402,10 +406,10 @@ export const CsvImport = () => {
 			{/* Help Section */}
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<h3 className="text-small font-semibold text-txt-100">
-					CSV Format Guide
+					{t("formatGuide")}
 				</h3>
 				<p className="mt-s-200 text-small text-txt-300">
-					Your CSV should include these required columns:
+					{t("requiredColumns")}
 				</p>
 				<ul className="mt-s-300 grid grid-cols-2 gap-s-200 text-small text-txt-200 md:grid-cols-5">
 					<li>
@@ -425,8 +429,7 @@ export const CsvImport = () => {
 					</li>
 				</ul>
 				<p className="mt-m-400 text-small text-txt-300">
-					Optional columns: exit_date, exit_price, stop_loss, take_profit, pnl,
-					timeframe, notes, followed_plan
+					{t("optionalColumns")}
 				</p>
 			</div>
 		</div>

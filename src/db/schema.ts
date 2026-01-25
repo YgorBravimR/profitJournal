@@ -5,6 +5,7 @@ import {
 	text,
 	decimal,
 	integer,
+	bigint,
 	timestamp,
 	boolean,
 	pgEnum,
@@ -14,21 +15,7 @@ import { relations } from "drizzle-orm"
 
 // Enums
 export const tradeDirectionEnum = pgEnum("trade_direction", ["long", "short"])
-export const tradeOutcomeEnum = pgEnum("trade_outcome", [
-	"win",
-	"loss",
-	"breakeven",
-])
-export const timeframeEnum = pgEnum("timeframe", [
-	"1m",
-	"5m",
-	"15m",
-	"30m",
-	"1h",
-	"4h",
-	"1d",
-	"1w",
-])
+export const tradeOutcomeEnum = pgEnum("trade_outcome", ["win", "loss", "breakeven"])
 export const tagTypeEnum = pgEnum("tag_type", ["setup", "mistake", "general"])
 export const timeframeTypeEnum = pgEnum("timeframe_type", [
 	"time_based",
@@ -56,6 +43,7 @@ export const assetTypes = pgTable("asset_types", {
 })
 
 // Assets Table
+// Money fields (tickValue, commission, fees) stored as integers in cents
 export const assets = pgTable(
 	"assets",
 	{
@@ -66,11 +54,11 @@ export const assets = pgTable(
 			.notNull()
 			.references(() => assetTypes.id, { onDelete: "restrict" }),
 		tickSize: decimal("tick_size", { precision: 18, scale: 8 }).notNull(),
-		tickValue: decimal("tick_value", { precision: 18, scale: 4 }).notNull(),
+		tickValue: integer("tick_value").notNull(), // cents per tick
 		currency: varchar("currency", { length: 10 }).notNull().default("BRL"),
 		multiplier: decimal("multiplier", { precision: 18, scale: 4 }).default("1"),
-		commission: decimal("commission", { precision: 18, scale: 4 }).default("0"),
-		fees: decimal("fees", { precision: 18, scale: 4 }).default("0"),
+		commission: integer("commission").default(0), // cents per contract
+		fees: integer("fees").default(0), // cents per contract
 		isActive: boolean("is_active").default(true).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
@@ -123,6 +111,7 @@ export const strategies = pgTable("strategies", {
 })
 
 // Trades Table
+// Money fields (pnl, plannedRiskAmount, commission, fees) stored as integers in cents
 export const trades = pgTable(
 	"trades",
 	{
@@ -131,13 +120,15 @@ export const trades = pgTable(
 		// Basic Info
 		asset: varchar("asset", { length: 20 }).notNull(),
 		direction: tradeDirectionEnum("direction").notNull(),
-		timeframe: timeframeEnum("timeframe"),
+		timeframeId: uuid("timeframe_id").references(() => timeframes.id, {
+			onDelete: "set null",
+		}),
 
 		// Timing
 		entryDate: timestamp("entry_date", { withTimezone: true }).notNull(),
 		exitDate: timestamp("exit_date", { withTimezone: true }),
 
-		// Execution
+		// Execution (prices kept as decimal for precision)
 		entryPrice: decimal("entry_price", { precision: 18, scale: 8 }).notNull(),
 		exitPrice: decimal("exit_price", { precision: 18, scale: 8 }),
 		positionSize: decimal("position_size", {
@@ -148,14 +139,11 @@ export const trades = pgTable(
 		// Risk Management
 		stopLoss: decimal("stop_loss", { precision: 18, scale: 8 }),
 		takeProfit: decimal("take_profit", { precision: 18, scale: 8 }),
-		plannedRiskAmount: decimal("planned_risk_amount", {
-			precision: 18,
-			scale: 2,
-		}),
+		plannedRiskAmount: bigint("planned_risk_amount", { mode: "number" }), // cents
 		plannedRMultiple: decimal("planned_r_multiple", { precision: 8, scale: 2 }),
 
-		// Results
-		pnl: decimal("pnl", { precision: 18, scale: 2 }),
+		// Results (pnl in cents, ratios as decimal)
+		pnl: bigint("pnl", { mode: "number" }), // cents
 		pnlPercent: decimal("pnl_percent", { precision: 8, scale: 4 }),
 		realizedRMultiple: decimal("realized_r_multiple", {
 			precision: 8,
@@ -163,15 +151,15 @@ export const trades = pgTable(
 		}),
 		outcome: tradeOutcomeEnum("outcome"),
 
-		// MFE/MAE
+		// MFE/MAE (prices, not money)
 		mfe: decimal("mfe", { precision: 18, scale: 8 }),
 		mae: decimal("mae", { precision: 18, scale: 8 }),
 		mfeR: decimal("mfe_r", { precision: 8, scale: 2 }),
 		maeR: decimal("mae_r", { precision: 8, scale: 2 }),
 
-		// Fees
-		commission: decimal("commission", { precision: 18, scale: 2 }).default("0"),
-		fees: decimal("fees", { precision: 18, scale: 2 }).default("0"),
+		// Fees (in cents)
+		commission: bigint("commission", { mode: "number" }).default(0), // cents
+		fees: bigint("fees", { mode: "number" }).default(0), // cents
 
 		// Narrative
 		preTradeThoughts: text("pre_trade_thoughts"),
@@ -201,6 +189,7 @@ export const trades = pgTable(
 		index("trades_entry_date_idx").on(table.entryDate),
 		index("trades_outcome_idx").on(table.outcome),
 		index("trades_strategy_idx").on(table.strategyId),
+		index("trades_timeframe_idx").on(table.timeframeId),
 	]
 )
 
@@ -238,6 +227,7 @@ export const tradeTags = pgTable(
 )
 
 // Daily Journals Table
+// Money fields (totalPnl) stored as integers in cents
 export const dailyJournals = pgTable(
 	"daily_journals",
 	{
@@ -254,8 +244,8 @@ export const dailyJournals = pgTable(
 		emotionalState: integer("emotional_state"),
 		keyTakeaways: text("key_takeaways"),
 
-		// Metrics
-		totalPnl: decimal("total_pnl", { precision: 18, scale: 2 }),
+		// Metrics (totalPnl in cents)
+		totalPnl: bigint("total_pnl", { mode: "number" }), // cents
 		tradeCount: integer("trade_count"),
 		winCount: integer("win_count"),
 		lossCount: integer("loss_count"),
@@ -288,7 +278,15 @@ export const tradesRelations = relations(trades, ({ one, many }) => ({
 		fields: [trades.strategyId],
 		references: [strategies.id],
 	}),
+	timeframe: one(timeframes, {
+		fields: [trades.timeframeId],
+		references: [timeframes.id],
+	}),
 	tradeTags: many(tradeTags),
+}))
+
+export const timeframesRelations = relations(timeframes, ({ many }) => ({
+	trades: many(trades),
 }))
 
 export const strategiesRelations = relations(strategies, ({ many }) => ({

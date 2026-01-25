@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
-import { trades, tradeTags, tags, strategies } from "@/db/schema"
+import { trades, tradeTags, tags, strategies, timeframes } from "@/db/schema"
 import type { Trade } from "@/db/schema"
 import type { ActionResponse, PaginatedResponse } from "@/types"
 import {
@@ -19,10 +19,12 @@ import type { CsvTradeInput } from "@/lib/csv-parser"
 import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
 import { calculatePnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
+import { toCents } from "@/lib/money"
 
 // Type for trade with relations
 export interface TradeWithRelations extends Trade {
 	strategy?: typeof strategies.$inferSelect | null
+	timeframe?: typeof timeframes.$inferSelect | null
 	tradeTags?: Array<{
 		tag: typeof tags.$inferSelect
 	}>
@@ -81,13 +83,13 @@ export const createTrade = async (
 			realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 		}
 
-		// Insert trade - convert numeric fields to strings for Drizzle
+		// Insert trade - money fields (pnl, plannedRiskAmount) stored as cents
 		const [trade] = await db
 			.insert(trades)
 			.values({
 				asset: tradeData.asset,
 				direction: tradeData.direction,
-				timeframe: tradeData.timeframe,
+				timeframeId: tradeData.timeframeId || null,
 				entryDate: tradeData.entryDate,
 				exitDate: tradeData.exitDate,
 				entryPrice: tradeData.entryPrice.toString(),
@@ -95,9 +97,9 @@ export const createTrade = async (
 				positionSize: tradeData.positionSize.toString(),
 				stopLoss: tradeData.stopLoss?.toString(),
 				takeProfit: tradeData.takeProfit?.toString(),
-				plannedRiskAmount: plannedRiskAmount?.toString(),
+				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
 				plannedRMultiple: plannedRMultiple?.toString(),
-				pnl: pnl?.toString(),
+				pnl: pnl !== undefined ? toCents(pnl) : null,
 				outcome,
 				realizedRMultiple: realizedR?.toString(),
 				mfe: tradeData.mfe?.toString(),
@@ -225,7 +227,7 @@ export const updateTrade = async (
 		// Only include fields that were provided
 		if (tradeData.asset !== undefined) updateData.asset = tradeData.asset
 		if (tradeData.direction !== undefined) updateData.direction = tradeData.direction
-		if (tradeData.timeframe !== undefined) updateData.timeframe = tradeData.timeframe
+		if (tradeData.timeframeId !== undefined) updateData.timeframeId = tradeData.timeframeId || null
 		if (tradeData.entryDate !== undefined) updateData.entryDate = tradeData.entryDate
 		if (tradeData.exitDate !== undefined) updateData.exitDate = tradeData.exitDate
 		if (tradeData.entryPrice !== undefined) updateData.entryPrice = tradeData.entryPrice.toString()
@@ -246,10 +248,14 @@ export const updateTrade = async (
 		if (tradeData.disciplineNotes !== undefined) updateData.disciplineNotes = tradeData.disciplineNotes
 
 		// Always include calculated fields when we have exit data
+		// Money fields (pnl, plannedRiskAmount) stored as cents
 		if (exitPrice) {
-			updateData.pnl = pnl?.toString() ?? null
+			updateData.pnl = pnl !== undefined ? toCents(pnl) : null
 			updateData.outcome = outcome
 			updateData.realizedRMultiple = realizedR?.toString() ?? null
+		}
+		if (plannedRiskAmount !== undefined) {
+			updateData.plannedRiskAmount = toCents(plannedRiskAmount)
 		}
 
 		const [trade] = await db
@@ -343,6 +349,7 @@ export const getTrade = async (
 			where: and(eq(trades.id, id), eq(trades.isArchived, false)),
 			with: {
 				strategy: true,
+				timeframe: true,
 				tradeTags: {
 					with: {
 						tag: true,
@@ -410,8 +417,8 @@ export const getTrades = async (
 		if (validatedFilters.strategyIds?.length) {
 			conditions.push(inArray(trades.strategyId, validatedFilters.strategyIds))
 		}
-		if (validatedFilters.timeframes?.length) {
-			conditions.push(inArray(trades.timeframe, validatedFilters.timeframes))
+		if (validatedFilters.timeframeIds?.length) {
+			conditions.push(inArray(trades.timeframeId, validatedFilters.timeframeIds))
 		}
 
 		// Handle tag filtering with subquery
@@ -436,6 +443,7 @@ export const getTrades = async (
 				where: whereClause,
 				with: {
 					strategy: true,
+					timeframe: true,
 					tradeTags: {
 						with: {
 							tag: true,
@@ -647,7 +655,7 @@ export const bulkCreateTrades = async (
 					tradeValues.push({
 						asset: tradeData.asset,
 						direction: tradeData.direction,
-						timeframe: tradeData.timeframe,
+						timeframeId: tradeData.timeframeId || null,
 						entryDate: tradeData.entryDate,
 						exitDate: tradeData.exitDate,
 						entryPrice: tradeData.entryPrice.toString(),
@@ -655,9 +663,9 @@ export const bulkCreateTrades = async (
 						positionSize: tradeData.positionSize.toString(),
 						stopLoss: tradeData.stopLoss?.toString(),
 						takeProfit: tradeData.takeProfit?.toString(),
-						plannedRiskAmount: plannedRiskAmount?.toString(),
+						plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
 						plannedRMultiple: plannedRMultiple?.toString(),
-						pnl: pnl?.toString(),
+						pnl: pnl !== undefined ? toCents(pnl) : null,
 						outcome,
 						realizedRMultiple: realizedR?.toString(),
 						mfe: tradeData.mfe?.toString(),
@@ -727,12 +735,14 @@ export const recalculateRValues = async (): Promise<
 			const takeProfit = trade.takeProfit ? Number(trade.takeProfit) : null
 			const entryPrice = Number(trade.entryPrice)
 			const positionSize = Number(trade.positionSize)
-			const pnl = trade.pnl ? Number(trade.pnl) : null
+			// pnl is stored in cents, convert to dollars for calculation
+			const pnlCents = trade.pnl
+			const pnl = pnlCents !== null ? pnlCents / 100 : null
 
 			// Only process trades that have stopLoss and entry data
 			if (!stopLoss || !entryPrice || !positionSize) continue
 
-			// Calculate plannedRiskAmount from stopLoss
+			// Calculate plannedRiskAmount from stopLoss (in dollars)
 			const riskPerUnit =
 				trade.direction === "long"
 					? entryPrice - stopLoss
@@ -758,11 +768,11 @@ export const recalculateRValues = async (): Promise<
 				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 			}
 
-			// Update the trade
+			// Update the trade - money fields stored as cents
 			await db
 				.update(trades)
 				.set({
-					plannedRiskAmount: plannedRiskAmount.toString(),
+					plannedRiskAmount: toCents(plannedRiskAmount),
 					plannedRMultiple: plannedRMultiple?.toString() ?? null,
 					realizedRMultiple: realizedR?.toString() ?? null,
 				})

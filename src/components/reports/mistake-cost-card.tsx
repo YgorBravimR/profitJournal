@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -10,16 +11,18 @@ interface MistakeCostCardProps {
 }
 
 export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
+	const t = useTranslations("reports.mistakeCost")
+	const tStats = useTranslations("reports.stats")
+
 	if (!data || data.mistakes.length === 0) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<h2 className="flex items-center gap-s-200 text-body font-semibold text-txt-100">
 					<AlertTriangle className="h-5 w-5 text-warning" />
-					Mistake Cost Analysis
+					{t("title")}
 				</h2>
 				<p className="mt-m-400 text-center text-txt-300">
-					No mistake data available. Tag your losing trades with mistake tags to
-					see this analysis.
+					{t("noData")}
 				</p>
 			</div>
 		)
@@ -36,22 +39,22 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 			<div className="flex items-center justify-between">
 				<h2 className="flex items-center gap-s-200 text-body font-semibold text-txt-100">
 					<AlertTriangle className="h-5 w-5 text-warning" />
-					Mistake Cost Analysis
+					{t("title")}
 				</h2>
 			</div>
 
 			{/* Summary */}
 			<div className="mt-m-500 grid grid-cols-2 gap-m-400">
 				<div className="rounded bg-trade-sell-muted px-s-300 py-s-200">
-					<p className="text-tiny text-txt-300">Total Mistake Cost</p>
+					<p className="text-tiny text-txt-300">{t("totalCost")}</p>
 					<p className="font-mono text-h3 font-bold text-trade-sell">
 						-{totalMistakeCost.toFixed(2)}
 					</p>
 				</div>
 				<div className="rounded bg-bg-100 px-s-300 py-s-200">
-					<p className="text-tiny text-txt-300">Most Costly Mistake</p>
+					<p className="text-tiny text-txt-300">{t("mostCostlyMistake")}</p>
 					<p className="text-body font-medium text-txt-100">
-						{mostCostlyMistake || "None"}
+						{mostCostlyMistake || "-"}
 					</p>
 				</div>
 			</div>
@@ -59,7 +62,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 			{/* Mistake Breakdown */}
 			<div className="mt-m-500 space-y-s-300">
 				<h3 className="text-small font-medium text-txt-100">
-					Cost Breakdown by Mistake
+					{t("costBreakdown")}
 				</h3>
 				{mistakes.map((mistake) => {
 					const barWidth =
@@ -84,7 +87,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 								</div>
 								<div className="flex items-center gap-m-400">
 									<span className="text-tiny text-txt-300">
-										Avg: -{mistake.avgLoss.toFixed(2)}
+										{t("avg")}: -{mistake.avgLoss.toFixed(2)}
 									</span>
 									<span className="font-mono text-small font-medium text-trade-sell">
 										-{mistake.totalLoss.toFixed(2)}
@@ -106,14 +109,11 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 			{/* Insight */}
 			<div className="mt-m-500 rounded border border-warning/20 bg-warning/5 p-s-300">
 				<p className="text-small text-txt-200">
-					<span className="font-medium text-warning">Insight:</span> By
-					eliminating your top mistake (
-					<span className="font-medium">{mostCostlyMistake}</span>), you could
-					have saved{" "}
-					<span className="font-mono font-medium text-trade-sell">
-						{mistakes[0]?.totalLoss.toFixed(2) || "0.00"}
-					</span>{" "}
-					during this period.
+					<span className="font-medium text-warning">{t("insight")}:</span>{" "}
+					{t("insightText", {
+						mistake: mostCostlyMistake || "-",
+						amount: mistakes[0]?.totalLoss.toFixed(2) || "0.00",
+					})}
 				</p>
 			</div>
 		</div>

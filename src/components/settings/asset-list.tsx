@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -21,6 +22,7 @@ import {
 	Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { fromCents } from "@/lib/money"
 
 interface AssetListProps {
 	assets: AssetWithType[]
@@ -28,6 +30,8 @@ interface AssetListProps {
 }
 
 export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
+	const t = useTranslations("settings.assets")
+	const tCommon = useTranslations("common")
 	const [search, setSearch] = useState("")
 	const [filterType, setFilterType] = useState<string | null>(null)
 	const [showInactive, setShowInactive] = useState(false)
@@ -80,7 +84,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 					<div className="relative">
 						<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-txt-300" />
 						<Input
-							placeholder="Search assets..."
+							placeholder={t("searchAssets")}
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
 							className="w-64 pl-9"
@@ -92,7 +96,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 							className="cursor-pointer"
 							onClick={() => setFilterType(null)}
 						>
-							All
+							{tCommon("all")}
 						</Badge>
 						{assetTypes.map((type) => (
 							<Badge
@@ -120,11 +124,11 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 						) : (
 							<ToggleLeft className="mr-2 h-4 w-4" />
 						)}
-						{showInactive ? "Showing inactive" : "Hiding inactive"}
+						{showInactive ? t("showingInactive") : t("hidingInactive")}
 					</Button>
 					<Button onClick={() => setFormOpen(true)}>
 						<Plus className="mr-2 h-4 w-4" />
-						Add Asset
+						{t("addAsset")}
 					</Button>
 				</div>
 			</div>
@@ -135,28 +139,28 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 					<thead className="bg-bg-300">
 						<tr>
 							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								Symbol
+								{t("symbol")}
 							</th>
 							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								Name
+								{t("name")}
 							</th>
 							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								Type
+								{t("type")}
 							</th>
 							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								Tick Size
+								{t("tickSize")}
 							</th>
 							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								Tick Value
+								{t("tickValue")}
 							</th>
 							<th className="px-m-400 py-s-300 text-center text-small font-medium text-txt-200">
-								Currency
+								{t("currency")}
 							</th>
 							<th className="px-m-400 py-s-300 text-center text-small font-medium text-txt-200">
-								Status
+								{tCommon("status")}
 							</th>
 							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								Actions
+								{tCommon("actions")}
 							</th>
 						</tr>
 					</thead>
@@ -167,7 +171,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 									colSpan={8}
 									className="px-m-400 py-l-700 text-center text-txt-300"
 								>
-									No assets found
+									{t("noAssets")}
 								</td>
 							</tr>
 						) : (
@@ -197,7 +201,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 										{parseFloat(asset.tickSize)}
 									</td>
 									<td className="px-m-400 py-s-300 text-right font-mono text-txt-200">
-										{parseFloat(asset.tickValue)}
+										{fromCents(asset.tickValue)}
 									</td>
 									<td className="px-m-400 py-s-300 text-center text-txt-200">
 										{asset.currency}
@@ -207,7 +211,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 											variant={asset.isActive ? "default" : "secondary"}
 											className="text-tiny"
 										>
-											{asset.isActive ? "Active" : "Inactive"}
+											{asset.isActive ? t("active") : t("inactive")}
 										</Badge>
 									</td>
 									<td className="px-m-400 py-s-300">

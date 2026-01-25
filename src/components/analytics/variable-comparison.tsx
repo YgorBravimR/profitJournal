@@ -12,6 +12,7 @@ import {
 	Cell,
 } from "recharts"
 import { Info } from "lucide-react"
+import { useTranslations } from "next-intl"
 import {
 	Tooltip,
 	TooltipContent,
@@ -52,22 +53,7 @@ interface VariableComparisonProps {
 }
 
 type MetricType = "pnl" | "winRate" | "avgR" | "tradeCount" | "profitFactor"
-
-const GROUP_OPTIONS = [
-	{ value: "asset" as const, label: "Asset" },
-	{ value: "timeframe" as const, label: "Timeframe" },
-	{ value: "hour" as const, label: "Hour of Day" },
-	{ value: "dayOfWeek" as const, label: "Day of Week" },
-	{ value: "strategy" as const, label: "Strategy" },
-]
-
-const METRIC_OPTIONS = [
-	{ value: "pnl" as MetricType, label: "P&L" },
-	{ value: "winRate" as MetricType, label: "Win Rate" },
-	{ value: "avgR" as MetricType, label: "Avg R" },
-	{ value: "tradeCount" as MetricType, label: "Trade Count" },
-	{ value: "profitFactor" as MetricType, label: "Profit Factor" },
-]
+type GroupByType = "asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
 
 const formatCurrency = (value: number): string => {
 	const absValue = Math.abs(value)
@@ -140,7 +126,24 @@ export const VariableComparison = ({
 	groupBy,
 	onGroupByChange,
 }: VariableComparisonProps) => {
+	const t = useTranslations("analytics.variableComparison")
 	const [metric, setMetric] = useState<MetricType>("pnl")
+
+	const groupOptions: { value: GroupByType; label: string }[] = [
+		{ value: "asset", label: t("asset") },
+		{ value: "timeframe", label: t("timeframe") },
+		{ value: "hour", label: t("hour") },
+		{ value: "dayOfWeek", label: t("dayOfWeek") },
+		{ value: "strategy", label: t("strategy") },
+	]
+
+	const metricOptions: { value: MetricType; label: string }[] = [
+		{ value: "pnl", label: t("metrics.pnl") },
+		{ value: "winRate", label: t("metrics.winRate") },
+		{ value: "avgR", label: t("metrics.avgR") },
+		{ value: "tradeCount", label: t("metrics.tradeCount") },
+		{ value: "profitFactor", label: t("metrics.profitFactor") },
+	]
 
 	const getBarColor = (value: number, metric: MetricType): string => {
 		if (metric === "tradeCount") return "rgb(204 162 72)" // acc-100
@@ -166,7 +169,7 @@ export const VariableComparison = ({
 		<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 			<div className="gap-m-400 flex flex-wrap items-center justify-between">
 				<h3 className="text-body text-txt-100 font-semibold">
-					Performance by Variable
+					{t("title")}
 				</h3>
 				<div className="gap-s-300 flex flex-wrap">
 					{/* Group By Selector */}
@@ -175,7 +178,7 @@ export const VariableComparison = ({
 						onChange={(e) => onGroupByChange(e.target.value as typeof groupBy)}
 						className="border-bg-300 bg-bg-100 px-s-300 py-s-200 text-small text-txt-100 rounded-md border"
 					>
-						{GROUP_OPTIONS.map((opt) => (
+						{groupOptions.map((opt) => (
 							<option key={opt.value} value={opt.value}>
 								{opt.label}
 							</option>
@@ -188,7 +191,7 @@ export const VariableComparison = ({
 						onChange={(e) => setMetric(e.target.value as MetricType)}
 						className="border-bg-300 bg-bg-100 px-s-300 py-s-200 text-small text-txt-100 rounded-md border"
 					>
-						{METRIC_OPTIONS.map((opt) => (
+						{metricOptions.map((opt) => (
 							<option key={opt.value} value={opt.value}>
 								{opt.label}
 							</option>
@@ -199,7 +202,7 @@ export const VariableComparison = ({
 
 			{data.length === 0 ? (
 				<div className="mt-m-400 text-txt-300 flex h-64 items-center justify-center">
-					No data available for the selected filters
+					{t("noData")}
 				</div>
 			) : (
 				<div className="mt-m-400 h-80">
@@ -252,7 +255,7 @@ export const VariableComparison = ({
 						<thead>
 							<tr className="border-bg-300 border-b">
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-left font-medium">
-									{GROUP_OPTIONS.find((o) => o.value === groupBy)?.label}
+									{groupOptions.find((o) => o.value === groupBy)?.label}
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip

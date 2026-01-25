@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
 	ArrowUpRight,
@@ -6,9 +8,11 @@ import {
 	TrendingUp,
 	TrendingDown,
 } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/dates"
 import { formatCurrency, formatRMultiple } from "@/lib/calculations"
+import { fromCents } from "@/lib/money"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import type { TradeWithRelations } from "@/app/actions/trades"
@@ -19,15 +23,18 @@ interface TradeCardProps {
 }
 
 export const TradeCard = ({ trade, className }: TradeCardProps) => {
-	const pnl = Number(trade.pnl) || 0
+	const t = useTranslations("trade")
+
+	// pnl is stored in cents, convert to dollars for display
+	const pnl = fromCents(trade.pnl)
 	const realizedR = Number(trade.realizedRMultiple) || 0
 	const isWin = trade.outcome === "win"
 	const isLoss = trade.outcome === "loss"
 	const isLong = trade.direction === "long"
 
 	const tags = trade.tradeTags?.map((tt) => tt.tag) || []
-	const setupTags = tags.filter((t) => t.type === "setup")
-	const mistakeTags = tags.filter((t) => t.type === "mistake")
+	const setupTags = tags.filter((tag) => tag.type === "setup")
+	const mistakeTags = tags.filter((tag) => tag.type === "mistake")
 
 	return (
 		<Link href={`/journal/${trade.id}`}>
@@ -66,11 +73,11 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 											: "border-trade-sell/30 text-trade-sell"
 									)}
 								>
-									{isLong ? "LONG" : "SHORT"}
+									{isLong ? t("direction.long").toUpperCase() : t("direction.short").toUpperCase()}
 								</Badge>
 								{trade.timeframe && (
 									<Badge variant="secondary" className="text-tiny">
-										{trade.timeframe}
+										{trade.timeframe.name}
 									</Badge>
 								)}
 							</div>
@@ -142,21 +149,21 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 				{/* Quick metrics */}
 				<div className="mt-m-400 grid grid-cols-3 gap-m-400 border-t border-bg-300 pt-m-400">
 					<div>
-						<span className="text-tiny text-txt-300">Entry</span>
+						<span className="text-tiny text-txt-300">{t("entry")}</span>
 						<p className="font-mono text-small text-txt-100">
 							${Number(trade.entryPrice).toFixed(2)}
 						</p>
 					</div>
 					<div>
-						<span className="text-tiny text-txt-300">Exit</span>
+						<span className="text-tiny text-txt-300">{t("exit")}</span>
 						<p className="font-mono text-small text-txt-100">
 							{trade.exitPrice
 								? `$${Number(trade.exitPrice).toFixed(2)}`
-								: "Open"}
+								: t("openPosition")}
 						</p>
 					</div>
 					<div>
-						<span className="text-tiny text-txt-300">Size</span>
+						<span className="text-tiny text-txt-300">{t("size")}</span>
 						<p className="font-mono text-small text-txt-100">
 							{Number(trade.positionSize).toLocaleString()}
 						</p>

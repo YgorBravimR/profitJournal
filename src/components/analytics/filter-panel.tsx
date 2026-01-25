@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Calendar, Filter, X } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 
 export interface FilterState {
@@ -10,30 +11,30 @@ export interface FilterState {
 	assets: string[]
 	directions: Array<"long" | "short">
 	outcomes: Array<"win" | "loss" | "breakeven">
-	timeframes: string[]
+	timeframeIds: string[]
+}
+
+interface TimeframeOption {
+	id: string
+	name: string
 }
 
 interface FilterPanelProps {
 	filters: FilterState
 	onFiltersChange: (filters: FilterState) => void
 	availableAssets: string[]
+	availableTimeframes: TimeframeOption[]
 }
 
-const TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"]
-const DIRECTIONS = [
-	{ value: "long" as const, label: "Long" },
-	{ value: "short" as const, label: "Short" },
-]
-const OUTCOMES = [
-	{ value: "win" as const, label: "Win" },
-	{ value: "loss" as const, label: "Loss" },
-	{ value: "breakeven" as const, label: "Breakeven" },
-]
+interface DatePreset {
+	key: string
+	getDates: () => { from: Date | null; to: Date | null }
+}
 
-const DATE_PRESETS = [
-	{ label: "Today", getDates: () => ({ from: new Date(), to: new Date() }) },
+const DATE_PRESET_CONFIGS: DatePreset[] = [
+	{ key: "today", getDates: () => ({ from: new Date(), to: new Date() }) },
 	{
-		label: "This Week",
+		key: "thisWeek",
 		getDates: () => {
 			const now = new Date()
 			const start = new Date(now)
@@ -42,7 +43,7 @@ const DATE_PRESETS = [
 		},
 	},
 	{
-		label: "This Month",
+		key: "thisMonth",
 		getDates: () => {
 			const now = new Date()
 			const start = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -50,7 +51,7 @@ const DATE_PRESETS = [
 		},
 	},
 	{
-		label: "Last 30 Days",
+		key: "last30Days",
 		getDates: () => {
 			const now = new Date()
 			const start = new Date(now)
@@ -59,7 +60,7 @@ const DATE_PRESETS = [
 		},
 	},
 	{
-		label: "Last 90 Days",
+		key: "last90Days",
 		getDates: () => {
 			const now = new Date()
 			const start = new Date(now)
@@ -68,14 +69,14 @@ const DATE_PRESETS = [
 		},
 	},
 	{
-		label: "This Year",
+		key: "thisYear",
 		getDates: () => {
 			const now = new Date()
 			const start = new Date(now.getFullYear(), 0, 1)
 			return { from: start, to: now }
 		},
 	},
-	{ label: "All Time", getDates: () => ({ from: null, to: null }) },
+	{ key: "allTime", getDates: () => ({ from: null, to: null }) },
 ]
 
 const formatDateForInput = (date: Date | null): string => {
@@ -87,10 +88,30 @@ export const FilterPanel = ({
 	filters,
 	onFiltersChange,
 	availableAssets,
+	availableTimeframes,
 }: FilterPanelProps) => {
+	const t = useTranslations("analytics.filters")
+	const tTrade = useTranslations("trade")
+	const tCommon = useTranslations("common")
 	const [isExpanded, setIsExpanded] = useState(false)
 
-	const handleDatePreset = (preset: (typeof DATE_PRESETS)[number]) => {
+	const directions = [
+		{ value: "long" as const, label: tTrade("direction.long") },
+		{ value: "short" as const, label: tTrade("direction.short") },
+	]
+
+	const outcomes = [
+		{ value: "win" as const, label: tTrade("outcome.win") },
+		{ value: "loss" as const, label: tTrade("outcome.loss") },
+		{ value: "breakeven" as const, label: tTrade("outcome.breakeven") },
+	]
+
+	const datePresets = DATE_PRESET_CONFIGS.map((preset) => ({
+		...preset,
+		label: t(`datePresets.${preset.key}`),
+	}))
+
+	const handleDatePreset = (preset: DatePreset) => {
 		const { from, to } = preset.getDates()
 		onFiltersChange({
 			...filters,
@@ -127,7 +148,7 @@ export const FilterPanel = ({
 			assets: [],
 			directions: [],
 			outcomes: [],
-			timeframes: [],
+			timeframeIds: [],
 		})
 	}
 
@@ -137,7 +158,7 @@ export const FilterPanel = ({
 		filters.assets.length > 0 ||
 		filters.directions.length > 0 ||
 		filters.outcomes.length > 0 ||
-		filters.timeframes.length > 0
+		filters.timeframeIds.length > 0
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
@@ -145,10 +166,10 @@ export const FilterPanel = ({
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-s-300">
 					<Filter className="h-4 w-4 text-txt-300" />
-					<h3 className="text-small font-semibold text-txt-100">Filters</h3>
+					<h3 className="text-small font-semibold text-txt-100">{t("title")}</h3>
 					{hasActiveFilters && (
 						<span className="rounded-full bg-acc-100 px-s-200 py-s-100 text-tiny font-medium text-bg-100">
-							Active
+							{t("active")}
 						</span>
 					)}
 				</div>
@@ -156,7 +177,7 @@ export const FilterPanel = ({
 					{hasActiveFilters && (
 						<Button variant="ghost" size="sm" onClick={clearFilters}>
 							<X className="mr-1 h-3 w-3" />
-							Clear
+							{t("clear")}
 						</Button>
 					)}
 					<Button
@@ -164,16 +185,16 @@ export const FilterPanel = ({
 						size="sm"
 						onClick={() => setIsExpanded(!isExpanded)}
 					>
-						{isExpanded ? "Collapse" : "Expand"}
+						{isExpanded ? t("collapse") : t("expand")}
 					</Button>
 				</div>
 			</div>
 
 			{/* Date Presets (always visible) */}
 			<div className="mt-m-400 flex flex-wrap gap-s-200">
-				{DATE_PRESETS.map((preset) => (
+				{datePresets.map((preset) => (
 					<button
-						key={preset.label}
+						key={preset.key}
 						type="button"
 						onClick={() => handleDatePreset(preset)}
 						className="rounded-md border border-bg-300 bg-bg-100 px-s-300 py-s-100 text-tiny text-txt-200 transition-colors hover:border-acc-100 hover:text-acc-100"
@@ -189,7 +210,7 @@ export const FilterPanel = ({
 					{/* Custom Date Range */}
 					<div>
 						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							Custom Date Range
+							{t("customDateRange")}
 						</label>
 						<div className="flex items-center gap-s-300">
 							<div className="flex items-center gap-s-200">
@@ -201,7 +222,7 @@ export const FilterPanel = ({
 									className="rounded-md border border-bg-300 bg-bg-100 px-s-300 py-s-200 text-small text-txt-100"
 								/>
 							</div>
-							<span className="text-txt-300">to</span>
+							<span className="text-txt-300">{tCommon("to")}</span>
 							<input
 								type="date"
 								value={formatDateForInput(filters.dateTo)}
@@ -215,7 +236,7 @@ export const FilterPanel = ({
 					{availableAssets.length > 0 && (
 						<div>
 							<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-								Assets
+								{t("assets")}
 							</label>
 							<div className="flex flex-wrap gap-s-200">
 								{availableAssets.map((asset) => (
@@ -241,10 +262,10 @@ export const FilterPanel = ({
 					{/* Direction */}
 					<div>
 						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							Direction
+							{t("direction")}
 						</label>
 						<div className="flex gap-s-200">
-							{DIRECTIONS.map(({ value, label }) => (
+							{directions.map(({ value, label }) => (
 								<button
 									key={value}
 									type="button"
@@ -268,10 +289,10 @@ export const FilterPanel = ({
 					{/* Outcome */}
 					<div>
 						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							Outcome
+							{t("outcome")}
 						</label>
 						<div className="flex gap-s-200">
-							{OUTCOMES.map(({ value, label }) => (
+							{outcomes.map(({ value, label }) => (
 								<button
 									key={value}
 									type="button"
@@ -295,29 +316,31 @@ export const FilterPanel = ({
 					</div>
 
 					{/* Timeframes */}
-					<div>
-						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							Timeframes
-						</label>
-						<div className="flex flex-wrap gap-s-200">
-							{TIMEFRAMES.map((tf) => (
-								<button
-									key={tf}
-									type="button"
-									onClick={() =>
-										toggleArrayFilter(filters.timeframes, tf, "timeframes")
-									}
-									className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
-										filters.timeframes.includes(tf)
-											? "border-acc-100 bg-acc-100/20 text-acc-100"
-											: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
-									}`}
-								>
-									{tf}
-								</button>
-							))}
+					{availableTimeframes.length > 0 && (
+						<div>
+							<label className="mb-s-200 block text-tiny font-medium text-txt-300">
+								{t("timeframes")}
+							</label>
+							<div className="flex flex-wrap gap-s-200">
+								{availableTimeframes.map((tf) => (
+									<button
+										key={tf.id}
+										type="button"
+										onClick={() =>
+											toggleArrayFilter(filters.timeframeIds, tf.id, "timeframeIds")
+										}
+										className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
+											filters.timeframeIds.includes(tf.id)
+												? "border-acc-100 bg-acc-100/20 text-acc-100"
+												: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
+										}`}
+									>
+										{tf.name}
+									</button>
+								))}
+							</div>
 						</div>
-					</div>
+					)}
 				</div>
 			)}
 		</div>

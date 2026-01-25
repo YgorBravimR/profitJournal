@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { createTradeSchema, type TradeFormInput } from "@/lib/validations/trade"
 import { createTrade, updateTrade } from "@/app/actions/trades"
 import { calculatePnL, calculateRMultiple } from "@/lib/calculations"
+import { fromCents } from "@/lib/money"
 import { useToast } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import {
+	Form,
+	FormControl,
+	FormField,
+	FormItem,
+	FormLabel,
+	FormMessage,
+} from "@/components/ui/form"
 import type { Trade, Strategy, Tag, Timeframe } from "@/db/schema"
 import type { AssetWithType } from "@/app/actions/assets"
 import { calculateAssetPnL } from "@/lib/calculations"
@@ -38,8 +47,6 @@ interface TradeFormProps {
 	timeframes?: Timeframe[]
 	onSuccess?: () => void
 }
-
-const legacyTimeframes = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"] as const
 
 // Format Date to datetime-local input value (YYYY-MM-DDTHH:mm)
 const formatDateTimeLocal = (date: Date): string => {
@@ -79,7 +86,7 @@ export const TradeForm = ({
 		? {
 				asset: trade.asset,
 				direction: trade.direction,
-				timeframe: trade.timeframe ?? undefined,
+				timeframeId: trade.timeframeId ?? undefined,
 				entryDate: formatDateTimeLocal(new Date(trade.entryDate)),
 				exitDate: trade.exitDate
 					? formatDateTimeLocal(new Date(trade.exitDate))
@@ -90,7 +97,7 @@ export const TradeForm = ({
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
 				// plannedRiskAmount and plannedRMultiple are auto-calculated, not stored in form
-				pnl: trade.pnl ? Number(trade.pnl) : undefined,
+				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
 				preTradeThoughts: trade.preTradeThoughts ?? undefined,
@@ -107,17 +114,14 @@ export const TradeForm = ({
 				tagIds: [],
 			}
 
-	const {
-		register,
-		handleSubmit,
-		watch,
-		setValue,
-		formState: { errors },
-	} = useForm<TradeFormInput>({
+	const form = useForm<TradeFormInput>({
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		resolver: zodResolver(createTradeSchema) as any,
 		defaultValues,
 	})
+
+	const { handleSubmit, watch, setValue, formState: { errors } } = form
+
 
 	const direction = watch("direction")
 	const entryPrice = watch("entryPrice")
@@ -163,15 +167,16 @@ export const TradeForm = ({
 
 		if (selectedAsset) {
 			// Use asset-based calculation with tick size and tick value
+			// tickValue, commission, fees are stored in cents, convert to dollars
 			return calculateAssetPnL({
 				entryPrice: entry,
 				exitPrice: exit,
 				positionSize: size,
 				direction: dir,
 				tickSize: parseFloat(selectedAsset.tickSize),
-				tickValue: parseFloat(selectedAsset.tickValue),
-				commission: parseFloat(selectedAsset.commission ?? "0"),
-				fees: parseFloat(selectedAsset.fees ?? "0"),
+				tickValue: fromCents(selectedAsset.tickValue),
+				commission: fromCents(selectedAsset.commission),
+				fees: fromCents(selectedAsset.fees),
 			})
 		}
 
@@ -208,6 +213,7 @@ export const TradeForm = ({
 	}
 
 	const onSubmit = async (data: TradeFormInput) => {
+		console.log("Submitting trade data:", data)
 		setIsSubmitting(true)
 		try {
 			const result = isEditing
@@ -236,7 +242,7 @@ export const TradeForm = ({
 	const mistakeTags = tags.filter((t) => t.type === "mistake")
 
 	// Map fields to tabs for error highlighting
-	const basicFields = ["asset", "entryDate", "entryPrice", "positionSize", "direction", "timeframe", "exitDate", "exitPrice", "strategyId"] as const
+	const basicFields = ["asset", "entryDate", "entryPrice", "positionSize", "direction", "timeframeId", "exitDate", "exitPrice", "strategyId"] as const
 	const riskFields = ["stopLoss", "takeProfit", "mfe", "mae"] as const
 	const journalFields = ["preTradeThoughts", "postTradeReflection", "lessonLearned", "followedPlan", "disciplineNotes"] as const
 	const tagFields = ["tagIds"] as const
@@ -247,36 +253,55 @@ export const TradeForm = ({
 	const hasTagErrors = tagFields.some((field) => errors[field])
 
 	return (
+		<Form {...form}>
 		<form onSubmit={handleSubmit(onSubmit)} className="space-y-m-600">
 			<Tabs defaultValue="basic" className="w-full">
 				<TabsList className="grid w-full grid-cols-4">
 					<TabsTrigger
 						value="basic"
-						className={cn(hasBasicErrors && "text-fb-error data-[state=active]:text-fb-error")}
+						className={cn(
+							hasBasicErrors &&
+								"text-fb-error data-[state=active]:text-fb-error"
+						)}
 					>
 						Basic
-						{hasBasicErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+						{hasBasicErrors && (
+							<span className="bg-fb-error ml-1 h-2 w-2 rounded-full" />
+						)}
 					</TabsTrigger>
 					<TabsTrigger
 						value="risk"
-						className={cn(hasRiskErrors && "text-fb-error data-[state=active]:text-fb-error")}
+						className={cn(
+							hasRiskErrors && "text-fb-error data-[state=active]:text-fb-error"
+						)}
 					>
 						Risk
-						{hasRiskErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+						{hasRiskErrors && (
+							<span className="bg-fb-error ml-1 h-2 w-2 rounded-full" />
+						)}
 					</TabsTrigger>
 					<TabsTrigger
 						value="journal"
-						className={cn(hasJournalErrors && "text-fb-error data-[state=active]:text-fb-error")}
+						className={cn(
+							hasJournalErrors &&
+								"text-fb-error data-[state=active]:text-fb-error"
+						)}
 					>
 						Journal
-						{hasJournalErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+						{hasJournalErrors && (
+							<span className="bg-fb-error ml-1 h-2 w-2 rounded-full" />
+						)}
 					</TabsTrigger>
 					<TabsTrigger
 						value="tags"
-						className={cn(hasTagErrors && "text-fb-error data-[state=active]:text-fb-error")}
+						className={cn(
+							hasTagErrors && "text-fb-error data-[state=active]:text-fb-error"
+						)}
 					>
 						Tags
-						{hasTagErrors && <span className="ml-1 h-2 w-2 rounded-full bg-fb-error" />}
+						{hasTagErrors && (
+							<span className="bg-fb-error ml-1 h-2 w-2 rounded-full" />
+						)}
 					</TabsTrigger>
 				</TabsList>
 
@@ -285,12 +310,12 @@ export const TradeForm = ({
 					{/* Direction Toggle */}
 					<div className="space-y-s-200">
 						<Label>Direction</Label>
-						<div className="flex gap-m-400">
+						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setValue("direction", "long")}
 								className={cn(
-									"flex flex-1 items-center justify-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "long"
 										? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -303,7 +328,7 @@ export const TradeForm = ({
 								type="button"
 								onClick={() => setValue("direction", "short")}
 								className={cn(
-									"flex flex-1 items-center justify-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "short"
 										? "border-trade-sell bg-trade-sell/10 text-trade-sell"
 										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
@@ -316,226 +341,310 @@ export const TradeForm = ({
 					</div>
 
 					{/* Asset and Timeframe */}
-					<div className="grid grid-cols-2 gap-m-400">
-						<div className="space-y-s-200">
-							<div className="flex items-center gap-s-200">
-								<Label htmlFor="asset">Asset *</Label>
-								{selectedAsset && (
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Info className="h-4 w-4 text-txt-300" />
-										</TooltipTrigger>
-										<TooltipContent>
-											<div className="space-y-1 text-tiny">
-												<p>
-													<span className="text-txt-300">Type:</span>{" "}
-													{selectedAsset.assetType.name}
-												</p>
-												<p>
-													<span className="text-txt-300">Tick Size:</span>{" "}
-													{parseFloat(selectedAsset.tickSize)}
-												</p>
-												<p>
-													<span className="text-txt-300">Tick Value:</span>{" "}
-													{selectedAsset.currency}{" "}
-													{parseFloat(selectedAsset.tickValue)}
-												</p>
-											</div>
-										</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
-							{hasConfiguredAssets ? (
-								<Select
-									value={watch("asset") || ""}
-									onValueChange={(value) => {
-										setValue("asset", value)
-										const asset = assets.find((a) => a.symbol === value)
-										setSelectedAsset(asset ?? null)
-									}}
-								>
-									<SelectTrigger aria-invalid={!!errors.asset}>
-										<SelectValue placeholder="Select asset" />
-									</SelectTrigger>
-									<SelectContent>
-										{assets.map((asset) => (
-											<SelectItem key={asset.id} value={asset.symbol}>
-												<span className="font-mono">{asset.symbol}</span>
-												<span className="ml-2 text-txt-300">{asset.name}</span>
-											</SelectItem>
-										))}
-									</SelectContent>
-								</Select>
-							) : (
-								<Input
-									id="asset"
-									placeholder="NVDA, SPY, BTC..."
-									className="uppercase"
-									aria-invalid={!!errors.asset}
-									{...register("asset")}
-								/>
+					<div className="gap-m-400 grid grid-cols-2">
+						<FormField
+							control={form.control}
+							name="asset"
+							render={({ field }) => (
+								<FormItem>
+									<div className="gap-s-200 flex items-center">
+										<FormLabel>Asset *</FormLabel>
+										{selectedAsset && (
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Info className="text-txt-300 h-4 w-4" />
+												</TooltipTrigger>
+												<TooltipContent>
+													<div className="text-tiny space-y-1">
+														<p>
+															<span className="text-txt-300">Type:</span>{" "}
+															{selectedAsset.assetType.name}
+														</p>
+														<p>
+															<span className="text-txt-300">Tick Size:</span>{" "}
+															{parseFloat(selectedAsset.tickSize)}
+														</p>
+														<p>
+															<span className="text-txt-300">Tick Value:</span>{" "}
+															{selectedAsset.currency}{" "}
+															{fromCents(selectedAsset.tickValue)}
+														</p>
+													</div>
+												</TooltipContent>
+											</Tooltip>
+										)}
+									</div>
+									<Select
+										value={field.value || ""}
+										onValueChange={(value) => {
+											field.onChange(value)
+											const asset = assets.find((a) => a.symbol === value)
+											setSelectedAsset(asset ?? null)
+										}}
+										disabled={!hasConfiguredAssets}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue
+													placeholder={
+														hasConfiguredAssets
+															? "Select asset"
+															: "No assets configured"
+													}
+												/>
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{assets.map((asset) => (
+												<SelectItem key={asset.id} value={asset.symbol}>
+													<span className="font-mono">{asset.symbol}</span>
+													<span className="text-txt-300 ml-2">{asset.name}</span>
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									{!hasConfiguredAssets && (
+										<p className="text-tiny text-txt-300">
+											Add assets in{" "}
+											<a href="/settings" className="text-acc-100 hover:underline">
+												Settings → Assets
+											</a>
+										</p>
+									)}
+									<FormMessage />
+								</FormItem>
 							)}
-							{errors.asset && (
-								<p className="text-tiny text-fb-error">{errors.asset.message}</p>
-							)}
-						</div>
-						<div className="space-y-s-200">
-							<Label htmlFor="timeframe">Timeframe</Label>
-							<Select
-								value={watch("timeframe") || ""}
-								onValueChange={(value) =>
-									setValue("timeframe", value as (typeof legacyTimeframes)[number])
-								}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Select timeframe" />
-								</SelectTrigger>
-								<SelectContent>
-									{hasConfiguredTimeframes
-										? configuredTimeframes.map((tf) => (
-												<SelectItem key={tf.id} value={tf.code.toLowerCase()}>
+						/>
+						<FormField
+							control={form.control}
+							name="timeframeId"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Timeframe</FormLabel>
+									<Select
+										value={field.value || ""}
+										onValueChange={(value) => field.onChange(value || null)}
+										disabled={!hasConfiguredTimeframes}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder={hasConfiguredTimeframes ? "Select timeframe" : "No timeframes configured"} />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{configuredTimeframes.map((tf) => (
+												<SelectItem key={tf.id} value={tf.id}>
 													{tf.name}
 												</SelectItem>
-										  ))
-										: legacyTimeframes.map((tf) => (
-												<SelectItem key={tf} value={tf}>
-													{tf}
-												</SelectItem>
-										  ))}
-								</SelectContent>
-							</Select>
-						</div>
+											))}
+										</SelectContent>
+									</Select>
+									{!hasConfiguredTimeframes && (
+										<p className="text-tiny text-txt-300">
+											Add timeframes in{" "}
+											<a href="/settings" className="text-acc-100 hover:underline">
+												Settings → Timeframes
+											</a>
+										</p>
+									)}
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</div>
 
 					{/* Dates */}
-					<div className="grid grid-cols-2 gap-m-400">
-						<div className="space-y-s-200">
-							<Label htmlFor="entryDate">Entry Date *</Label>
-							<Input
-								id="entryDate"
-								type="datetime-local"
-								aria-invalid={!!errors.entryDate}
-								{...register("entryDate")}
-							/>
-							{errors.entryDate && (
-								<p className="text-tiny text-fb-error">
-									{errors.entryDate.message}
-								</p>
+					<div className="gap-m-400 grid grid-cols-2">
+						<FormField
+							control={form.control}
+							name="entryDate"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Entry Date *</FormLabel>
+									<FormControl>
+										<Input
+											type="datetime-local"
+											value={typeof field.value === 'string' ? field.value : ''}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											name={field.name}
+											ref={field.ref}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
 							)}
-						</div>
-						<div className="space-y-s-200">
-							<Label htmlFor="exitDate">Exit Date</Label>
-							<Input
-								id="exitDate"
-								type="datetime-local"
-								{...register("exitDate")}
-							/>
-						</div>
+						/>
+						<FormField
+							control={form.control}
+							name="exitDate"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Exit Date</FormLabel>
+									<FormControl>
+										<Input
+											type="datetime-local"
+											value={typeof field.value === 'string' ? field.value : ''}
+											onChange={field.onChange}
+											onBlur={field.onBlur}
+											name={field.name}
+											ref={field.ref}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</div>
 
 					{/* Prices */}
-					<div className="grid grid-cols-2 gap-m-400">
-						<div className="space-y-s-200">
-							<Label htmlFor="entryPrice">Entry Price *</Label>
-							<Input
-								id="entryPrice"
-								type="number"
-								step="any"
-								placeholder="0.00"
-								aria-invalid={!!errors.entryPrice}
-								{...register("entryPrice")}
-							/>
-							{errors.entryPrice && (
-								<p className="text-tiny text-fb-error">
-									{errors.entryPrice.message}
-								</p>
+					<div className="gap-m-400 grid grid-cols-2">
+						<FormField
+							control={form.control}
+							name="entryPrice"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Entry Price *</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="0.00"
+											{...field}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
 							)}
-						</div>
-						<div className="space-y-s-200">
-							<Label htmlFor="exitPrice">Exit Price</Label>
-							<Input
-								id="exitPrice"
-								type="number"
-								step="any"
-								placeholder="0.00"
-								{...register("exitPrice")}
-							/>
-						</div>
+						/>
+						<FormField
+							control={form.control}
+							name="exitPrice"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Exit Price</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="0.00"
+											{...field}
+											value={field.value ?? ""}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</div>
 
 					{/* Position Size */}
-					<div className="space-y-s-200">
-						<Label htmlFor="positionSize">Position Size *</Label>
-						<Input
-							id="positionSize"
-							type="number"
-							step="any"
-							placeholder="Number of shares/contracts"
-							aria-invalid={!!errors.positionSize}
-							{...register("positionSize")}
-						/>
-						{errors.positionSize && (
-							<p className="text-tiny text-fb-error">
-								{errors.positionSize.message}
-							</p>
+					<FormField
+						control={form.control}
+						name="positionSize"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Position Size *</FormLabel>
+								<FormControl>
+									<Input
+										type="number"
+										step="any"
+										placeholder="Number of shares/contracts"
+										{...field}
+										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
 						)}
-					</div>
+					/>
 
 					{/* Strategy */}
 					{strategies.length > 0 && (
-						<div className="space-y-s-200">
-							<Label htmlFor="strategyId">Strategy</Label>
-							<Select
-								value={watch("strategyId") || ""}
-								onValueChange={(value) => setValue("strategyId", value)}
-							>
-								<SelectTrigger>
-									<SelectValue placeholder="Select strategy" />
-								</SelectTrigger>
-								<SelectContent>
-									{strategies.map((strategy) => (
-										<SelectItem key={strategy.id} value={strategy.id}>
-											{strategy.name}
-										</SelectItem>
-									))}
-								</SelectContent>
-							</Select>
-						</div>
+						<FormField
+							control={form.control}
+							name="strategyId"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Strategy</FormLabel>
+									<Select
+										value={field.value || ""}
+										onValueChange={field.onChange}
+									>
+										<FormControl>
+											<SelectTrigger>
+												<SelectValue placeholder="Select strategy" />
+											</SelectTrigger>
+										</FormControl>
+										<SelectContent>
+											{strategies.map((strategy) => (
+												<SelectItem key={strategy.id} value={strategy.id}>
+													{strategy.name}
+												</SelectItem>
+											))}
+										</SelectContent>
+									</Select>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					)}
 				</TabsContent>
 
 				{/* Risk Management Tab */}
 				<TabsContent value="risk" className="space-y-m-500 pt-m-500">
 					{/* Stop Loss and Take Profit */}
-					<div className="grid grid-cols-2 gap-m-400">
-						<div className="space-y-s-200">
-							<Label htmlFor="stopLoss">Stop Loss</Label>
-							<Input
-								id="stopLoss"
-								type="number"
-								step="any"
-								placeholder="0.00"
-								{...register("stopLoss")}
-							/>
-						</div>
-						<div className="space-y-s-200">
-							<Label htmlFor="takeProfit">Take Profit</Label>
-							<Input
-								id="takeProfit"
-								type="number"
-								step="any"
-								placeholder="0.00"
-								{...register("takeProfit")}
-							/>
-						</div>
+					<div className="gap-m-400 grid grid-cols-2">
+						<FormField
+							control={form.control}
+							name="stopLoss"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Stop Loss</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="0.00"
+											{...field}
+											value={field.value ?? ""}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="takeProfit"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>Take Profit</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="0.00"
+											{...field}
+											value={field.value ?? ""}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</div>
 
 					{/* Planned Risk (calculated from SL) */}
 					<div className="space-y-s-200">
 						<Label>Planned Risk ($)</Label>
-						<div className="flex h-10 items-center rounded-md border border-bg-300 bg-bg-100 px-s-300">
+						<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
 							{calculatedRisk !== null ? (
-								<span className="text-small font-medium text-txt-100">
+								<span className="text-small text-txt-100 font-medium">
 									${calculatedRisk.toFixed(2)}
 								</span>
 							) : (
@@ -552,9 +661,9 @@ export const TradeForm = ({
 					{/* Planned R-Multiple (calculated from TP/SL) */}
 					<div className="space-y-s-200">
 						<Label>Planned R Target</Label>
-						<div className="flex h-10 items-center rounded-md border border-bg-300 bg-bg-100 px-s-300">
+						<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
 							{calculatedPlannedR !== null ? (
-								<span className="text-small font-medium text-txt-100">
+								<span className="text-small text-txt-100 font-medium">
 									{calculatedPlannedR.toFixed(2)}R
 								</span>
 							) : (
@@ -569,36 +678,56 @@ export const TradeForm = ({
 					</div>
 
 					{/* MFE/MAE */}
-					<div className="grid grid-cols-2 gap-m-400">
-						<div className="space-y-s-200">
-							<Label htmlFor="mfe">MFE (Max Favorable)</Label>
-							<Input
-								id="mfe"
-								type="number"
-								step="any"
-								placeholder="Best price during trade"
-								{...register("mfe")}
-							/>
-						</div>
-						<div className="space-y-s-200">
-							<Label htmlFor="mae">MAE (Max Adverse)</Label>
-							<Input
-								id="mae"
-								type="number"
-								step="any"
-								placeholder="Worst price during trade"
-								{...register("mae")}
-							/>
-						</div>
+					<div className="gap-m-400 grid grid-cols-2">
+						<FormField
+							control={form.control}
+							name="mfe"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>MFE (Max Favorable)</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="Best price during trade"
+											{...field}
+											value={field.value ?? ""}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
+						<FormField
+							control={form.control}
+							name="mae"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>MAE (Max Adverse)</FormLabel>
+									<FormControl>
+										<Input
+											type="number"
+											step="any"
+											placeholder="Worst price during trade"
+											{...field}
+											value={field.value ?? ""}
+											onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					</div>
 
 					{/* P&L Preview */}
 					{calculatedPnLResult !== null && (
-						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
+						<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
 							<p className="text-small text-txt-300">Calculated P&L</p>
 							<p
 								className={cn(
-									"font-mono text-h3 font-bold",
+									"text-h3 font-mono font-bold",
 									calculatedPnLResult.netPnl >= 0
 										? "text-trade-buy"
 										: "text-trade-sell"
@@ -608,14 +737,14 @@ export const TradeForm = ({
 								{selectedAsset?.currency ?? "$"}
 								{calculatedPnLResult.netPnl.toFixed(2)}
 								{calculatedR !== null && (
-									<span className="ml-2 text-body">
+									<span className="text-body ml-2">
 										({calculatedR >= 0 ? "+" : ""}
 										{calculatedR.toFixed(2)}R)
 									</span>
 								)}
 							</p>
 							{selectedAsset && calculatedPnLResult.ticksGained !== 0 && (
-								<div className="mt-s-200 flex gap-m-400 text-tiny text-txt-300">
+								<div className="mt-s-200 gap-m-400 text-tiny text-txt-300 flex">
 									<span>
 										{calculatedPnLResult.ticksGained.toFixed(1)} ticks
 									</span>
@@ -633,45 +762,72 @@ export const TradeForm = ({
 
 				{/* Journal Tab */}
 				<TabsContent value="journal" className="space-y-m-500 pt-m-500">
-					<div className="space-y-s-200">
-						<Label htmlFor="preTradeThoughts">Pre-Trade Thoughts</Label>
-						<Textarea
-							id="preTradeThoughts"
-							placeholder="Why did I take this trade? What was my thesis?"
-							rows={4}
-							{...register("preTradeThoughts")}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="preTradeThoughts"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Pre-Trade Thoughts</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder="Why did I take this trade? What was my thesis?"
+										rows={4}
+										{...field}
+										value={field.value || ""}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
-					<div className="space-y-s-200">
-						<Label htmlFor="postTradeReflection">Post-Trade Reflection</Label>
-						<Textarea
-							id="postTradeReflection"
-							placeholder="How did I feel during the trade? What happened?"
-							rows={4}
-							{...register("postTradeReflection")}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="postTradeReflection"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Post-Trade Reflection</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder="How did I feel during the trade? What happened?"
+										rows={4}
+										{...field}
+										value={field.value || ""}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
-					<div className="space-y-s-200">
-						<Label htmlFor="lessonLearned">Lesson Learned</Label>
-						<Textarea
-							id="lessonLearned"
-							placeholder="What can I learn from this trade?"
-							rows={3}
-							{...register("lessonLearned")}
-						/>
-					</div>
+					<FormField
+						control={form.control}
+						name="lessonLearned"
+						render={({ field }) => (
+							<FormItem>
+								<FormLabel>Lesson Learned</FormLabel>
+								<FormControl>
+									<Textarea
+										placeholder="What can I learn from this trade?"
+										rows={3}
+										{...field}
+										value={field.value || ""}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
 					{/* Compliance */}
 					<div className="space-y-s-200">
 						<Label>Did you follow your plan?</Label>
-						<div className="flex gap-m-400">
+						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setValue("followedPlan", true)}
 								className={cn(
-									"flex-1 rounded-lg border-2 p-m-400 text-center transition-colors",
+									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									watch("followedPlan") === true
 										? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -683,7 +839,7 @@ export const TradeForm = ({
 								type="button"
 								onClick={() => setValue("followedPlan", false)}
 								className={cn(
-									"flex-1 rounded-lg border-2 p-m-400 text-center transition-colors",
+									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									watch("followedPlan") === false
 										? "border-trade-sell bg-trade-sell/10 text-trade-sell"
 										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
@@ -695,15 +851,24 @@ export const TradeForm = ({
 					</div>
 
 					{watch("followedPlan") === false && (
-						<div className="space-y-s-200">
-							<Label htmlFor="disciplineNotes">What went wrong?</Label>
-							<Textarea
-								id="disciplineNotes"
-								placeholder="Describe the discipline breach..."
-								rows={3}
-								{...register("disciplineNotes")}
-							/>
-						</div>
+						<FormField
+							control={form.control}
+							name="disciplineNotes"
+							render={({ field }) => (
+								<FormItem>
+									<FormLabel>What went wrong?</FormLabel>
+									<FormControl>
+										<Textarea
+											placeholder="Describe the discipline breach..."
+											rows={3}
+											{...field}
+											value={field.value || ""}
+										/>
+									</FormControl>
+									<FormMessage />
+								</FormItem>
+							)}
+						/>
 					)}
 				</TabsContent>
 
@@ -713,14 +878,14 @@ export const TradeForm = ({
 					{setupTags.length > 0 && (
 						<div className="space-y-s-200">
 							<Label>Setup Type</Label>
-							<div className="flex flex-wrap gap-s-200">
+							<div className="gap-s-200 flex flex-wrap">
 								{setupTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
 										className={cn(
-											"rounded-full border px-m-400 py-s-200 text-small transition-colors",
+											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
 												? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 												: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -737,14 +902,14 @@ export const TradeForm = ({
 					{mistakeTags.length > 0 && (
 						<div className="space-y-s-200">
 							<Label>Mistakes (if any)</Label>
-							<div className="flex flex-wrap gap-s-200">
+							<div className="gap-s-200 flex flex-wrap">
 								{mistakeTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
 										className={cn(
-											"rounded-full border px-m-400 py-s-200 text-small transition-colors",
+											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
 												? "border-warning bg-warning/10 text-warning"
 												: "border-bg-300 text-txt-200 hover:border-warning/50"
@@ -758,7 +923,7 @@ export const TradeForm = ({
 					)}
 
 					{tags.length === 0 && (
-						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-600 text-center">
+						<div className="border-bg-300 bg-bg-200 p-m-600 rounded-lg border text-center">
 							<p className="text-txt-200">No tags available yet</p>
 							<p className="mt-s-200 text-small text-txt-300">
 								Create tags in the Analytics section
@@ -769,7 +934,7 @@ export const TradeForm = ({
 			</Tabs>
 
 			{/* Submit Button */}
-			<div className="flex justify-end gap-m-400 border-t border-bg-300 pt-m-500">
+			<div className="gap-m-400 border-bg-300 pt-m-500 flex justify-end border-t">
 				<Button
 					type="button"
 					variant="outline"
@@ -793,5 +958,6 @@ export const TradeForm = ({
 				</Button>
 			</div>
 		</form>
+		</Form>
 	)
 }

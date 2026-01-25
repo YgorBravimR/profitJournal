@@ -1,6 +1,7 @@
 "use client"
 
 import { TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { useTranslations } from "next-intl"
 import type { OverallStats, DisciplineData } from "@/types"
 
 interface KpiCardsProps {
@@ -56,6 +57,8 @@ const formatR = (value: number): string => {
 }
 
 export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
+	const t = useTranslations("dashboard.kpi")
+
 	const pnlColorClass = stats
 		? stats.netPnl > 0
 			? "text-trade-buy"
@@ -75,36 +78,36 @@ export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
 	return (
 		<div className="grid grid-cols-2 gap-m-500 md:grid-cols-5">
 			<KpiCard
-				label="Net P&L"
+				label={t("netPnl")}
 				value={stats ? formatCurrency(stats.netPnl) : "--"}
 				subValue={stats ? `${stats.totalTrades} trades` : undefined}
 				colorClass={pnlColorClass}
 			/>
 			<KpiCard
-				label="Win Rate"
+				label={t("winRate")}
 				value={stats ? formatPercent(stats.winRate) : "--"}
-				subValue={stats ? `${stats.winCount}W / ${stats.lossCount}L` : undefined}
+				subValue={stats ? `${stats.winCount}${t("w")} / ${stats.lossCount}${t("l")}` : undefined}
 			/>
 			<KpiCard
-				label="Profit Factor"
+				label={t("profitFactor")}
 				value={stats ? stats.profitFactor.toFixed(2) : "--"}
 				subValue={
 					stats
-						? `Avg Win: ${formatCurrency(stats.avgWin)} | Avg Loss: ${formatCurrency(stats.avgLoss)}`
+						? `${t("avgWin")}: ${formatCurrency(stats.avgWin)} | ${t("avgLoss")}: ${formatCurrency(stats.avgLoss)}`
 						: undefined
 				}
 			/>
 			<KpiCard
-				label="Avg R"
+				label={t("avgR")}
 				value={stats ? formatR(stats.averageR) : "--"}
 				colorClass={rColorClass}
 			/>
 			<KpiCard
-				label="Discipline"
+				label={t("discipline")}
 				value={discipline ? formatPercent(discipline.score) : "--"}
 				subValue={
 					discipline
-						? `${discipline.followedCount}/${discipline.totalTrades} followed`
+						? `${discipline.followedCount}/${discipline.totalTrades} ${t("followed")}`
 						: undefined
 				}
 				trend={discipline?.trend}

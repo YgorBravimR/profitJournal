@@ -20,6 +20,7 @@ import {
 	calculateProfitFactor,
 } from "@/lib/calculations"
 import { getStartOfMonth, getEndOfMonth, formatDateKey } from "@/lib/dates"
+import { fromCents } from "@/lib/money"
 
 /**
  * Build filter conditions from TradeFilters
@@ -42,8 +43,8 @@ const buildFilterConditions = (filters?: TradeFilters) => {
 	if (filters?.outcomes && filters.outcomes.length > 0) {
 		conditions.push(inArray(trades.outcome, filters.outcomes))
 	}
-	if (filters?.timeframes && filters.timeframes.length > 0) {
-		conditions.push(inArray(trades.timeframe, filters.timeframes))
+	if (filters?.timeframeIds && filters.timeframeIds.length > 0) {
+		conditions.push(inArray(trades.timeframeId, filters.timeframeIds))
 	}
 
 	return conditions
@@ -100,7 +101,7 @@ export const getOverallStats = async (
 		const losses: number[] = []
 
 		for (const trade of result) {
-			const pnl = Number(trade.pnl) || 0
+			const pnl = fromCents(trade.pnl)
 			totalPnl += pnl
 
 			if (trade.realizedRMultiple) {
@@ -218,13 +219,17 @@ export const getDisciplineScore = async (
 	}
 }
 
+export type EquityCurveMode = "daily" | "trade"
+
 /**
  * Get equity curve data
  * Returns both cumulative P&L (equity) and actual account value (accountEquity)
+ * mode: "daily" - aggregated by day (default), "trade" - per trade
  */
 export const getEquityCurve = async (
 	dateFrom?: Date,
-	dateTo?: Date
+	dateTo?: Date,
+	mode: EquityCurveMode = "daily"
 ): Promise<ActionResponse<EquityPoint[]>> => {
 	try {
 		// Get account balance from settings
@@ -257,29 +262,66 @@ export const getEquityCurve = async (
 			}
 		}
 
-		// Build equity curve with both P&L and account equity
-		let cumulativePnL = 0
-		let accountEquity = initialBalance
-		let peak = initialBalance
 		const equityPoints: EquityPoint[] = []
 
-		for (const trade of result) {
-			const pnl = Number(trade.pnl) || 0
-			cumulativePnL += pnl
-			accountEquity = initialBalance + cumulativePnL
+		if (mode === "trade") {
+			// Per-trade equity curve
+			let cumulativePnL = 0
+			let peak = initialBalance
 
-			if (accountEquity > peak) {
-				peak = accountEquity
+			for (let i = 0; i < result.length; i++) {
+				const trade = result[i]
+				const pnl = fromCents(trade.pnl)
+				cumulativePnL += pnl
+				const accountEquity = initialBalance + cumulativePnL
+
+				if (accountEquity > peak) {
+					peak = accountEquity
+				}
+
+				const drawdown = peak > 0 ? ((peak - accountEquity) / peak) * 100 : 0
+
+				equityPoints.push({
+					date: formatDateKey(trade.entryDate),
+					equity: cumulativePnL,
+					accountEquity,
+					drawdown,
+					tradeNumber: i + 1,
+				})
+			}
+		} else {
+			// Daily aggregated equity curve
+			const dailyPnlMap = new Map<string, number>()
+			for (const trade of result) {
+				const dateKey = formatDateKey(trade.entryDate)
+				const pnl = fromCents(trade.pnl)
+				const existing = dailyPnlMap.get(dateKey) || 0
+				dailyPnlMap.set(dateKey, existing + pnl)
 			}
 
-			const drawdown = peak > 0 ? ((peak - accountEquity) / peak) * 100 : 0
+			const sortedDates = Array.from(dailyPnlMap.keys()).sort()
 
-			equityPoints.push({
-				date: formatDateKey(trade.entryDate),
-				equity: cumulativePnL,
-				accountEquity,
-				drawdown,
-			})
+			let cumulativePnL = 0
+			let peak = initialBalance
+
+			for (const date of sortedDates) {
+				const dailyPnl = dailyPnlMap.get(date) || 0
+				cumulativePnL += dailyPnl
+				const accountEquity = initialBalance + cumulativePnL
+
+				if (accountEquity > peak) {
+					peak = accountEquity
+				}
+
+				const drawdown = peak > 0 ? ((peak - accountEquity) / peak) * 100 : 0
+
+				equityPoints.push({
+					date,
+					equity: cumulativePnL,
+					accountEquity,
+					drawdown,
+				})
+			}
 		}
 
 		return {
@@ -322,7 +364,7 @@ export const getDailyPnL = async (
 		for (const trade of result) {
 			const dateKey = formatDateKey(trade.entryDate)
 			const existing = dailyMap.get(dateKey) || { pnl: 0, count: 0 }
-			existing.pnl += Number(trade.pnl) || 0
+			existing.pnl += fromCents(trade.pnl)
 			existing.count++
 			dailyMap.set(dateKey, existing)
 		}
@@ -429,7 +471,7 @@ export const getStreakData = async (
 		for (const trade of result) {
 			const dateKey = formatDateKey(trade.entryDate)
 			const existing = dailyMap.get(dateKey) || 0
-			dailyMap.set(dateKey, existing + (Number(trade.pnl) || 0))
+			dailyMap.set(dateKey, existing + (fromCents(trade.pnl)))
 		}
 
 		let bestDay: { date: string; pnl: number } | null = null
@@ -480,6 +522,7 @@ export const getPerformanceByVariable = async (
 			where: and(...conditions),
 			with: {
 				strategy: true,
+				timeframe: true,
 			},
 		})
 
@@ -514,7 +557,7 @@ export const getPerformanceByVariable = async (
 					groupKey = trade.asset
 					break
 				case "timeframe":
-					groupKey = trade.timeframe || "Unknown"
+					groupKey = trade.timeframe?.name || "Unknown"
 					break
 				case "hour": {
 					const hour = trade.entryDate.getHours()
@@ -544,7 +587,7 @@ export const getPerformanceByVariable = async (
 				grossLoss: 0,
 			}
 
-			const pnl = Number(trade.pnl) || 0
+			const pnl = fromCents(trade.pnl)
 			existing.trades.push(trade)
 			existing.pnl += pnl
 
@@ -625,7 +668,7 @@ export const getExpectedValue = async (
 		const losses: number[] = []
 
 		for (const trade of tradesWithOutcome) {
-			const pnl = Number(trade.pnl) || 0
+			const pnl = fromCents(trade.pnl)
 			if (trade.outcome === "win") {
 				wins.push(pnl)
 			} else if (trade.outcome === "loss") {
@@ -706,7 +749,7 @@ export const getRDistribution = async (
 
 		for (const trade of tradesWithR) {
 			const r = Number(trade.realizedRMultiple)
-			const pnl = Number(trade.pnl) || 0
+			const pnl = fromCents(trade.pnl)
 
 			for (const bucket of buckets) {
 				if (r >= bucket.rangeMin && r < bucket.rangeMax) {

@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/dates"
 import { formatCurrency, formatRMultiple } from "@/lib/calculations"
+import { fromCents } from "@/lib/money"
 import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -38,7 +39,8 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 	}
 
 	const trade = result.data
-	const pnl = Number(trade.pnl) || 0
+	// pnl is stored in cents, convert to dollars for display
+	const pnl = fromCents(trade.pnl)
 	const realizedR = Number(trade.realizedRMultiple) || 0
 	const plannedR = Number(trade.plannedRMultiple) || 0
 	const isLong = trade.direction === "long"
@@ -107,7 +109,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 											{isLong ? "LONG" : "SHORT"}
 										</Badge>
 										{trade.timeframe && (
-											<Badge variant="secondary">{trade.timeframe}</Badge>
+											<Badge variant="secondary">{trade.timeframe.name}</Badge>
 										)}
 									</div>
 									<div className="mt-s-200 flex items-center gap-m-400 text-small text-txt-300">

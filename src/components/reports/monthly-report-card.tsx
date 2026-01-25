@@ -1,18 +1,25 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Loader2, Calendar, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getMonthlyReport, type MonthlyReport } from "@/app/actions/reports"
 import { format, parseISO } from "date-fns"
+import { ptBR, enUS } from "date-fns/locale"
 
 interface MonthlyReportCardProps {
 	initialReport: MonthlyReport | null
 }
 
 export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => {
+	const t = useTranslations("reports.monthly")
+	const tStats = useTranslations("reports.stats")
+	const tCommon = useTranslations("common")
+	const locale = useLocale()
+	const dateLocale = locale === "pt-BR" ? ptBR : enUS
 	const [report, setReport] = useState<MonthlyReport | null>(initialReport)
 	const [monthOffset, setMonthOffset] = useState(0)
 	const [isPending, startTransition] = useTransition()
@@ -31,8 +38,8 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 	if (!report) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">Monthly Report</h2>
-				<p className="mt-m-400 text-txt-300">No data available</p>
+				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
+				<p className="mt-m-400 text-txt-300">{tCommon("noData")}</p>
 			</div>
 		)
 	}
@@ -40,19 +47,19 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 	const { summary, weeklyBreakdown, assetBreakdown } = report
 	const monthLabel =
 		monthOffset === 0
-			? "This Month"
+			? t("thisMonth")
 			: monthOffset === 1
-			? "Last Month"
-			: `${monthOffset} months ago`
+			? t("lastMonth")
+			: t("monthsAgo", { n: monthOffset })
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>
-					<h2 className="text-body font-semibold text-txt-100">Monthly Report</h2>
+					<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
 					<p className="text-tiny text-txt-300">
-						{format(parseISO(report.monthStart), "MMMM yyyy")}
+						{format(parseISO(report.monthStart), "MMMM yyyy", { locale: dateLocale })}
 					</p>
 				</div>
 				<div className="flex items-center gap-s-200">
@@ -82,7 +89,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 				<>
 					<div className="mt-m-500 grid grid-cols-2 gap-m-400 sm:grid-cols-4">
 						<div>
-							<p className="text-tiny text-txt-300">Net P&L</p>
+							<p className="text-tiny text-txt-300">{tStats("netPnl")}</p>
 							<p
 								className={cn(
 									"font-mono text-h3 font-bold",
@@ -94,19 +101,19 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Win Rate</p>
+							<p className="text-tiny text-txt-300">{tStats("winRate")}</p>
 							<p className="text-h3 font-bold text-txt-100">
 								{summary.winRate.toFixed(0)}%
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Trades</p>
+							<p className="text-tiny text-txt-300">{tStats("trades")}</p>
 							<p className="text-h3 font-bold text-txt-100">
 								{summary.totalTrades}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Avg R</p>
+							<p className="text-tiny text-txt-300">{t("avgR")}</p>
 							<p
 								className={cn(
 									"font-mono text-h3 font-bold",
@@ -125,10 +132,10 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							<div className="flex items-center gap-s-200 rounded bg-trade-buy-muted px-s-300 py-s-200">
 								<TrendingUp className="h-4 w-4 text-trade-buy" />
 								<div>
-									<p className="text-tiny text-txt-300">Best Day</p>
+									<p className="text-tiny text-txt-300">{t("bestDay")}</p>
 									<p className="text-small">
 										<span className="text-txt-200">
-											{format(parseISO(summary.bestDay.date), "MMM d")}:
+											{format(parseISO(summary.bestDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
 										<span className="font-mono font-medium text-trade-buy">
 											+{summary.bestDay.pnl.toFixed(2)}
@@ -141,10 +148,10 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							<div className="flex items-center gap-s-200 rounded bg-trade-sell-muted px-s-300 py-s-200">
 								<TrendingDown className="h-4 w-4 text-trade-sell" />
 								<div>
-									<p className="text-tiny text-txt-300">Worst Day</p>
+									<p className="text-tiny text-txt-300">{t("worstDay")}</p>
 									<p className="text-small">
 										<span className="text-txt-200">
-											{format(parseISO(summary.worstDay.date), "MMM d")}:
+											{format(parseISO(summary.worstDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
 										<span className="font-mono font-medium text-trade-sell">
 											{summary.worstDay.pnl.toFixed(2)}
@@ -162,7 +169,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 						className="mt-m-400 w-full"
 						onClick={() => setIsExpanded(!isExpanded)}
 					>
-						{isExpanded ? "Hide Details" : "Show Details"}
+						{isExpanded ? tCommon("hideDetails") : tCommon("showDetails")}
 					</Button>
 
 					{isExpanded && (
@@ -172,7 +179,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 								<div>
 									<h3 className="flex items-center gap-s-200 text-small font-medium text-txt-100">
 										<Calendar className="h-4 w-4" />
-										Weekly Breakdown
+										{t("weeklyBreakdown")}
 									</h3>
 									<div className="mt-s-300 space-y-s-200">
 										{weeklyBreakdown.map((week) => (
@@ -181,15 +188,15 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 												className="flex items-center justify-between rounded bg-bg-100 px-s-300 py-s-200"
 											>
 												<span className="text-small text-txt-200">
-													{format(parseISO(week.weekStart), "MMM d")} -{" "}
-													{format(parseISO(week.weekEnd), "MMM d")}
+													{format(parseISO(week.weekStart), "MMM d", { locale: dateLocale })} -{" "}
+													{format(parseISO(week.weekEnd), "MMM d", { locale: dateLocale })}
 												</span>
 												<div className="flex items-center gap-m-400">
 													<span className="text-tiny text-txt-300">
-														{week.tradeCount} trades
+														{week.tradeCount} {t("trades")}
 													</span>
 													<span className="text-tiny text-txt-300">
-														{week.winRate.toFixed(0)}% WR
+														{week.winRate.toFixed(0)}% {t("wr")}
 													</span>
 													<span
 														className={cn(
@@ -213,7 +220,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							{assetBreakdown.length > 0 && (
 								<div>
 									<h3 className="text-small font-medium text-txt-100">
-										Performance by Asset
+										{t("assetBreakdown")}
 									</h3>
 									<div className="mt-s-300 space-y-s-200">
 										{assetBreakdown.slice(0, 5).map((asset) => (
@@ -226,12 +233,12 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 														{asset.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">
-														{asset.tradeCount} trades
+														{asset.tradeCount} {t("trades")}
 													</span>
 												</div>
 												<div className="flex items-center gap-m-400">
 													<span className="text-tiny text-txt-300">
-														{asset.winRate.toFixed(0)}% WR
+														{asset.winRate.toFixed(0)}% {t("wr")}
 													</span>
 													<span
 														className={cn(
@@ -255,7 +262,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 				</>
 			) : (
 				<p className="mt-m-400 text-center text-txt-300">
-					No trades recorded for this month
+					{t("noTrades")}
 				</p>
 			)}
 		</div>

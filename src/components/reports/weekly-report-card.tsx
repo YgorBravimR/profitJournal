@@ -4,9 +4,11 @@ import { useState, useTransition } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
+import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { getWeeklyReport, type WeeklyReport } from "@/app/actions/reports"
 import { format, parseISO } from "date-fns"
+import { ptBR, enUS } from "date-fns/locale"
 import Link from "next/link"
 
 interface WeeklyReportCardProps {
@@ -14,6 +16,12 @@ interface WeeklyReportCardProps {
 }
 
 export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
+	const t = useTranslations("reports.weekly")
+	const tStats = useTranslations("reports.stats")
+	const tCommon = useTranslations("common")
+	const locale = useLocale()
+	const dateLocale = locale === "pt-BR" ? ptBR : enUS
+
 	const [report, setReport] = useState<WeeklyReport | null>(initialReport)
 	const [weekOffset, setWeekOffset] = useState(0)
 	const [isPending, startTransition] = useTransition()
@@ -32,8 +40,8 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 	if (!report) {
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">Weekly Report</h2>
-				<p className="mt-m-400 text-txt-300">No data available</p>
+				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
+				<p className="mt-m-400 text-txt-300">{tCommon("noData")}</p>
 			</div>
 		)
 	}
@@ -41,20 +49,20 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 	const { summary, dailyBreakdown, topWins, topLosses } = report
 	const weekLabel =
 		weekOffset === 0
-			? "This Week"
+			? t("thisWeek")
 			: weekOffset === 1
-			? "Last Week"
-			: `${weekOffset} weeks ago`
+			? t("lastWeek")
+			: t("weeksAgo", { n: weekOffset })
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>
-					<h2 className="text-body font-semibold text-txt-100">Weekly Report</h2>
+					<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
 					<p className="text-tiny text-txt-300">
-						{format(parseISO(report.weekStart), "MMM d")} -{" "}
-						{format(parseISO(report.weekEnd), "MMM d, yyyy")}
+						{format(parseISO(report.weekStart), "MMM d", { locale: dateLocale })} -{" "}
+						{format(parseISO(report.weekEnd), "MMM d, yyyy", { locale: dateLocale })}
 					</p>
 				</div>
 				<div className="flex items-center gap-s-200">
@@ -84,7 +92,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 				<>
 					<div className="mt-m-500 grid grid-cols-2 gap-m-400 sm:grid-cols-4">
 						<div>
-							<p className="text-tiny text-txt-300">Net P&L</p>
+							<p className="text-tiny text-txt-300">{tStats("netPnl")}</p>
 							<p
 								className={cn(
 									"font-mono text-h3 font-bold",
@@ -96,19 +104,19 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Win Rate</p>
+							<p className="text-tiny text-txt-300">{tStats("winRate")}</p>
 							<p className="text-h3 font-bold text-txt-100">
 								{summary.winRate.toFixed(0)}%
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Trades</p>
+							<p className="text-tiny text-txt-300">{tStats("trades")}</p>
 							<p className="text-h3 font-bold text-txt-100">
 								{summary.totalTrades}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Profit Factor</p>
+							<p className="text-tiny text-txt-300">{tStats("profitFactor")}</p>
 							<p className="text-h3 font-bold text-txt-100">
 								{summary.profitFactor === Infinity
 									? "∞"
@@ -120,37 +128,37 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 					{/* Secondary Stats */}
 					<div className="mt-m-400 grid grid-cols-3 gap-m-400 border-t border-bg-300 pt-m-400 sm:grid-cols-6">
 						<div>
-							<p className="text-tiny text-txt-300">Wins</p>
+							<p className="text-tiny text-txt-300">{tStats("wins")}</p>
 							<p className="text-small font-medium text-trade-buy">
 								{summary.winCount}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Losses</p>
+							<p className="text-tiny text-txt-300">{tStats("losses")}</p>
 							<p className="text-small font-medium text-trade-sell">
 								{summary.lossCount}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Avg Win</p>
+							<p className="text-tiny text-txt-300">{tStats("avgWin")}</p>
 							<p className="font-mono text-small text-trade-buy">
 								+{summary.avgWin.toFixed(2)}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Avg Loss</p>
+							<p className="text-tiny text-txt-300">{tStats("avgLoss")}</p>
 							<p className="font-mono text-small text-trade-sell">
 								{summary.avgLoss.toFixed(2)}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Best Trade</p>
+							<p className="text-tiny text-txt-300">{tStats("bestTrade")}</p>
 							<p className="font-mono text-small text-trade-buy">
 								+{summary.bestTrade.toFixed(2)}
 							</p>
 						</div>
 						<div>
-							<p className="text-tiny text-txt-300">Worst Trade</p>
+							<p className="text-tiny text-txt-300">{tStats("worstTrade")}</p>
 							<p className="font-mono text-small text-trade-sell">
 								{summary.worstTrade.toFixed(2)}
 							</p>
@@ -164,7 +172,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 						className="mt-m-400 w-full"
 						onClick={() => setIsExpanded(!isExpanded)}
 					>
-						{isExpanded ? "Hide Details" : "Show Details"}
+						{isExpanded ? tCommon("hideDetails") : tCommon("showDetails")}
 					</Button>
 
 					{isExpanded && (
@@ -172,7 +180,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 							{/* Daily Breakdown */}
 							<div>
 								<h3 className="text-small font-medium text-txt-100">
-									Daily Breakdown
+									{t("dailyBreakdown")}
 								</h3>
 								<div className="mt-s-300 space-y-s-200">
 									{dailyBreakdown
@@ -183,7 +191,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 												className="flex items-center justify-between rounded bg-bg-100 px-s-300 py-s-200"
 											>
 												<span className="text-small text-txt-200">
-													{format(parseISO(day.date), "EEE, MMM d")}
+													{format(parseISO(day.date), "EEE, MMM d", { locale: dateLocale })}
 												</span>
 												<div className="flex items-center gap-m-400">
 													<span className="text-tiny text-txt-300">
@@ -211,7 +219,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 								<div>
 									<h3 className="flex items-center gap-s-200 text-small font-medium text-txt-100">
 										<TrendingUp className="h-4 w-4 text-trade-buy" />
-										Top Wins
+										{t("topWins")}
 									</h3>
 									<div className="mt-s-300 space-y-s-200">
 										{topWins.map((trade) => (
@@ -225,7 +233,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 														{trade.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">
-														{format(parseISO(trade.date), "MMM d")}
+														{format(parseISO(trade.date), "MMM d", { locale: dateLocale })}
 													</span>
 												</div>
 												<span className="font-mono text-small text-trade-buy">
@@ -247,7 +255,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 								<div>
 									<h3 className="flex items-center gap-s-200 text-small font-medium text-txt-100">
 										<TrendingDown className="h-4 w-4 text-trade-sell" />
-										Top Losses
+										{t("topLosses")}
 									</h3>
 									<div className="mt-s-300 space-y-s-200">
 										{topLosses.map((trade) => (
@@ -261,7 +269,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 														{trade.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">
-														{format(parseISO(trade.date), "MMM d")}
+														{format(parseISO(trade.date), "MMM d", { locale: dateLocale })}
 													</span>
 												</div>
 												<span className="font-mono text-small text-trade-sell">
@@ -282,7 +290,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 				</>
 			) : (
 				<p className="mt-m-400 text-center text-txt-300">
-					No trades recorded for this week
+					{t("noTrades")}
 				</p>
 			)}
 		</div>

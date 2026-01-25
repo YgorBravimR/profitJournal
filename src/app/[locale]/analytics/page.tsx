@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/analytics"
 import { getTagStats } from "@/app/actions/tags"
 import { getUniqueAssets } from "@/app/actions/trades"
+import { getTimeframes } from "@/app/actions/timeframes"
 
 interface AnalyticsPageProps {
 	params: Promise<{ locale: string }>
@@ -28,6 +29,7 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		rDistributionResult,
 		equityCurveResult,
 		assetsResult,
+		timeframesResult,
 	] = await Promise.all([
 		getPerformanceByVariable("asset"),
 		getTagStats(),
@@ -35,6 +37,7 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		getRDistribution(),
 		getEquityCurve(),
 		getUniqueAssets(),
+		getTimeframes(),
 	])
 
 	const initialPerformance =
@@ -61,6 +64,10 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		assetsResult.status === "success" && assetsResult.data
 			? assetsResult.data
 			: []
+	const availableTimeframes = timeframesResult.map((tf: { id: string; name: string }) => ({
+		id: tf.id,
+		name: tf.name,
+	}))
 
 	return (
 		<div className="flex h-full flex-col">
@@ -73,6 +80,7 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 					initialRDistribution={initialRDistribution}
 					initialEquityCurve={initialEquityCurve}
 					availableAssets={availableAssets}
+					availableTimeframes={availableTimeframes}
 				/>
 			</div>
 		</div>

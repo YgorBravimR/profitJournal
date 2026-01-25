@@ -1,8 +1,9 @@
 import type { CreateTradeInput } from "./validations/trade"
 
-// Extended type that includes strategy code for CSV import
+// Extended type that includes strategy code and timeframe code for CSV import
 export interface CsvTradeInput extends CreateTradeInput {
 	strategyCode?: string
+	timeframeCode?: string
 }
 
 export interface CsvParseResult {
@@ -37,10 +38,6 @@ const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 	direction: "direction",
 	side: "direction",
 	type: "direction",
-
-	// Timeframe
-	timeframe: "timeframe",
-	tf: "timeframe",
 
 	// Dates
 	entry_date: "entryDate",
@@ -123,6 +120,9 @@ const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 // Strategy column mappings (separate because it's not part of CreateTradeInput)
 const STRATEGY_COLUMN_NAMES = ["strategy", "strategy_code", "strategycode", "strat"]
 
+// Timeframe column mappings (separate because it's resolved to timeframeId during import)
+const TIMEFRAME_COLUMN_NAMES = ["timeframe", "tf", "time_frame"]
+
 const REQUIRED_FIELDS: Array<keyof CreateTradeInput> = [
 	"asset",
 	"direction",
@@ -132,7 +132,6 @@ const REQUIRED_FIELDS: Array<keyof CreateTradeInput> = [
 ]
 
 const VALID_DIRECTIONS = ["long", "short", "buy", "sell"]
-const VALID_TIMEFRAMES = ["1m", "5m", "15m", "30m", "1h", "4h", "1d", "1w"]
 
 const normalizeHeader = (header: string): string => {
 	return header.toLowerCase().trim().replace(/[\s-]/g, "_")
@@ -142,14 +141,6 @@ const parseDirection = (value: string): "long" | "short" | null => {
 	const normalized = value.toLowerCase().trim()
 	if (normalized === "long" || normalized === "buy") return "long"
 	if (normalized === "short" || normalized === "sell") return "short"
-	return null
-}
-
-const parseTimeframe = (value: string): CreateTradeInput["timeframe"] | null => {
-	const normalized = value.toLowerCase().trim()
-	if (VALID_TIMEFRAMES.includes(normalized)) {
-		return normalized as CreateTradeInput["timeframe"]
-	}
 	return null
 }
 
@@ -228,11 +219,18 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 	const columnMap: Array<{ index: number; field: keyof CreateTradeInput }> = []
 	const unmappedHeaders: string[] = []
 	let strategyColumnIndex: number | null = null
+	let timeframeColumnIndex: number | null = null
 
 	headers.forEach((header, index) => {
 		// Check if it's a strategy column
 		if (STRATEGY_COLUMN_NAMES.includes(header)) {
 			strategyColumnIndex = index
+			return
+		}
+
+		// Check if it's a timeframe column
+		if (TIMEFRAME_COLUMN_NAMES.includes(header)) {
+			timeframeColumnIndex = index
 			return
 		}
 
@@ -285,6 +283,14 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 			}
 		}
 
+		// Extract timeframe code if column exists
+		if (timeframeColumnIndex !== null) {
+			const timeframeCode = values[timeframeColumnIndex]?.trim().toUpperCase()
+			if (timeframeCode) {
+				trade.timeframeCode = timeframeCode
+			}
+		}
+
 		for (const { index, field } of columnMap) {
 			const value = values[index]?.trim() || ""
 
@@ -317,19 +323,6 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 							message: `Invalid direction: ${value}. Use "long" or "short"`,
 						})
 						rowHasErrors = true
-					}
-					break
-				}
-
-				case "timeframe": {
-					const timeframe = parseTimeframe(value)
-					if (timeframe) {
-						trade.timeframe = timeframe
-					} else {
-						result.warnings.push({
-							row: rowNumber,
-							message: `Invalid timeframe: ${value}. Skipping field.`,
-						})
 					}
 					break
 				}

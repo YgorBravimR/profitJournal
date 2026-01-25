@@ -25,6 +25,11 @@ import type {
 	EquityPoint,
 } from "@/types"
 
+interface TimeframeOption {
+	id: string
+	name: string
+}
+
 interface AnalyticsContentProps {
 	initialPerformance: PerformanceByGroup[]
 	initialTagStats: TagStats[]
@@ -32,6 +37,7 @@ interface AnalyticsContentProps {
 	initialRDistribution: RDistributionBucket[]
 	initialEquityCurve: EquityPoint[]
 	availableAssets: string[]
+	availableTimeframes: TimeframeOption[]
 }
 
 export const AnalyticsContent = ({
@@ -41,6 +47,7 @@ export const AnalyticsContent = ({
 	initialRDistribution,
 	initialEquityCurve,
 	availableAssets,
+	availableTimeframes,
 }: AnalyticsContentProps) => {
 	const [isPending, startTransition] = useTransition()
 
@@ -50,7 +57,7 @@ export const AnalyticsContent = ({
 		assets: [],
 		directions: [],
 		outcomes: [],
-		timeframes: [],
+		timeframeIds: [],
 	})
 
 	const [groupBy, setGroupBy] = useState<
@@ -77,7 +84,7 @@ export const AnalyticsContent = ({
 				assets: filters.assets.length > 0 ? filters.assets : undefined,
 				directions: filters.directions.length > 0 ? filters.directions : undefined,
 				outcomes: filters.outcomes.length > 0 ? filters.outcomes : undefined,
-				timeframes: filters.timeframes.length > 0 ? filters.timeframes as ("1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w")[] : undefined,
+				timeframeIds: filters.timeframeIds.length > 0 ? filters.timeframeIds : undefined,
 			}
 
 			const [perfResult, tagResult, evResult, rDistResult, equityResult] = await Promise.all([
@@ -119,6 +126,7 @@ export const AnalyticsContent = ({
 				filters={filters}
 				onFiltersChange={setFilters}
 				availableAssets={availableAssets}
+				availableTimeframes={availableTimeframes}
 			/>
 
 			{/* Loading Indicator */}

@@ -14,6 +14,7 @@ import {
 	type UpdateStrategyInput,
 } from "@/lib/validations/strategy"
 import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
+import { fromCents } from "@/lib/money"
 
 export interface StrategyWithStats extends Strategy {
 	tradeCount: number
@@ -261,7 +262,7 @@ export const getStrategies = async (
 				let grossLoss = 0
 
 				for (const trade of strategyTrades) {
-					const pnl = Number(trade.pnl) || 0
+					const pnl = fromCents(trade.pnl)
 					totalPnl += pnl
 
 					if (trade.outcome === "win") {
@@ -356,7 +357,7 @@ export const getStrategy = async (
 		let grossLoss = 0
 
 		for (const trade of strategyTrades) {
-			const pnl = Number(trade.pnl) || 0
+			const pnl = fromCents(trade.pnl)
 			totalPnl += pnl
 
 			if (trade.outcome === "win") {

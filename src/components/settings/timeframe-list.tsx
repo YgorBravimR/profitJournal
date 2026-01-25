@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TimeframeForm } from "./timeframe-form"
@@ -26,6 +27,8 @@ interface TimeframeListProps {
 }
 
 export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
+	const t = useTranslations("settings.timeframes")
+	const tCommon = useTranslations("common")
 	const [filterType, setFilterType] = useState<"all" | "time_based" | "renko">(
 		"all"
 	)
@@ -85,7 +88,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						className="cursor-pointer"
 						onClick={() => setFilterType("all")}
 					>
-						All
+						{tCommon("all")}
 					</Badge>
 					<Badge
 						variant={filterType === "time_based" ? "default" : "outline"}
@@ -93,7 +96,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						onClick={() => setFilterType("time_based")}
 					>
 						<Clock className="mr-1 h-3 w-3" />
-						Time Based
+						{t("timeBased")}
 					</Badge>
 					<Badge
 						variant={filterType === "renko" ? "default" : "outline"}
@@ -101,7 +104,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						onClick={() => setFilterType("renko")}
 					>
 						<BarChart3 className="mr-1 h-3 w-3" />
-						Renko
+						{t("renko")}
 					</Badge>
 				</div>
 				<div className="flex items-center gap-s-300">
@@ -116,11 +119,11 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						) : (
 							<ToggleLeft className="mr-2 h-4 w-4" />
 						)}
-						{showInactive ? "Showing inactive" : "Hiding inactive"}
+						{showInactive ? t("showingInactive") : t("hidingInactive")}
 					</Button>
 					<Button onClick={() => setFormOpen(true)}>
 						<Plus className="mr-2 h-4 w-4" />
-						Add Timeframe
+						{t("addTimeframe")}
 					</Button>
 				</div>
 			</div>
@@ -129,7 +132,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 			<div className="grid grid-cols-1 gap-m-400 sm:grid-cols-2 lg:grid-cols-3">
 				{filteredTimeframes.length === 0 ? (
 					<div className="col-span-full rounded-lg border border-bg-300 bg-bg-200 p-l-700 text-center text-txt-300">
-						No timeframes found
+						{t("noTimeframes")}
 					</div>
 				) : (
 					filteredTimeframes.map((timeframe) => (
@@ -156,7 +159,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 												variant={timeframe.isActive ? "default" : "secondary"}
 												className="text-tiny"
 											>
-												{timeframe.isActive ? "Active" : "Inactive"}
+												{timeframe.isActive ? t("active") : t("inactive")}
 											</Badge>
 										</div>
 										<p className="text-body font-medium text-txt-100">
