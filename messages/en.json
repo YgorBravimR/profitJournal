@@ -51,6 +51,7 @@
 		"analytics": "Analytics",
 		"playbook": "Playbook",
 		"reports": "Reports",
+		"monthly": "Monthly",
 		"settings": "Settings"
 	},
 	"trade": {
@@ -144,7 +145,10 @@
 		"title": "Dashboard",
 		"description": "Overview of your trading performance",
 		"kpi": {
+			"grossPnl": "Gross P&L",
 			"netPnl": "Net P&L",
+			"fees": "Fees",
+			"trades": "trades",
 			"winRate": "Win Rate",
 			"profitFactor": "Profit Factor",
 			"pf": "PF",
@@ -524,7 +528,61 @@
 			"dataExportDesc": "Export your trade data for backup or analysis",
 			"exportComingSoon": "Export functionality coming in a future update"
 		},
+		"tradingAccount": {
+			"title": "Trading Account",
+			"accountType": "Account Type",
+			"personal": "Personal Account (100% profit)",
+			"prop": "Prop Trading Firm",
+			"propSettings": "Prop Trading Settings",
+			"firmName": "Firm Name",
+			"profitShare": "Profit Share",
+			"profitShareHelp": "Percentage of profit you receive",
+			"taxSettings": "Tax Settings",
+			"dayTradeTax": "Day Trade Tax Rate",
+			"swingTradeTax": "Swing Trade Tax Rate",
+			"showTaxEstimates": "Show tax estimates in reports",
+			"showPropCalculations": "Show prop firm calculations",
+			"settingsUpdated": "Trading account settings updated",
+			"settingsUpdateFailed": "Failed to update settings"
+		},
 		"goToSettings": "Settings → {section}"
+	},
+	"monthly": {
+		"title": "Monthly Results",
+		"description": "Monthly performance with prop trading calculations",
+		"grossProfit": "Gross Profit",
+		"traderShare": "Your Share",
+		"propShare": "Prop Firm Share",
+		"netProfit": "Net Profit",
+		"afterTax": "after {taxRate}% tax",
+		"breakdown": "Profit Breakdown",
+		"estimatedTax": "Estimated Tax",
+		"errorLoading": "Failed to load monthly data",
+		"noData": "No trades recorded for this month",
+		"previousMonth": "Previous month",
+		"nextMonth": "Next month",
+		"projection": {
+			"title": "Month Projection",
+			"daysTraded": "{current} of {total} days traded",
+			"daysRemaining": "Days Remaining",
+			"dailyAverage": "Daily Average",
+			"projectedMonthly": "Projected Monthly",
+			"projectedNet": "Projected Net"
+		},
+		"comparison": {
+			"title": "Month Comparison",
+			"titleWithMonth": "Comparison with {month}",
+			"profit": "Profit",
+			"winRate": "Win Rate",
+			"avgR": "Avg R",
+			"trades": "Trades",
+			"change": "Change",
+			"noPreviousData": "No data from previous month for comparison"
+		},
+		"weeklyBreakdown": {
+			"title": "Weekly Breakdown",
+			"week": "Week {number}"
+		}
 	},
 	"assetTypes": {
 		"FUTURE_INDEX": "Future Index",

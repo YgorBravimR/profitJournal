@@ -145,8 +145,9 @@ export interface AssetPnLInput {
 	direction: "long" | "short"
 	tickSize: number
 	tickValue: number
-	commission?: number
-	fees?: number
+	commission?: number // per contract execution
+	fees?: number // per contract execution
+	contractsExecuted?: number // total contract executions (default: positionSize * 2 for entry + exit)
 }
 
 /**
@@ -165,6 +166,12 @@ export interface AssetPnLResult {
  * Entry: 128000, Exit: 128050, Size: 2 contracts
  * Ticks gained: (128050 - 128000) / 5 = 10 ticks
  * Gross P&L: 10 * 0.20 * 2 = R$4.00
+ *
+ * Costs calculation:
+ * - Each trade has at least 2 executions per contract (entry + exit)
+ * - If scaling in/out, more executions occur
+ * - contractsExecuted = total number of contract executions
+ * - Default: positionSize * 2 (1 entry + 1 exit per contract)
  */
 export const calculateAssetPnL = (input: AssetPnLInput): AssetPnLResult => {
 	const {
@@ -176,6 +183,7 @@ export const calculateAssetPnL = (input: AssetPnLInput): AssetPnLResult => {
 		tickValue,
 		commission = 0,
 		fees = 0,
+		contractsExecuted,
 	} = input
 
 	const priceDiff =
@@ -183,7 +191,10 @@ export const calculateAssetPnL = (input: AssetPnLInput): AssetPnLResult => {
 
 	const ticksGained = priceDiff / tickSize
 	const grossPnl = ticksGained * tickValue * positionSize
-	const totalCosts = (commission + fees) * positionSize
+
+	// Use contractsExecuted if provided, otherwise default to positionSize * 2 (entry + exit)
+	const totalExecutions = contractsExecuted ?? positionSize * 2
+	const totalCosts = (commission + fees) * totalExecutions
 	const netPnl = grossPnl - totalCosts
 
 	return {

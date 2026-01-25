@@ -15,7 +15,8 @@
       "Bash(pnpm drizzle-kit generate:*)",
       "Bash(ls:*)",
       "Bash(xxd:*)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(pkill:*)"
     ],
     "deny": [],
     "ask": []

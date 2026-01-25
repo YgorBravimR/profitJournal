@@ -51,6 +51,7 @@
 		"analytics": "Análises",
 		"playbook": "Playbook",
 		"reports": "Relatórios",
+		"monthly": "Mensal",
 		"settings": "Configurações"
 	},
 	"trade": {
@@ -144,7 +145,10 @@
 		"title": "Painel de Controle",
 		"description": "Visão geral do seu desempenho de trading",
 		"kpi": {
+			"grossPnl": "P&L Bruto",
 			"netPnl": "P&L Líquido",
+			"fees": "Taxas",
+			"trades": "trades",
 			"winRate": "Taxa de Acerto",
 			"profitFactor": "Fator de Lucro",
 			"pf": "FL",
@@ -524,7 +528,61 @@
 			"dataExportDesc": "Exporte seus dados de trades para backup ou análise",
 			"exportComingSoon": "Funcionalidade de exportação em breve"
 		},
+		"tradingAccount": {
+			"title": "Conta de Trading",
+			"accountType": "Tipo de Conta",
+			"personal": "Conta Própria (100% do lucro)",
+			"prop": "Mesa Proprietária",
+			"propSettings": "Configurações da Mesa",
+			"firmName": "Nome da Mesa",
+			"profitShare": "Participação no Lucro",
+			"profitShareHelp": "Porcentagem do lucro que você recebe",
+			"taxSettings": "Configurações de Impostos",
+			"dayTradeTax": "Alíquota IR Day Trade",
+			"swingTradeTax": "Alíquota IR Swing Trade",
+			"showTaxEstimates": "Mostrar estimativas de impostos",
+			"showPropCalculations": "Mostrar cálculos da mesa proprietária",
+			"settingsUpdated": "Configurações de conta atualizadas",
+			"settingsUpdateFailed": "Falha ao atualizar configurações"
+		},
 		"goToSettings": "Configurações → {section}"
+	},
+	"monthly": {
+		"title": "Resultados Mensais",
+		"description": "Performance mensal com cálculos de mesa proprietária",
+		"grossProfit": "Lucro Bruto",
+		"traderShare": "Sua Parte",
+		"propShare": "Parte da Mesa",
+		"netProfit": "Lucro Líquido",
+		"afterTax": "após {taxRate}% de IR",
+		"breakdown": "Detalhamento do Lucro",
+		"estimatedTax": "IR Estimado",
+		"errorLoading": "Falha ao carregar dados mensais",
+		"noData": "Nenhum trade registrado neste mês",
+		"previousMonth": "Mês anterior",
+		"nextMonth": "Próximo mês",
+		"projection": {
+			"title": "Projeção do Mês",
+			"daysTraded": "{current} de {total} dias operados",
+			"daysRemaining": "Dias Restantes",
+			"dailyAverage": "Média Diária",
+			"projectedMonthly": "Projeção Mensal",
+			"projectedNet": "Projeção Líquida"
+		},
+		"comparison": {
+			"title": "Comparação Mensal",
+			"titleWithMonth": "Comparação com {month}",
+			"profit": "Lucro",
+			"winRate": "Taxa de Acerto",
+			"avgR": "R Médio",
+			"trades": "Trades",
+			"change": "Variação",
+			"noPreviousData": "Sem dados do mês anterior para comparação"
+		},
+		"weeklyBreakdown": {
+			"title": "Breakdown Semanal",
+			"week": "Semana {number}"
+		}
 	},
 	"assetTypes": {
 		"FUTURE_INDEX": "Futuro de Índice",

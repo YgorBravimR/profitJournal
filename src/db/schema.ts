@@ -158,8 +158,11 @@ export const trades = pgTable(
 		maeR: decimal("mae_r", { precision: 8, scale: 2 }),
 
 		// Fees (in cents)
-		commission: bigint("commission", { mode: "number" }).default(0), // cents
-		fees: bigint("fees", { mode: "number" }).default(0), // cents
+		commission: bigint("commission", { mode: "number" }).default(0), // cents per contract
+		fees: bigint("fees", { mode: "number" }).default(0), // cents per contract
+		// Total contracts executed (entry + exit + any intra-trade scaling)
+		// Default is positionSize * 2 (1 entry + 1 exit per contract)
+		contractsExecuted: decimal("contracts_executed", { precision: 18, scale: 8 }),
 
 		// Narrative
 		preTradeThoughts: text("pre_trade_thoughts"),
@@ -261,12 +264,52 @@ export const dailyJournals = pgTable(
 	(table) => [index("daily_journals_date_idx").on(table.date)]
 )
 
-// Settings Table
+// Settings Table (key-value store for misc settings)
 export const settings = pgTable("settings", {
 	id: uuid("id").primaryKey().defaultRandom(),
 	key: varchar("key", { length: 50 }).notNull().unique(),
 	value: text("value").notNull(),
 	description: text("description"),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+})
+
+// User Settings Table (structured settings for trading account)
+export const userSettings = pgTable("user_settings", {
+	id: uuid("id").primaryKey().defaultRandom(),
+	userId: varchar("user_id", { length: 50 }).notNull().unique().default("default"),
+
+	// Prop Trading Settings
+	isPropAccount: boolean("is_prop_account").default(false).notNull(),
+	propFirmName: varchar("prop_firm_name", { length: 100 }),
+	profitSharePercentage: decimal("profit_share_percentage", {
+		precision: 5,
+		scale: 2,
+	})
+		.default("100.00")
+		.notNull(),
+
+	// Tax Settings
+	dayTradeTaxRate: decimal("day_trade_tax_rate", { precision: 5, scale: 2 })
+		.default("20.00")
+		.notNull(),
+	swingTradeTaxRate: decimal("swing_trade_tax_rate", { precision: 5, scale: 2 })
+		.default("15.00")
+		.notNull(),
+	taxExemptThreshold: integer("tax_exempt_threshold").default(0).notNull(), // cents
+
+	// Display Preferences
+	defaultCurrency: varchar("default_currency", { length: 3 })
+		.default("BRL")
+		.notNull(),
+	showTaxEstimates: boolean("show_tax_estimates").default(true).notNull(),
+	showPropCalculations: boolean("show_prop_calculations").default(true).notNull(),
+
+	// Timestamps
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
 	updatedAt: timestamp("updated_at", { withTimezone: true })
 		.defaultNow()
 		.notNull(),
@@ -346,3 +389,6 @@ export type NewAsset = typeof assets.$inferInsert
 
 export type Timeframe = typeof timeframes.$inferSelect
 export type NewTimeframe = typeof timeframes.$inferInsert
+
+export type UserSettings = typeof userSettings.$inferSelect
+export type NewUserSettings = typeof userSettings.$inferInsert

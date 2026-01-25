@@ -104,6 +104,8 @@ export const createTrade = async (
 				realizedRMultiple: realizedR?.toString(),
 				mfe: tradeData.mfe?.toString(),
 				mae: tradeData.mae?.toString(),
+				// contractsExecuted defaults to positionSize * 2 (entry + exit) if not provided
+				contractsExecuted: tradeData.contractsExecuted?.toString() ?? (tradeData.positionSize * 2).toString(),
 				followedPlan: tradeData.followedPlan,
 				strategyId: tradeData.strategyId || null,
 				preTradeThoughts: tradeData.preTradeThoughts,
@@ -240,6 +242,7 @@ export const updateTrade = async (
 		if (plannedRMultiple !== undefined) updateData.plannedRMultiple = plannedRMultiple.toString()
 		if (tradeData.mfe !== undefined) updateData.mfe = tradeData.mfe.toString()
 		if (tradeData.mae !== undefined) updateData.mae = tradeData.mae.toString()
+		if (tradeData.contractsExecuted !== undefined) updateData.contractsExecuted = tradeData.contractsExecuted.toString()
 		if (tradeData.followedPlan !== undefined) updateData.followedPlan = tradeData.followedPlan
 		if (tradeData.strategyId !== undefined) updateData.strategyId = tradeData.strategyId
 		if (tradeData.preTradeThoughts !== undefined) updateData.preTradeThoughts = tradeData.preTradeThoughts
@@ -670,6 +673,8 @@ export const bulkCreateTrades = async (
 						realizedRMultiple: realizedR?.toString(),
 						mfe: tradeData.mfe?.toString(),
 						mae: tradeData.mae?.toString(),
+						// contractsExecuted defaults to positionSize * 2 (entry + exit)
+						contractsExecuted: tradeData.contractsExecuted?.toString() ?? (tradeData.positionSize * 2).toString(),
 						followedPlan: tradeData.followedPlan,
 						strategyId: strategyId || tradeData.strategyId || null,
 						preTradeThoughts: tradeData.preTradeThoughts,

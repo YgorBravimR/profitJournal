@@ -1,13 +1,223 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { settings } from "@/db/schema"
+import { settings, userSettings, type UserSettings } from "@/db/schema"
 import { eq } from "drizzle-orm"
+import { revalidatePath } from "next/cache"
 import type { ActionResponse } from "@/types"
+import {
+	userSettingsSchema,
+	type UpdateUserSettingsInput,
+} from "@/lib/validations/settings"
 
 export interface RiskSettings {
 	defaultRiskPercent: number
 	accountBalance: number
+}
+
+// User Settings Types
+export interface UserSettingsData {
+	isPropAccount: boolean
+	propFirmName: string | null
+	profitSharePercentage: number
+	dayTradeTaxRate: number
+	swingTradeTaxRate: number
+	taxExemptThreshold: number
+	defaultCurrency: string
+	showTaxEstimates: boolean
+	showPropCalculations: boolean
+}
+
+// Default settings for new users
+const DEFAULT_USER_SETTINGS: UserSettingsData = {
+	isPropAccount: false,
+	propFirmName: null,
+	profitSharePercentage: 100,
+	dayTradeTaxRate: 20,
+	swingTradeTaxRate: 15,
+	taxExemptThreshold: 0,
+	defaultCurrency: "BRL",
+	showTaxEstimates: true,
+	showPropCalculations: true,
+}
+
+// Convert database row to UserSettingsData
+const toUserSettingsData = (row: UserSettings): UserSettingsData => ({
+	isPropAccount: row.isPropAccount,
+	propFirmName: row.propFirmName,
+	profitSharePercentage: Number(row.profitSharePercentage),
+	dayTradeTaxRate: Number(row.dayTradeTaxRate),
+	swingTradeTaxRate: Number(row.swingTradeTaxRate),
+	taxExemptThreshold: row.taxExemptThreshold,
+	defaultCurrency: row.defaultCurrency,
+	showTaxEstimates: row.showTaxEstimates,
+	showPropCalculations: row.showPropCalculations,
+})
+
+// Get user settings (creates default if not exists)
+export const getUserSettings = async (): Promise<
+	ActionResponse<UserSettingsData>
+> => {
+	try {
+		const existingSettings = await db.query.userSettings.findFirst({
+			where: eq(userSettings.userId, "default"),
+		})
+
+		if (existingSettings) {
+			return {
+				status: "success",
+				message: "Settings retrieved successfully",
+				data: toUserSettingsData(existingSettings),
+			}
+		}
+
+		// Create default settings if not exists
+		const [newSettings] = await db
+			.insert(userSettings)
+			.values({
+				userId: "default",
+				isPropAccount: DEFAULT_USER_SETTINGS.isPropAccount,
+				propFirmName: DEFAULT_USER_SETTINGS.propFirmName,
+				profitSharePercentage: String(
+					DEFAULT_USER_SETTINGS.profitSharePercentage
+				),
+				dayTradeTaxRate: String(DEFAULT_USER_SETTINGS.dayTradeTaxRate),
+				swingTradeTaxRate: String(DEFAULT_USER_SETTINGS.swingTradeTaxRate),
+				taxExemptThreshold: DEFAULT_USER_SETTINGS.taxExemptThreshold,
+				defaultCurrency: DEFAULT_USER_SETTINGS.defaultCurrency,
+				showTaxEstimates: DEFAULT_USER_SETTINGS.showTaxEstimates,
+				showPropCalculations: DEFAULT_USER_SETTINGS.showPropCalculations,
+			})
+			.returning()
+
+		return {
+			status: "success",
+			message: "Default settings created",
+			data: toUserSettingsData(newSettings),
+		}
+	} catch (error) {
+		console.error("Failed to get user settings:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve settings",
+		}
+	}
+}
+
+// Update user settings
+export const updateUserSettings = async (
+	data: UpdateUserSettingsInput
+): Promise<ActionResponse<UserSettingsData>> => {
+	try {
+		// Validate input
+		const validationResult = userSettingsSchema.partial().safeParse(data)
+		if (!validationResult.success) {
+			return {
+				status: "error",
+				message: validationResult.error.issues[0]?.message || "Validation error",
+			}
+		}
+
+		const now = new Date()
+
+		// Ensure settings exist
+		const existing = await db.query.userSettings.findFirst({
+			where: eq(userSettings.userId, "default"),
+		})
+
+		if (!existing) {
+			// Create with provided data merged with defaults
+			const [newSettings] = await db
+				.insert(userSettings)
+				.values({
+					userId: "default",
+					isPropAccount: data.isPropAccount ?? DEFAULT_USER_SETTINGS.isPropAccount,
+					propFirmName: data.propFirmName ?? DEFAULT_USER_SETTINGS.propFirmName,
+					profitSharePercentage: String(
+						data.profitSharePercentage ??
+							DEFAULT_USER_SETTINGS.profitSharePercentage
+					),
+					dayTradeTaxRate: String(
+						data.dayTradeTaxRate ?? DEFAULT_USER_SETTINGS.dayTradeTaxRate
+					),
+					swingTradeTaxRate: String(
+						data.swingTradeTaxRate ?? DEFAULT_USER_SETTINGS.swingTradeTaxRate
+					),
+					taxExemptThreshold:
+						data.taxExemptThreshold ?? DEFAULT_USER_SETTINGS.taxExemptThreshold,
+					defaultCurrency:
+						data.defaultCurrency ?? DEFAULT_USER_SETTINGS.defaultCurrency,
+					showTaxEstimates:
+						data.showTaxEstimates ?? DEFAULT_USER_SETTINGS.showTaxEstimates,
+					showPropCalculations:
+						data.showPropCalculations ??
+						DEFAULT_USER_SETTINGS.showPropCalculations,
+					updatedAt: now,
+				})
+				.returning()
+
+			revalidatePath("/settings")
+			revalidatePath("/monthly")
+
+			return {
+				status: "success",
+				message: "Settings created successfully",
+				data: toUserSettingsData(newSettings),
+			}
+		}
+
+		// Build update object only with provided fields
+		const updateData: Record<string, unknown> = { updatedAt: now }
+
+		if (data.isPropAccount !== undefined) {
+			updateData.isPropAccount = data.isPropAccount
+		}
+		if (data.propFirmName !== undefined) {
+			updateData.propFirmName = data.propFirmName
+		}
+		if (data.profitSharePercentage !== undefined) {
+			updateData.profitSharePercentage = String(data.profitSharePercentage)
+		}
+		if (data.dayTradeTaxRate !== undefined) {
+			updateData.dayTradeTaxRate = String(data.dayTradeTaxRate)
+		}
+		if (data.swingTradeTaxRate !== undefined) {
+			updateData.swingTradeTaxRate = String(data.swingTradeTaxRate)
+		}
+		if (data.taxExemptThreshold !== undefined) {
+			updateData.taxExemptThreshold = data.taxExemptThreshold
+		}
+		if (data.defaultCurrency !== undefined) {
+			updateData.defaultCurrency = data.defaultCurrency
+		}
+		if (data.showTaxEstimates !== undefined) {
+			updateData.showTaxEstimates = data.showTaxEstimates
+		}
+		if (data.showPropCalculations !== undefined) {
+			updateData.showPropCalculations = data.showPropCalculations
+		}
+
+		const [updated] = await db
+			.update(userSettings)
+			.set(updateData)
+			.where(eq(userSettings.userId, "default"))
+			.returning()
+
+		revalidatePath("/settings")
+		revalidatePath("/monthly")
+
+		return {
+			status: "success",
+			message: "Settings updated successfully",
+			data: toUserSettingsData(updated),
+		}
+	} catch (error) {
+		console.error("Failed to update user settings:", error)
+		return {
+			status: "error",
+			message: "Failed to update settings",
+		}
+	}
 }
 
 export const getRiskSettings = async (): Promise<ActionResponse<RiskSettings>> => {

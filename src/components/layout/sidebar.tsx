@@ -8,6 +8,7 @@ import {
 	BarChart3,
 	FileText,
 	FileBarChart,
+	CalendarDays,
 	Settings,
 	ChevronLeft,
 	ChevronRight,
@@ -16,8 +17,8 @@ import {
 import { cn } from "@/lib/utils"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/settings"
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/settings"
 	icon: LucideIcon
 }
 
@@ -27,6 +28,7 @@ const navItems: NavItem[] = [
 	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
 	{ labelKey: "playbook", href: "/playbook", icon: FileText },
 	{ labelKey: "reports", href: "/reports", icon: FileBarChart },
+	{ labelKey: "monthly", href: "/monthly", icon: CalendarDays },
 	{ labelKey: "settings", href: "/settings", icon: Settings },
 ]
 

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { RecalculateButton } from "@/components/settings/recalculate-button"
 import { LanguageSwitcher } from "@/components/settings/language-switcher"
+import { TradingAccountSettings } from "@/components/settings/trading-account-settings"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Link } from "@/i18n/routing"
@@ -187,6 +188,9 @@ export const GeneralSettings = () => {
 					</div>
 				)}
 			</div>
+
+			{/* Trading Account (Prop Trading & Tax) */}
+			<TradingAccountSettings />
 
 			{/* Data Maintenance */}
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">

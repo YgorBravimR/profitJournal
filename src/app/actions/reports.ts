@@ -12,8 +12,13 @@ import {
 	format,
 	subWeeks,
 	subMonths,
+	addMonths,
+	differenceInBusinessDays,
+	isWeekend,
+	eachWeekOfInterval,
 } from "date-fns"
 import { fromCents } from "@/lib/money"
+import { getUserSettings, type UserSettingsData } from "./settings"
 
 // ============================================================================
 // TYPES
@@ -547,5 +552,388 @@ export const getMistakeCostAnalysis = async (): Promise<{
 	} catch (error) {
 		console.error("Error fetching mistake cost analysis:", error)
 		return { status: "error", message: "Failed to fetch mistake cost analysis" }
+	}
+}
+
+// ============================================================================
+// PROP TRADING CALCULATIONS
+// ============================================================================
+
+export interface PropProfitCalculation {
+	grossProfit: number
+	propFirmShare: number
+	traderShare: number
+	estimatedTax: number
+	netProfit: number
+}
+
+export interface MonthlyResultsWithProp {
+	monthStart: string
+	monthEnd: string
+	report: MonthlyReport["summary"]
+	prop: PropProfitCalculation
+	settings: {
+		isPropAccount: boolean
+		propFirmName: string | null
+		profitSharePercentage: number
+		dayTradeTaxRate: number
+	}
+	weeklyBreakdown: MonthlyReport["weeklyBreakdown"]
+}
+
+export interface MonthlyProjection {
+	daysTraded: number
+	totalTradingDays: number
+	tradingDaysRemaining: number
+	currentProfit: number
+	dailyAverage: number
+	projectedMonthlyProfit: number
+	projectedTraderShare: number
+	projectedNetProfit: number
+}
+
+export interface MonthComparison {
+	currentMonth: MonthlyResultsWithProp
+	previousMonth: MonthlyResultsWithProp | null
+	changes: {
+		profitChange: number
+		profitChangePercent: number
+		winRateChange: number
+		avgRChange: number
+		tradeCountChange: number
+	}
+}
+
+export interface YearlyOverview {
+	year: number
+	months: Array<{
+		month: number
+		monthName: string
+		netPnl: number
+		tradeCount: number
+		hasTrades: boolean
+	}>
+}
+
+// Calculate prop trading profit breakdown
+const calculatePropProfit = (
+	grossProfit: number,
+	settings: UserSettingsData
+): PropProfitCalculation => {
+	// Only calculate shares if profitable
+	if (grossProfit <= 0) {
+		return {
+			grossProfit,
+			propFirmShare: 0,
+			traderShare: grossProfit, // Trader absorbs the loss
+			estimatedTax: 0, // No tax on losses
+			netProfit: grossProfit,
+		}
+	}
+
+	const profitSharePercent = settings.isPropAccount
+		? settings.profitSharePercentage
+		: 100
+
+	const traderShare = grossProfit * (profitSharePercent / 100)
+	const propFirmShare = grossProfit - traderShare
+	const estimatedTax = settings.showTaxEstimates
+		? traderShare * (settings.dayTradeTaxRate / 100)
+		: 0
+	const netProfit = traderShare - estimatedTax
+
+	return {
+		grossProfit,
+		propFirmShare,
+		traderShare,
+		estimatedTax,
+		netProfit,
+	}
+}
+
+// Get business days in a month (excluding weekends)
+const getBusinessDaysInMonth = (date: Date): number => {
+	const start = startOfMonth(date)
+	const end = endOfMonth(date)
+	return differenceInBusinessDays(end, start) + 1
+}
+
+// Get unique trading days from trades
+const getUniqueTradingDays = (
+	tradeList: Array<{ entryDate: Date }>
+): number => {
+	const uniqueDays = new Set<string>()
+	for (const trade of tradeList) {
+		const dateKey = format(new Date(trade.entryDate), "yyyy-MM-dd")
+		uniqueDays.add(dateKey)
+	}
+	return uniqueDays.size
+}
+
+// ============================================================================
+// MONTHLY RESULTS WITH PROP CALCULATIONS
+// ============================================================================
+
+export const getMonthlyResultsWithProp = async (
+	monthOffset = 0
+): Promise<{
+	status: "success" | "error"
+	data?: MonthlyResultsWithProp
+	message?: string
+}> => {
+	try {
+		// Get user settings and monthly report in parallel
+		const [settingsResult, reportResult] = await Promise.all([
+			getUserSettings(),
+			getMonthlyReport(monthOffset),
+		])
+
+		if (settingsResult.status !== "success" || !settingsResult.data) {
+			return { status: "error", message: "Failed to get user settings" }
+		}
+
+		if (reportResult.status !== "success" || !reportResult.data) {
+			return { status: "error", message: "Failed to get monthly report" }
+		}
+
+		const settings = settingsResult.data
+		const report = reportResult.data
+
+		// Calculate prop profit breakdown
+		const prop = calculatePropProfit(report.summary.netPnl, settings)
+
+		return {
+			status: "success",
+			data: {
+				monthStart: report.monthStart,
+				monthEnd: report.monthEnd,
+				report: report.summary,
+				prop,
+				settings: {
+					isPropAccount: settings.isPropAccount,
+					propFirmName: settings.propFirmName,
+					profitSharePercentage: settings.profitSharePercentage,
+					dayTradeTaxRate: settings.dayTradeTaxRate,
+				},
+				weeklyBreakdown: report.weeklyBreakdown,
+			},
+		}
+	} catch (error) {
+		console.error("Error fetching monthly results with prop:", error)
+		return { status: "error", message: "Failed to fetch monthly results" }
+	}
+}
+
+// ============================================================================
+// MONTHLY PROJECTION
+// ============================================================================
+
+export const getMonthlyProjection = async (): Promise<{
+	status: "success" | "error"
+	data?: MonthlyProjection
+	message?: string
+}> => {
+	try {
+		const now = new Date()
+		const monthStart = startOfMonth(now)
+		const monthEnd = endOfMonth(now)
+
+		// Get settings and current month trades
+		const [settingsResult, monthTrades] = await Promise.all([
+			getUserSettings(),
+			db.query.trades.findMany({
+				where: and(
+					eq(trades.isArchived, false),
+					gte(trades.entryDate, monthStart),
+					lte(trades.entryDate, now)
+				),
+			}),
+		])
+
+		if (settingsResult.status !== "success" || !settingsResult.data) {
+			return { status: "error", message: "Failed to get user settings" }
+		}
+
+		const settings = settingsResult.data
+		const totalTradingDays = getBusinessDaysInMonth(now)
+		const daysTraded = getUniqueTradingDays(monthTrades)
+		const tradingDaysRemaining = Math.max(
+			0,
+			differenceInBusinessDays(monthEnd, now)
+		)
+
+		const currentProfit = monthTrades.reduce(
+			(sum, t) => sum + fromCents(t.pnl),
+			0
+		)
+		const dailyAverage = daysTraded > 0 ? currentProfit / daysTraded : 0
+		const projectedMonthlyProfit =
+			currentProfit + dailyAverage * tradingDaysRemaining
+
+		// Calculate projected prop values
+		const projectedProp = calculatePropProfit(projectedMonthlyProfit, settings)
+
+		return {
+			status: "success",
+			data: {
+				daysTraded,
+				totalTradingDays,
+				tradingDaysRemaining,
+				currentProfit,
+				dailyAverage,
+				projectedMonthlyProfit,
+				projectedTraderShare: projectedProp.traderShare,
+				projectedNetProfit: projectedProp.netProfit,
+			},
+		}
+	} catch (error) {
+		console.error("Error fetching monthly projection:", error)
+		return { status: "error", message: "Failed to fetch monthly projection" }
+	}
+}
+
+// ============================================================================
+// MONTH COMPARISON
+// ============================================================================
+
+export const getMonthComparison = async (
+	monthOffset = 0
+): Promise<{
+	status: "success" | "error"
+	data?: MonthComparison
+	message?: string
+}> => {
+	try {
+		// Get current and previous month results
+		const [currentResult, previousResult] = await Promise.all([
+			getMonthlyResultsWithProp(monthOffset),
+			getMonthlyResultsWithProp(monthOffset + 1),
+		])
+
+		if (currentResult.status !== "success" || !currentResult.data) {
+			return { status: "error", message: "Failed to get current month data" }
+		}
+
+		const current = currentResult.data
+		const previous =
+			previousResult.status === "success" ? previousResult.data : null
+
+		// Calculate changes
+		const profitChange = previous
+			? current.report.netPnl - previous.report.netPnl
+			: 0
+		const profitChangePercent =
+			previous && previous.report.netPnl !== 0
+				? ((current.report.netPnl - previous.report.netPnl) /
+						Math.abs(previous.report.netPnl)) *
+					100
+				: 0
+		const winRateChange = previous
+			? current.report.winRate - previous.report.winRate
+			: 0
+		const avgRChange = previous
+			? current.report.avgR - previous.report.avgR
+			: 0
+		const tradeCountChange = previous
+			? current.report.totalTrades - previous.report.totalTrades
+			: 0
+
+		return {
+			status: "success",
+			data: {
+				currentMonth: current,
+				previousMonth: previous ?? null,
+				changes: {
+					profitChange,
+					profitChangePercent,
+					winRateChange,
+					avgRChange,
+					tradeCountChange,
+				},
+			},
+		}
+	} catch (error) {
+		console.error("Error fetching month comparison:", error)
+		return { status: "error", message: "Failed to fetch month comparison" }
+	}
+}
+
+// ============================================================================
+// YEARLY OVERVIEW
+// ============================================================================
+
+export const getYearlyOverview = async (
+	year?: number
+): Promise<{
+	status: "success" | "error"
+	data?: YearlyOverview
+	message?: string
+}> => {
+	try {
+		const targetYear = year || new Date().getFullYear()
+		const yearStart = new Date(targetYear, 0, 1)
+		const yearEnd = new Date(targetYear, 11, 31, 23, 59, 59)
+
+		// Get all trades for the year
+		const yearTrades = await db.query.trades.findMany({
+			where: and(
+				eq(trades.isArchived, false),
+				gte(trades.entryDate, yearStart),
+				lte(trades.entryDate, yearEnd)
+			),
+		})
+
+		// Group by month
+		const monthlyData = new Map<
+			number,
+			{ netPnl: number; tradeCount: number }
+		>()
+
+		for (const trade of yearTrades) {
+			const month = new Date(trade.entryDate).getMonth()
+			const current = monthlyData.get(month) || { netPnl: 0, tradeCount: 0 }
+			monthlyData.set(month, {
+				netPnl: current.netPnl + fromCents(trade.pnl),
+				tradeCount: current.tradeCount + 1,
+			})
+		}
+
+		// Build months array
+		const monthNames = [
+			"January",
+			"February",
+			"March",
+			"April",
+			"May",
+			"June",
+			"July",
+			"August",
+			"September",
+			"October",
+			"November",
+			"December",
+		]
+
+		const months = monthNames.map((name, index) => {
+			const data = monthlyData.get(index)
+			return {
+				month: index,
+				monthName: name,
+				netPnl: data?.netPnl || 0,
+				tradeCount: data?.tradeCount || 0,
+				hasTrades: (data?.tradeCount || 0) > 0,
+			}
+		})
+
+		return {
+			status: "success",
+			data: {
+				year: targetYear,
+				months,
+			},
+		}
+	} catch (error) {
+		console.error("Error fetching yearly overview:", error)
+		return { status: "error", message: "Failed to fetch yearly overview" }
 	}
 }

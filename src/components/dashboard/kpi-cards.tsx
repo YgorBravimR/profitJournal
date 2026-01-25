@@ -59,7 +59,15 @@ const formatR = (value: number): string => {
 export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
 	const t = useTranslations("dashboard.kpi")
 
-	const pnlColorClass = stats
+	const grossPnlColorClass = stats
+		? stats.grossPnl > 0
+			? "text-trade-buy"
+			: stats.grossPnl < 0
+				? "text-trade-sell"
+				: "text-txt-100"
+		: "text-txt-100"
+
+	const netPnlColorClass = stats
 		? stats.netPnl > 0
 			? "text-trade-buy"
 			: stats.netPnl < 0
@@ -76,12 +84,18 @@ export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
 		: "text-txt-100"
 
 	return (
-		<div className="grid grid-cols-2 gap-m-500 md:grid-cols-5">
+		<div className="grid grid-cols-2 gap-m-500 md:grid-cols-6">
+			<KpiCard
+				label={t("grossPnl")}
+				value={stats ? formatCurrency(stats.grossPnl) : "--"}
+				subValue={stats ? `${stats.totalTrades} ${t("trades")}` : undefined}
+				colorClass={grossPnlColorClass}
+			/>
 			<KpiCard
 				label={t("netPnl")}
 				value={stats ? formatCurrency(stats.netPnl) : "--"}
-				subValue={stats ? `${stats.totalTrades} trades` : undefined}
-				colorClass={pnlColorClass}
+				subValue={stats?.totalFees ? `${t("fees")}: ${formatCurrency(stats.totalFees)}` : undefined}
+				colorClass={netPnlColorClass}
 			/>
 			<KpiCard
 				label={t("winRate")}

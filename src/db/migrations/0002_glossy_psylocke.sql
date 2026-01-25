@@ -1,0 +1,1 @@
+ALTER TABLE "trades" ADD COLUMN "contracts_executed" numeric(18, 8);

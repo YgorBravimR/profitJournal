@@ -17,7 +17,7 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 5 | Strategy Playbook | ✅ Complete | Jan 2025 |
 | 6 | Settings & Configuration | ✅ Complete | Jan 2025 |
 | 7 | i18n & Brazilian Market | ✅ Complete | Jan 2025 |
-| 8 | Monthly Results & Prop Trading | 🔲 Planned | - |
+| 8 | Monthly Results & Prop Trading | ✅ Complete | Jan 2025 |
 | 9 | Position Scaling & Execution Management | 🔲 Planned | - |
 
 ---
@@ -1049,7 +1049,7 @@ src/
 
 ---
 
-## Phase 8: Monthly Results & Prop Trading 🔲 PLANNED
+## Phase 8: Monthly Results & Prop Trading ✅ COMPLETE
 
 **Goal:** Create a comprehensive monthly results page with prop trading profit calculations, tax deductions, and month-over-month comparison.
 
@@ -2032,6 +2032,34 @@ src/
 - [ ] Backwards compatible with simple trades
 - [ ] Updated analytics for effective prices
 - [ ] Full i18n support for new features
+
+---
+
+## Improvements & Fixes (Jan 2025)
+
+### Fee Calculation Enhancement
+
+Updated the fee calculation to properly account for contract executions:
+
+1. **Fee Formula Change**: Fees are now calculated as `(commission + fees) × contractsExecuted`
+   - Previously: `(commission + fees) × positionSize` (only counted position size once)
+   - Now: Default is `positionSize × 2` (entry + exit) unless overridden
+
+2. **New Field: `contractsExecuted`**
+   - Added to `trades` table to track total contract executions
+   - Defaults to `positionSize × 2` (1 entry + 1 exit per contract)
+   - Can be increased for trades with scaling (add/reduce during trade)
+   - Preliminary work for Phase 9's full execution tracking
+
+3. **Dashboard Updates**
+   - Added **Gross P&L** card (P&L before fees)
+   - Added **Net P&L** card (P&L after fees, shows fee amount)
+   - Dashboard now shows 6 KPI cards instead of 5
+
+4. **Trade Form Updates**
+   - Added "Contracts Executed" field in Risk tab
+   - Shows default calculation hint
+   - Tooltip explains usage for scaling scenarios
 
 ---
 

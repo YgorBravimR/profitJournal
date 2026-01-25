@@ -76,7 +76,9 @@ export const getOverallStats = async (
 				status: "success",
 				message: "No trades found",
 				data: {
+					grossPnl: 0,
 					netPnl: 0,
+					totalFees: 0,
 					winRate: 0,
 					profitFactor: 0,
 					averageR: 0,
@@ -90,7 +92,8 @@ export const getOverallStats = async (
 		}
 
 		// Calculate stats from trades
-		let totalPnl = 0
+		let totalNetPnl = 0
+		let totalFees = 0
 		let totalR = 0
 		let rCount = 0
 		let winCount = 0
@@ -101,8 +104,13 @@ export const getOverallStats = async (
 		const losses: number[] = []
 
 		for (const trade of result) {
-			const pnl = fromCents(trade.pnl)
-			totalPnl += pnl
+			const pnl = fromCents(trade.pnl) // This is net P&L (after fees)
+			const commission = fromCents(trade.commission ?? 0)
+			const fees = fromCents(trade.fees ?? 0)
+			const tradeFees = commission + fees
+
+			totalNetPnl += pnl
+			totalFees += tradeFees
 
 			if (trade.realizedRMultiple) {
 				totalR += Number(trade.realizedRMultiple)
@@ -120,6 +128,9 @@ export const getOverallStats = async (
 			}
 		}
 
+		// Gross P&L = Net P&L + Total Fees (fees were subtracted to get net)
+		const totalGrossPnl = totalNetPnl + totalFees
+
 		const totalTrades = result.length
 		const winRate = calculateWinRate(winCount, winCount + lossCount)
 		const profitFactor = calculateProfitFactor(grossProfit, grossLoss)
@@ -131,7 +142,9 @@ export const getOverallStats = async (
 			status: "success",
 			message: "Stats retrieved",
 			data: {
-				netPnl: totalPnl,
+				grossPnl: totalGrossPnl,
+				netPnl: totalNetPnl,
+				totalFees,
 				winRate,
 				profitFactor,
 				averageR,

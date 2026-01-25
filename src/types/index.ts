@@ -48,7 +48,9 @@ export interface PaginationParams {
 
 // Stats Types
 export interface OverallStats {
-	netPnl: number
+	grossPnl: number // P&L before fees
+	netPnl: number // P&L after fees
+	totalFees: number // Total fees deducted
 	winRate: number
 	profitFactor: number
 	averageR: number

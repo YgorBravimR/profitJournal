@@ -49,6 +49,10 @@ export const createTradeSchema = z.object({
 	mfe: z.coerce.number().optional(),
 	mae: z.coerce.number().optional(),
 
+	// Contracts executed (total executions: entry + exit + any scaling)
+	// Default is positionSize * 2 if not provided
+	contractsExecuted: z.coerce.number().positive().optional(),
+
 	// Narrative
 	preTradeThoughts: z.string().max(2000).optional(),
 	postTradeReflection: z.string().max(2000).optional(),
@@ -84,6 +88,7 @@ export interface CreateTradeInput {
 	realizedRMultiple?: number | string
 	mfe?: number | string
 	mae?: number | string
+	contractsExecuted?: number | string // total contract executions (entry + exit + scaling)
 	preTradeThoughts?: string
 	postTradeReflection?: string
 	lessonLearned?: string

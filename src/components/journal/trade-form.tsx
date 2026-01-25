@@ -100,6 +100,7 @@ export const TradeForm = ({
 				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
+				contractsExecuted: trade.contractsExecuted ? Number(trade.contractsExecuted) : undefined,
 				preTradeThoughts: trade.preTradeThoughts ?? undefined,
 				postTradeReflection: trade.postTradeReflection ?? undefined,
 				lessonLearned: trade.lessonLearned ?? undefined,
@@ -156,6 +157,8 @@ export const TradeForm = ({
 		return Math.abs(rewardPerUnit / riskPerUnit)
 	}, [entryPrice, stopLoss, takeProfit, direction])
 
+	const contractsExecutedValue = watch("contractsExecuted")
+
 	// Calculate P&L preview using asset-based calculation when available
 	const calculatedPnLResult = useMemo(() => {
 		if (!entryPrice || !exitPrice || !positionSize) return null
@@ -164,6 +167,8 @@ export const TradeForm = ({
 		const exit = Number(exitPrice)
 		const size = Number(positionSize)
 		const dir = direction || "long"
+		// Default contractsExecuted to positionSize * 2 (entry + exit) if not specified
+		const contracts = contractsExecutedValue ? Number(contractsExecutedValue) : size * 2
 
 		if (selectedAsset) {
 			// Use asset-based calculation with tick size and tick value
@@ -177,6 +182,7 @@ export const TradeForm = ({
 				tickValue: fromCents(selectedAsset.tickValue),
 				commission: fromCents(selectedAsset.commission),
 				fees: fromCents(selectedAsset.fees),
+				contractsExecuted: contracts,
 			})
 		}
 
@@ -194,7 +200,7 @@ export const TradeForm = ({
 			netPnl: simplePnl,
 			totalCosts: 0,
 		}
-	}, [entryPrice, exitPrice, positionSize, direction, selectedAsset])
+	}, [entryPrice, exitPrice, positionSize, direction, selectedAsset, contractsExecutedValue])
 
 	const calculatedPnL = calculatedPnLResult?.netPnl ?? null
 
@@ -720,6 +726,42 @@ export const TradeForm = ({
 							)}
 						/>
 					</div>
+
+					{/* Contracts Executed (for fee calculation) */}
+					<FormField
+						control={form.control}
+						name="contractsExecuted"
+						render={({ field }) => (
+							<FormItem>
+								<div className="gap-s-200 flex items-center">
+									<FormLabel>Contracts Executed</FormLabel>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Info className="text-txt-300 h-4 w-4" />
+										</TooltipTrigger>
+										<TooltipContent>
+											<div className="text-tiny max-w-xs space-y-1">
+												<p>Total contract executions including entry, exit, and any scaling.</p>
+												<p>Default: Position Size × 2 (1 entry + 1 exit per contract)</p>
+												<p>Increase if you scaled in/out during the trade.</p>
+											</div>
+										</TooltipContent>
+									</Tooltip>
+								</div>
+								<FormControl>
+									<Input
+										type="number"
+										step="1"
+										placeholder={positionSize ? `${Number(positionSize) * 2} (default)` : "Auto-calculated"}
+										{...field}
+										value={field.value ?? ""}
+										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									/>
+								</FormControl>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
 					{/* P&L Preview */}
 					{calculatedPnLResult !== null && (
