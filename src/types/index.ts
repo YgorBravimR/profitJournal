@@ -135,3 +135,50 @@ export interface RDistributionBucket {
 	count: number
 	pnl: number
 }
+
+// Execution Types (for position scaling)
+export type ExecutionType = "entry" | "exit"
+export type OrderType = "market" | "limit" | "stop" | "stop_limit"
+export type ExecutionMode = "simple" | "scaled"
+export type PositionStatus = "open" | "partial" | "closed" | "over_exit"
+
+export interface ExecutionSummary {
+	totalEntryQuantity: number
+	totalExitQuantity: number
+	avgEntryPrice: number
+	avgExitPrice: number
+	remainingQuantity: number
+	positionStatus: PositionStatus
+	entryCount: number
+	exitCount: number
+	totalCommission: number
+	totalFees: number
+}
+
+export interface TradeWithExecutions {
+	id: string
+	executionMode: ExecutionMode
+	// Effective values (calculated from executions or direct from trade)
+	effectiveEntryPrice: number
+	effectiveExitPrice: number | null
+	effectiveSize: number
+	positionStatus: PositionStatus
+	// Execution details (only for scaled mode)
+	executions?: ExecutionData[]
+	executionSummary?: ExecutionSummary
+}
+
+export interface ExecutionData {
+	id: string
+	tradeId: string
+	executionType: ExecutionType
+	executionDate: Date
+	price: number
+	quantity: number
+	orderType?: OrderType | null
+	notes?: string | null
+	commission: number
+	fees: number
+	slippage: number
+	executionValue: number
+}

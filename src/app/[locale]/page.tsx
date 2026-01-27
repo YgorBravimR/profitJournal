@@ -37,6 +37,10 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	const streakData = streakResult.status === "success" ? streakResult.data ?? null : null
 	const dailyPnL = dailyPnLResult.status === "success" ? dailyPnLResult.data ?? [] : []
 
+	// Pass month as year/month numbers to avoid Date serialization issues
+	const initialYear = now.getFullYear()
+	const initialMonthIndex = now.getMonth()
+
 	return (
 		<div className="flex h-full flex-col">
 			<PageHeader title={t("title")} description={t("description")} />
@@ -47,7 +51,8 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 					initialEquityCurve={equityCurve}
 					initialStreakData={streakData}
 					initialDailyPnL={dailyPnL}
-					initialMonth={now}
+					initialYear={initialYear}
+					initialMonthIndex={initialMonthIndex}
 				/>
 			</div>
 		</div>

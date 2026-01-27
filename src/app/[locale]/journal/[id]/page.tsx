@@ -22,8 +22,9 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { PnLDisplay, TradeMetric, RMultipleBar } from "@/components/journal"
+import { PnLDisplay, TradeMetric, RMultipleBar, TradeExecutionsSection } from "@/components/journal"
 import { getTrade } from "@/app/actions/trades"
+import { getAssetBySymbol } from "@/app/actions/assets"
 import { DeleteTradeButton } from "./delete-button"
 
 interface TradeDetailPageProps {
@@ -39,6 +40,9 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 	}
 
 	const trade = result.data
+
+	// Fetch asset data for tick size/value (for execution calculations)
+	const asset = await getAssetBySymbol(trade.asset)
 	// pnl is stored in cents, convert to dollars for display
 	const pnl = fromCents(trade.pnl)
 	const realizedR = Number(trade.realizedRMultiple) || 0
@@ -213,6 +217,16 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 							/>
 						</Card>
 					</div>
+
+					{/* Executions Section (for scaled mode) */}
+					<TradeExecutionsSection
+						tradeId={trade.id}
+						executionMode={trade.executionMode}
+						direction={trade.direction}
+						executions={trade.executions ?? []}
+						tickSize={asset ? Number(asset.tickSize) : undefined}
+						tickValue={asset ? Number(asset.tickValue) / 100 : undefined}
+					/>
 
 					{/* R-Multiple Visualization */}
 					{(plannedR > 0 || realizedR !== 0) && (

@@ -16,7 +16,13 @@
       "Bash(ls:*)",
       "Bash(xxd:*)",
       "Bash(npm run lint:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(pnpm db:push:*)",
+      "Bash(pnpm dlx shadcn@latest add:*)",
+      "Bash(psql $DATABASE_URL -c \"DELETE FROM trades;\")",
+      "Bash(psql:*)",
+      "Bash(pnpm run build:*)",
+      "Bash(pnpm db:migrate:*)"
     ],
     "deny": [],
     "ask": []

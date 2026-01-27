@@ -18,7 +18,7 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 6 | Settings & Configuration | ✅ Complete | Jan 2025 |
 | 7 | i18n & Brazilian Market | ✅ Complete | Jan 2025 |
 | 8 | Monthly Results & Prop Trading | ✅ Complete | Jan 2025 |
-| 9 | Position Scaling & Execution Management | 🔲 Planned | - |
+| 9 | Position Scaling & Execution Management | ✅ Complete | Jan 2025 |
 
 ---
 - Functional trade CRUD operations
@@ -1543,7 +1543,7 @@ src/
 
 ---
 
-## Phase 9: Position Scaling & Execution Management 🔲 PLANNED
+## Phase 9: Position Scaling & Execution Management ✅ COMPLETE
 
 **Goal:** Support multiple entries and exits within a single trade position, including scale-in, scale-out, and partial position management.
 
@@ -1911,36 +1911,36 @@ All analytics functions need to work with effective prices:
 
 ### 9.9 Implementation Order
 
-1. **Schema & Migration** (Day 1)
-   - [ ] Create `trade_executions` table
-   - [ ] Add new fields to `trades` table
-   - [ ] Generate and run migration
+1. **Schema & Migration** ✅
+   - [x] Create `trade_executions` table
+   - [x] Add new fields to `trades` table
+   - [x] Generate and run migration
 
-2. **Backend Actions** (Day 2-3)
-   - [ ] `addExecution()`, `updateExecution()`, `deleteExecution()`
-   - [ ] `recalculateTradeFromExecutions()`
-   - [ ] Update `getTrade()` to include executions
-   - [ ] Update `createTrade()` for scaled mode
+2. **Backend Actions** ✅
+   - [x] `createExecution()`, `updateExecution()`, `deleteExecution()`
+   - [x] `recalculateTradeFromExecutions()`
+   - [x] Update `getTrade()` to include executions
+   - [x] `convertToScaledMode()` action
 
-3. **UI Components** (Day 4-5)
-   - [ ] `ExecutionList` component
-   - [ ] `ExecutionForm` modal
-   - [ ] `PositionSummary` component
-   - [ ] Update `TradeForm` with execution mode toggle
+3. **UI Components** ✅
+   - [x] `ExecutionList` component
+   - [x] `ExecutionForm` modal
+   - [x] `PositionSummary` component
+   - [x] `TradeExecutionsSection` wrapper component
 
-4. **Trade Detail Page** (Day 6)
-   - [ ] Display execution list
-   - [ ] Show position summary visualization
-   - [ ] Add execution directly from detail page
+4. **Trade Detail Page** ✅
+   - [x] Display execution list
+   - [x] Show position summary visualization
+   - [x] Add execution directly from detail page
+   - [x] Convert to scaled mode option
 
-5. **Analytics Updates** (Day 7)
-   - [ ] Update calculation functions for effective prices
-   - [ ] Add scaling-specific analytics (optional)
+5. **Calculations** ✅
+   - [x] FIFO P&L calculation
+   - [x] Weighted average price calculation
 
-6. **Testing & Polish** (Day 8)
-   - [ ] Test FIFO P&L calculation
-   - [ ] Test partial position scenarios
-   - [ ] Update translations
+6. **Translations** ✅
+   - [x] English translations
+   - [x] Portuguese translations
 
 ---
 
@@ -2019,19 +2019,18 @@ src/
 
 ### Deliverables
 
-- [ ] `trade_executions` table with proper indexes
-- [ ] Execution CRUD operations
-- [ ] Weighted average price calculations
-- [ ] FIFO P&L calculation for scaled positions
-- [ ] Position status tracking (open/partial/closed)
-- [ ] `ExecutionList` component with add/edit/delete
-- [ ] `ExecutionForm` modal for entry/exit
-- [ ] `PositionSummary` visualization
-- [ ] Updated trade form with scaling support
-- [ ] Updated trade detail page
-- [ ] Backwards compatible with simple trades
-- [ ] Updated analytics for effective prices
-- [ ] Full i18n support for new features
+- [x] `trade_executions` table with proper indexes
+- [x] Execution CRUD operations
+- [x] Weighted average price calculations
+- [x] FIFO P&L calculation for scaled positions
+- [x] Position status tracking (open/partial/closed)
+- [x] `ExecutionList` component with add/edit/delete
+- [x] `ExecutionForm` modal for entry/exit
+- [x] `PositionSummary` visualization
+- [x] Convert to scaled mode from trade detail page
+- [x] Updated trade detail page with executions section
+- [x] Backwards compatible with simple trades
+- [x] Full i18n support for new features (en + pt-BR)
 
 ---
 
@@ -2075,3 +2074,869 @@ This means:
 - Effective filtering and grouping
 - Clear visualization of patterns
 - Actionable mistake identification
+
+---
+
+## Phase 10: User Authentication & Multi-Account System 🔜 PLANNED
+
+**Goal:** Implement secure user authentication with registration and login, supporting multiple trading accounts per user with account-specific settings.
+
+---
+
+### 10.1 System Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              USER                                         │
+│  - Full name, email, password                                            │
+│  - General settings (language, theme, date format)                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐          │
+│  │   Account 1     │  │   Account 2     │  │   Account 3     │          │
+│  │  "Personal"     │  │  "Atom Prop"    │  │  "Raise Prop"   │          │
+│  │                 │  │                 │  │                 │          │
+│  │ - Risk settings │  │ - Risk settings │  │ - Risk settings │          │
+│  │ - Prop config   │  │ - Prop config   │  │ - Prop config   │          │
+│  │ - Enabled assets│  │ - Enabled assets│  │ - Enabled assets│          │
+│  │ - Custom fees   │  │ - Custom fees   │  │ - Custom fees   │          │
+│  │ - Trades        │  │ - Trades        │  │ - Trades        │          │
+│  │ - Strategies    │  │ - Strategies    │  │ - Strategies    │          │
+│  └─────────────────┘  └─────────────────┘  └─────────────────┘          │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────┐
+│                         GLOBAL (Admin-managed)                           │
+│                                                                          │
+│  ┌─────────────────────────────┐  ┌─────────────────────────────┐       │
+│  │         Assets              │  │       Timeframes            │       │
+│  │  WINFUT, WDOFUT, ES, NQ...  │  │  1M, 5M, 15M, Renko 10...   │       │
+│  │  (tick size, tick value,    │  │  (Created by admins)        │       │
+│  │   currency, multiplier)     │  │                             │       │
+│  │  NO commission/fees here    │  │                             │       │
+│  └─────────────────────────────┘  └─────────────────────────────┘       │
+│                                                                          │
+│  Note: Commission/fees are USER-managed per account, not admin-managed.  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 10.2 Technology Choice: Auth.js (NextAuth.js v5)
+
+**Library:** `next-auth` v5 (Auth.js) - The most modern and performant authentication solution for Next.js
+
+**Why Auth.js v5:**
+- Native App Router support (React Server Components)
+- Edge runtime compatible
+- Built-in TypeScript support
+- Secure session handling with JWT or database sessions
+- Middleware-based route protection
+- Credentials provider for email/password auth
+- Easy database integration with Drizzle adapter
+
+---
+
+### 10.3 Database Schema Changes
+
+#### New Table: `users`
+
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  email_verified TIMESTAMP WITH TIME ZONE,
+  password_hash VARCHAR(255) NOT NULL,
+  image VARCHAR(255),
+  is_admin BOOLEAN DEFAULT FALSE,
+
+  -- General user settings (not account-specific)
+  preferred_locale VARCHAR(10) DEFAULT 'pt-BR',
+  theme VARCHAR(20) DEFAULT 'dark',
+  date_format VARCHAR(20) DEFAULT 'DD/MM/YYYY',
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_users_email ON users(email);
+```
+
+#### New Table: `trading_accounts`
+
+Each user can have multiple trading accounts (personal, prop firms, etc.)
+
+```sql
+CREATE TABLE trading_accounts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+  -- Account identification
+  name VARCHAR(100) NOT NULL,          -- "Personal", "Atom Prop", etc.
+  description TEXT,
+  is_default BOOLEAN DEFAULT FALSE,    -- Default account for this user
+  is_active BOOLEAN DEFAULT TRUE,
+
+  -- Trading account type
+  account_type VARCHAR(20) DEFAULT 'personal', -- 'personal' | 'prop'
+  prop_firm_name VARCHAR(100),         -- e.g., "Atom", "Raise", "SoloTrader"
+  profit_share_percentage DECIMAL(5, 2) DEFAULT 100.00, -- % trader keeps
+
+  -- Tax settings (per account as different accounts may have different tax treatments)
+  day_trade_tax_rate DECIMAL(5, 2) DEFAULT 20.00,
+  swing_trade_tax_rate DECIMAL(5, 2) DEFAULT 15.00,
+
+  -- Risk settings (per account)
+  default_risk_per_trade DECIMAL(5, 2), -- % of account
+  max_daily_loss DECIMAL(12, 2),        -- in account currency
+  max_daily_trades INTEGER,
+  default_currency VARCHAR(3) DEFAULT 'BRL',
+
+  -- Global default fees for this account (user-managed, not admin)
+  -- These are the default fees applied to all assets unless overridden per-asset
+  default_commission INTEGER DEFAULT 0, -- cents per contract
+  default_fees INTEGER DEFAULT 0,       -- cents per contract
+
+  -- Display preferences
+  show_tax_estimates BOOLEAN DEFAULT TRUE,
+  show_prop_calculations BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(user_id, name)
+);
+
+CREATE INDEX idx_trading_accounts_user_id ON trading_accounts(user_id);
+```
+
+#### New Table: `account_assets`
+
+Per-account asset configuration (which assets are enabled, per-asset fee overrides)
+
+```sql
+CREATE TABLE account_assets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+  asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+
+  is_enabled BOOLEAN DEFAULT TRUE,
+
+  -- Per-asset fee overrides (NULL = use account's global default)
+  commission_override INTEGER,         -- in cents, NULL = use account default
+  fees_override INTEGER,               -- in cents, NULL = use account default
+
+  -- Notes specific to this asset/account combo
+  notes TEXT,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(account_id, asset_id)
+);
+
+CREATE INDEX idx_account_assets_account_id ON account_assets(account_id);
+```
+
+#### New Table: `account_timeframes`
+
+Per-account timeframe configuration (which timeframes are enabled)
+
+```sql
+CREATE TABLE account_timeframes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+  timeframe_id UUID NOT NULL REFERENCES timeframes(id) ON DELETE CASCADE,
+
+  is_enabled BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(account_id, timeframe_id)
+);
+
+CREATE INDEX idx_account_timeframes_account_id ON account_timeframes(account_id);
+```
+
+#### New Table: `sessions` (for database sessions)
+
+```sql
+CREATE TABLE sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_token VARCHAR(255) NOT NULL UNIQUE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  current_account_id UUID REFERENCES trading_accounts(id), -- Currently selected account
+  expires TIMESTAMP WITH TIME ZONE NOT NULL
+);
+
+CREATE INDEX idx_sessions_token ON sessions(session_token);
+CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+```
+
+#### Modify Existing Tables
+
+**Remove commission/fees from assets table:**
+
+```sql
+-- Commission/fees move to account level (user-managed, not admin)
+ALTER TABLE assets DROP COLUMN commission;
+ALTER TABLE assets DROP COLUMN fees;
+```
+
+**Update tables to reference trading accounts:**
+
+```sql
+-- trades table: belongs to an account
+ALTER TABLE trades ADD COLUMN account_id UUID REFERENCES trading_accounts(id);
+CREATE INDEX idx_trades_account_id ON trades(account_id);
+
+-- strategies table: belongs to an account (strategies can differ per account)
+ALTER TABLE strategies ADD COLUMN account_id UUID REFERENCES trading_accounts(id);
+CREATE INDEX idx_strategies_account_id ON strategies(account_id);
+
+-- tags table: belongs to an account
+ALTER TABLE tags ADD COLUMN account_id UUID REFERENCES trading_accounts(id);
+CREATE INDEX idx_tags_account_id ON tags(account_id);
+```
+
+---
+
+### 10.4 Commission & Fees Calculation
+
+#### Fee Priority (at trade creation time)
+
+When creating a trade, commission/fees are calculated with this priority:
+
+```
+1. Check account_assets for per-asset override → if exists, use it
+2. Else, use account's global default (trading_accounts.default_commission/fees)
+```
+
+#### Fee Snapshot on Trade
+
+**Important:** Commission and fees are captured at trade creation time and saved on the trade record.
+
+```typescript
+// When creating a trade:
+const getTradeCommissionFees = async (accountId: string, assetId: string) => {
+  // Check for per-asset override
+  const assetOverride = await db.query.accountAssets.findFirst({
+    where: and(
+      eq(accountAssets.accountId, accountId),
+      eq(accountAssets.assetId, assetId)
+    )
+  })
+
+  if (assetOverride?.commissionOverride !== null) {
+    return {
+      commission: assetOverride.commissionOverride,
+      fees: assetOverride.feesOverride ?? account.defaultFees
+    }
+  }
+
+  // Fall back to account defaults
+  const account = await getAccount(accountId)
+  return {
+    commission: account.defaultCommission,
+    fees: account.defaultFees
+  }
+}
+
+// These values are saved on the trade record
+// Future fee changes do NOT affect historical trades
+```
+
+#### Why Snapshot?
+
+- User pays commission at trade time
+- Broker may change fees in the future
+- Historical P&L calculations must reflect actual costs paid
+- Changing fees later should not retroactively alter past trades
+
+---
+
+### 10.5 Authentication & Account Selection Flow
+
+#### Registration Flow
+
+```
+User enters name, email, password
+        ↓
+Validate input (Zod schema)
+        ↓
+Check if email already exists
+        ↓
+Hash password with bcrypt (cost factor 12)
+        ↓
+Create user record
+        ↓
+Create default "Personal" trading account
+        ↓
+Redirect to login page with success message
+```
+
+#### Login Flow
+
+```
+User enters email and password
+        ↓
+Validate credentials
+        ↓
+Find user by email
+        ↓
+Verify password hash
+        ↓
+Fetch user's trading accounts
+        ↓
+If single account → Auto-select and go to dashboard
+        ↓
+If multiple accounts → Show account picker
+        ↓
+Create session with selected account
+        ↓
+Redirect to dashboard
+```
+
+#### Account Switching (In-App)
+
+```
+User clicks account switcher in header
+        ↓
+Show dropdown/modal with all accounts
+        ↓
+User selects different account
+        ↓
+Update session with new current_account_id
+        ↓
+Reload dashboard data for new account
+```
+
+---
+
+### 10.5 Backend Implementation
+
+#### Auth Configuration (`src/auth.ts`)
+
+```typescript
+import NextAuth from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { DrizzleAdapter } from "@auth/drizzle-adapter"
+import { db } from "@/db/drizzle"
+import bcrypt from "bcryptjs"
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+  adapter: DrizzleAdapter(db),
+  session: { strategy: "jwt" },
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+        accountId: { label: "Account ID", type: "text" }  // Optional on first login
+      },
+      async authorize(credentials) {
+        const user = await getUserByEmail(credentials.email)
+        if (!user) return null
+
+        const isValid = await bcrypt.compare(credentials.password, user.passwordHash)
+        if (!isValid) return null
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          accountId: credentials.accountId || null
+        }
+      }
+    })
+  ],
+  callbacks: {
+    jwt: ({ token, user, trigger, session }) => {
+      if (user) {
+        token.userId = user.id
+        token.accountId = user.accountId
+      }
+      // Handle account switching
+      if (trigger === "update" && session?.accountId) {
+        token.accountId = session.accountId
+      }
+      return token
+    },
+    session: ({ session, token }) => ({
+      ...session,
+      user: {
+        ...session.user,
+        id: token.userId,
+        accountId: token.accountId
+      }
+    })
+  }
+})
+```
+
+#### User Actions (`src/app/actions/auth.ts`)
+
+- [ ] `registerUser()` - Create user + default trading account
+- [ ] `loginUser()` - Authenticate and create session
+- [ ] `logoutUser()` - Destroy session
+- [ ] `getCurrentUser()` - Get authenticated user from session
+- [ ] `getCurrentAccount()` - Get currently selected trading account
+- [ ] `getUserAccounts()` - List all accounts for current user
+- [ ] `switchAccount()` - Change current account in session
+
+#### Account Actions (`src/app/actions/accounts.ts`)
+
+- [ ] `createAccount()` - Create new trading account
+- [ ] `updateAccount()` - Update account settings
+- [ ] `deleteAccount()` - Delete account (with confirmation for trades)
+- [ ] `getAccountAssets()` - Get enabled assets with fee overrides
+- [ ] `updateAccountAsset()` - Enable/disable asset, set fee overrides
+- [ ] `getAccountTimeframes()` - Get enabled timeframes
+- [ ] `updateAccountTimeframe()` - Enable/disable timeframe
+
+---
+
+### 10.6 Frontend Implementation
+
+#### Auth Pages
+
+**Login Page** (`src/app/[locale]/(auth)/login/page.tsx`)
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                                                                    │
+│                    ┌─────────────────────────┐                     │
+│                    │      Profit Journal      │                     │
+│                    │                          │                     │
+│                    │  Email                   │                     │
+│                    │  [____________________]  │                     │
+│                    │                          │                     │
+│                    │  Password                │                     │
+│                    │  [____________________]  │                     │
+│                    │                          │                     │
+│                    │  [ ] Remember me         │                     │
+│                    │                          │                     │
+│                    │  [      Sign In      ]   │                     │
+│                    │                          │                     │
+│                    │  Don't have an account?  │                     │
+│                    │  Register                │                     │
+│                    └─────────────────────────┘                     │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+**Account Picker** (shown after login if multiple accounts)
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│                                                                    │
+│                    ┌─────────────────────────┐                     │
+│                    │    Select Account        │                     │
+│                    │                          │                     │
+│                    │  ┌────────────────────┐  │                     │
+│                    │  │ ◉ Personal Account │  │                     │
+│                    │  │   100% profit      │  │                     │
+│                    │  └────────────────────┘  │                     │
+│                    │                          │                     │
+│                    │  ┌────────────────────┐  │                     │
+│                    │  │ ○ Atom Prop        │  │                     │
+│                    │  │   80% profit share │  │                     │
+│                    │  └────────────────────┘  │                     │
+│                    │                          │                     │
+│                    │  ┌────────────────────┐  │                     │
+│                    │  │ ○ Raise Prop       │  │                     │
+│                    │  │   75% profit share │  │                     │
+│                    │  └────────────────────┘  │                     │
+│                    │                          │                     │
+│                    │  [     Continue      ]   │                     │
+│                    └─────────────────────────┘                     │
+│                                                                    │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+**Account Switcher** (in header, always visible)
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│ Profit Journal                          [Personal ▼]  [User Menu ▼]  │
+├──────────────────────────────────────────────────────────────────────┤
+│                                         ┌─────────────────────────┐  │
+│                                         │ ✓ Personal Account      │  │
+│                                         │   Atom Prop             │  │
+│                                         │   Raise Prop            │  │
+│                                         ├─────────────────────────┤  │
+│                                         │ + New Account           │  │
+│                                         │ ⚙ Manage Accounts       │  │
+│                                         └─────────────────────────┘  │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+#### Settings Reorganization
+
+**User Settings** (applies to user, not account)
+- Language preference
+- Theme (dark/light)
+- Date format
+- Time format
+
+**Account Settings** (per trading account)
+- Account name and description
+- Account type (Personal / Prop)
+- Prop firm configuration
+- Tax settings
+- Risk parameters
+- Enabled assets with fee overrides
+- Enabled timeframes
+
+---
+
+### 10.7 Settings Page Structure
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Settings                                                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  [General] [Account] [Assets] [Timeframes] [Data]                   │
+│  ═══════                                                            │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ User Preferences                                               │  │
+│  │                                                                │  │
+│  │ Language:     [Portuguese (Brazil) ▼]                          │  │
+│  │ Theme:        [Dark ▼]                                         │  │
+│  │ Date Format:  [DD/MM/YYYY ▼]                                   │  │
+│  │                                                                │  │
+│  │                            [Save Preferences]                  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Settings                                                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  [General] [Account] [Assets] [Timeframes] [Data]                   │
+│           ═══════                                                   │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Trading Account: Personal Account                              │  │
+│  │                                                                │  │
+│  │ Account Name:    [Personal Account     ]                       │  │
+│  │ Description:     [My main trading account]                     │  │
+│  │                                                                │  │
+│  │ ───────────────────────────────────────────────────────────── │  │
+│  │                                                                │  │
+│  │ Account Type:                                                  │  │
+│  │ ◉ Personal (100% profit)                                       │  │
+│  │ ○ Prop Trading Firm                                            │  │
+│  │                                                                │  │
+│  │ ───────────────────────────────────────────────────────────── │  │
+│  │                                                                │  │
+│  │ Tax Settings                                                   │  │
+│  │ Day Trade Tax:    [20] %                                       │  │
+│  │ Swing Trade Tax:  [15] %                                       │  │
+│  │ ☑ Show tax estimates                                           │  │
+│  │                                                                │  │
+│  │ ───────────────────────────────────────────────────────────── │  │
+│  │                                                                │  │
+│  │ Risk Settings                                                  │  │
+│  │ Default Risk/Trade: [1.0] %                                    │  │
+│  │ Max Daily Loss:     [R$ 500.00]                                │  │
+│  │ Max Daily Trades:   [10]                                       │  │
+│  │                                                                │  │
+│  │                            [Save Account Settings]             │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Settings                                                             │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  [General] [Account] [Assets] [Timeframes] [Data]                   │
+│                      ══════                                         │
+│                                                                      │
+│  Assets for: Personal Account                                       │
+│                                                                      │
+│  Account Default Fees:                                              │
+│  Commission: [R$ 0.30    ]    Fees: [R$ 0.05    ]                   │
+│                                                                      │
+│  ───────────────────────────────────────────────────────────────    │
+│                                                                      │
+│  Per-Asset Overrides (leave blank to use account default):          │
+│                                                                      │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │ Symbol  │ Name           │ Enabled │ Commission │ Fees     │    │
+│  ├─────────┼────────────────┼─────────┼────────────┼──────────┤    │
+│  │ WINFUT  │ Mini Índice    │   ☑     │ [       ]  │ [      ] │    │
+│  │ WDOFUT  │ Mini Dólar     │   ☑     │ [R$ 0.50]  │ [R$0.10] │    │
+│  │ PETR4   │ Petrobras PN   │   ☐     │ -          │ -        │    │
+│  │ VALE3   │ Vale ON        │   ☐     │ -          │ -        │    │
+│  │ ES      │ E-mini S&P 500 │   ☐     │ -          │ -        │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+│                                                                      │
+│  Note: Asset definitions (tick size, tick value) are managed by     │
+│  admins. You control which assets are enabled and their fees.       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 10.8 Middleware & Route Protection
+
+**Middleware** (`src/middleware.ts`)
+
+```typescript
+import { auth } from "@/auth"
+import createIntlMiddleware from "next-intl/middleware"
+
+const intlMiddleware = createIntlMiddleware({
+  locales: ["en", "pt-BR"],
+  defaultLocale: "pt-BR"
+})
+
+const publicPaths = ["/login", "/register"]
+
+export default auth((req) => {
+  const { pathname } = req.nextUrl
+
+  const isPublicPath = publicPaths.some(path => pathname.includes(path))
+
+  // Not authenticated and not on public path
+  if (!req.auth && !isPublicPath) {
+    const loginUrl = new URL("/login", req.url)
+    loginUrl.searchParams.set("callbackUrl", pathname)
+    return Response.redirect(loginUrl)
+  }
+
+  // Authenticated but no account selected (except on account-picker page)
+  if (req.auth && !req.auth.user.accountId && !pathname.includes("/select-account")) {
+    return Response.redirect(new URL("/select-account", req.url))
+  }
+
+  // Authenticated and on auth page
+  if (req.auth && isPublicPath) {
+    return Response.redirect(new URL("/", req.url))
+  }
+
+  return intlMiddleware(req)
+})
+```
+
+---
+
+### 10.9 Data Isolation
+
+All server actions must filter by `account_id`:
+
+```typescript
+export const getTrades = async (filters: TradeFilters) => {
+  const session = await auth()
+  if (!session?.user?.accountId) {
+    return { status: "error", error: "No account selected" }
+  }
+
+  const trades = await db.query.trades.findMany({
+    where: and(
+      eq(trades.accountId, session.user.accountId),
+      // ... other filters
+    )
+  })
+
+  return { status: "success", data: trades }
+}
+```
+
+---
+
+### 10.10 Implementation Order
+
+1. **Schema & Migration** (Day 1-2)
+   - [ ] Create `users`, `sessions`, `trading_accounts` tables
+   - [ ] Create `account_assets`, `account_timeframes` tables
+   - [ ] Add `account_id` to existing tables
+   - [ ] Generate and run migration
+
+2. **Auth Configuration** (Day 3)
+   - [ ] Install dependencies
+   - [ ] Configure Auth.js with Credentials provider
+   - [ ] Set up JWT with account ID support
+   - [ ] Session callbacks for account management
+
+3. **User & Account Actions** (Day 4)
+   - [ ] `registerUser()` with default account creation
+   - [ ] `loginUser()` with session
+   - [ ] `getUserAccounts()`, `switchAccount()`
+   - [ ] Account CRUD operations
+
+4. **Auth Pages** (Day 5)
+   - [ ] Login page
+   - [ ] Register page
+   - [ ] Account picker page
+   - [ ] Auth layout
+
+5. **Account Switcher & Header** (Day 6)
+   - [ ] Account switcher dropdown
+   - [ ] User menu
+   - [ ] Header updates
+
+6. **Settings Restructure** (Day 7)
+   - [ ] Separate user settings from account settings
+   - [ ] Asset management per account
+   - [ ] Timeframe management per account
+
+7. **Data Isolation & Testing** (Day 8)
+   - [ ] Update all server actions
+   - [ ] Ownership validation
+   - [ ] Cross-account protection testing
+
+---
+
+### 10.11 Files to Create/Modify
+
+```
+src/
+├── auth.ts                           # NEW: Auth.js configuration
+├── middleware.ts                     # UPDATE: Add auth + account middleware
+├── db/
+│   ├── schema.ts                     # UPDATE: Add auth + account tables
+│   └── migrations/
+│       └── 0005_xxx.sql              # NEW: Phase 10 migration
+├── app/
+│   ├── api/auth/[...nextauth]/
+│   │   └── route.ts                  # NEW: Auth API route
+│   └── [locale]/
+│       ├── (auth)/
+│       │   ├── layout.tsx            # NEW: Auth layout
+│       │   ├── login/page.tsx        # NEW: Login page
+│       │   ├── register/page.tsx     # NEW: Register page
+│       │   └── select-account/page.tsx # NEW: Account picker
+│       └── (protected)/
+│           └── layout.tsx            # UPDATE: Protected layout
+│       └── actions/
+│           ├── auth.ts               # NEW: Auth actions
+│           └── accounts.ts           # NEW: Account management
+├── components/
+│   ├── auth/
+│   │   ├── index.ts                  # NEW: Barrel exports
+│   │   ├── login-form.tsx            # NEW
+│   │   ├── register-form.tsx         # NEW
+│   │   └── account-picker.tsx        # NEW
+│   └── layout/
+│       ├── account-switcher.tsx      # NEW
+│       └── user-menu.tsx             # NEW
+├── lib/
+│   └── validations/
+│       └── auth.ts                   # NEW: Auth validation
+└── messages/
+    ├── en.json                       # UPDATE
+    └── pt-BR.json                    # UPDATE
+```
+
+---
+
+### 10.12 Translation Keys to Add
+
+```json
+{
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Welcome back",
+      "email": "Email",
+      "password": "Password",
+      "rememberMe": "Remember me",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "register": "Create account"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Start tracking your trading performance",
+      "name": "Full Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "submit": "Create Account",
+      "hasAccount": "Already have an account?",
+      "login": "Sign in"
+    },
+    "selectAccount": {
+      "title": "Select Account",
+      "subtitle": "Choose which account to work with",
+      "continue": "Continue",
+      "profitShare": "{percentage}% profit share"
+    },
+    "accountSwitcher": {
+      "currentAccount": "Current Account",
+      "switchAccount": "Switch Account",
+      "newAccount": "New Account",
+      "manageAccounts": "Manage Accounts"
+    }
+  },
+  "settings": {
+    "user": {
+      "title": "User Preferences",
+      "language": "Language",
+      "theme": "Theme",
+      "dateFormat": "Date Format"
+    },
+    "account": {
+      "title": "Trading Account",
+      "name": "Account Name",
+      "description": "Description",
+      "type": "Account Type",
+      "personal": "Personal (100% profit)",
+      "prop": "Prop Trading Firm",
+      "propFirmName": "Firm Name",
+      "profitShare": "Profit Share Percentage"
+    },
+    "accountAssets": {
+      "title": "Account Assets",
+      "description": "Enable or disable assets and customize fees for this account",
+      "defaultFees": "Account Default Fees",
+      "perAssetOverrides": "Per-Asset Overrides",
+      "leaveBlank": "Leave blank to use account default",
+      "enabled": "Enabled",
+      "commission": "Commission",
+      "fees": "Fees",
+      "useDefault": "Use default"
+    }
+  }
+}
+```
+
+---
+
+### 10.13 Dependencies
+
+```bash
+pnpm add next-auth@beta bcryptjs @auth/drizzle-adapter
+pnpm add -D @types/bcryptjs
+```
+
+---
+
+### Deliverables
+
+- [ ] `users` table with general settings
+- [ ] `trading_accounts` table with risk, prop settings, and default commission/fees
+- [ ] `account_assets` table with per-asset fee overrides
+- [ ] `account_timeframes` table for enabling/disabling timeframes
+- [ ] Remove commission/fees from global `assets` table (admin only manages tick size, tick value, etc.)
+- [ ] Auth.js configuration with account support
+- [ ] User registration with default account
+- [ ] Login with account selection
+- [ ] Account switcher in header
+- [ ] Settings reorganization (user vs account)
+- [ ] Commission/fees calculated at trade creation (snapshot values)
+- [ ] Fee priority: per-asset override → account default
+- [ ] Per-account timeframe configuration
+- [ ] Data isolation by account_id
+- [ ] Full i18n support (pt-BR, en)

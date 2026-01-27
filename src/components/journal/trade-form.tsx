@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -121,8 +121,41 @@ export const TradeForm = ({
 		defaultValues,
 	})
 
-	const { handleSubmit, watch, setValue, formState: { errors } } = form
+	const { handleSubmit, watch, setValue, reset, formState: { errors } } = form
 
+	// Reset form when trade prop changes (for edit mode)
+	useEffect(() => {
+		if (trade) {
+			reset({
+				asset: trade.asset,
+				direction: trade.direction,
+				timeframeId: trade.timeframeId ?? undefined,
+				entryDate: formatDateTimeLocal(new Date(trade.entryDate)),
+				exitDate: trade.exitDate
+					? formatDateTimeLocal(new Date(trade.exitDate))
+					: undefined,
+				entryPrice: Number(trade.entryPrice),
+				exitPrice: trade.exitPrice ? Number(trade.exitPrice) : undefined,
+				positionSize: Number(trade.positionSize),
+				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
+				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
+				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
+				mfe: trade.mfe ? Number(trade.mfe) : undefined,
+				mae: trade.mae ? Number(trade.mae) : undefined,
+				contractsExecuted: trade.contractsExecuted ? Number(trade.contractsExecuted) : undefined,
+				preTradeThoughts: trade.preTradeThoughts ?? undefined,
+				postTradeReflection: trade.postTradeReflection ?? undefined,
+				lessonLearned: trade.lessonLearned ?? undefined,
+				strategyId: trade.strategyId ?? undefined,
+				followedPlan: trade.followedPlan ?? undefined,
+				disciplineNotes: trade.disciplineNotes ?? undefined,
+				tagIds: trade.tradeTags?.map((tt) => tt.tag.id) ?? [],
+			})
+			// Update selected asset when trade changes
+			const asset = assets.find((a) => a.symbol === trade.asset)
+			setSelectedAsset(asset ?? null)
+		}
+	}, [trade, reset, assets])
 
 	const direction = watch("direction")
 	const entryPrice = watch("entryPrice")

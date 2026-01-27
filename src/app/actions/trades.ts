@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
-import { trades, tradeTags, tags, strategies, timeframes } from "@/db/schema"
-import type { Trade } from "@/db/schema"
+import { trades, tradeTags, tags, strategies, timeframes, tradeExecutions } from "@/db/schema"
+import type { Trade, TradeExecution } from "@/db/schema"
 import type { ActionResponse, PaginatedResponse } from "@/types"
 import {
 	createTradeSchema,
@@ -28,6 +28,7 @@ export interface TradeWithRelations extends Trade {
 	tradeTags?: Array<{
 		tag: typeof tags.$inferSelect
 	}>
+	executions?: TradeExecution[]
 }
 
 /**
@@ -358,6 +359,7 @@ export const getTrade = async (
 						tag: true,
 					},
 				},
+				executions: true,
 			},
 		})
 

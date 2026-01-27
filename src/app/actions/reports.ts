@@ -41,7 +41,9 @@ export interface WeeklyReport {
 		winCount: number
 		lossCount: number
 		breakevenCount: number
+		grossPnl: number
 		netPnl: number
+		totalFees: number
 		winRate: number
 		avgWin: number
 		avgLoss: number
@@ -77,7 +79,9 @@ export interface MonthlyReport {
 		winCount: number
 		lossCount: number
 		breakevenCount: number
+		grossPnl: number
 		netPnl: number
+		totalFees: number
 		winRate: number
 		avgWin: number
 		avgLoss: number
@@ -146,7 +150,9 @@ export const getWeeklyReport = async (
 						winCount: 0,
 						lossCount: 0,
 						breakevenCount: 0,
+						grossPnl: 0,
 						netPnl: 0,
+						totalFees: 0,
 						winRate: 0,
 						avgWin: 0,
 						avgLoss: 0,
@@ -168,6 +174,11 @@ export const getWeeklyReport = async (
 		const breakevenTrades = weekTrades.filter((t) => t.outcome === "breakeven")
 
 		const netPnl = weekTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+		const totalFees = weekTrades.reduce(
+			(sum, t) => sum + fromCents((t.commission ?? 0) + (t.fees ?? 0)),
+			0
+		)
+		const grossPnl = netPnl + totalFees
 		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		const grossLoss = Math.abs(
 			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
@@ -254,7 +265,9 @@ export const getWeeklyReport = async (
 					winCount: winTrades.length,
 					lossCount: lossTrades.length,
 					breakevenCount: breakevenTrades.length,
+					grossPnl,
 					netPnl,
+					totalFees,
 					winRate:
 						weekTrades.length > 0
 							? (winTrades.length / weekTrades.length) * 100
@@ -309,7 +322,9 @@ export const getMonthlyReport = async (
 						winCount: 0,
 						lossCount: 0,
 						breakevenCount: 0,
+						grossPnl: 0,
 						netPnl: 0,
+						totalFees: 0,
 						winRate: 0,
 						avgWin: 0,
 						avgLoss: 0,
@@ -330,6 +345,11 @@ export const getMonthlyReport = async (
 		const breakevenTrades = monthTrades.filter((t) => t.outcome === "breakeven")
 
 		const netPnl = monthTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+		const totalFees = monthTrades.reduce(
+			(sum, t) => sum + fromCents((t.commission ?? 0) + (t.fees ?? 0)),
+			0
+		)
+		const grossPnl = netPnl + totalFees
 		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
 		const grossLoss = Math.abs(
 			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
@@ -443,7 +463,9 @@ export const getMonthlyReport = async (
 					winCount: winTrades.length,
 					lossCount: lossTrades.length,
 					breakevenCount: breakevenTrades.length,
+					grossPnl,
 					netPnl,
+					totalFees,
 					winRate:
 						monthTrades.length > 0
 							? (winTrades.length / monthTrades.length) * 100

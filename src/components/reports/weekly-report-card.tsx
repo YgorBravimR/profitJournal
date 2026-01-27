@@ -102,6 +102,21 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 								{summary.netPnl >= 0 ? "+" : ""}
 								{summary.netPnl.toFixed(2)}
 							</p>
+							{summary.totalFees > 0 && (
+								<p className="mt-s-100 text-tiny text-txt-300">
+									<span className="text-txt-200">{tStats("grossPnl")}:</span>{" "}
+									<span className={cn(
+										"font-mono",
+										summary.grossPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
+									)}>
+										{summary.grossPnl >= 0 ? "+" : ""}{summary.grossPnl.toFixed(2)}
+									</span>
+									{" "}
+									<span className="text-txt-300">
+										({tStats("fees")}: -{summary.totalFees.toFixed(2)})
+									</span>
+								</p>
+							)}
 						</div>
 						<div>
 							<p className="text-tiny text-txt-300">{tStats("winRate")}</p>

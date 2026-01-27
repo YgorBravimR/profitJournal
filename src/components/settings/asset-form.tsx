@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +23,7 @@ import {
 import { createAsset, updateAsset, type AssetWithType } from "@/app/actions/assets"
 import type { AssetType } from "@/db/schema"
 import { Loader2 } from "lucide-react"
+import { fromCents } from "@/lib/money"
 
 interface AssetFormProps {
 	asset?: AssetWithType | null
@@ -49,12 +50,43 @@ export const AssetForm = ({
 		name: asset?.name ?? "",
 		assetTypeId: asset?.assetTypeId ?? "",
 		tickSize: asset?.tickSize ?? "",
-		tickValue: asset?.tickValue ?? "",
+		tickValue: asset?.tickValue ? fromCents(asset.tickValue).toString() : "",
 		currency: asset?.currency ?? "BRL",
 		multiplier: asset?.multiplier ?? "1",
-		commission: asset?.commission ?? "0",
-		fees: asset?.fees ?? "0",
+		commission: asset?.commission ? fromCents(asset.commission).toString() : "0",
+		fees: asset?.fees ? fromCents(asset.fees).toString() : "0",
 	})
+
+	// Update form data when asset prop changes (for edit mode)
+	// Note: tickValue, commission, fees are stored in cents, convert to BRL for display
+	useEffect(() => {
+		if (asset) {
+			setFormData({
+				symbol: asset.symbol ?? "",
+				name: asset.name ?? "",
+				assetTypeId: asset.assetTypeId ?? "",
+				tickSize: asset.tickSize ?? "",
+				tickValue: asset.tickValue ? fromCents(asset.tickValue).toString() : "",
+				currency: asset.currency ?? "BRL",
+				multiplier: asset.multiplier ?? "1",
+				commission: asset.commission ? fromCents(asset.commission).toString() : "0",
+				fees: asset.fees ? fromCents(asset.fees).toString() : "0",
+			})
+		} else {
+			// Reset form for create mode
+			setFormData({
+				symbol: "",
+				name: "",
+				assetTypeId: "",
+				tickSize: "",
+				tickValue: "",
+				currency: "BRL",
+				multiplier: "1",
+				commission: "0",
+				fees: "0",
+			})
+		}
+	}, [asset])
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -180,12 +212,12 @@ export const AssetForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="tickValue">{t("tickValue")}</Label>
+							<Label htmlFor="tickValue">{t("tickValue")} ({formData.currency})</Label>
 							<Input
 								id="tickValue"
 								type="number"
-								step="any"
-								placeholder={t("tickValuePlaceholder")}
+								step="0.01"
+								placeholder="0.20"
 								value={formData.tickValue}
 								onChange={(e) => handleChange("tickValue", e.target.value)}
 								required
@@ -224,24 +256,24 @@ export const AssetForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="commission">{t("commission")}</Label>
+							<Label htmlFor="commission">{t("commission")} ({formData.currency})</Label>
 							<Input
 								id="commission"
 								type="number"
-								step="any"
-								placeholder="0"
+								step="0.01"
+								placeholder="0.30"
 								value={formData.commission}
 								onChange={(e) => handleChange("commission", e.target.value)}
 							/>
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="fees">{t("fees")}</Label>
+							<Label htmlFor="fees">{t("fees")} ({formData.currency})</Label>
 							<Input
 								id="fees"
 								type="number"
-								step="any"
-								placeholder="0"
+								step="0.01"
+								placeholder="0.05"
 								value={formData.fees}
 								onChange={(e) => handleChange("fees", e.target.value)}
 							/>

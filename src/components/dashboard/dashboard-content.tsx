@@ -14,7 +14,8 @@ interface DashboardContentProps {
 	initialEquityCurve: EquityPoint[]
 	initialStreakData: StreakData | null
 	initialDailyPnL: DailyPnL[]
-	initialMonth: Date
+	initialYear: number
+	initialMonthIndex: number
 }
 
 export const DashboardContent = ({
@@ -23,9 +24,11 @@ export const DashboardContent = ({
 	initialEquityCurve,
 	initialStreakData,
 	initialDailyPnL,
-	initialMonth,
+	initialYear,
+	initialMonthIndex,
 }: DashboardContentProps) => {
-	const [currentMonth, setCurrentMonth] = useState(initialMonth)
+	// Create Date on client side to avoid hydration issues
+	const [currentMonth, setCurrentMonth] = useState(() => new Date(initialYear, initialMonthIndex, 1))
 	const [dailyPnL, setDailyPnL] = useState<DailyPnL[]>(initialDailyPnL)
 	const [isPending, startTransition] = useTransition()
 
