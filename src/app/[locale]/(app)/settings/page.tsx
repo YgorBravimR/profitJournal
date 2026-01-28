@@ -3,6 +3,10 @@ import { PageHeader } from "@/components/layout"
 import { SettingsContent } from "@/components/settings"
 import { getAssets, getAssetTypes } from "@/app/actions/assets"
 import { getTimeframes } from "@/app/actions/timeframes"
+import { getCurrentUser } from "@/app/actions/auth"
+
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
 
 interface SettingsPageProps {
 	params: Promise<{ locale: string }>
@@ -14,10 +18,11 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 
 	const t = await getTranslations("settings")
 
-	const [assets, assetTypes, timeframes] = await Promise.all([
+	const [assets, assetTypes, timeframes, user] = await Promise.all([
 		getAssets(),
 		getAssetTypes(),
 		getTimeframes(),
+		getCurrentUser(),
 	])
 
 	return (
@@ -28,6 +33,7 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 					assets={assets}
 					assetTypes={assetTypes}
 					timeframes={timeframes}
+					isAdmin={user?.isAdmin ?? false}
 				/>
 			</div>
 		</div>

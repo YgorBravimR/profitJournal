@@ -12,7 +12,7 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
 	return (
-		<div className="min-h-screen bg-bg-100">
+		<>
 			<Sidebar
 				isCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
@@ -25,6 +25,6 @@ export const MainLayout = ({ children }: MainLayoutProps) => {
 			>
 				{children}
 			</main>
-		</div>
+		</>
 	)
 }

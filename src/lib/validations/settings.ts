@@ -27,6 +27,9 @@ export const userSettingsSchema = z.object({
 	defaultCurrency: z.string().length(3, "Currency code must be 3 characters"),
 	showTaxEstimates: z.boolean(),
 	showPropCalculations: z.boolean(),
+
+	// Multi-Account Preferences
+	showAllAccounts: z.boolean(),
 })
 
 export type UserSettingsInput = z.infer<typeof userSettingsSchema>

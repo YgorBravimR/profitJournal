@@ -74,6 +74,27 @@ export const AnalyticsContent = ({
 	const [equityCurve, setEquityCurve] =
 		useState<EquityPoint[]>(initialEquityCurve)
 
+	// Reset state when initial props change (e.g., account switch)
+	useEffect(() => {
+		setPerformance(initialPerformance)
+	}, [initialPerformance])
+
+	useEffect(() => {
+		setTagStats(initialTagStats)
+	}, [initialTagStats])
+
+	useEffect(() => {
+		setExpectedValue(initialExpectedValue)
+	}, [initialExpectedValue])
+
+	useEffect(() => {
+		setRDistribution(initialRDistribution)
+	}, [initialRDistribution])
+
+	useEffect(() => {
+		setEquityCurve(initialEquityCurve)
+	}, [initialEquityCurve])
+
 	// Refetch data when filters or groupBy change
 	useEffect(() => {
 		startTransition(async () => {

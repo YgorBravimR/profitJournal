@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { settings, userSettings, type UserSettings } from "@/db/schema"
+import { settings, userSettings, tradingAccounts, type UserSettings } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import type { ActionResponse } from "@/types"
@@ -9,6 +9,7 @@ import {
 	userSettingsSchema,
 	type UpdateUserSettingsInput,
 } from "@/lib/validations/settings"
+import { requireAuth } from "@/app/actions/auth"
 
 export interface RiskSettings {
 	defaultRiskPercent: number
@@ -26,6 +27,7 @@ export interface UserSettingsData {
 	defaultCurrency: string
 	showTaxEstimates: boolean
 	showPropCalculations: boolean
+	showAllAccounts: boolean
 }
 
 // Default settings for new users
@@ -39,6 +41,7 @@ const DEFAULT_USER_SETTINGS: UserSettingsData = {
 	defaultCurrency: "BRL",
 	showTaxEstimates: true,
 	showPropCalculations: true,
+	showAllAccounts: false,
 }
 
 // Convert database row to UserSettingsData
@@ -52,6 +55,7 @@ const toUserSettingsData = (row: UserSettings): UserSettingsData => ({
 	defaultCurrency: row.defaultCurrency,
 	showTaxEstimates: row.showTaxEstimates,
 	showPropCalculations: row.showPropCalculations,
+	showAllAccounts: row.showAllAccounts,
 })
 
 // Get user settings (creates default if not exists)
@@ -59,8 +63,10 @@ export const getUserSettings = async (): Promise<
 	ActionResponse<UserSettingsData>
 > => {
 	try {
+		const { userId } = await requireAuth()
+
 		const existingSettings = await db.query.userSettings.findFirst({
-			where: eq(userSettings.userId, "default"),
+			where: eq(userSettings.userId, userId),
 		})
 
 		if (existingSettings) {
@@ -75,7 +81,7 @@ export const getUserSettings = async (): Promise<
 		const [newSettings] = await db
 			.insert(userSettings)
 			.values({
-				userId: "default",
+				userId: userId,
 				isPropAccount: DEFAULT_USER_SETTINGS.isPropAccount,
 				propFirmName: DEFAULT_USER_SETTINGS.propFirmName,
 				profitSharePercentage: String(
@@ -87,6 +93,7 @@ export const getUserSettings = async (): Promise<
 				defaultCurrency: DEFAULT_USER_SETTINGS.defaultCurrency,
 				showTaxEstimates: DEFAULT_USER_SETTINGS.showTaxEstimates,
 				showPropCalculations: DEFAULT_USER_SETTINGS.showPropCalculations,
+				showAllAccounts: DEFAULT_USER_SETTINGS.showAllAccounts,
 			})
 			.returning()
 
@@ -109,6 +116,8 @@ export const updateUserSettings = async (
 	data: UpdateUserSettingsInput
 ): Promise<ActionResponse<UserSettingsData>> => {
 	try {
+		const { userId } = await requireAuth()
+
 		// Validate input
 		const validationResult = userSettingsSchema.partial().safeParse(data)
 		if (!validationResult.success) {
@@ -122,7 +131,7 @@ export const updateUserSettings = async (
 
 		// Ensure settings exist
 		const existing = await db.query.userSettings.findFirst({
-			where: eq(userSettings.userId, "default"),
+			where: eq(userSettings.userId, userId),
 		})
 
 		if (!existing) {
@@ -130,7 +139,7 @@ export const updateUserSettings = async (
 			const [newSettings] = await db
 				.insert(userSettings)
 				.values({
-					userId: "default",
+					userId: userId,
 					isPropAccount: data.isPropAccount ?? DEFAULT_USER_SETTINGS.isPropAccount,
 					propFirmName: data.propFirmName ?? DEFAULT_USER_SETTINGS.propFirmName,
 					profitSharePercentage: String(
@@ -152,6 +161,8 @@ export const updateUserSettings = async (
 					showPropCalculations:
 						data.showPropCalculations ??
 						DEFAULT_USER_SETTINGS.showPropCalculations,
+					showAllAccounts:
+						data.showAllAccounts ?? DEFAULT_USER_SETTINGS.showAllAccounts,
 					updatedAt: now,
 				})
 				.returning()
@@ -196,11 +207,14 @@ export const updateUserSettings = async (
 		if (data.showPropCalculations !== undefined) {
 			updateData.showPropCalculations = data.showPropCalculations
 		}
+		if (data.showAllAccounts !== undefined) {
+			updateData.showAllAccounts = data.showAllAccounts
+		}
 
 		const [updated] = await db
 			.update(userSettings)
 			.set(updateData)
-			.where(eq(userSettings.userId, "default"))
+			.where(eq(userSettings.userId, userId))
 			.returning()
 
 		revalidatePath("/settings")
@@ -222,6 +236,14 @@ export const updateUserSettings = async (
 
 export const getRiskSettings = async (): Promise<ActionResponse<RiskSettings>> => {
 	try {
+		const { accountId } = await requireAuth()
+
+		// Get account for risk settings
+		const account = await db.query.tradingAccounts.findFirst({
+			where: eq(tradingAccounts.id, accountId),
+		})
+
+		// Fallback to global settings
 		const [riskSetting, balanceSetting] = await Promise.all([
 			db.query.settings.findFirst({
 				where: eq(settings.key, "default_risk_percent"),
@@ -235,7 +257,11 @@ export const getRiskSettings = async (): Promise<ActionResponse<RiskSettings>> =
 			status: "success",
 			message: "Settings retrieved successfully",
 			data: {
-				defaultRiskPercent: riskSetting ? Number(riskSetting.value) : 1.0,
+				defaultRiskPercent: account?.defaultRiskPerTrade
+					? Number(account.defaultRiskPerTrade)
+					: riskSetting
+						? Number(riskSetting.value)
+						: 1.0,
 				accountBalance: balanceSetting ? Number(balanceSetting.value) : 10000,
 			},
 		}
@@ -252,9 +278,19 @@ export const updateRiskSettings = async (
 	data: RiskSettings
 ): Promise<ActionResponse<RiskSettings>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const now = new Date()
 
-		// Upsert default_risk_percent
+		// Update account's default risk setting
+		await db
+			.update(tradingAccounts)
+			.set({
+				defaultRiskPerTrade: String(data.defaultRiskPercent),
+				updatedAt: now,
+			})
+			.where(eq(tradingAccounts.id, accountId))
+
+		// Also update global settings for backwards compatibility
 		const existingRisk = await db.query.settings.findFirst({
 			where: eq(settings.key, "default_risk_percent"),
 		})
@@ -273,7 +309,7 @@ export const updateRiskSettings = async (
 			})
 		}
 
-		// Upsert account_balance
+		// Upsert account_balance (still global for now)
 		const existingBalance = await db.query.settings.findFirst({
 			where: eq(settings.key, "account_balance"),
 		})

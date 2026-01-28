@@ -7,6 +7,9 @@ import {
 	getMistakeCostAnalysis,
 } from "@/app/actions/reports"
 
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
+
 interface ReportsPageProps {
 	params: Promise<{ locale: string }>
 }

@@ -2940,3 +2940,1183 @@ pnpm add -D @types/bcryptjs
 - [ ] Per-account timeframe configuration
 - [ ] Data isolation by account_id
 - [ ] Full i18n support (pt-BR, en)
+
+---
+
+## Phase 11: Advanced Reports & Dashboard Visualizations 🔜 PLANNED
+
+**Goal:** Enhance reports with time-based performance analysis (hour of day, day of week) and add new interactive dashboard visualizations with drill-down capabilities.
+
+---
+
+### 11.1 Problem Statement
+
+Traders need deeper insights into their performance patterns:
+
+1. **Time-Based Analysis** - Understanding which times of day and days of the week are most/least profitable
+   - "Am I better in the morning session or afternoon?"
+   - "Do I consistently lose money on Fridays?"
+
+2. **Enhanced Dashboard Visualizations** - More comprehensive visual overview
+   - Current dashboard shows calendar and equity curve
+   - Missing: multi-metric radar chart, daily P&L bars, cumulative equity line
+
+3. **Day Drill-Down** - Clicking on a day in the calendar should reveal detailed information
+   - Day summary (P&L, win rate, trade count)
+   - Mini equity curve for that day
+   - List of individual trades with navigation
+
+---
+
+### 11.2 Time-Based Performance Analysis
+
+#### Hour of Day Analysis
+
+Track performance across trading hours to identify optimal trading windows.
+
+```typescript
+interface HourlyPerformance {
+  hour: number                    // 0-23 (UTC or local)
+  totalTrades: number
+  wins: number
+  losses: number
+  breakevens: number
+  winRate: number                 // percentage
+  totalPnl: number                // in cents
+  avgPnl: number                  // average P&L per trade
+  avgR: number                    // average R-multiple
+  profitFactor: number
+}
+
+// Example output:
+// Hour 10: 45 trades, 62% win rate, +R$2,340, avg 1.2R
+// Hour 14: 23 trades, 43% win rate, -R$890, avg -0.4R
+```
+
+#### Day of Week Analysis
+
+Track performance by weekday to identify patterns.
+
+```typescript
+interface DayOfWeekPerformance {
+  dayOfWeek: number               // 0 = Sunday, 6 = Saturday
+  dayName: string                 // "Monday", "Tuesday", etc.
+  totalTrades: number
+  wins: number
+  losses: number
+  breakevens: number
+  winRate: number
+  totalPnl: number
+  avgPnl: number
+  avgR: number
+  profitFactor: number
+  bestHour?: number               // Best performing hour on this day
+  worstHour?: number              // Worst performing hour on this day
+}
+```
+
+---
+
+### 11.3 Backend Tasks
+
+#### New Analytics Functions (`src/app/actions/analytics.ts`)
+
+- [ ] `getHourlyPerformance()` - Performance breakdown by hour of day
+- [ ] `getDayOfWeekPerformance()` - Performance breakdown by day of week
+- [ ] `getTimeHeatmap()` - Combined hour × day performance matrix
+- [ ] `getDailyEquityCurve()` - Cumulative P&L by day (for line chart)
+- [ ] `getDailyPnLBars()` - Individual day P&L (for bar chart)
+
+#### Day Detail Functions (`src/app/actions/reports.ts`)
+
+- [ ] `getDaySummary(date)` - Summary stats for a specific day
+- [ ] `getDayEquityCurve(date)` - Intraday equity curve
+- [ ] `getDayTrades(date)` - List of trades for the day
+
+---
+
+### 11.4 New Dashboard Visualizations
+
+#### 11.4.1 Performance Radar Chart
+
+Multi-metric radar/spider chart showing normalized performance across key dimensions.
+
+```
+                    Win Rate
+                       ●
+                      /|\
+                     / | \
+                    /  |  \
+     Avg R ●-------●--●--●-------● Profit Factor
+                    \  |  /
+                     \ | /
+                      \|/
+                       ●
+                   Discipline
+```
+
+**Metrics displayed:**
+- Win Rate (0-100%)
+- Average R-Multiple (normalized)
+- Profit Factor (capped at 3.0 for visualization)
+- Discipline Score (% following plan)
+- Consistency (inverse of P&L standard deviation)
+
+```typescript
+interface RadarChartData {
+  metric: string
+  value: number          // Actual value
+  normalized: number     // 0-100 for chart display
+  benchmark?: number     // Optional comparison (e.g., last month)
+}
+```
+
+#### 11.4.2 Net Daily P&L Bar Chart
+
+Daily profit/loss shown as vertical bars with positive (green) and negative (red) values.
+
+```
+     +$500 |     ██
+     +$400 |     ██         ██
+     +$300 | ██  ██         ██
+     +$200 | ██  ██     ██  ██
+     +$100 | ██  ██     ██  ██      ██
+        $0 |─██──██──██─██──██──██──██──
+    -$100 |         ██          ██
+    -$200 |         ██          ██
+           Mon Tue Wed Thu Fri Mon Tue
+```
+
+```typescript
+interface DailyPnLBar {
+  date: string            // ISO date
+  pnl: number             // in cents (positive or negative)
+  tradeCount: number
+  isCurrentDay: boolean
+}
+```
+
+#### 11.4.3 Cumulative P&L Line Chart
+
+Running total P&L over time showing equity growth trajectory.
+
+```
+     ↑
+     │                         ●───●
+     │                    ●───●
+     │               ●───●
+     │          ●───●
+     │     ●───●
+     │●───●
+     └─────────────────────────────→
+      Jan    Feb    Mar    Apr    May
+```
+
+```typescript
+interface CumulativePnLPoint {
+  date: string
+  cumulativePnl: number
+  dailyPnl: number
+  drawdown?: number       // Current drawdown from peak
+}
+```
+
+---
+
+### 11.5 Day Click Modal
+
+When user clicks on a day in the calendar or bar chart, show a modal with detailed day information.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ January 15, 2025 (Wednesday)                                    [×] │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌────────────┐  ┌────────────┐  ┌────────────┐  ┌────────────┐    │
+│  │ Net P&L    │  │ Gross P&L  │  │ Win Rate   │  │ Trades     │    │
+│  │ +R$ 450.00 │  │ +R$ 520.00 │  │ 75%        │  │ 8          │    │
+│  │ ▲ +12%     │  │ Fees: R$70 │  │ 6W 2L      │  │ Avg: 1.4R  │    │
+│  └────────────┘  └────────────┘  └────────────┘  └────────────┘    │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Equity Curve (Intraday)                                        │  │
+│  │         ●                                                      │  │
+│  │    ●───●  ●───●                                               │  │
+│  │ ●───●        ●───●───●                                        │  │
+│  │ 09:00   10:00   11:00   14:00   15:00   16:00                 │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  Trades                                                              │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Time   │ Asset  │ Dir │ Entry   │ Exit    │ P&L     │ R      │  │
+│  ├────────┼────────┼─────┼─────────┼─────────┼─────────┼────────┤  │
+│  │ 09:15  │ WINFUT │ L   │ 128,000 │ 128,150 │ +R$60   │ +1.5R →│  │
+│  │ 09:45  │ WINFUT │ S   │ 128,200 │ 128,050 │ +R$60   │ +1.5R →│  │
+│  │ 10:30  │ WDOFUT │ L   │ 5,045   │ 5,038   │ -R$70   │ -0.8R →│  │
+│  │ 11:00  │ WINFUT │ L   │ 128,100 │ 128,250 │ +R$60   │ +1.5R →│  │
+│  │ 14:15  │ WINFUT │ L   │ 128,300 │ 128,500 │ +R$80   │ +2.0R →│  │
+│  │ 14:45  │ WINFUT │ S   │ 128,450 │ 128,350 │ +R$40   │ +1.0R →│  │
+│  │ 15:30  │ WDOFUT │ L   │ 5,052   │ 5,040   │ -R$120  │ -1.4R →│  │
+│  │ 16:00  │ WINFUT │ L   │ 128,200 │ 128,450 │ +R$100  │ +2.5R →│  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  Click on a trade row to view full trade details                    │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Day Modal Components
+
+**DaySummaryStats** - Top row of KPIs for the day
+```typescript
+interface DaySummaryStatsProps {
+  date: Date
+  netPnl: number
+  grossPnl: number
+  fees: number
+  winRate: number
+  wins: number
+  losses: number
+  totalTrades: number
+  avgR: number
+  previousDayPnl?: number     // For comparison
+}
+```
+
+**DayEquityCurve** - Intraday mini equity chart
+```typescript
+interface DayEquityCurveProps {
+  date: Date
+  dataPoints: Array<{
+    time: string              // HH:mm format
+    cumulativePnl: number
+    tradeId?: string          // Link to trade that caused this change
+  }>
+}
+```
+
+**DayTradesList** - Compact table of day's trades
+```typescript
+interface DayTradesListProps {
+  trades: Array<{
+    id: string
+    time: string
+    asset: string
+    direction: 'long' | 'short'
+    entryPrice: number
+    exitPrice: number
+    pnl: number
+    rMultiple: number
+  }>
+  onTradeClick: (tradeId: string) => void
+}
+```
+
+---
+
+### 11.6 Frontend Components
+
+#### New Components (`src/components/dashboard/`)
+
+- [ ] `performance-radar-chart.tsx` - Multi-metric radar visualization
+- [ ] `daily-pnl-bar-chart.tsx` - Daily P&L bars with click handler
+- [ ] `cumulative-pnl-chart.tsx` - Line chart showing equity growth
+- [ ] `day-detail-modal.tsx` - Modal wrapper for day drill-down
+- [ ] `day-summary-stats.tsx` - KPI cards for selected day
+- [ ] `day-equity-curve.tsx` - Intraday equity visualization
+- [ ] `day-trades-list.tsx` - Compact trade table with links
+
+#### New Components (`src/components/analytics/`)
+
+- [ ] `hourly-performance-chart.tsx` - Hour of day analysis
+- [ ] `day-of-week-chart.tsx` - Day of week analysis
+- [ ] `time-heatmap.tsx` - Hour × Day performance heatmap
+
+---
+
+### 11.7 Dashboard Layout Update
+
+Updated dashboard with new chart sections:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Dashboard                                            [Personal ▼] [⚙]   │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐    │
+│  │Net P&L │ │Gross   │ │Win Rate│ │Profit  │ │Avg R   │ │Discipl.│    │
+│  │+R$5.4K │ │+R$6.1K │ │  68%   │ │  2.1   │ │ +1.2R  │ │  85%   │    │
+│  └────────┘ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘    │
+│                                                                          │
+│  ┌─────────────────────────────────┐ ┌─────────────────────────────────┐│
+│  │ Calendar (click days)           │ │ Quick Stats                     ││
+│  │ ┌─┬─┬─┬─┬─┬─┬─┐                │ │ Current Streak: 4W              ││
+│  │ │S│M│T│W│T│F│S│                │ │ Best Day: +R$1.2K (Jan 10)      ││
+│  │ ├─┼─┼─┼─┼─┼─┼─┤                │ │ Worst Day: -R$450 (Jan 8)       ││
+│  │ │ │ │ │●│●│●│ │                │ │ Total Trades: 156               ││
+│  │ │●│●│○│●│●│ │ │                │ │ ─────────────────────────       ││
+│  │ │ │●│●│●│○│ │ │                │ │ Longest Win: 8                  ││
+│  │ └─┴─┴─┴─┴─┴─┴─┘                │ │ Longest Loss: 3                 ││
+│  └─────────────────────────────────┘ └─────────────────────────────────┘│
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Daily Net P&L                                                      │  │
+│  │      ██                                                            │  │
+│  │  ██  ██      ██  ██              ██                                │  │
+│  │  ██  ██  ██  ██  ██  ██  ██      ██  ██      ██                    │  │
+│  │──██──██──██──██──██──██──██──██──██──██──██──██──                  │  │
+│  │          ▓▓          ▓▓  ▓▓      ▓▓      ▓▓                        │  │
+│  │  1   5   10  15  20  25  30                                        │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│  ┌─────────────────────────────────┐ ┌─────────────────────────────────┐│
+│  │ Cumulative P&L                  │ │ Performance Radar               ││
+│  │                          ●──●   │ │       Win Rate                  ││
+│  │                     ●───●       │ │          ●                      ││
+│  │                ●───●            │ │    ●────●────●                  ││
+│  │           ●───●                 │ │   /          \                  ││
+│  │      ●───●                      │ │ ●──────●──────● Profit Factor  ││
+│  │ ●───●                           │ │   \          /                  ││
+│  │ Jan  Feb  Mar  Apr  May         │ │    ●────●────●                  ││
+│  │                                 │ │       Avg R                     ││
+│  └─────────────────────────────────┘ └─────────────────────────────────┘│
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 11.8 Analytics Page Enhancement
+
+Add new time-based analysis section to Analytics page:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Analytics                                                                │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  [Overview] [By Asset] [By Strategy] [By Time] [R-Distribution]         │
+│                                     ═══════                              │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Performance by Hour of Day                                         │  │
+│  │                                                                    │  │
+│  │  +R$500 |          ██                                              │  │
+│  │  +R$300 |    ██    ██  ██                                          │  │
+│  │  +R$100 |    ██    ██  ██  ██                                      │  │
+│  │      $0 |────██────██──██──██──██──██──██──██──                    │  │
+│  │  -R$100 |                      ▓▓  ▓▓          ▓▓                  │  │
+│  │  -R$300 |                              ▓▓                          │  │
+│  │         09  10  11  12  13  14  15  16  17                         │  │
+│  │                                                                    │  │
+│  │  Best Hour: 10:00 (62% WR, +R$1,230 total, 45 trades)             │  │
+│  │  Worst Hour: 14:00 (38% WR, -R$890 total, 23 trades)              │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Performance by Day of Week                                         │  │
+│  │                                                                    │  │
+│  │         Mon     Tue     Wed     Thu     Fri                        │  │
+│  │  P&L   +R$1.2K +R$890  +R$450  +R$620  -R$340                     │  │
+│  │  WR    68%     72%     58%     65%     42%                        │  │
+│  │  Trades 32     28      25      30      22                          │  │
+│  │  Avg R  +1.4R  +1.6R   +0.8R   +1.2R   -0.4R                      │  │
+│  │                                                                    │  │
+│  │  Best Day: Tuesday (72% WR, 1.6R avg)                             │  │
+│  │  Worst Day: Friday (42% WR, -0.4R avg)                            │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │ Time Heatmap (Hour × Day)                                          │  │
+│  │                                                                    │  │
+│  │        09   10   11   12   13   14   15   16   17                 │  │
+│  │  Mon   ██   ██   ██   --   --   ░░   ░░   ██   ░░                 │  │
+│  │  Tue   ██   ██   ██   --   --   ██   ░░   ░░   ░░                 │  │
+│  │  Wed   ░░   ██   ░░   --   --   ░░   ░░   ██   ░░                 │  │
+│  │  Thu   ██   ██   ██   --   --   ██   ██   ░░   ░░                 │  │
+│  │  Fri   ░░   ░░   ░░   --   --   ░░   ░░   ░░   ░░                 │  │
+│  │                                                                    │  │
+│  │  ██ = Profitable   ░░ = Losing   -- = No trades (lunch)           │  │
+│  │                                                                    │  │
+│  │  Best Slot: Tuesday 10:00-11:00 (85% WR, +R$680)                  │  │
+│  │  Worst Slot: Friday 14:00-15:00 (25% WR, -R$420)                  │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 11.9 Implementation Order
+
+1. **Backend Time Analysis** (Day 1-2)
+   - [ ] `getHourlyPerformance()` - Hour of day analytics
+   - [ ] `getDayOfWeekPerformance()` - Day of week analytics
+   - [ ] `getTimeHeatmap()` - Combined hour × day matrix
+   - [ ] Update schema if needed for time zone handling
+
+2. **Backend Day Detail** (Day 2)
+   - [ ] `getDaySummary()` - Day summary stats
+   - [ ] `getDayEquityCurve()` - Intraday points
+   - [ ] `getDayTrades()` - Trades list for day
+
+3. **Dashboard Charts** (Day 3-4)
+   - [ ] `daily-pnl-bar-chart.tsx` with click handlers
+   - [ ] `cumulative-pnl-chart.tsx` line chart
+   - [ ] `performance-radar-chart.tsx` multi-metric radar
+   - [ ] Update dashboard layout
+
+4. **Day Detail Modal** (Day 5)
+   - [ ] `day-detail-modal.tsx` container
+   - [ ] `day-summary-stats.tsx` KPI cards
+   - [ ] `day-equity-curve.tsx` intraday chart
+   - [ ] `day-trades-list.tsx` with navigation
+
+5. **Analytics Time Section** (Day 6)
+   - [ ] `hourly-performance-chart.tsx`
+   - [ ] `day-of-week-chart.tsx`
+   - [ ] `time-heatmap.tsx`
+   - [ ] Add "By Time" tab to analytics page
+
+6. **Polish & Translations** (Day 7)
+   - [ ] Full i18n support (pt-BR and en)
+   - [ ] Responsive design for all new components
+   - [ ] Loading states and empty states
+   - [ ] Tooltips and accessibility
+
+---
+
+### 11.10 Files to Create/Modify
+
+```
+src/
+├── app/
+│   ├── [locale]/
+│   │   └── analytics/page.tsx          # UPDATE: Add "By Time" tab
+│   └── actions/
+│       ├── analytics.ts                # UPDATE: Add time-based functions
+│       └── reports.ts                  # UPDATE: Add day detail functions
+├── components/
+│   ├── dashboard/
+│   │   ├── index.ts                    # UPDATE: Export new components
+│   │   ├── dashboard-content.tsx       # UPDATE: New layout with charts
+│   │   ├── daily-pnl-bar-chart.tsx     # NEW: Daily P&L bars
+│   │   ├── cumulative-pnl-chart.tsx    # NEW: Equity line chart
+│   │   ├── performance-radar-chart.tsx # NEW: Multi-metric radar
+│   │   ├── day-detail-modal.tsx        # NEW: Day drill-down modal
+│   │   ├── day-summary-stats.tsx       # NEW: Day KPI cards
+│   │   ├── day-equity-curve.tsx        # NEW: Intraday equity
+│   │   └── day-trades-list.tsx         # NEW: Day trades table
+│   └── analytics/
+│       ├── index.ts                    # UPDATE: Export new components
+│       ├── hourly-performance-chart.tsx  # NEW
+│       ├── day-of-week-chart.tsx         # NEW
+│       └── time-heatmap.tsx              # NEW
+├── types/
+│   └── index.ts                        # UPDATE: Add new types
+└── messages/
+    ├── en.json                         # UPDATE: Add translations
+    └── pt-BR.json                      # UPDATE: Add translations
+```
+
+---
+
+### 11.11 Translation Keys to Add
+
+```json
+{
+  "dashboard": {
+    "charts": {
+      "dailyPnl": {
+        "title": "Daily Net P&L",
+        "noData": "No trades in this period"
+      },
+      "cumulativePnl": {
+        "title": "Cumulative P&L",
+        "drawdown": "Current Drawdown"
+      },
+      "performanceRadar": {
+        "title": "Performance Overview",
+        "winRate": "Win Rate",
+        "avgR": "Avg R",
+        "profitFactor": "Profit Factor",
+        "discipline": "Discipline",
+        "consistency": "Consistency"
+      }
+    },
+    "dayModal": {
+      "title": "{date}",
+      "netPnl": "Net P&L",
+      "grossPnl": "Gross P&L",
+      "fees": "Fees",
+      "winRate": "Win Rate",
+      "wins": "Wins",
+      "losses": "Losses",
+      "trades": "Trades",
+      "avgR": "Avg R",
+      "intradayEquity": "Intraday Equity",
+      "tradesList": "Trades",
+      "time": "Time",
+      "asset": "Asset",
+      "direction": "Dir",
+      "entry": "Entry",
+      "exit": "Exit",
+      "pnl": "P&L",
+      "rMultiple": "R",
+      "viewTrade": "View trade details",
+      "noTrades": "No trades on this day"
+    }
+  },
+  "analytics": {
+    "byTime": {
+      "title": "Performance by Time",
+      "hourOfDay": {
+        "title": "Hour of Day",
+        "bestHour": "Best Hour",
+        "worstHour": "Worst Hour",
+        "totalTrades": "{count} trades"
+      },
+      "dayOfWeek": {
+        "title": "Day of Week",
+        "bestDay": "Best Day",
+        "worstDay": "Worst Day",
+        "monday": "Monday",
+        "tuesday": "Tuesday",
+        "wednesday": "Wednesday",
+        "thursday": "Thursday",
+        "friday": "Friday",
+        "saturday": "Saturday",
+        "sunday": "Sunday"
+      },
+      "heatmap": {
+        "title": "Time Heatmap",
+        "profitable": "Profitable",
+        "losing": "Losing",
+        "noTrades": "No trades",
+        "bestSlot": "Best Time Slot",
+        "worstSlot": "Worst Time Slot"
+      }
+    }
+  }
+}
+```
+
+---
+
+### 11.12 Enhanced Trade Detail Page
+
+Based on professional trading journal platforms, enhance the trade detail page with comprehensive stats and new features.
+
+#### Enhanced Stats Panel
+
+Display more detailed trade information in a structured layout:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Trade Detail: WINFUT                            Mon, Feb 03, 2025       │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  [Stats] [Playbook] [Executions] [Attachments]                          │
+│  ══════                                                                  │
+│                                                                          │
+│  ┌─────────────────────────────────┐  ┌─────────────────────────────┐   │
+│  │                                 │  │                              │   │
+│  │  Net P&L        -R$ 288.14      │  │     [CHART: Price Action]   │   │
+│  │                 ─────────       │  │                              │   │
+│  │  Side           SHORT           │  │     Entry: ●────────────    │   │
+│  │  Contracts      0.02            │  │                    ────●    │   │
+│  │  Commissions    R$ 0.14         │  │     Exit: ────────●         │   │
+│  │  Total Fees     R$ 0.00         │  │                              │   │
+│  │  Net ROI        (0.33%)         │  │                              │   │
+│  │  Gross P&L      -R$ 288.00      │  │                              │   │
+│  │                                 │  │                              │   │
+│  │  ─────────────────────────────  │  └─────────────────────────────┘   │
+│  │                                 │                                     │
+│  │  MAE / MFE      -R$29.00 / +R$15.24                                  │
+│  │                 ░░░░░░░░░░█░░░░░░░░░░                                │
+│  │                 ←worst    entry    best→                             │
+│  │                                 │                                     │
+│  │  ─────────────────────────────  │                                     │
+│  │                                 │                                     │
+│  │  Trade Rating   ★★★☆☆           │                                     │
+│  │                                 │                                     │
+│  │  ─────────────────────────────  │                                     │
+│  │                                 │                                     │
+│  │  Profit Target  R$ 419.00       │                                     │
+│  │  Stop Loss      R$ 285.00       │                                     │
+│  │  Initial Target +R$ 419.00      │                                     │
+│  │  Trade Risk     -R$ 285.34      │                                     │
+│  │  Planned R      1.47R           │                                     │
+│  │  Realized R     -1.01R          │                                     │
+│  │                                 │                                     │
+│  │  ─────────────────────────────  │                                     │
+│  │                                 │                                     │
+│  │  Avg Entry      R$ 43,905.35    │                                     │
+│  │  Avg Exit       R$ 44,049.35    │                                     │
+│  │  Entry Time     21:48:55        │                                     │
+│  │  Exit Time      03:19:27        │                                     │
+│  │  Duration       5h 30m 32s      │                                     │
+│  │                                 │                                     │
+│  └─────────────────────────────────┘                                     │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  Setups                                                    [+ Add] │  │
+│  │  ┌──────────┐                                                      │  │
+│  │  │ bear flag│  ×                                                   │  │
+│  │  └──────────┘                                                      │  │
+│  ├───────────────────────────────────────────────────────────────────┤  │
+│  │  Mistakes                                                  [+ Add] │  │
+│  │  ┌────────────────┐  ┌──────────────┐                              │  │
+│  │  │ early entry    │× │ no stop loss │×                             │  │
+│  │  └────────────────┘  └──────────────┘                              │  │
+│  ├───────────────────────────────────────────────────────────────────┤  │
+│  │  Custom Tags                                               [+ Add] │  │
+│  │  ┌───────────┐  ┌──────────────┐                                   │  │
+│  │  │ 1hr chart │× │ london open  │×                                  │  │
+│  │  └───────────┘  └──────────────┘                                   │  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+│  ┌───────────────────────────────────────────────────────────────────┐  │
+│  │  Charts & Running P&L                                              │  │
+│  │  [Trade note] [Daily Journal]                    [+ Add template]  │  │
+│  │  ─────────────────────────────────────────────────────────────────│  │
+│  │  ┌───────────────────────────────────────────────────────────────┐│  │
+│  │  │ Rich text editor with formatting toolbar                       ││  │
+│  │  │                                                                ││  │
+│  │  │ Enter your trade notes here...                                 ││  │
+│  │  │                                                                ││  │
+│  │  └───────────────────────────────────────────────────────────────┘│  │
+│  └───────────────────────────────────────────────────────────────────┘  │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+#### New Fields for Trade Detail
+
+```typescript
+interface EnhancedTradeStats {
+  // Existing fields
+  netPnl: number
+  grossPnl: number
+  direction: 'long' | 'short'
+  positionSize: number
+  commission: number
+  fees: number
+
+  // New calculated fields
+  netRoi: number                    // (pnl / cost) * 100
+  totalCost: number                 // positionSize * entryPrice (adjusted)
+  tradeDuration: number             // exitTime - entryTime in seconds
+
+  // MAE/MFE visualization
+  mae: number                       // Maximum Adverse Excursion
+  mfe: number                       // Maximum Favorable Excursion
+  maePercent: number                // Normalized for visualization
+  mfePercent: number                // Normalized for visualization
+
+  // R-Multiple tracking
+  profitTarget: number              // Take profit price
+  stopLoss: number                  // Stop loss price
+  initialTarget: number             // Calculated target in currency
+  tradeRisk: number                 // Calculated risk in currency
+  plannedRMultiple: number          // target / risk
+  realizedRMultiple: number         // actual pnl / risk
+
+  // New fields
+  tradeRating?: number              // 1-5 star rating (optional)
+}
+```
+
+#### Trade Rating System
+
+Optional 1-5 star rating for subjective trade quality assessment.
+
+```typescript
+interface TradeRating {
+  value: number                     // 1-5
+  criteria?: {
+    execution: number               // How well was it executed?
+    patience: number                // Did you wait for confirmation?
+    riskManagement: number          // Proper position sizing and stops?
+    emotionalControl: number        // Traded without emotion?
+  }
+}
+```
+
+**Use cases:**
+- Rate trade quality independent of outcome (a losing trade can be well-executed)
+- Track improvement in trade quality over time
+- Filter analytics by trade rating
+
+---
+
+### 11.13 Mistake Tags System
+
+Dedicated mistake tracking separate from general tags, enabling cost-of-mistakes analysis.
+
+#### Pre-defined Mistake Categories
+
+```typescript
+const COMMON_MISTAKES = [
+  // Entry Mistakes
+  'early_entry',           // Entered before confirmation
+  'late_entry',            // Missed optimal entry, chased
+  'fomo_entry',            // Fear of missing out
+  'revenge_trade',         // Trading to recover losses
+  'overtrading',           // Too many trades
+
+  // Exit Mistakes
+  'early_exit',            // Took profits too soon
+  'late_exit',             // Held too long
+  'moved_stop',            // Moved stop loss (usually worse)
+  'no_stop_loss',          // Traded without stop loss
+  'didnt_take_profit',     // Missed take profit level
+
+  // Risk Mistakes
+  'oversized_position',    // Position too large
+  'wrong_asset',           // Traded unfamiliar asset
+  'against_trend',         // Traded against major trend
+
+  // Psychological
+  'emotional_decision',    // Not following the plan
+  'distracted',            // Not fully focused
+  'tired_trading',         // Trading when fatigued
+
+  // Custom
+  // Users can add their own
+]
+```
+
+#### Mistake Cost Analysis
+
+Track the financial impact of each mistake type:
+
+```typescript
+interface MistakeCostAnalysis {
+  mistake: string
+  occurrences: number
+  totalCost: number                 // Sum of P&L for trades with this mistake
+  avgCost: number                   // Average loss per occurrence
+  winRateWithMistake: number        // Win rate when this mistake is made
+  percentOfLosses: number           // What % of total losses come from this mistake
+}
+
+// Example output:
+// "Moving stop loss" - 12 occurrences, -R$1,840 total, 0% win rate
+// This mistake alone costs you R$153/occurrence
+```
+
+---
+
+### 11.14 Custom Tags for Timeframe Tracking
+
+Enable tracking trades by the chart timeframe used for analysis/entry.
+
+#### Pre-defined Timeframe Tags
+
+```typescript
+const TIMEFRAME_TAGS = [
+  '1m_chart',
+  '5m_chart',
+  '15m_chart',
+  '1h_chart',
+  '4h_chart',
+  'daily_chart',
+  'weekly_chart',
+  // Renko/Range
+  'renko_chart',
+  'range_chart',
+]
+```
+
+#### Timeframe Performance Analysis
+
+```typescript
+interface TimeframePerformance {
+  timeframe: string
+  totalTrades: number
+  wins: number
+  losses: number
+  winRate: number
+  totalPnl: number
+  avgPnl: number
+  avgR: number
+  profitFactor: number
+  avgDuration: number               // Avg trade duration for this timeframe
+}
+
+// Example insight:
+// "You're most profitable on the 1-hour chart (72% WR, 1.8R avg)"
+// "5-minute chart trades have the lowest win rate (45%)"
+```
+
+---
+
+### 11.15 Trade Notes with Templates
+
+Rich text notes with template system for consistent journaling.
+
+#### Note Templates
+
+```typescript
+interface NoteTemplate {
+  id: string
+  name: string
+  content: string                   // HTML or markdown template
+  category: 'trade_note' | 'daily_journal' | 'weekly_review'
+}
+
+// Example template:
+const PRE_TRADE_TEMPLATE = `
+## Setup
+- Pattern:
+- Timeframe:
+- Key levels:
+
+## Entry Thesis
+Why am I taking this trade?
+
+## Risk Management
+- Stop loss reason:
+- Target reason:
+- Position size:
+`
+
+const POST_TRADE_TEMPLATE = `
+## What Happened
+- Did price reach my target?
+- Where did I exit?
+
+## What I Did Well
+
+## What I Could Improve
+
+## Lesson Learned
+`
+```
+
+---
+
+### 11.16 Key Metrics Balance Insight
+
+The relationship between win rate and average win/loss ratio is crucial for profitability.
+
+#### Profitability Formula Display
+
+Add a visual indicator showing the balance needed for profitability:
+
+```
+┌───────────────────────────────────────────────────────────────────────┐
+│ Profitability Balance                                                  │
+│                                                                        │
+│  Your Stats:                                                           │
+│  Win Rate: 58%          Avg Win/Loss: 1.4                             │
+│                                                                        │
+│  ┌────────────────────────────────────────────────────────────────┐   │
+│  │                                                                │   │
+│  │  High Win Rate (>60%)  →  Avg Win/Loss ~1.0 is enough         │   │
+│  │  Medium Win Rate (50%) →  Avg Win/Loss >1.0 required          │   │
+│  │  Low Win Rate (<40%)   →  Avg Win/Loss >2.0 required          │   │
+│  │                                                                │   │
+│  │  You: 58% WR + 1.4 Avg W/L = ✓ Profitable combination         │   │
+│  │                                                                │   │
+│  └────────────────────────────────────────────────────────────────┘   │
+│                                                                        │
+│  Breakeven line: At your win rate, you need 0.72 Avg W/L to break even│
+│  You're +94% above breakeven threshold                                 │
+│                                                                        │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+#### Calculation
+
+```typescript
+// Breakeven Avg Win/Loss for a given win rate
+const calculateBreakevenRatio = (winRate: number): number => {
+  // At breakeven: (winRate * avgWin) = ((1 - winRate) * avgLoss)
+  // avgWin/avgLoss = (1 - winRate) / winRate
+  return (1 - winRate) / winRate
+}
+
+// Example: 60% win rate → breakeven at 0.67 avg win/loss
+// Example: 40% win rate → breakeven at 1.5 avg win/loss
+
+interface ProfitabilityInsight {
+  winRate: number
+  avgWinLoss: number
+  breakevenRatio: number
+  marginAboveBreakeven: number      // % above breakeven threshold
+  status: 'profitable' | 'breakeven' | 'unprofitable'
+  recommendation?: string           // "Increase avg win size" or "Improve win rate"
+}
+```
+
+---
+
+### 11.17 Updated Implementation Order
+
+1. **Backend Time Analysis** (Day 1-2)
+   - [ ] `getHourlyPerformance()` - Hour of day analytics
+   - [ ] `getDayOfWeekPerformance()` - Day of week analytics
+   - [ ] `getTimeHeatmap()` - Combined hour × day matrix
+   - [ ] Update schema if needed for time zone handling
+
+2. **Backend Day Detail** (Day 2)
+   - [ ] `getDaySummary()` - Day summary stats
+   - [ ] `getDayEquityCurve()` - Intraday points
+   - [ ] `getDayTrades()` - Trades list for day
+
+3. **Dashboard Charts** (Day 3-4)
+   - [ ] `daily-pnl-bar-chart.tsx` with click handlers
+   - [ ] `cumulative-pnl-chart.tsx` line chart
+   - [ ] `performance-radar-chart.tsx` multi-metric radar
+   - [ ] Update dashboard layout
+
+4. **Day Detail Modal** (Day 5)
+   - [ ] `day-detail-modal.tsx` container
+   - [ ] `day-summary-stats.tsx` KPI cards
+   - [ ] `day-equity-curve.tsx` intraday chart
+   - [ ] `day-trades-list.tsx` with navigation
+
+5. **Analytics Time Section** (Day 6)
+   - [ ] `hourly-performance-chart.tsx`
+   - [ ] `day-of-week-chart.tsx`
+   - [ ] `time-heatmap.tsx`
+   - [ ] Add "By Time" tab to analytics page
+
+6. **Trade Detail Enhancements** (Day 7-8)
+   - [ ] Enhanced stats panel layout
+   - [ ] MAE/MFE visualization bar
+   - [ ] Trade rating component (1-5 stars)
+   - [ ] Trade duration calculation and display
+   - [ ] ROI calculation and display
+
+7. **Mistake Tags System** (Day 9)
+   - [ ] Create `mistake_tags` table or use existing tags with `category`
+   - [ ] Pre-populate common mistakes
+   - [ ] Mistake selector component in trade detail
+   - [ ] `getMistakeCostAnalysis()` analytics function
+
+8. **Custom Tags & Timeframe** (Day 10)
+   - [ ] Timeframe tag category
+   - [ ] Custom tag management UI
+   - [ ] `getTimeframePerformance()` analytics
+   - [ ] Tag-based filtering in reports
+
+9. **Trade Notes Enhancement** (Day 11)
+   - [ ] Note templates system
+   - [ ] Rich text editor improvements
+   - [ ] Template selector component
+   - [ ] Pre-defined templates (pre-trade, post-trade)
+
+10. **Profitability Balance** (Day 12)
+    - [ ] Calculate breakeven ratio
+    - [ ] Profitability insight component
+    - [ ] Add to dashboard or analytics overview
+
+11. **Polish & Translations** (Day 13-14)
+    - [ ] Full i18n support (pt-BR and en)
+    - [ ] Responsive design for all new components
+    - [ ] Loading states and empty states
+    - [ ] Tooltips and accessibility
+
+---
+
+### 11.18 Updated Files to Create/Modify
+
+```
+src/
+├── db/
+│   └── schema.ts                     # Add trade_rating, update tags schema
+├── app/
+│   ├── [locale]/
+│   │   ├── analytics/page.tsx        # UPDATE: Add "By Time" tab
+│   │   └── journal/[id]/page.tsx     # UPDATE: Enhanced trade detail
+│   └── actions/
+│       ├── analytics.ts              # UPDATE: Add time-based + mistake analysis
+│       ├── reports.ts                # UPDATE: Add day detail functions
+│       └── tags.ts                   # UPDATE: Mistake tags, timeframe tags
+├── components/
+│   ├── dashboard/
+│   │   ├── index.ts                  # UPDATE: Export new components
+│   │   ├── dashboard-content.tsx     # UPDATE: New layout with charts
+│   │   ├── daily-pnl-bar-chart.tsx   # NEW: Daily P&L bars
+│   │   ├── cumulative-pnl-chart.tsx  # NEW: Equity line chart
+│   │   ├── performance-radar-chart.tsx # NEW: Multi-metric radar
+│   │   ├── profitability-balance.tsx # NEW: Win rate / Avg W-L balance
+│   │   ├── day-detail-modal.tsx      # NEW: Day drill-down modal
+│   │   ├── day-summary-stats.tsx     # NEW: Day KPI cards
+│   │   ├── day-equity-curve.tsx      # NEW: Intraday equity
+│   │   └── day-trades-list.tsx       # NEW: Day trades table
+│   ├── analytics/
+│   │   ├── index.ts                  # UPDATE: Export new components
+│   │   ├── hourly-performance-chart.tsx  # NEW
+│   │   ├── day-of-week-chart.tsx         # NEW
+│   │   ├── time-heatmap.tsx              # NEW
+│   │   ├── timeframe-performance.tsx     # NEW
+│   │   └── mistake-cost-analysis.tsx     # NEW
+│   └── journal/
+│       ├── trade-detail-stats.tsx    # NEW: Enhanced stats panel
+│       ├── trade-rating.tsx          # NEW: 1-5 star rating
+│       ├── mae-mfe-bar.tsx           # NEW: Visual MAE/MFE bar
+│       ├── mistake-tags-selector.tsx # NEW: Mistake tags component
+│       ├── timeframe-tag-selector.tsx # NEW: Timeframe selection
+│       └── note-template-selector.tsx # NEW: Template picker
+├── types/
+│   └── index.ts                      # UPDATE: Add new types
+└── messages/
+    ├── en.json                       # UPDATE: Add translations
+    └── pt-BR.json                    # UPDATE: Add translations
+```
+
+---
+
+### 11.19 Additional Translation Keys
+
+```json
+{
+  "tradeDetail": {
+    "stats": {
+      "netPnl": "Net P&L",
+      "grossPnl": "Gross P&L",
+      "side": "Side",
+      "contracts": "Contracts",
+      "commissions": "Commissions",
+      "totalFees": "Total Fees",
+      "netRoi": "Net ROI",
+      "maeMfe": "MAE / MFE",
+      "maeMfeTooltip": "Maximum Adverse/Favorable Excursion - How far price moved against/for you",
+      "tradeRating": "Trade Rating",
+      "rateThisTrade": "Rate this trade",
+      "profitTarget": "Profit Target",
+      "stopLoss": "Stop Loss",
+      "initialTarget": "Initial Target",
+      "tradeRisk": "Trade Risk",
+      "plannedR": "Planned R",
+      "realizedR": "Realized R",
+      "avgEntry": "Avg Entry",
+      "avgExit": "Avg Exit",
+      "entryTime": "Entry Time",
+      "exitTime": "Exit Time",
+      "duration": "Duration"
+    },
+    "tags": {
+      "setups": "Setups",
+      "mistakes": "Mistakes",
+      "customTags": "Custom Tags",
+      "timeframe": "Timeframe",
+      "addSetup": "Add setup",
+      "addMistake": "Add mistake",
+      "addTag": "Add tag",
+      "selectTimeframe": "Select timeframe"
+    },
+    "notes": {
+      "title": "Charts & Running P&L",
+      "tradeNote": "Trade note",
+      "dailyJournal": "Daily Journal",
+      "addTemplate": "Add template",
+      "selectTemplate": "Select a template",
+      "preTradeAnalysis": "Pre-Trade Analysis",
+      "postTradeReview": "Post-Trade Review"
+    }
+  },
+  "mistakes": {
+    "categories": {
+      "entry": "Entry Mistakes",
+      "exit": "Exit Mistakes",
+      "risk": "Risk Mistakes",
+      "psychological": "Psychological"
+    },
+    "types": {
+      "early_entry": "Early Entry",
+      "late_entry": "Late Entry",
+      "fomo_entry": "FOMO Entry",
+      "revenge_trade": "Revenge Trade",
+      "overtrading": "Overtrading",
+      "early_exit": "Early Exit",
+      "late_exit": "Late Exit",
+      "moved_stop": "Moved Stop Loss",
+      "no_stop_loss": "No Stop Loss",
+      "didnt_take_profit": "Didn't Take Profit",
+      "oversized_position": "Oversized Position",
+      "wrong_asset": "Wrong Asset",
+      "against_trend": "Against Trend",
+      "emotional_decision": "Emotional Decision",
+      "distracted": "Distracted",
+      "tired_trading": "Tired Trading"
+    },
+    "analysis": {
+      "title": "Mistake Cost Analysis",
+      "occurrences": "Occurrences",
+      "totalCost": "Total Cost",
+      "avgCost": "Avg Cost",
+      "costPerMistake": "This mistake costs you {amount} per occurrence"
+    }
+  },
+  "timeframes": {
+    "1m": "1 Minute",
+    "5m": "5 Minutes",
+    "15m": "15 Minutes",
+    "1h": "1 Hour",
+    "4h": "4 Hours",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "renko": "Renko",
+    "range": "Range"
+  },
+  "profitability": {
+    "title": "Profitability Balance",
+    "yourStats": "Your Stats",
+    "winRate": "Win Rate",
+    "avgWinLoss": "Avg Win/Loss",
+    "breakevenLine": "At your win rate, you need {ratio} Avg W/L to break even",
+    "aboveBreakeven": "You're +{percent}% above breakeven threshold",
+    "belowBreakeven": "You're {percent}% below breakeven threshold",
+    "profitable": "Profitable combination",
+    "breakeven": "At breakeven",
+    "unprofitable": "Below breakeven",
+    "recommendation": {
+      "increaseWinRate": "Focus on improving entry timing to increase win rate",
+      "increaseAvgWin": "Let winners run longer to increase average win size",
+      "decreaseAvgLoss": "Cut losses faster to decrease average loss size"
+    }
+  }
+}
+```
+
+---
+
+### Deliverables
+
+- [ ] Hour of day performance analysis (backend + frontend)
+- [ ] Day of week performance analysis (backend + frontend)
+- [ ] Time heatmap (hour × day matrix) visualization
+- [ ] Daily P&L bar chart with click handler
+- [ ] Cumulative P&L line chart
+- [ ] Multi-metric performance radar chart
+- [ ] Day detail modal with:
+  - [ ] Summary stats (P&L, win rate, trades, avg R)
+  - [ ] Intraday equity curve
+  - [ ] Trades list with navigation to trade detail
+- [ ] "By Time" tab in Analytics page
+- [ ] Calendar day click triggers modal
+- [ ] Bar chart day click triggers modal
+- [ ] Enhanced Trade Detail Page:
+  - [ ] Comprehensive stats panel (ROI, duration, MAE/MFE)
+  - [ ] MAE/MFE visualization bar
+  - [ ] Trade rating system (1-5 stars)
+  - [ ] Planned vs Realized R-Multiple display
+- [ ] Mistake Tags System:
+  - [ ] Pre-defined common mistakes
+  - [ ] Custom mistake creation
+  - [ ] Mistake cost analysis report
+- [ ] Custom Tags Enhancements:
+  - [ ] Timeframe tags (1m, 5m, 15m, 1h, 4h, daily)
+  - [ ] Timeframe performance analysis
+- [ ] Trade Notes with Templates:
+  - [ ] Pre-trade analysis template
+  - [ ] Post-trade review template
+  - [ ] Custom template creation
+- [ ] Profitability Balance indicator (Win Rate vs Avg W/L)
+- [ ] Full i18n support (pt-BR, en)
+- [ ] Responsive design for all new components

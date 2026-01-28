@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,6 +24,13 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 	const [monthOffset, setMonthOffset] = useState(0)
 	const [isPending, startTransition] = useTransition()
 	const [isExpanded, setIsExpanded] = useState(false)
+
+	// Reset state when initialReport changes (e.g., account switch)
+	useEffect(() => {
+		setReport(initialReport)
+		setMonthOffset(0)
+		setIsExpanded(false)
+	}, [initialReport])
 
 	const handleMonthChange = (offset: number) => {
 		startTransition(async () => {

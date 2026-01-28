@@ -15,6 +15,8 @@ import {
 	type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { AccountSwitcher } from "./account-switcher"
+import { UserMenu } from "./user-menu"
 
 interface NavItem {
 	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "settings"
@@ -95,11 +97,13 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 				})}
 			</nav>
 
-			{/* Footer */}
-			<div className="border-t border-bg-300 p-4">
-				{!isCollapsed && (
-					<p className="text-tiny text-txt-300">Trading Journal v1.0</p>
-				)}
+			{/* Account Switcher */}
+			<div className={cn(
+				"border-t border-bg-300",
+				isCollapsed ? "flex flex-col items-center gap-2 py-4" : "space-y-2 p-4"
+			)}>
+				<AccountSwitcher isCollapsed={isCollapsed} />
+				<UserMenu isCollapsed={isCollapsed} />
 			</div>
 		</aside>
 	)

@@ -5,10 +5,11 @@ import { db } from "@/db/drizzle"
 import { tags, tradeTags, trades } from "@/db/schema"
 import type { Tag, NewTag } from "@/db/schema"
 import type { ActionResponse, TagStats, TagType, TradeFilters } from "@/types"
-import { eq, and, asc, sql } from "drizzle-orm"
+import { eq, and, asc, sql, inArray } from "drizzle-orm"
 import { z } from "zod"
 import { calculateWinRate } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
+import { requireAuth } from "@/app/actions/auth"
 
 // Validation schema for creating a tag
 const createTagSchema = z.object({
@@ -33,11 +34,13 @@ export const createTag = async (
 	input: CreateTagInput
 ): Promise<ActionResponse<Tag>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = createTagSchema.parse(input)
 
 		const [tag] = await db
 			.insert(tags)
 			.values({
+				accountId,
 				name: validated.name,
 				type: validated.type,
 				color: validated.color,
@@ -88,8 +91,10 @@ export const updateTag = async (
 	input: Partial<CreateTagInput>
 ): Promise<ActionResponse<Tag>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const existing = await db.query.tags.findFirst({
-			where: eq(tags.id, id),
+			where: and(eq(tags.id, id), eq(tags.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -108,7 +113,7 @@ export const updateTag = async (
 				...(input.color !== undefined && { color: input.color }),
 				...(input.description !== undefined && { description: input.description }),
 			})
-			.where(eq(tags.id, id))
+			.where(and(eq(tags.id, id), eq(tags.accountId, accountId)))
 			.returning()
 
 		revalidatePath("/analytics")
@@ -136,7 +141,14 @@ export const getTags = async (
 	type?: TagType
 ): Promise<ActionResponse<Tag[]>> => {
 	try {
-		const conditions = type ? eq(tags.type, type) : undefined
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(tags.accountId, authContext.allAccountIds)
+			: eq(tags.accountId, authContext.accountId)
+
+		const conditions = type
+			? and(accountCondition, eq(tags.type, type))
+			: accountCondition
 
 		const result = await db.query.tags.findMany({
 			where: conditions,
@@ -165,8 +177,14 @@ export const getTagStats = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<TagStats[]>> => {
 	try {
-		// Get all tags first
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(tags.accountId, authContext.allAccountIds)
+			: eq(tags.accountId, authContext.accountId)
+
+		// Get all tags for this account first
 		const allTags = await db.query.tags.findMany({
+			where: accountCondition,
 			orderBy: [asc(tags.name)],
 		})
 
@@ -189,11 +207,17 @@ export const getTagStats = async (
 				},
 			})
 
-			// Filter by all filter criteria
+			// Filter by all filter criteria - support all accounts mode
 			const filteredTrades = tradeTagsResult
 				.map((tt) => tt.trade)
 				.filter((trade) => {
 					if (trade.isArchived) return false
+					if (!trade.accountId) return false
+					// Check account ownership based on showAllAccounts mode
+					const accountMatch = authContext.showAllAccounts
+						? authContext.allAccountIds.includes(trade.accountId)
+						: trade.accountId === authContext.accountId
+					if (!accountMatch) return false
 					if (filters?.dateFrom && trade.entryDate < filters.dateFrom) return false
 					if (filters?.dateTo && trade.entryDate > filters.dateTo) return false
 					if (filters?.assets && filters.assets.length > 0 && !filters.assets.includes(trade.asset)) return false
@@ -269,8 +293,10 @@ export const getTagStats = async (
  */
 export const deleteTag = async (id: string): Promise<ActionResponse<void>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const existing = await db.query.tags.findFirst({
-			where: eq(tags.id, id),
+			where: and(eq(tags.id, id), eq(tags.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -282,7 +308,7 @@ export const deleteTag = async (id: string): Promise<ActionResponse<void>> => {
 		}
 
 		// Delete will cascade to trade_tags due to onDelete: "cascade"
-		await db.delete(tags).where(eq(tags.id, id))
+		await db.delete(tags).where(and(eq(tags.id, id), eq(tags.accountId, accountId)))
 
 		revalidatePath("/analytics")
 		revalidatePath("/journal")

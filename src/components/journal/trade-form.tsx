@@ -96,7 +96,8 @@ export const TradeForm = ({
 				positionSize: Number(trade.positionSize),
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
-				// plannedRiskAmount and plannedRMultiple are auto-calculated, not stored in form
+				// riskAmount can be manually entered or calculated from stopLoss
+				riskAmount: trade.plannedRiskAmount ? fromCents(trade.plannedRiskAmount) : undefined,
 				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
@@ -139,6 +140,7 @@ export const TradeForm = ({
 				positionSize: Number(trade.positionSize),
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
+				riskAmount: trade.plannedRiskAmount ? fromCents(trade.plannedRiskAmount) : undefined,
 				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
@@ -165,7 +167,10 @@ export const TradeForm = ({
 	const takeProfit = watch("takeProfit")
 	const selectedTagIds = watch("tagIds") || []
 
-	// Auto-calculate planned risk from stop loss (always derived, never user input)
+	// Watch riskAmount for auto-fill logic
+	const riskAmountValue = watch("riskAmount")
+
+	// Auto-calculate planned risk from stop loss
 	const calculatedRisk = useMemo(() => {
 		if (!entryPrice || !stopLoss || !positionSize) return null
 		const entry = Number(entryPrice)
@@ -176,6 +181,13 @@ export const TradeForm = ({
 			direction === "long" ? entry - sl : sl - entry
 		return Math.abs(riskPerUnit * size)
 	}, [entryPrice, stopLoss, positionSize, direction])
+
+	// Auto-fill riskAmount when calculatedRisk changes and user hasn't manually entered a value
+	useEffect(() => {
+		if (calculatedRisk !== null && !riskAmountValue) {
+			setValue("riskAmount", calculatedRisk)
+		}
+	}, [calculatedRisk, riskAmountValue, setValue])
 
 	// Auto-calculate planned R target from TP/SL ratio (always derived, never user input)
 	const calculatedPlannedR = useMemo(() => {
@@ -205,7 +217,8 @@ export const TradeForm = ({
 
 		if (selectedAsset) {
 			// Use asset-based calculation with tick size and tick value
-			// tickValue, commission, fees are stored in cents, convert to dollars
+			// tickValue is stored in cents, convert to dollars
+			// TODO: Get commission/fees from account settings in Task #9
 			return calculateAssetPnL({
 				entryPrice: entry,
 				exitPrice: exit,
@@ -213,8 +226,8 @@ export const TradeForm = ({
 				direction: dir,
 				tickSize: parseFloat(selectedAsset.tickSize),
 				tickValue: fromCents(selectedAsset.tickValue),
-				commission: fromCents(selectedAsset.commission),
-				fees: fromCents(selectedAsset.fees),
+				commission: 0,
+				fees: 0,
 				contractsExecuted: contracts,
 			})
 		}
@@ -678,24 +691,44 @@ export const TradeForm = ({
 						/>
 					</div>
 
-					{/* Planned Risk (calculated from SL) */}
-					<div className="space-y-s-200">
-						<Label>Planned Risk ($)</Label>
-						<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
-							{calculatedRisk !== null ? (
-								<span className="text-small text-txt-100 font-medium">
-									${calculatedRisk.toFixed(2)}
-								</span>
-							) : (
-								<span className="text-small text-txt-300">
-									Enter stop loss to calculate
-								</span>
-							)}
-						</div>
-						<p className="text-tiny text-txt-300">
-							Auto-calculated from entry, stop loss, and position size
-						</p>
-					</div>
+					{/* Risk Amount (can be calculated from SL or manually entered) */}
+					<FormField
+						control={form.control}
+						name="riskAmount"
+						render={({ field }) => (
+							<FormItem>
+								<div className="flex items-center gap-s-200">
+									<FormLabel>Risk Amount ($)</FormLabel>
+									<Tooltip>
+										<TooltipTrigger asChild>
+											<Info className="text-txt-300 h-4 w-4 cursor-help" />
+										</TooltipTrigger>
+										<TooltipContent>
+											<p className="text-tiny max-w-[200px]">
+												Required for R-multiple calculation. Auto-calculated from stop loss, or enter manually if not using a stop loss.
+											</p>
+										</TooltipContent>
+									</Tooltip>
+								</div>
+								<FormControl>
+									<Input
+										type="number"
+										step="any"
+										placeholder={calculatedRisk !== null ? calculatedRisk.toFixed(2) : "Enter risk amount"}
+										{...field}
+										value={field.value ?? (calculatedRisk !== null ? calculatedRisk.toFixed(2) : "")}
+										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+									/>
+								</FormControl>
+								<p className="text-tiny text-txt-300">
+									{calculatedRisk !== null
+										? "Auto-calculated from stop loss (you can override)"
+										: "Enter your risk amount to calculate R-multiple"}
+								</p>
+								<FormMessage />
+							</FormItem>
+						)}
+					/>
 
 					{/* Planned R-Multiple (calculated from TP/SL) */}
 					<div className="space-y-s-200">

@@ -587,6 +587,9 @@ export const userSettings = pgTable("user_settings", {
 	showTaxEstimates: boolean("show_tax_estimates").default(true).notNull(),
 	showPropCalculations: boolean("show_prop_calculations").default(true).notNull(),
 
+	// Multi-Account Preferences
+	showAllAccounts: boolean("show_all_accounts").default(false).notNull(),
+
 	// Timestamps
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.defaultNow()

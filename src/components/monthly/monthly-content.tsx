@@ -18,20 +18,45 @@ import {
 	type MonthComparison as MonthComparisonData,
 } from "@/app/actions/reports"
 
-export const MonthlyContent = () => {
+interface MonthlyContentProps {
+	initialMonthlyData: MonthlyResultsWithProp | null
+	initialProjectionData: MonthlyProjectionData | null
+	initialComparisonData: MonthComparisonData | null
+}
+
+export const MonthlyContent = ({
+	initialMonthlyData,
+	initialProjectionData,
+	initialComparisonData,
+}: MonthlyContentProps) => {
 	const t = useTranslations("monthly")
 	const [isPending, startTransition] = useTransition()
 	const [currentDate, setCurrentDate] = useState(() => startOfMonth(new Date()))
 	const [monthOffset, setMonthOffset] = useState(0)
 
 	const [monthlyData, setMonthlyData] = useState<MonthlyResultsWithProp | null>(
-		null
+		initialMonthlyData
 	)
 	const [projectionData, setProjectionData] =
-		useState<MonthlyProjectionData | null>(null)
+		useState<MonthlyProjectionData | null>(initialProjectionData)
 	const [comparisonData, setComparisonData] =
-		useState<MonthComparisonData | null>(null)
+		useState<MonthComparisonData | null>(initialComparisonData)
 	const [error, setError] = useState<string | null>(null)
+
+	// Reset state when initial props change (e.g., account switch)
+	useEffect(() => {
+		setMonthlyData(initialMonthlyData)
+		setMonthOffset(0)
+		setCurrentDate(startOfMonth(new Date()))
+	}, [initialMonthlyData])
+
+	useEffect(() => {
+		setProjectionData(initialProjectionData)
+	}, [initialProjectionData])
+
+	useEffect(() => {
+		setComparisonData(initialComparisonData)
+	}, [initialComparisonData])
 
 	// Determine if we're viewing the current month
 	const isCurrentMonth = monthOffset === 0
@@ -65,7 +90,11 @@ export const MonthlyContent = () => {
 		}
 	}
 
+	// Load data when month changes (but not on initial render since we have initial data)
 	useEffect(() => {
+		// Skip initial render - we already have initial data
+		if (monthOffset === 0) return
+
 		startTransition(() => {
 			loadData(monthOffset)
 		})

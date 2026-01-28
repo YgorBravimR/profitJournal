@@ -6,6 +6,9 @@ import { TradeCard } from "@/components/journal"
 import { getTrades } from "@/app/actions/trades"
 import { Link } from "@/i18n/routing"
 
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
+
 interface JournalPageProps {
 	params: Promise<{ locale: string }>
 	searchParams: Promise<{

@@ -11,8 +11,9 @@ import {
 	type CreateExecutionInput,
 	type UpdateExecutionInput,
 } from "@/lib/validations/execution"
-import { eq, asc } from "drizzle-orm"
+import { eq, asc, and } from "drizzle-orm"
 import { toCents, fromCents } from "@/lib/money"
+import { requireAuth } from "@/app/actions/auth"
 
 /**
  * Calculate execution value (price * quantity) in cents
@@ -151,11 +152,15 @@ export const createExecution = async (
 	input: CreateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = createExecutionSchema.parse(input)
 
-		// Verify trade exists and is in scaled mode
+		// Verify trade exists and belongs to the current account
 		const trade = await db.query.trades.findFirst({
-			where: eq(trades.id, validated.tradeId),
+			where: and(
+				eq(trades.id, validated.tradeId),
+				eq(trades.accountId, accountId)
+			),
 		})
 
 		if (!trade) {
@@ -236,14 +241,16 @@ export const updateExecution = async (
 	input: UpdateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = updateExecutionSchema.parse(input)
 
-		// Get existing execution
+		// Get existing execution with trade verification
 		const existing = await db.query.tradeExecutions.findFirst({
 			where: eq(tradeExecutions.id, id),
+			with: { trade: true },
 		})
 
-		if (!existing) {
+		if (!existing || existing.trade?.accountId !== accountId) {
 			return {
 				status: "error",
 				message: "Execution not found",
@@ -314,12 +321,15 @@ export const deleteExecution = async (
 	id: string
 ): Promise<ActionResponse<void>> => {
 	try {
-		// Get existing execution to find trade ID
+		const { accountId } = await requireAuth()
+
+		// Get existing execution with trade verification
 		const existing = await db.query.tradeExecutions.findFirst({
 			where: eq(tradeExecutions.id, id),
+			with: { trade: true },
 		})
 
-		if (!existing) {
+		if (!existing || existing.trade?.accountId !== accountId) {
 			return {
 				status: "error",
 				message: "Execution not found",
@@ -373,6 +383,21 @@ export const getExecutions = async (
 	tradeId: string
 ): Promise<ActionResponse<TradeExecution[]>> => {
 	try {
+		const { accountId } = await requireAuth()
+
+		// Verify trade ownership
+		const trade = await db.query.trades.findFirst({
+			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
+		})
+
+		if (!trade) {
+			return {
+				status: "error",
+				message: "Trade not found",
+				errors: [{ code: "NOT_FOUND", detail: "Trade does not exist" }],
+			}
+		}
+
 		const executions = await db.query.tradeExecutions.findMany({
 			where: eq(tradeExecutions.tradeId, tradeId),
 			orderBy: [asc(tradeExecutions.executionDate)],
@@ -400,6 +425,21 @@ export const getExecutionSummary = async (
 	tradeId: string
 ): Promise<ActionResponse<ExecutionSummary>> => {
 	try {
+		const { accountId } = await requireAuth()
+
+		// Verify trade ownership
+		const trade = await db.query.trades.findFirst({
+			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
+		})
+
+		if (!trade) {
+			return {
+				status: "error",
+				message: "Trade not found",
+				errors: [{ code: "NOT_FOUND", detail: "Trade does not exist" }],
+			}
+		}
+
 		const executions = await db.query.tradeExecutions.findMany({
 			where: eq(tradeExecutions.tradeId, tradeId),
 			orderBy: [asc(tradeExecutions.executionDate)],
@@ -429,8 +469,10 @@ export const convertToScaledMode = async (
 	tradeId: string
 ): Promise<ActionResponse<TradeExecution[]>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const trade = await db.query.trades.findFirst({
-			where: eq(trades.id, tradeId),
+			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
 		})
 
 		if (!trade) {
@@ -537,8 +579,10 @@ export const recalculateTradeFromExecutions = async (
 	tradeId: string
 ): Promise<ActionResponse<ExecutionSummary>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const trade = await db.query.trades.findFirst({
-			where: eq(trades.id, tradeId),
+			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
 		})
 
 		if (!trade) {

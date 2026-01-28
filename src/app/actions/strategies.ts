@@ -5,7 +5,7 @@ import { db } from "@/db/drizzle"
 import { strategies, trades } from "@/db/schema"
 import type { Strategy } from "@/db/schema"
 import type { ActionResponse } from "@/types"
-import { eq, and, desc, asc } from "drizzle-orm"
+import { eq, and, desc, asc, isNull, or, inArray } from "drizzle-orm"
 import { z } from "zod"
 import {
 	createStrategySchema,
@@ -15,6 +15,7 @@ import {
 } from "@/lib/validations/strategy"
 import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
+import { requireAuth } from "@/app/actions/auth"
 
 export interface StrategyWithStats extends Strategy {
 	tradeCount: number
@@ -44,11 +45,13 @@ export const createStrategy = async (
 	input: CreateStrategyInput
 ): Promise<ActionResponse<Strategy>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = createStrategySchema.parse(input)
 
 		const [strategy] = await db
 			.insert(strategies)
 			.values({
+				accountId,
 				code: validated.code,
 				name: validated.name,
 				description: validated.description || null,
@@ -109,8 +112,10 @@ export const updateStrategy = async (
 	input: UpdateStrategyInput
 ): Promise<ActionResponse<Strategy>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const existing = await db.query.strategies.findFirst({
-			where: eq(strategies.id, id),
+			where: and(eq(strategies.id, id), eq(strategies.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -139,7 +144,7 @@ export const updateStrategy = async (
 				...(validated.isActive !== undefined && { isActive: validated.isActive }),
 				updatedAt: new Date(),
 			})
-			.where(eq(strategies.id, id))
+			.where(and(eq(strategies.id, id), eq(strategies.accountId, accountId)))
 			.returning()
 
 		revalidatePath("/playbook")
@@ -179,8 +184,10 @@ export const deleteStrategy = async (
 	hardDelete = false
 ): Promise<ActionResponse<void>> => {
 	try {
+		const { accountId } = await requireAuth()
+
 		const existing = await db.query.strategies.findFirst({
-			where: eq(strategies.id, id),
+			where: and(eq(strategies.id, id), eq(strategies.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -193,13 +200,13 @@ export const deleteStrategy = async (
 
 		if (hardDelete) {
 			// Note: trades referencing this strategy will have strategyId set to null (onDelete: "set null")
-			await db.delete(strategies).where(eq(strategies.id, id))
+			await db.delete(strategies).where(and(eq(strategies.id, id), eq(strategies.accountId, accountId)))
 		} else {
 			// Soft delete - just deactivate
 			await db
 				.update(strategies)
 				.set({ isActive: false, updatedAt: new Date() })
-				.where(eq(strategies.id, id))
+				.where(and(eq(strategies.id, id), eq(strategies.accountId, accountId)))
 		}
 
 		revalidatePath("/playbook")
@@ -226,7 +233,17 @@ export const getStrategies = async (
 	includeInactive = false
 ): Promise<ActionResponse<StrategyWithStats[]>> => {
 	try {
-		const conditions = includeInactive ? undefined : eq(strategies.isActive, true)
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(strategies.accountId, authContext.allAccountIds)
+			: eq(strategies.accountId, authContext.accountId)
+		const tradesAccountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		const conditions = includeInactive
+			? accountCondition
+			: and(accountCondition, eq(strategies.isActive, true))
 
 		const allStrategies = await db.query.strategies.findMany({
 			where: conditions,
@@ -247,6 +264,7 @@ export const getStrategies = async (
 				const strategyTrades = await db.query.trades.findMany({
 					where: and(
 						eq(trades.strategyId, strategy.id),
+						tradesAccountCondition,
 						eq(trades.isArchived, false)
 					),
 				})
@@ -326,8 +344,16 @@ export const getStrategy = async (
 	id: string
 ): Promise<ActionResponse<StrategyWithStats>> => {
 	try {
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(strategies.accountId, authContext.allAccountIds)
+			: eq(strategies.accountId, authContext.accountId)
+		const tradesAccountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const strategy = await db.query.strategies.findFirst({
-			where: eq(strategies.id, id),
+			where: and(eq(strategies.id, id), accountCondition),
 		})
 
 		if (!strategy) {
@@ -342,6 +368,7 @@ export const getStrategy = async (
 		const strategyTrades = await db.query.trades.findMany({
 			where: and(
 				eq(trades.strategyId, strategy.id),
+				tradesAccountCondition,
 				eq(trades.isArchived, false)
 			),
 		})
@@ -415,14 +442,28 @@ export const getStrategy = async (
  */
 export const getComplianceOverview = async (): Promise<ActionResponse<ComplianceOverview>> => {
 	try {
-		// Get all active strategies
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(strategies.accountId, authContext.allAccountIds)
+			: eq(strategies.accountId, authContext.accountId)
+		const tradesAccountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		// Get all active strategies for this account
 		const allStrategies = await db.query.strategies.findMany({
-			where: eq(strategies.isActive, true),
+			where: and(
+				accountCondition,
+				eq(strategies.isActive, true)
+			),
 		})
 
-		// Get all non-archived trades with followedPlan data
+		// Get all non-archived trades for this account
 		const allTrades = await db.query.trades.findMany({
-			where: eq(trades.isArchived, false),
+			where: and(
+				tradesAccountCondition,
+				eq(trades.isArchived, false)
+			),
 		})
 
 		// Calculate overall compliance

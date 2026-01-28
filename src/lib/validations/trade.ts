@@ -38,7 +38,9 @@ export const createTradeSchema = z.object({
 		.number()
 		.positive("Take profit must be positive")
 		.optional(),
-	// Note: plannedRiskAmount is always calculated from stopLoss
+	// Risk amount can be manually entered if stopLoss is not used
+	// If stopLoss is provided, riskAmount will be auto-calculated from it
+	riskAmount: z.coerce.number().positive("Risk amount must be positive").optional(),
 	// Note: plannedRMultiple is always calculated from takeProfit/stopLoss ratio
 
 	// Results (can be auto-calculated or manual)
@@ -84,6 +86,7 @@ export interface CreateTradeInput {
 	positionSize: number | string
 	stopLoss?: number | string
 	takeProfit?: number | string
+	riskAmount?: number | string
 	pnl?: number | string
 	realizedRMultiple?: number | string
 	mfe?: number | string

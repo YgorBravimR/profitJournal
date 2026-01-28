@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { trades, settings } from "@/db/schema"
+import { trades, settings, tradingAccounts } from "@/db/schema"
 import { eq, and, gte, lte, desc, asc, sql, inArray } from "drizzle-orm"
 import type {
 	ActionResponse,
@@ -21,12 +21,27 @@ import {
 } from "@/lib/calculations"
 import { getStartOfMonth, getEndOfMonth, formatDateKey } from "@/lib/dates"
 import { fromCents } from "@/lib/money"
+import { requireAuth } from "@/app/actions/auth"
+
+interface AccountFilter {
+	accountId: string
+	showAllAccounts: boolean
+	allAccountIds: string[]
+}
 
 /**
  * Build filter conditions from TradeFilters
  */
-const buildFilterConditions = (filters?: TradeFilters) => {
-	const conditions = [eq(trades.isArchived, false)]
+const buildFilterConditions = (authContext: AccountFilter, filters?: TradeFilters) => {
+	// Filter by current account or all accounts based on setting
+	const accountCondition = authContext.showAllAccounts
+		? inArray(trades.accountId, authContext.allAccountIds)
+		: eq(trades.accountId, authContext.accountId)
+
+	const conditions = [
+		accountCondition,
+		eq(trades.isArchived, false),
+	]
 
 	if (filters?.dateFrom) {
 		conditions.push(gte(trades.entryDate, filters.dateFrom))
@@ -58,7 +73,17 @@ export const getOverallStats = async (
 	dateTo?: Date
 ): Promise<ActionResponse<OverallStats>> => {
 	try {
-		const conditions = [eq(trades.isArchived, false)]
+		const authContext = await requireAuth()
+
+		// Filter by current account or all accounts based on setting
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		const conditions = [
+			accountCondition,
+			eq(trades.isArchived, false),
+		]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -173,7 +198,16 @@ export const getDisciplineScore = async (
 	dateTo?: Date
 ): Promise<ActionResponse<DisciplineData>> => {
 	try {
-		const conditions = [eq(trades.isArchived, false)]
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		const conditions = [
+			accountCondition,
+			eq(trades.isArchived, false),
+		]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -245,7 +279,13 @@ export const getEquityCurve = async (
 	mode: EquityCurveMode = "daily"
 ): Promise<ActionResponse<EquityPoint[]>> => {
 	try {
-		// Get account balance from settings
+		const authContext = await requireAuth()
+
+		// Get account balance from trading account
+		const account = await db.query.tradingAccounts.findFirst({
+			where: eq(tradingAccounts.id, authContext.accountId),
+		})
+		// Fallback to global settings if account doesn't have balance
 		const accountBalanceSetting = await db.query.settings.findFirst({
 			where: eq(settings.key, "account_balance"),
 		})
@@ -253,7 +293,14 @@ export const getEquityCurve = async (
 			? Number(accountBalanceSetting.value) || 10000
 			: 10000
 
-		const conditions = [eq(trades.isArchived, false)]
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		const conditions = [
+			accountCondition,
+			eq(trades.isArchived, false),
+		]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -359,11 +406,18 @@ export const getDailyPnL = async (
 	month: Date
 ): Promise<ActionResponse<DailyPnL[]>> => {
 	try {
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const startOfMonth = getStartOfMonth(month)
 		const endOfMonth = getEndOfMonth(month)
 
 		const result = await db.query.trades.findMany({
 			where: and(
+				accountCondition,
 				eq(trades.isArchived, false),
 				gte(trades.entryDate, startOfMonth),
 				lte(trades.entryDate, endOfMonth)
@@ -411,7 +465,16 @@ export const getStreakData = async (
 	dateTo?: Date
 ): Promise<ActionResponse<StreakData>> => {
 	try {
-		const conditions = [eq(trades.isArchived, false)]
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		const conditions = [
+			accountCondition,
+			eq(trades.isArchived, false),
+		]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -529,7 +592,8 @@ export const getPerformanceByVariable = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<PerformanceByGroup[]>> => {
 	try {
-		const conditions = buildFilterConditions(filters)
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
 
 		const result = await db.query.trades.findMany({
 			where: and(...conditions),
@@ -654,7 +718,8 @@ export const getExpectedValue = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<ExpectedValueData>> => {
 	try {
-		const conditions = buildFilterConditions(filters)
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
 
 		const result = await db.query.trades.findMany({
 			where: and(...conditions),
@@ -728,7 +793,8 @@ export const getRDistribution = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<RDistributionBucket[]>> => {
 	try {
-		const conditions = buildFilterConditions(filters)
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
 
 		const result = await db.query.trades.findMany({
 			where: and(...conditions),

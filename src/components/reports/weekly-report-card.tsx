@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Loader2 } from "lucide-react"
@@ -26,6 +26,13 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 	const [weekOffset, setWeekOffset] = useState(0)
 	const [isPending, startTransition] = useTransition()
 	const [isExpanded, setIsExpanded] = useState(false)
+
+	// Reset state when initialReport changes (e.g., account switch)
+	useEffect(() => {
+		setReport(initialReport)
+		setWeekOffset(0)
+		setIsExpanded(false)
+	}, [initialReport])
 
 	const handleWeekChange = (offset: number) => {
 		startTransition(async () => {

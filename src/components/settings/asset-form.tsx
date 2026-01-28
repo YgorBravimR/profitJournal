@@ -53,12 +53,10 @@ export const AssetForm = ({
 		tickValue: asset?.tickValue ? fromCents(asset.tickValue).toString() : "",
 		currency: asset?.currency ?? "BRL",
 		multiplier: asset?.multiplier ?? "1",
-		commission: asset?.commission ? fromCents(asset.commission).toString() : "0",
-		fees: asset?.fees ? fromCents(asset.fees).toString() : "0",
 	})
 
 	// Update form data when asset prop changes (for edit mode)
-	// Note: tickValue, commission, fees are stored in cents, convert to BRL for display
+	// Note: tickValue is stored in cents, convert to BRL for display
 	useEffect(() => {
 		if (asset) {
 			setFormData({
@@ -69,8 +67,6 @@ export const AssetForm = ({
 				tickValue: asset.tickValue ? fromCents(asset.tickValue).toString() : "",
 				currency: asset.currency ?? "BRL",
 				multiplier: asset.multiplier ?? "1",
-				commission: asset.commission ? fromCents(asset.commission).toString() : "0",
-				fees: asset.fees ? fromCents(asset.fees).toString() : "0",
 			})
 		} else {
 			// Reset form for create mode
@@ -82,8 +78,6 @@ export const AssetForm = ({
 				tickValue: "",
 				currency: "BRL",
 				multiplier: "1",
-				commission: "0",
-				fees: "0",
 			})
 		}
 	}, [asset])
@@ -101,8 +95,6 @@ export const AssetForm = ({
 				tickValue: parseFloat(formData.tickValue.toString()),
 				currency: formData.currency,
 				multiplier: parseFloat(formData.multiplier.toString()),
-				commission: parseFloat(formData.commission.toString()),
-				fees: parseFloat(formData.fees.toString()),
 				isActive: true,
 			}
 
@@ -121,8 +113,6 @@ export const AssetForm = ({
 					tickValue: "",
 					currency: "BRL",
 					multiplier: "1",
-					commission: "0",
-					fees: "0",
 				})
 			} else {
 				setError(result.error ?? "An error occurred")
@@ -242,42 +232,16 @@ export const AssetForm = ({
 						</div>
 					</div>
 
-					<div className="grid grid-cols-3 gap-m-400">
-						<div className="space-y-s-200">
-							<Label htmlFor="multiplier">{t("multiplier")}</Label>
-							<Input
-								id="multiplier"
-								type="number"
-								step="any"
-								placeholder="1"
-								value={formData.multiplier}
-								onChange={(e) => handleChange("multiplier", e.target.value)}
-							/>
-						</div>
-
-						<div className="space-y-s-200">
-							<Label htmlFor="commission">{t("commission")} ({formData.currency})</Label>
-							<Input
-								id="commission"
-								type="number"
-								step="0.01"
-								placeholder="0.30"
-								value={formData.commission}
-								onChange={(e) => handleChange("commission", e.target.value)}
-							/>
-						</div>
-
-						<div className="space-y-s-200">
-							<Label htmlFor="fees">{t("fees")} ({formData.currency})</Label>
-							<Input
-								id="fees"
-								type="number"
-								step="0.01"
-								placeholder="0.05"
-								value={formData.fees}
-								onChange={(e) => handleChange("fees", e.target.value)}
-							/>
-						</div>
+					<div className="space-y-s-200">
+						<Label htmlFor="multiplier">{t("multiplier")}</Label>
+						<Input
+							id="multiplier"
+							type="number"
+							step="any"
+							placeholder="1"
+							value={formData.multiplier}
+							onChange={(e) => handleChange("multiplier", e.target.value)}
+						/>
 					</div>
 
 					<DialogFooter>

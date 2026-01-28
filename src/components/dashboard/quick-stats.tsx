@@ -86,9 +86,9 @@ export const QuickStats = ({ streakData, stats }: QuickStatsProps) => {
 				<StatRow
 					icon={<AlertTriangle className="h-4 w-4" />}
 					label={t("worstDay")}
-					value={streakData?.worstDay ? formatCurrency(Math.abs(streakData.worstDay.pnl)) : "--"}
+					value={streakData?.worstDay ? formatCurrency(streakData.worstDay.pnl) : "--"}
 					subValue={streakData?.worstDay ? formatDate(streakData.worstDay.date, locale) : undefined}
-					valueClass="text-trade-sell"
+					valueClass={streakData?.worstDay && streakData.worstDay.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}
 				/>
 				<StatRow
 					icon={<Activity className="h-4 w-4" />}

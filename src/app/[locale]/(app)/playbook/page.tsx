@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/layout"
 import { PlaybookContent } from "@/components/playbook"
 import { getStrategies, getComplianceOverview } from "@/app/actions/strategies"
 
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
+
 interface PlaybookPageProps {
 	params: Promise<{ locale: string }>
 }

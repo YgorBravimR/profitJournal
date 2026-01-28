@@ -30,7 +30,32 @@ export const DashboardContent = ({
 	// Create Date on client side to avoid hydration issues
 	const [currentMonth, setCurrentMonth] = useState(() => new Date(initialYear, initialMonthIndex, 1))
 	const [dailyPnL, setDailyPnL] = useState<DailyPnL[]>(initialDailyPnL)
+	const [stats, setStats] = useState<OverallStats | null>(initialStats)
+	const [discipline, setDiscipline] = useState<DisciplineData | null>(initialDiscipline)
+	const [equityCurve, setEquityCurve] = useState<EquityPoint[]>(initialEquityCurve)
+	const [streakData, setStreakData] = useState<StreakData | null>(initialStreakData)
 	const [isPending, startTransition] = useTransition()
+
+	// Reset all state when initial props change (e.g., account switch)
+	useEffect(() => {
+		setDailyPnL(initialDailyPnL)
+	}, [initialDailyPnL])
+
+	useEffect(() => {
+		setStats(initialStats)
+	}, [initialStats])
+
+	useEffect(() => {
+		setDiscipline(initialDiscipline)
+	}, [initialDiscipline])
+
+	useEffect(() => {
+		setEquityCurve(initialEquityCurve)
+	}, [initialEquityCurve])
+
+	useEffect(() => {
+		setStreakData(initialStreakData)
+	}, [initialStreakData])
 
 	const handleMonthChange = (newMonth: Date) => {
 		setCurrentMonth(newMonth)
@@ -46,7 +71,7 @@ export const DashboardContent = ({
 		<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-3">
 			{/* KPI Cards */}
 			<div className="lg:col-span-3">
-				<KpiCards stats={initialStats} discipline={initialDiscipline} />
+				<KpiCards stats={stats} discipline={discipline} />
 			</div>
 
 			{/* Calendar */}
@@ -60,12 +85,12 @@ export const DashboardContent = ({
 
 			{/* Quick Stats */}
 			<div>
-				<QuickStats streakData={initialStreakData} stats={initialStats} />
+				<QuickStats streakData={streakData} stats={stats} />
 			</div>
 
 			{/* Equity Curve */}
 			<div className="lg:col-span-3">
-				<EquityCurve data={initialEquityCurve} />
+				<EquityCurve data={equityCurve} />
 			</div>
 		</div>
 	)

@@ -20,6 +20,7 @@ import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
 import { calculatePnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
 import { toCents } from "@/lib/money"
+import { requireAuth } from "@/app/actions/auth"
 
 // Type for trade with relations
 export interface TradeWithRelations extends Trade {
@@ -38,6 +39,7 @@ export const createTrade = async (
 	input: CreateTradeInput
 ): Promise<ActionResponse<Trade>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = createTradeSchema.parse(input)
 		const { tagIds, ...tradeData } = validated
 
@@ -46,18 +48,29 @@ export const createTrade = async (
 		let outcome: "win" | "loss" | "breakeven" | undefined
 		let realizedR = tradeData.realizedRMultiple
 
-		// Always calculate plannedRiskAmount from stopLoss (never user input)
+		// Calculate plannedRiskAmount: use manual riskAmount if provided, otherwise calculate from stopLoss
 		let plannedRiskAmount: number | undefined
 		let plannedRMultiple: number | undefined
-		if (tradeData.stopLoss) {
+
+		if (tradeData.riskAmount) {
+			// Use manual risk amount if provided
+			plannedRiskAmount = tradeData.riskAmount
+		} else if (tradeData.stopLoss) {
+			// Calculate from stop loss
 			const riskPerUnit =
 				tradeData.direction === "long"
 					? tradeData.entryPrice - tradeData.stopLoss
 					: tradeData.stopLoss - tradeData.entryPrice
 			plannedRiskAmount = Math.abs(riskPerUnit * tradeData.positionSize)
+		}
 
-			// Calculate plannedRMultiple from take profit (reward/risk ratio)
-			if (tradeData.takeProfit && riskPerUnit !== 0) {
+		// Calculate plannedRMultiple from take profit (reward/risk ratio) - only if we have stopLoss
+		if (tradeData.stopLoss && tradeData.takeProfit) {
+			const riskPerUnit =
+				tradeData.direction === "long"
+					? tradeData.entryPrice - tradeData.stopLoss
+					: tradeData.stopLoss - tradeData.entryPrice
+			if (riskPerUnit !== 0) {
 				const rewardPerUnit =
 					tradeData.direction === "long"
 						? tradeData.takeProfit - tradeData.entryPrice
@@ -88,6 +101,7 @@ export const createTrade = async (
 		const [trade] = await db
 			.insert(trades)
 			.values({
+				accountId,
 				asset: tradeData.asset,
 				direction: tradeData.direction,
 				timeframeId: tradeData.timeframeId || null,
@@ -160,12 +174,13 @@ export const updateTrade = async (
 	input: UpdateTradeInput
 ): Promise<ActionResponse<Trade>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const validated = updateTradeSchema.parse(input)
 		const { tagIds, ...tradeData } = validated
 
-		// Get existing trade to merge data
+		// Get existing trade to merge data (verify ownership)
 		const existing = await db.query.trades.findFirst({
-			where: eq(trades.id, id),
+			where: and(eq(trades.id, id), eq(trades.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -183,17 +198,27 @@ export const updateTrade = async (
 		const direction = tradeData.direction ?? existing.direction
 		const stopLoss = tradeData.stopLoss ?? (existing.stopLoss ? Number(existing.stopLoss) : undefined)
 		const takeProfit = tradeData.takeProfit ?? (existing.takeProfit ? Number(existing.takeProfit) : undefined)
+		const riskAmount = tradeData.riskAmount ?? (existing.plannedRiskAmount ? existing.plannedRiskAmount / 100 : undefined)
 
-		// Always calculate plannedRiskAmount and plannedRMultiple from SL/TP (never user input)
+		// Calculate plannedRiskAmount: use manual riskAmount if provided, otherwise calculate from stopLoss
 		let plannedRiskAmount: number | undefined
 		let plannedRMultiple: number | undefined
-		if (stopLoss) {
+
+		if (riskAmount) {
+			// Use manual risk amount if provided
+			plannedRiskAmount = riskAmount
+		} else if (stopLoss) {
+			// Calculate from stop loss
 			const riskPerUnit =
 				direction === "long" ? entryPrice - stopLoss : stopLoss - entryPrice
 			plannedRiskAmount = Math.abs(riskPerUnit * positionSize)
+		}
 
-			// Calculate plannedRMultiple from take profit (reward/risk ratio)
-			if (takeProfit && riskPerUnit !== 0) {
+		// Calculate plannedRMultiple from take profit (reward/risk ratio) - only if we have stopLoss
+		if (stopLoss && takeProfit) {
+			const riskPerUnit =
+				direction === "long" ? entryPrice - stopLoss : stopLoss - entryPrice
+			if (riskPerUnit !== 0) {
 				const rewardPerUnit =
 					direction === "long"
 						? takeProfit - entryPrice
@@ -308,8 +333,9 @@ export const updateTrade = async (
  */
 export const deleteTrade = async (id: string): Promise<ActionResponse<void>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const existing = await db.query.trades.findFirst({
-			where: eq(trades.id, id),
+			where: and(eq(trades.id, id), eq(trades.accountId, accountId)),
 		})
 
 		if (!existing) {
@@ -323,7 +349,7 @@ export const deleteTrade = async (id: string): Promise<ActionResponse<void>> => 
 		await db
 			.update(trades)
 			.set({ isArchived: true, updatedAt: new Date() })
-			.where(eq(trades.id, id))
+			.where(and(eq(trades.id, id), eq(trades.accountId, accountId)))
 
 		// Revalidate journal pages
 		revalidatePath("/journal")
@@ -349,8 +375,13 @@ export const getTrade = async (
 	id: string
 ): Promise<ActionResponse<TradeWithRelations>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const trade = await db.query.trades.findFirst({
-			where: and(eq(trades.id, id), eq(trades.isArchived, false)),
+			where: and(
+				eq(trades.id, id),
+				eq(trades.accountId, accountId),
+				eq(trades.isArchived, false)
+			),
 			with: {
 				strategy: true,
 				timeframe: true,
@@ -394,6 +425,7 @@ export const getTrades = async (
 	pagination?: PaginationParams
 ): Promise<ActionResponse<PaginatedResponse<TradeWithRelations>>> => {
 	try {
+		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
 		const validatedFilters = filters ? tradeFiltersSchema.parse(filters) : {}
 		const validatedPagination = pagination
 			? paginationSchema.parse(pagination)
@@ -401,8 +433,11 @@ export const getTrades = async (
 
 		const { limit, offset, sortBy, sortOrder } = validatedPagination
 
-		// Build where conditions
-		const conditions = [eq(trades.isArchived, false)]
+		// Build where conditions - filter by current account or all accounts based on setting
+		const accountCondition = showAllAccounts
+			? inArray(trades.accountId, allAccountIds)
+			: eq(trades.accountId, accountId)
+		const conditions = [accountCondition, eq(trades.isArchived, false)]
 
 		if (validatedFilters.dateFrom) {
 			conditions.push(gte(trades.entryDate, validatedFilters.dateFrom))
@@ -494,11 +529,13 @@ export const getTradesForDate = async (
 	date: Date
 ): Promise<ActionResponse<Trade[]>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const startOfDay = getStartOfDay(date)
 		const endOfDay = getEndOfDay(date)
 
 		const result = await db.query.trades.findMany({
 			where: and(
+				eq(trades.accountId, accountId),
 				eq(trades.isArchived, false),
 				gte(trades.entryDate, startOfDay),
 				lte(trades.entryDate, endOfDay)
@@ -526,10 +563,11 @@ export const getTradesForDate = async (
  */
 export const getUniqueAssets = async (): Promise<ActionResponse<string[]>> => {
 	try {
+		const { accountId } = await requireAuth()
 		const result = await db
 			.selectDistinct({ asset: trades.asset })
 			.from(trades)
-			.where(eq(trades.isArchived, false))
+			.where(and(eq(trades.accountId, accountId), eq(trades.isArchived, false)))
 			.orderBy(asc(trades.asset))
 
 		return {
@@ -569,6 +607,7 @@ export const bulkCreateTrades = async (
 	}
 
 	try {
+		const { accountId } = await requireAuth()
 		// Collect all unique strategy codes from the inputs
 		const strategyCodes = [
 			...new Set(
@@ -658,6 +697,7 @@ export const bulkCreateTrades = async (
 					}
 
 					tradeValues.push({
+						accountId,
 						asset: tradeData.asset,
 						direction: tradeData.direction,
 						timeframeId: tradeData.timeframeId || null,
@@ -730,9 +770,10 @@ export const recalculateRValues = async (): Promise<
 	ActionResponse<{ updatedCount: number }>
 > => {
 	try {
+		const { accountId } = await requireAuth()
 		// Get all non-archived trades that have stopLoss but missing plannedRiskAmount
 		const allTrades = await db.query.trades.findMany({
-			where: eq(trades.isArchived, false),
+			where: and(eq(trades.accountId, accountId), eq(trades.isArchived, false)),
 		})
 
 		let updatedCount = 0

@@ -22,7 +22,9 @@
       "Bash(psql $DATABASE_URL -c \"DELETE FROM trades;\")",
       "Bash(psql:*)",
       "Bash(pnpm run build:*)",
-      "Bash(pnpm db:migrate:*)"
+      "Bash(pnpm db:migrate:*)",
+      "Bash(echo:*)",
+      "Bash(pnpm exec tsc:*)"
     ],
     "deny": [],
     "ask": []

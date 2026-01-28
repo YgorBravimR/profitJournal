@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Plus } from "lucide-react"
@@ -21,9 +21,18 @@ export const PlaybookContent = ({
 }: PlaybookContentProps) => {
 	const router = useRouter()
 	const [strategies, setStrategies] = useState<StrategyWithStats[]>(initialStrategies)
-	const [compliance] = useState<ComplianceOverview | null>(initialCompliance)
+	const [compliance, setCompliance] = useState<ComplianceOverview | null>(initialCompliance)
 	const [deleteTarget, setDeleteTarget] = useState<StrategyWithStats | null>(null)
 	const [isPending, startTransition] = useTransition()
+
+	// Reset state when initial props change (e.g., account switch)
+	useEffect(() => {
+		setStrategies(initialStrategies)
+	}, [initialStrategies])
+
+	useEffect(() => {
+		setCompliance(initialCompliance)
+	}, [initialCompliance])
 
 	const handleDelete = (strategyId: string) => {
 		const strategy = strategies.find((s) => s.id === strategyId)

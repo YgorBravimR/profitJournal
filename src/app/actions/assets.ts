@@ -191,8 +191,6 @@ export const createAsset = async (
 			tickValue: toCents(validated.data.tickValue),
 			currency: validated.data.currency,
 			multiplier: validated.data.multiplier?.toString() ?? "1",
-			commission: toCents(validated.data.commission ?? 0),
-			fees: toCents(validated.data.fees ?? 0),
 			isActive: validated.data.isActive,
 		})
 		.returning()
@@ -232,9 +230,6 @@ export const updateAsset = async (
 		updateValues.currency = updateData.currency
 	if (updateData.multiplier !== undefined)
 		updateValues.multiplier = updateData.multiplier.toString()
-	if (updateData.commission !== undefined)
-		updateValues.commission = toCents(updateData.commission)
-	if (updateData.fees !== undefined) updateValues.fees = toCents(updateData.fees)
 	if (updateData.isActive !== undefined)
 		updateValues.isActive = updateData.isActive
 

@@ -58,18 +58,6 @@ export const assetSchema = z.object({
 		.or(z.string().transform((val) => parseFloat(val)))
 		.optional()
 		.default(1),
-	commission: z
-		.number()
-		.min(0, "Commission cannot be negative")
-		.or(z.string().transform((val) => parseFloat(val)))
-		.optional()
-		.default(0),
-	fees: z
-		.number()
-		.min(0, "Fees cannot be negative")
-		.or(z.string().transform((val) => parseFloat(val)))
-		.optional()
-		.default(0),
 	isActive: z.boolean().default(true),
 })
 

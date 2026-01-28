@@ -11,6 +11,9 @@ import { getTagStats } from "@/app/actions/tags"
 import { getUniqueAssets } from "@/app/actions/trades"
 import { getTimeframes } from "@/app/actions/timeframes"
 
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
+
 interface AnalyticsPageProps {
 	params: Promise<{ locale: string }>
 }

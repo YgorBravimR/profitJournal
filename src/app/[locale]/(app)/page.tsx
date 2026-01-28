@@ -9,6 +9,9 @@ import {
 	getDailyPnL,
 } from "@/app/actions/analytics"
 
+// Force dynamic rendering to ensure account-specific data
+export const dynamic = "force-dynamic"
+
 interface DashboardPageProps {
 	params: Promise<{ locale: string }>
 }

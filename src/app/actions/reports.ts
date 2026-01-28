@@ -19,6 +19,7 @@ import {
 } from "date-fns"
 import { fromCents } from "@/lib/money"
 import { getUserSettings, type UserSettingsData } from "./settings"
+import { requireAuth } from "@/app/actions/auth"
 
 // ============================================================================
 // TYPES
@@ -126,12 +127,18 @@ export const getWeeklyReport = async (
 	weekOffset = 0
 ): Promise<{ status: "success" | "error"; data?: WeeklyReport; message?: string }> => {
 	try {
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const referenceDate = subWeeks(new Date(), weekOffset)
 		const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 })
 		const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 })
 
 		const weekTrades = await db.query.trades.findMany({
 			where: and(
+				accountCondition,
 				eq(trades.isArchived, false),
 				gte(trades.entryDate, weekStart),
 				lte(trades.entryDate, weekEnd)
@@ -298,12 +305,18 @@ export const getMonthlyReport = async (
 	monthOffset = 0
 ): Promise<{ status: "success" | "error"; data?: MonthlyReport; message?: string }> => {
 	try {
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const referenceDate = subMonths(new Date(), monthOffset)
 		const monthStart = startOfMonth(referenceDate)
 		const monthEnd = endOfMonth(referenceDate)
 
 		const monthTrades = await db.query.trades.findMany({
 			where: and(
+				accountCondition,
 				eq(trades.isArchived, false),
 				gte(trades.entryDate, monthStart),
 				lte(trades.entryDate, monthEnd)
@@ -497,6 +510,8 @@ export const getMistakeCostAnalysis = async (): Promise<{
 	message?: string
 }> => {
 	try {
+		const authContext = await requireAuth()
+
 		// Get all mistake tags
 		const mistakeTags = await db.query.tags.findMany({
 			where: eq(tags.type, "mistake"),
@@ -513,7 +528,7 @@ export const getMistakeCostAnalysis = async (): Promise<{
 			}
 		}
 
-		// Get all trade-tag associations for mistake tags
+		// Get all trade-tag associations for mistake tags (filtered by account through trade)
 		const tagIds = mistakeTags.map((t) => t.id)
 		const tradeTagAssociations = await db.query.tradeTags.findMany({
 			where: inArray(tradeTags.tagId, tagIds),
@@ -523,13 +538,21 @@ export const getMistakeCostAnalysis = async (): Promise<{
 			},
 		})
 
+		// Filter by account (through trade relation) - support all accounts mode
+		const filteredAssociations = tradeTagAssociations.filter((assoc) => {
+			if (!assoc.trade.accountId) return false
+			return authContext.showAllAccounts
+				? authContext.allAccountIds.includes(assoc.trade.accountId)
+				: assoc.trade.accountId === authContext.accountId
+		})
+
 		// Calculate cost per mistake
 		const mistakeStats = new Map<
 			string,
 			{ tagName: string; color: string | null; totalLoss: number; tradeCount: number }
 		>()
 
-		for (const association of tradeTagAssociations) {
+		for (const association of filteredAssociations) {
 			const pnl = fromCents(association.trade.pnl)
 
 			// Only count losses (negative P&L)
@@ -756,6 +779,11 @@ export const getMonthlyProjection = async (): Promise<{
 	message?: string
 }> => {
 	try {
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const now = new Date()
 		const monthStart = startOfMonth(now)
 		const monthEnd = endOfMonth(now)
@@ -765,6 +793,7 @@ export const getMonthlyProjection = async (): Promise<{
 			getUserSettings(),
 			db.query.trades.findMany({
 				where: and(
+					accountCondition,
 					eq(trades.isArchived, false),
 					gte(trades.entryDate, monthStart),
 					lte(trades.entryDate, now)
@@ -892,6 +921,11 @@ export const getYearlyOverview = async (
 	message?: string
 }> => {
 	try {
+		const authContext = await requireAuth()
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
 		const targetYear = year || new Date().getFullYear()
 		const yearStart = new Date(targetYear, 0, 1)
 		const yearEnd = new Date(targetYear, 11, 31, 23, 59, 59)
@@ -899,6 +933,7 @@ export const getYearlyOverview = async (
 		// Get all trades for the year
 		const yearTrades = await db.query.trades.findMany({
 			where: and(
+				accountCondition,
 				eq(trades.isArchived, false),
 				gte(trades.entryDate, yearStart),
 				lte(trades.entryDate, yearEnd)
