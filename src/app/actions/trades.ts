@@ -763,6 +763,229 @@ export const bulkCreateTrades = async (
 }
 
 /**
+ * Input type for scaled trade creation with executions
+ */
+export interface CreateScaledTradeInput {
+	asset: string
+	direction: "long" | "short"
+	timeframeId?: string
+	strategyId?: string
+	stopLoss?: number
+	takeProfit?: number
+	riskAmount?: number
+	preTradeThoughts?: string
+	postTradeReflection?: string
+	lessonLearned?: string
+	followedPlan?: boolean
+	disciplineNotes?: string
+	tagIds?: string[]
+	executions: Array<{
+		executionType: "entry" | "exit"
+		executionDate: Date
+		price: number
+		quantity: number
+		commission?: number
+		fees?: number
+		notes?: string
+	}>
+}
+
+/**
+ * Create a scaled trade with multiple executions
+ */
+export const createScaledTrade = async (
+	input: CreateScaledTradeInput
+): Promise<ActionResponse<Trade>> => {
+	try {
+		const { accountId } = await requireAuth()
+		const { executions, tagIds, ...tradeData } = input
+
+		if (!executions || executions.length === 0) {
+			return {
+				status: "error",
+				message: "At least one execution is required",
+				errors: [{ code: "VALIDATION_ERROR", detail: "No executions provided" }],
+			}
+		}
+
+		// Separate entries and exits
+		const entries = executions.filter((e) => e.executionType === "entry")
+		const exits = executions.filter((e) => e.executionType === "exit")
+
+		if (entries.length === 0) {
+			return {
+				status: "error",
+				message: "At least one entry execution is required",
+				errors: [{ code: "VALIDATION_ERROR", detail: "No entry executions provided" }],
+			}
+		}
+
+		// Calculate aggregates from executions
+		const totalEntryQty = entries.reduce((sum, e) => sum + e.quantity, 0)
+		const totalExitQty = exits.reduce((sum, e) => sum + e.quantity, 0)
+
+		const avgEntryPrice =
+			totalEntryQty > 0
+				? entries.reduce((sum, e) => sum + e.price * e.quantity, 0) / totalEntryQty
+				: 0
+
+		const avgExitPrice =
+			totalExitQty > 0
+				? exits.reduce((sum, e) => sum + e.price * e.quantity, 0) / totalExitQty
+				: null
+
+		// Find earliest entry date and latest exit date
+		const entryDate = entries.reduce(
+			(earliest, e) =>
+				e.executionDate < earliest ? e.executionDate : earliest,
+			entries[0].executionDate
+		)
+
+		const exitDate =
+			exits.length > 0
+				? exits.reduce(
+						(latest, e) => (e.executionDate > latest ? e.executionDate : latest),
+						exits[0].executionDate
+					)
+				: null
+
+		// Calculate total contracts executed (for fee calculation)
+		const contractsExecuted = executions.reduce((sum, e) => sum + e.quantity, 0)
+
+		// Calculate P&L if we have exits
+		let pnl: number | undefined
+		let outcome: "win" | "loss" | "breakeven" | undefined
+
+		if (avgExitPrice !== null && totalExitQty > 0) {
+			// Use the smaller of entry/exit qty for closed P&L
+			const closedQty = Math.min(totalEntryQty, totalExitQty)
+			const priceDiff =
+				tradeData.direction === "long"
+					? avgExitPrice - avgEntryPrice
+					: avgEntryPrice - avgExitPrice
+			pnl = priceDiff * closedQty
+
+			// Subtract commissions and fees
+			const totalCommissions = executions.reduce(
+				(sum, e) => sum + (e.commission || 0) + (e.fees || 0),
+				0
+			)
+			pnl -= totalCommissions
+
+			outcome = determineOutcome(pnl)
+		}
+
+		// Calculate risk values
+		let plannedRiskAmount: number | undefined
+		let plannedRMultiple: number | undefined
+		let realizedR: number | undefined
+
+		if (tradeData.riskAmount) {
+			plannedRiskAmount = tradeData.riskAmount
+		} else if (tradeData.stopLoss) {
+			const riskPerUnit =
+				tradeData.direction === "long"
+					? avgEntryPrice - tradeData.stopLoss
+					: tradeData.stopLoss - avgEntryPrice
+			plannedRiskAmount = Math.abs(riskPerUnit * totalEntryQty)
+		}
+
+		if (tradeData.stopLoss && tradeData.takeProfit) {
+			const riskPerUnit =
+				tradeData.direction === "long"
+					? avgEntryPrice - tradeData.stopLoss
+					: tradeData.stopLoss - avgEntryPrice
+			if (riskPerUnit !== 0) {
+				const rewardPerUnit =
+					tradeData.direction === "long"
+						? tradeData.takeProfit - avgEntryPrice
+						: avgEntryPrice - tradeData.takeProfit
+				plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+			}
+		}
+
+		if (pnl !== undefined && plannedRiskAmount && plannedRiskAmount > 0) {
+			realizedR = calculateRMultiple(pnl, plannedRiskAmount)
+		}
+
+		// Insert trade with execution_mode = 'scaled'
+		const [trade] = await db
+			.insert(trades)
+			.values({
+				accountId,
+				asset: tradeData.asset.toUpperCase(),
+				direction: tradeData.direction,
+				timeframeId: tradeData.timeframeId || null,
+				entryDate,
+				exitDate,
+				entryPrice: avgEntryPrice.toString(),
+				exitPrice: avgExitPrice?.toString(),
+				positionSize: totalEntryQty.toString(),
+				stopLoss: tradeData.stopLoss?.toString(),
+				takeProfit: tradeData.takeProfit?.toString(),
+				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
+				plannedRMultiple: plannedRMultiple?.toString(),
+				pnl: pnl !== undefined ? toCents(pnl) : null,
+				outcome,
+				realizedRMultiple: realizedR?.toString(),
+				contractsExecuted: contractsExecuted.toString(),
+				executionMode: "scaled",
+				followedPlan: tradeData.followedPlan,
+				strategyId: tradeData.strategyId || null,
+				preTradeThoughts: tradeData.preTradeThoughts,
+				postTradeReflection: tradeData.postTradeReflection,
+				lessonLearned: tradeData.lessonLearned,
+				disciplineNotes: tradeData.disciplineNotes,
+			})
+			.returning()
+
+		// Insert all executions
+		if (executions.length > 0) {
+			await db.insert(tradeExecutions).values(
+				executions.map((exec) => ({
+					tradeId: trade.id,
+					executionType: exec.executionType,
+					executionDate: exec.executionDate,
+					price: exec.price.toString(),
+					quantity: exec.quantity.toString(),
+					commission: exec.commission ? toCents(exec.commission) : 0,
+					fees: exec.fees ? toCents(exec.fees) : 0,
+					notes: exec.notes,
+					// executionValue is quantity * price in cents
+					executionValue: toCents(exec.price * exec.quantity),
+				}))
+			)
+		}
+
+		// Insert tag associations
+		if (tagIds?.length) {
+			await db.insert(tradeTags).values(
+				tagIds.map((tagId) => ({
+					tradeId: trade.id,
+					tagId,
+				}))
+			)
+		}
+
+		// Revalidate journal pages
+		revalidatePath("/journal")
+
+		return {
+			status: "success",
+			message: "Scaled trade created successfully",
+			data: trade,
+		}
+	} catch (error) {
+		console.error("Create scaled trade error:", error)
+		return {
+			status: "error",
+			message: "Failed to create scaled trade",
+			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
  * Recalculate R values for all trades that have stopLoss but no plannedRiskAmount
  * This is useful for fixing trades imported before R calculation was added
  */

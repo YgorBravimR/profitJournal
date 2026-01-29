@@ -139,7 +139,36 @@
 		"openPosition": "Open Position",
 		"tickSize": "Tick Size",
 		"tickValue": "Tick Value",
-		"type": "Type"
+		"type": "Type",
+		"mode": {
+			"label": "Trade Mode",
+			"simple": "Simple Trade",
+			"simpleDescription": "Single entry & exit",
+			"scaled": "Scaled Position",
+			"scaledDescription": "Multiple entries/exits",
+			"switchToSimple": "Switch to Simple Mode"
+		},
+		"scaled": {
+			"entries": "Entries",
+			"exits": "Exits",
+			"addEntry": "Add Entry",
+			"addExit": "Add Exit",
+			"noExits": "No exits yet - position is open",
+			"totalContracts": "Total: {count} contracts",
+			"avgPrice": "@ {price} avg",
+			"positionSummary": "Position Summary",
+			"status": "Status",
+			"statusOpen": "OPEN",
+			"statusPartial": "PARTIAL",
+			"statusClosed": "CLOSED",
+			"entriesCount": "Entries",
+			"exitsCount": "Exits",
+			"grossPnl": "Gross P&L",
+			"netPnl": "Net P&L",
+			"createScaledTrade": "Create Scaled Trade",
+			"riskManagement": "Risk Management",
+			"needSimple": "Need a simple single entry/exit trade?"
+		}
 	},
 	"dashboard": {
 		"title": "Dashboard",

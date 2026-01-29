@@ -2943,6 +2943,522 @@ pnpm add -D @types/bcryptjs
 
 ---
 
+## Phase 10.5: Scaled Position UX Improvements 🔜 PLANNED
+
+**Goal:** Enable scaled positions (multiple entries/exits) from trade creation instead of requiring conversion, and add CSV import support for scaled trades.
+
+---
+
+### 10.5.1 Problem Statement
+
+Current Phase 9 implementation requires:
+1. Create a simple trade first
+2. Convert to scaled mode from trade detail page
+3. Then add additional executions
+
+This is friction for traders who know upfront they have a scaled position. They should be able to:
+1. Create a scaled trade directly with multiple entries/exits from the start
+2. Import scaled trades from CSV with multiple executions per trade
+
+---
+
+### 10.5.2 Updated Trade Form UX
+
+#### Trade Mode Selection at Creation
+
+Instead of defaulting to simple mode, allow users to choose upfront:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ New Trade                                                            │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Trade Mode:                                                         │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐           │
+│  │ ◉ Simple Trade          │  │ ○ Scaled Position       │           │
+│  │   Single entry & exit   │  │   Multiple entries/exits │           │
+│  └─────────────────────────┘  └─────────────────────────┘           │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Simple Mode (Current Behavior)
+
+Standard form with single entry price, exit price, and position size.
+
+#### Scaled Mode Form
+
+When scaled mode is selected, show execution-based form:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ New Trade - Scaled Position                                          │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Basic Info                                                          │
+│  ─────────────────────────────────────────────────────────────────  │
+│  Asset:     [WINFUT ▼]          Direction:  ◉ Long  ○ Short         │
+│  Strategy:  [Select strategy ▼]  Timeframe:  [15 min ▼]             │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Entries                                                    [+ Add]  │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ #  │ Date/Time          │ Price    │ Quantity │ Commission │ × │  │
+│  ├────┼────────────────────┼──────────┼──────────┼────────────┼───┤  │
+│  │ 1  │ Jan 15, 10:30      │ 128,000  │ 2        │ R$ 0.40    │ × │  │
+│  │ 2  │ Jan 15, 11:15      │ 128,100  │ 2        │ R$ 0.40    │ × │  │
+│  │ 3  │ Jan 15, 14:00      │ 128,200  │ 1        │ R$ 0.20    │ × │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│  Total: 5 contracts @ Avg 128,080                                    │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Exits                                                      [+ Add]  │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ #  │ Date/Time          │ Price    │ Quantity │ Commission │ × │  │
+│  ├────┼────────────────────┼──────────┼──────────┼────────────┼───┤  │
+│  │ 1  │ Jan 15, 15:30      │ 128,500  │ 3        │ R$ 0.60    │ × │  │
+│  │ 2  │ Jan 15, 16:00      │ 128,300  │ 2        │ R$ 0.40    │ × │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│  Total: 5 contracts @ Avg 128,420                                    │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Position Summary                                                    │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │  Status: CLOSED    │  Entries: 5  │  Exits: 5                  │  │
+│  │  Avg Entry: 128,080  →  Avg Exit: 128,420  =  +340 pts         │  │
+│  │  Gross P&L: +R$ 340.00  │  Fees: R$ 2.00  │  Net P&L: +R$ 338  │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Risk Management                                                     │
+│  Stop Loss: [128,000]    Take Profit: [128,500]                     │
+│  Risk Amount: [R$ 200.00]                                           │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Notes                                                               │
+│  [Pre-trade thoughts...                                         ]   │
+│                                                                      │
+│                                        [Cancel]  [Create Trade]      │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### Inline Execution Editor
+
+Instead of a modal for each execution, use inline editing for faster entry:
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│ Entries                                                [+ Add] │
+├───────────────────────────────────────────────────────────────┤
+│ │ Date/Time          │ Price    │ Qty │ Comm.   │            │
+│ │ [Jan 15, 10:30 ▼]  │ [128000] │ [2] │ [0.40]  │  [×]       │
+│ │ [Jan 15, 11:15 ▼]  │ [128100] │ [2] │ [0.40]  │  [×]       │
+│ │ [             ▼]   │ [      ] │ [ ] │ [    ]  │  [×]  ← new│
+└───────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 10.5.3 CSV Import for Scaled Positions
+
+#### New CSV Format: Grouped Executions
+
+Support importing trades where multiple rows represent the same position:
+
+```csv
+# Option 1: Trade ID column to group executions
+trade_group,execution_type,asset,direction,date,time,price,quantity,commission
+T001,entry,WINFUT,long,2025-01-15,10:30,128000,2,0.40
+T001,entry,WINFUT,long,2025-01-15,11:15,128100,2,0.40
+T001,entry,WINFUT,long,2025-01-15,14:00,128200,1,0.20
+T001,exit,WINFUT,long,2025-01-15,15:30,128500,3,0.60
+T001,exit,WINFUT,long,2025-01-15,16:00,128300,2,0.40
+T002,entry,WDOFUT,short,2025-01-16,09:00,5045,1,0.50
+T002,exit,WDOFUT,short,2025-01-16,11:00,5020,1,0.50
+```
+
+#### Alternative: Pipe-Separated Multiple Values
+
+For simpler CSV structure, allow multiple values in single cells:
+
+```csv
+# Option 2: Multiple values in single row
+asset,direction,entry_dates,entry_prices,entry_quantities,exit_dates,exit_prices,exit_quantities
+WINFUT,long,"10:30|11:15|14:00","128000|128100|128200","2|2|1","15:30|16:00","128500|128300","3|2"
+WDOFUT,short,"09:00","5045","1","11:00","5020","1"
+```
+
+#### CSV Import UI Enhancement
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│ Import Trades                                                        │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  Import Format:                                                      │
+│  ○ Simple (one row per trade)                                       │
+│  ◉ Scaled (multiple rows per trade, grouped by trade_group column)  │
+│  ○ Broker Export (auto-detect format)                               │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Grouping Column: [trade_group ▼]                                   │
+│  (Used to identify which rows belong to the same trade)             │
+│                                                                      │
+│  ─────────────────────────────────────────────────────────────────  │
+│                                                                      │
+│  Preview:                                                            │
+│  ┌───────────────────────────────────────────────────────────────┐  │
+│  │ Trade T001: WINFUT LONG                                       │  │
+│  │   3 entries (5 contracts) → 2 exits (5 contracts)             │  │
+│  │   Avg Entry: 128,080 → Avg Exit: 128,420                      │  │
+│  │   P&L: +R$ 340.00                                             │  │
+│  ├───────────────────────────────────────────────────────────────┤  │
+│  │ Trade T002: WDOFUT SHORT                                      │  │
+│  │   1 entry (1 contract) → 1 exit (1 contract)                  │  │
+│  │   Entry: 5,045 → Exit: 5,020                                  │  │
+│  │   P&L: +R$ 250.00                                             │  │
+│  └───────────────────────────────────────────────────────────────┘  │
+│                                                                      │
+│  Found: 2 trades (7 executions total)                               │
+│                                                                      │
+│                                    [Cancel]  [Import 2 Trades]       │
+│                                                                      │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 10.5.4 Broker Integration Patterns
+
+#### Common Broker Export Formats
+
+Support auto-detection for common formats:
+
+**TradeZella Format:**
+```csv
+Symbol,Side,Entry Date,Entry Time,Entry Price,Exit Date,Exit Time,Exit Price,Quantity,P&L
+US30,Short,2025-02-03,21:48:55,43905.35,2025-02-04,03:19:27,44049.35,0.02,-288.14
+```
+
+**TradingView Format:**
+```csv
+Trade #,Symbol,Type,Entry Date,Entry Price,Exit Date,Exit Price,Quantity,Profit
+1,BTCUSD,Long,2025-01-15 10:30,42000,2025-01-15 14:30,42500,0.1,50
+```
+
+**NinjaTrader Format:**
+```csv
+Instrument,Market pos.,Qty,Entry price,Exit price,Entry time,Exit time,Profit
+ES 03-25,Long,1,5100.00,5125.00,1/15/2025 9:30:00 AM,1/15/2025 10:45:00 AM,625.00
+```
+
+#### Auto-Detection Logic
+
+```typescript
+interface BrokerFormat {
+  name: string
+  detectPattern: (headers: string[]) => boolean
+  parseRow: (row: Record<string, string>) => ParsedExecution[]
+  supportsScaling: boolean
+}
+
+const BROKER_FORMATS: BrokerFormat[] = [
+  {
+    name: 'TradeZella',
+    detectPattern: (h) => h.includes('Symbol') && h.includes('Side') && h.includes('P&L'),
+    parseRow: (row) => [/* ... */],
+    supportsScaling: false  // Single row per trade
+  },
+  {
+    name: 'Generic Scaled',
+    detectPattern: (h) => h.includes('trade_group') && h.includes('execution_type'),
+    parseRow: (row) => [/* ... */],
+    supportsScaling: true  // Multiple rows per trade
+  },
+  // ... more formats
+]
+```
+
+---
+
+### 10.5.5 Backend Updates
+
+#### Updated `createTrade()` Action
+
+```typescript
+interface CreateTradeInput {
+  // ... existing fields ...
+
+  // New: Optional executions array for scaled trades
+  executions?: Array<{
+    executionType: 'entry' | 'exit'
+    executionDate: Date
+    price: number
+    quantity: number
+    commission?: number
+    fees?: number
+    notes?: string
+  }>
+}
+
+export const createTrade = async (input: CreateTradeInput) => {
+  // If executions provided, create as scaled trade
+  if (input.executions && input.executions.length > 0) {
+    return createScaledTrade(input)
+  }
+
+  // Otherwise, create simple trade (current behavior)
+  return createSimpleTrade(input)
+}
+
+const createScaledTrade = async (input: CreateTradeInput) => {
+  // 1. Create trade record with execution_mode = 'scaled'
+  // 2. Create all execution records
+  // 3. Calculate and store aggregates (avg entry, avg exit, P&L)
+  // 4. Return trade with executions
+}
+```
+
+#### New `importScaledTrades()` Action
+
+```typescript
+interface ScaledTradeImport {
+  groupId: string           // Identifier to group rows
+  executions: Array<{
+    type: 'entry' | 'exit'
+    date: Date
+    price: number
+    quantity: number
+    commission?: number
+  }>
+  asset: string
+  direction: 'long' | 'short'
+  // Optional metadata
+  strategyId?: string
+  notes?: string
+}
+
+export const importScaledTrades = async (
+  trades: ScaledTradeImport[]
+): Promise<ImportResult> => {
+  const results: ImportResult = {
+    success: 0,
+    failed: 0,
+    errors: []
+  }
+
+  for (const trade of trades) {
+    try {
+      await createTrade({
+        asset: trade.asset,
+        direction: trade.direction,
+        executions: trade.executions.map(e => ({
+          executionType: e.type,
+          executionDate: e.date,
+          price: e.price,
+          quantity: e.quantity,
+          commission: e.commission
+        })),
+        strategyId: trade.strategyId,
+        preTradeThoughts: trade.notes
+      })
+      results.success++
+    } catch (error) {
+      results.failed++
+      results.errors.push({
+        groupId: trade.groupId,
+        error: error.message
+      })
+    }
+  }
+
+  return results
+}
+```
+
+---
+
+### 10.5.6 Frontend Components
+
+#### New/Updated Components
+
+- [ ] `trade-mode-selector.tsx` - Toggle between Simple and Scaled mode
+- [ ] `scaled-trade-form.tsx` - Full form for scaled position creation
+- [ ] `inline-execution-editor.tsx` - Inline row editor for executions
+- [ ] `csv-import-scaled.tsx` - Enhanced CSV import with scaling support
+- [ ] `csv-format-selector.tsx` - Format selection and preview
+- [ ] `import-preview-card.tsx` - Preview grouped trades before import
+
+#### Updated Trade Form Flow
+
+```typescript
+// trade-form.tsx
+const TradeForm = () => {
+  const [tradeMode, setTradeMode] = useState<'simple' | 'scaled'>('simple')
+
+  return (
+    <div>
+      <TradeModeSelector
+        value={tradeMode}
+        onChange={setTradeMode}
+      />
+
+      {tradeMode === 'simple' ? (
+        <SimpleTradeForm />
+      ) : (
+        <ScaledTradeForm />
+      )}
+    </div>
+  )
+}
+```
+
+---
+
+### 10.5.7 Implementation Order
+
+1. **Backend: Create with Executions** (Day 1)
+   - [ ] Update `createTrade()` to accept executions array
+   - [ ] Implement `createScaledTrade()` helper
+   - [ ] Update validation schemas
+
+2. **Scaled Trade Form** (Day 2-3)
+   - [ ] `TradeModeSelector` component
+   - [ ] `ScaledTradeForm` with inline execution editors
+   - [ ] Real-time P&L calculation as executions are added
+   - [ ] Position summary component
+
+3. **CSV Import Enhancement** (Day 4-5)
+   - [ ] Add `trade_group` column support
+   - [ ] Implement row grouping logic
+   - [ ] Preview component for grouped trades
+   - [ ] `importScaledTrades()` action
+
+4. **Broker Format Detection** (Day 6)
+   - [ ] Auto-detect common broker formats
+   - [ ] Format-specific parsers
+   - [ ] Format selection UI
+
+5. **Testing & Polish** (Day 7)
+   - [ ] Test various CSV formats
+   - [ ] Edge cases (partial positions, mismatched quantities)
+   - [ ] Error handling and validation messages
+   - [ ] Translations (pt-BR, en)
+
+---
+
+### 10.5.8 Files to Create/Modify
+
+```
+src/
+├── app/
+│   └── actions/
+│       ├── trades.ts                    # UPDATE: Accept executions in createTrade
+│       └── import.ts                    # UPDATE: Add importScaledTrades
+├── components/
+│   └── journal/
+│       ├── trade-form.tsx               # UPDATE: Add mode selector
+│       ├── trade-mode-selector.tsx      # NEW: Simple/Scaled toggle
+│       ├── scaled-trade-form.tsx        # NEW: Full scaled form
+│       ├── inline-execution-editor.tsx  # NEW: Inline row editor
+│       └── execution-list-editable.tsx  # NEW: Editable execution list
+├── components/
+│   └── settings/
+│       ├── csv-import-dialog.tsx        # UPDATE: Add scaled import
+│       ├── csv-format-selector.tsx      # NEW: Format selection
+│       └── import-preview-scaled.tsx    # NEW: Grouped trade preview
+├── lib/
+│   ├── csv-parsers/
+│   │   ├── index.ts                     # NEW: Parser exports
+│   │   ├── generic-scaled.ts            # NEW: Generic scaled format
+│   │   ├── tradezella.ts                # NEW: TradeZella format
+│   │   └── auto-detect.ts               # NEW: Format detection
+│   └── validations/
+│       └── trade.ts                     # UPDATE: Add executions validation
+└── messages/
+    ├── en.json                          # UPDATE: Add new translations
+    └── pt-BR.json                       # UPDATE: Add new translations
+```
+
+---
+
+### 10.5.9 Translation Keys to Add
+
+```json
+{
+  "trade": {
+    "mode": {
+      "label": "Trade Mode",
+      "simple": "Simple Trade",
+      "simpleDescription": "Single entry & exit",
+      "scaled": "Scaled Position",
+      "scaledDescription": "Multiple entries/exits"
+    },
+    "scaledForm": {
+      "entries": "Entries",
+      "exits": "Exits",
+      "addEntry": "Add Entry",
+      "addExit": "Add Exit",
+      "totalContracts": "Total: {count} contracts",
+      "avgPrice": "Avg: {price}",
+      "positionSummary": "Position Summary",
+      "status": "Status",
+      "entriesCount": "Entries",
+      "exitsCount": "Exits",
+      "grossPnl": "Gross P&L",
+      "netPnl": "Net P&L"
+    }
+  },
+  "import": {
+    "format": {
+      "label": "Import Format",
+      "simple": "Simple (one row per trade)",
+      "scaled": "Scaled (multiple rows per trade)",
+      "broker": "Broker Export (auto-detect)"
+    },
+    "grouping": {
+      "label": "Grouping Column",
+      "description": "Column used to identify which rows belong to the same trade"
+    },
+    "preview": {
+      "title": "Preview",
+      "trade": "Trade {id}",
+      "entries": "{count} entries ({contracts} contracts)",
+      "exits": "{count} exits ({contracts} contracts)",
+      "pnl": "P&L",
+      "found": "Found: {trades} trades ({executions} executions total)"
+    },
+    "scaledImport": "Import {count} Trades"
+  }
+}
+```
+
+---
+
+### Deliverables
+
+- [ ] Trade mode selector (Simple/Scaled) at creation
+- [ ] Scaled trade form with inline execution editors
+- [ ] Real-time P&L calculation during scaled trade creation
+- [ ] Position summary in scaled form (status, totals, P&L)
+- [ ] CSV import with `trade_group` column support
+- [ ] Row grouping logic for scaled imports
+- [ ] Import preview showing grouped trades
+- [ ] Auto-detection for common broker formats
+- [ ] `createTrade()` accepting executions array
+- [ ] `importScaledTrades()` action
+- [ ] Full i18n support (pt-BR, en)
+- [ ] Documentation for CSV formats
+
+---
+
 ## Phase 11: Advanced Reports & Dashboard Visualizations 🔜 PLANNED
 
 **Goal:** Enhance reports with time-based performance analysis (hour of day, day of week) and add new interactive dashboard visualizations with drill-down capabilities.

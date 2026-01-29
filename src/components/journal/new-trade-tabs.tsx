@@ -1,10 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Upload } from "lucide-react"
+import { FileText, Upload, Layers } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { TradeForm } from "./trade-form"
+import { ScaledTradeForm } from "./scaled-trade-form"
 import { CsvImport } from "./csv-import"
+import { TradeModeSelector, type TradeMode } from "./trade-mode-selector"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
 import type { AssetWithType } from "@/app/actions/assets"
 
@@ -25,6 +27,7 @@ export const NewTradeTabs = ({
 }: NewTradeTabsProps) => {
 	const t = useTranslations("journal")
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
+	const [tradeMode, setTradeMode] = useState<TradeMode>("simple")
 
 	return (
 		<div>
@@ -41,8 +44,12 @@ export const NewTradeTabs = ({
 					aria-selected={activeTab === "single"}
 					role="tab"
 				>
-					<FileText className="h-4 w-4" />
-					{t("singleEntry")}
+					{tradeMode === "simple" ? (
+						<FileText className="h-4 w-4" />
+					) : (
+						<Layers className="h-4 w-4" />
+					)}
+					{tradeMode === "simple" ? t("singleEntry") : "Scaled Position"}
 				</button>
 				<button
 					type="button"
@@ -63,12 +70,31 @@ export const NewTradeTabs = ({
 			{/* Tab Content */}
 			<div role="tabpanel">
 				{activeTab === "single" ? (
-					<TradeForm
-						strategies={strategies}
-						tags={tags}
-						assets={assets}
-						timeframes={timeframes}
-					/>
+					<div className="space-y-m-600">
+						{/* Trade Mode Selector */}
+						<TradeModeSelector
+							value={tradeMode}
+							onChange={setTradeMode}
+						/>
+
+						{/* Form based on mode */}
+						{tradeMode === "simple" ? (
+							<TradeForm
+								strategies={strategies}
+								tags={tags}
+								assets={assets}
+								timeframes={timeframes}
+							/>
+						) : (
+							<ScaledTradeForm
+								strategies={strategies}
+								tags={tags}
+								assets={assets}
+								timeframes={timeframes}
+								onModeChange={() => setTradeMode("simple")}
+							/>
+						)}
+					</div>
 				) : (
 					<CsvImport />
 				)}

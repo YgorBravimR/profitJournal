@@ -139,7 +139,36 @@
 		"openPosition": "Posição Aberta",
 		"tickSize": "Tamanho do Tick",
 		"tickValue": "Valor do Tick",
-		"type": "Tipo"
+		"type": "Tipo",
+		"mode": {
+			"label": "Modo do Trade",
+			"simple": "Trade Simples",
+			"simpleDescription": "Entrada e saída única",
+			"scaled": "Posição Escalonada",
+			"scaledDescription": "Múltiplas entradas/saídas",
+			"switchToSimple": "Mudar para Modo Simples"
+		},
+		"scaled": {
+			"entries": "Entradas",
+			"exits": "Saídas",
+			"addEntry": "Adicionar Entrada",
+			"addExit": "Adicionar Saída",
+			"noExits": "Sem saídas ainda - posição aberta",
+			"totalContracts": "Total: {count} contratos",
+			"avgPrice": "@ {price} médio",
+			"positionSummary": "Resumo da Posição",
+			"status": "Status",
+			"statusOpen": "ABERTA",
+			"statusPartial": "PARCIAL",
+			"statusClosed": "FECHADA",
+			"entriesCount": "Entradas",
+			"exitsCount": "Saídas",
+			"grossPnl": "P&L Bruto",
+			"netPnl": "P&L Líquido",
+			"createScaledTrade": "Criar Trade Escalonado",
+			"riskManagement": "Gerenciamento de Risco",
+			"needSimple": "Precisa de um trade simples com entrada/saída única?"
+		}
 	},
 	"dashboard": {
 		"title": "Painel de Controle",
