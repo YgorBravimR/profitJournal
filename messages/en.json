@@ -173,6 +173,9 @@
 	"dashboard": {
 		"title": "Dashboard",
 		"description": "Overview of your trading performance",
+		"noData": "No data available",
+		"trade": "trade",
+		"trades": "trades",
 		"kpi": {
 			"grossPnl": "Gross P&L",
 			"netPnl": "Net P&L",
@@ -234,6 +237,45 @@
 			"totalTrades": "Total Trades",
 			"w": "W",
 			"l": "L"
+		},
+		"dailyPnL": {
+			"title": "Daily Net P&L"
+		},
+		"cumulativePnL": {
+			"title": "Cumulative P&L",
+			"cumulative": "Cumulative",
+			"drawdown": "Drawdown"
+		},
+		"radar": {
+			"title": "Performance Radar",
+			"winRate": "Win Rate",
+			"avgR": "Avg R",
+			"profitFactor": "Profit Factor",
+			"discipline": "Discipline",
+			"consistency": "Consistency",
+			"normalized": "Normalized"
+		},
+		"dayDetail": {
+			"netPnl": "Net P&L",
+			"grossPnl": "Gross P&L",
+			"fees": "Fees",
+			"winRate": "Win Rate",
+			"trades": "Trades",
+			"avgR": "Avg R",
+			"equityCurve": "Equity Curve (Intraday)",
+			"clickToView": "Click to view trade",
+			"tradesTitle": "Trades",
+			"noTrades": "No trades for this day",
+			"clickHint": "Click on a trade row to view full details",
+			"noData": "No data available for this day",
+			"time": "Time",
+			"asset": "Asset",
+			"dir": "Dir",
+			"entry": "Entry",
+			"exit": "Exit",
+			"pnl": "P&L",
+			"long": "Long",
+			"short": "Short"
 		}
 	},
 	"journal": {
@@ -287,6 +329,7 @@
 	"analytics": {
 		"title": "Analytics",
 		"description": "Analyze your performance and identify patterns",
+		"noData": "No data available",
 		"filters": {
 			"title": "Filters",
 			"active": "Active",
@@ -308,6 +351,26 @@
 				"allTime": "All Time",
 				"custom": "Custom"
 			}
+		},
+		"time": {
+			"title": "Time Analysis",
+			"hourlyTitle": "Performance by Hour of Day",
+			"dayOfWeekTitle": "Performance by Day of Week",
+			"heatmapTitle": "Time Heatmap (Hour × Day)",
+			"pnl": "P&L",
+			"trades": "Trades",
+			"winRate": "Win Rate",
+			"avgR": "Avg R",
+			"bestHour": "Best Hour",
+			"worstHour": "Worst Hour",
+			"bestDay": "Best Day",
+			"worstDay": "Worst Day",
+			"bestHourOnDay": "Best Hour",
+			"bestSlot": "Best Time Slot",
+			"worstSlot": "Worst Time Slot",
+			"profitable": "Profitable",
+			"losing": "Losing",
+			"noTrades": "No trades"
 		},
 		"variableComparison": {
 			"title": "Performance by Variable",

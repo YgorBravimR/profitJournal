@@ -7,6 +7,7 @@ import {
 	getEquityCurve,
 	getStreakData,
 	getDailyPnL,
+	getRadarChartData,
 } from "@/app/actions/analytics"
 
 // Force dynamic rendering to ensure account-specific data
@@ -25,13 +26,14 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
 	const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-	const [statsResult, disciplineResult, equityCurveResult, streakResult, dailyPnLResult] =
+	const [statsResult, disciplineResult, equityCurveResult, streakResult, dailyPnLResult, radarResult] =
 		await Promise.all([
 			getOverallStats(),
 			getDisciplineScore(),
 			getEquityCurve(monthStart, monthEnd),
 			getStreakData(),
 			getDailyPnL(now),
+			getRadarChartData(),
 		])
 
 	const stats = statsResult.status === "success" ? statsResult.data ?? null : null
@@ -39,6 +41,7 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	const equityCurve = equityCurveResult.status === "success" ? equityCurveResult.data ?? [] : []
 	const streakData = streakResult.status === "success" ? streakResult.data ?? null : null
 	const dailyPnL = dailyPnLResult.status === "success" ? dailyPnLResult.data ?? [] : []
+	const radarData = radarResult.status === "success" ? radarResult.data ?? [] : []
 
 	// Pass month as year/month numbers to avoid Date serialization issues
 	const initialYear = now.getFullYear()
@@ -54,6 +57,7 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 					initialEquityCurve={equityCurve}
 					initialStreakData={streakData}
 					initialDailyPnL={dailyPnL}
+					initialRadarData={radarData}
 					initialYear={initialYear}
 					initialMonthIndex={initialMonthIndex}
 				/>

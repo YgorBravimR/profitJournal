@@ -14,6 +14,13 @@ import type {
 	ExpectedValueData,
 	RDistributionBucket,
 	TradeFilters,
+	HourlyPerformance,
+	DayOfWeekPerformance,
+	TimeHeatmapCell,
+	DaySummary,
+	DayTrade,
+	DayEquityPoint,
+	RadarChartData,
 } from "@/types"
 import {
 	calculateWinRate,
@@ -852,6 +859,698 @@ export const getRDistribution = async (
 		return {
 			status: "error",
 			message: "Failed to calculate R-distribution",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get hourly performance analysis
+ */
+export const getHourlyPerformance = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<HourlyPerformance[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Group by hour
+		const hourlyMap = new Map<number, {
+			trades: typeof result
+			wins: number
+			losses: number
+			breakevens: number
+			totalPnl: number
+			totalR: number
+			rCount: number
+			grossProfit: number
+			grossLoss: number
+		}>()
+
+		for (const trade of result) {
+			const hour = trade.entryDate.getHours()
+			const existing = hourlyMap.get(hour) || {
+				trades: [],
+				wins: 0,
+				losses: 0,
+				breakevens: 0,
+				totalPnl: 0,
+				totalR: 0,
+				rCount: 0,
+				grossProfit: 0,
+				grossLoss: 0,
+			}
+
+			const pnl = fromCents(trade.pnl)
+			existing.trades.push(trade)
+			existing.totalPnl += pnl
+
+			if (trade.outcome === "win") {
+				existing.wins++
+				existing.grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				existing.losses++
+				existing.grossLoss += Math.abs(pnl)
+			} else {
+				existing.breakevens++
+			}
+
+			if (trade.realizedRMultiple) {
+				existing.totalR += Number(trade.realizedRMultiple)
+				existing.rCount++
+			}
+
+			hourlyMap.set(hour, existing)
+		}
+
+		const hourlyData: HourlyPerformance[] = Array.from(hourlyMap.entries())
+			.map(([hour, data]) => ({
+				hour,
+				hourLabel: `${hour.toString().padStart(2, "0")}:00`,
+				totalTrades: data.trades.length,
+				wins: data.wins,
+				losses: data.losses,
+				breakevens: data.breakevens,
+				winRate: calculateWinRate(data.wins, data.wins + data.losses),
+				totalPnl: data.totalPnl,
+				avgPnl: data.trades.length > 0 ? data.totalPnl / data.trades.length : 0,
+				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
+			}))
+			.sort((a, b) => a.hour - b.hour)
+
+		return {
+			status: "success",
+			message: "Hourly performance retrieved",
+			data: hourlyData,
+		}
+	} catch (error) {
+		console.error("Get hourly performance error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve hourly performance",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get day of week performance analysis
+ */
+export const getDayOfWeekPerformance = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<DayOfWeekPerformance[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+		// Group by day of week
+		const dayMap = new Map<number, {
+			trades: typeof result
+			wins: number
+			losses: number
+			breakevens: number
+			totalPnl: number
+			totalR: number
+			rCount: number
+			grossProfit: number
+			grossLoss: number
+			hourlyPnl: Map<number, number>
+		}>()
+
+		for (const trade of result) {
+			const dayOfWeek = trade.entryDate.getDay()
+			const hour = trade.entryDate.getHours()
+			const existing = dayMap.get(dayOfWeek) || {
+				trades: [],
+				wins: 0,
+				losses: 0,
+				breakevens: 0,
+				totalPnl: 0,
+				totalR: 0,
+				rCount: 0,
+				grossProfit: 0,
+				grossLoss: 0,
+				hourlyPnl: new Map<number, number>(),
+			}
+
+			const pnl = fromCents(trade.pnl)
+			existing.trades.push(trade)
+			existing.totalPnl += pnl
+			existing.hourlyPnl.set(hour, (existing.hourlyPnl.get(hour) || 0) + pnl)
+
+			if (trade.outcome === "win") {
+				existing.wins++
+				existing.grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				existing.losses++
+				existing.grossLoss += Math.abs(pnl)
+			} else {
+				existing.breakevens++
+			}
+
+			if (trade.realizedRMultiple) {
+				existing.totalR += Number(trade.realizedRMultiple)
+				existing.rCount++
+			}
+
+			dayMap.set(dayOfWeek, existing)
+		}
+
+		const dayData: DayOfWeekPerformance[] = Array.from(dayMap.entries())
+			.map(([dayOfWeek, data]) => {
+				// Find best and worst hour for this day
+				let bestHour: number | undefined
+				let worstHour: number | undefined
+				let bestPnl = -Infinity
+				let worstPnl = Infinity
+
+				for (const [hour, pnl] of data.hourlyPnl) {
+					if (pnl > bestPnl) {
+						bestPnl = pnl
+						bestHour = hour
+					}
+					if (pnl < worstPnl) {
+						worstPnl = pnl
+						worstHour = hour
+					}
+				}
+
+				return {
+					dayOfWeek,
+					dayName: dayNames[dayOfWeek],
+					totalTrades: data.trades.length,
+					wins: data.wins,
+					losses: data.losses,
+					breakevens: data.breakevens,
+					winRate: calculateWinRate(data.wins, data.wins + data.losses),
+					totalPnl: data.totalPnl,
+					avgPnl: data.trades.length > 0 ? data.totalPnl / data.trades.length : 0,
+					avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+					profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
+					bestHour: bestPnl > 0 ? bestHour : undefined,
+					worstHour: worstPnl < 0 ? worstHour : undefined,
+				}
+			})
+			.sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+
+		return {
+			status: "success",
+			message: "Day of week performance retrieved",
+			data: dayData,
+		}
+	} catch (error) {
+		console.error("Get day of week performance error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve day of week performance",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get time heatmap (hour × day matrix)
+ */
+export const getTimeHeatmap = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<TimeHeatmapCell[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+
+		// Group by day × hour
+		const cellMap = new Map<string, {
+			totalTrades: number
+			wins: number
+			losses: number
+			totalPnl: number
+			totalR: number
+			rCount: number
+		}>()
+
+		for (const trade of result) {
+			const dayOfWeek = trade.entryDate.getDay()
+			const hour = trade.entryDate.getHours()
+			const key = `${dayOfWeek}-${hour}`
+			const existing = cellMap.get(key) || {
+				totalTrades: 0,
+				wins: 0,
+				losses: 0,
+				totalPnl: 0,
+				totalR: 0,
+				rCount: 0,
+			}
+
+			const pnl = fromCents(trade.pnl)
+			existing.totalTrades++
+			existing.totalPnl += pnl
+
+			if (trade.outcome === "win") {
+				existing.wins++
+			} else if (trade.outcome === "loss") {
+				existing.losses++
+			}
+
+			if (trade.realizedRMultiple) {
+				existing.totalR += Number(trade.realizedRMultiple)
+				existing.rCount++
+			}
+
+			cellMap.set(key, existing)
+		}
+
+		const heatmapData: TimeHeatmapCell[] = Array.from(cellMap.entries()).map(([key, data]) => {
+			const [dayOfWeek, hour] = key.split("-").map(Number)
+			return {
+				dayOfWeek,
+				dayName: dayNames[dayOfWeek],
+				hour,
+				hourLabel: `${hour.toString().padStart(2, "0")}:00`,
+				totalTrades: data.totalTrades,
+				totalPnl: data.totalPnl,
+				winRate: calculateWinRate(data.wins, data.wins + data.losses),
+				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+			}
+		})
+
+		return {
+			status: "success",
+			message: "Time heatmap retrieved",
+			data: heatmapData,
+		}
+	} catch (error) {
+		console.error("Get time heatmap error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve time heatmap",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get summary stats for a specific day
+ */
+export const getDaySummary = async (
+	date: Date
+): Promise<ActionResponse<DaySummary>> => {
+	try {
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		// Get start and end of the day
+		const startOfDay = new Date(date)
+		startOfDay.setHours(0, 0, 0, 0)
+		const endOfDay = new Date(date)
+		endOfDay.setHours(23, 59, 59, 999)
+
+		const result = await db.query.trades.findMany({
+			where: and(
+				accountCondition,
+				eq(trades.isArchived, false),
+				gte(trades.entryDate, startOfDay),
+				lte(trades.entryDate, endOfDay)
+			),
+		})
+
+		const dateKey = formatDateKey(date)
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found for this day",
+				data: {
+					date: dateKey,
+					netPnl: 0,
+					grossPnl: 0,
+					totalFees: 0,
+					winRate: 0,
+					wins: 0,
+					losses: 0,
+					breakevens: 0,
+					totalTrades: 0,
+					avgR: 0,
+					profitFactor: 0,
+				},
+			}
+		}
+
+		let netPnl = 0
+		let totalFees = 0
+		let wins = 0
+		let losses = 0
+		let breakevens = 0
+		let totalR = 0
+		let rCount = 0
+		let grossProfit = 0
+		let grossLoss = 0
+
+		for (const trade of result) {
+			const pnl = fromCents(trade.pnl)
+			const commission = fromCents(trade.commission ?? 0)
+			const fees = fromCents(trade.fees ?? 0)
+
+			netPnl += pnl
+			totalFees += commission + fees
+
+			if (trade.outcome === "win") {
+				wins++
+				grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				losses++
+				grossLoss += Math.abs(pnl)
+			} else {
+				breakevens++
+			}
+
+			if (trade.realizedRMultiple) {
+				totalR += Number(trade.realizedRMultiple)
+				rCount++
+			}
+		}
+
+		const grossPnl = netPnl + totalFees
+
+		return {
+			status: "success",
+			message: "Day summary retrieved",
+			data: {
+				date: dateKey,
+				netPnl,
+				grossPnl,
+				totalFees,
+				winRate: calculateWinRate(wins, wins + losses),
+				wins,
+				losses,
+				breakevens,
+				totalTrades: result.length,
+				avgR: rCount > 0 ? totalR / rCount : 0,
+				profitFactor: calculateProfitFactor(grossProfit, grossLoss),
+			},
+		}
+	} catch (error) {
+		console.error("Get day summary error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve day summary",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get trades for a specific day
+ */
+export const getDayTrades = async (
+	date: Date
+): Promise<ActionResponse<DayTrade[]>> => {
+	try {
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		// Get start and end of the day
+		const startOfDay = new Date(date)
+		startOfDay.setHours(0, 0, 0, 0)
+		const endOfDay = new Date(date)
+		endOfDay.setHours(23, 59, 59, 999)
+
+		const result = await db.query.trades.findMany({
+			where: and(
+				accountCondition,
+				eq(trades.isArchived, false),
+				gte(trades.entryDate, startOfDay),
+				lte(trades.entryDate, endOfDay)
+			),
+			orderBy: [asc(trades.entryDate)],
+		})
+
+		const dayTrades: DayTrade[] = result.map((trade) => ({
+			id: trade.id,
+			time: trade.entryDate.toLocaleTimeString("en-US", {
+				hour: "2-digit",
+				minute: "2-digit",
+				hour12: false,
+			}),
+			asset: trade.asset,
+			direction: trade.direction as "long" | "short",
+			entryPrice: fromCents(trade.entryPrice),
+			exitPrice: trade.exitPrice ? fromCents(trade.exitPrice) : null,
+			pnl: fromCents(trade.pnl),
+			rMultiple: trade.realizedRMultiple ? Number(trade.realizedRMultiple) : null,
+			outcome: trade.outcome as "win" | "loss" | "breakeven" | null,
+		}))
+
+		return {
+			status: "success",
+			message: "Day trades retrieved",
+			data: dayTrades,
+		}
+	} catch (error) {
+		console.error("Get day trades error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve day trades",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get intraday equity curve for a specific day
+ */
+export const getDayEquityCurve = async (
+	date: Date
+): Promise<ActionResponse<DayEquityPoint[]>> => {
+	try {
+		const authContext = await requireAuth()
+
+		const accountCondition = authContext.showAllAccounts
+			? inArray(trades.accountId, authContext.allAccountIds)
+			: eq(trades.accountId, authContext.accountId)
+
+		// Get start and end of the day
+		const startOfDay = new Date(date)
+		startOfDay.setHours(0, 0, 0, 0)
+		const endOfDay = new Date(date)
+		endOfDay.setHours(23, 59, 59, 999)
+
+		const result = await db.query.trades.findMany({
+			where: and(
+				accountCondition,
+				eq(trades.isArchived, false),
+				gte(trades.entryDate, startOfDay),
+				lte(trades.entryDate, endOfDay)
+			),
+			orderBy: [asc(trades.entryDate)],
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found for this day",
+				data: [],
+			}
+		}
+
+		let cumulativePnl = 0
+		const equityPoints: DayEquityPoint[] = result.map((trade) => {
+			cumulativePnl += fromCents(trade.pnl)
+			return {
+				time: trade.entryDate.toLocaleTimeString("en-US", {
+					hour: "2-digit",
+					minute: "2-digit",
+					hour12: false,
+				}),
+				cumulativePnl,
+				tradeId: trade.id,
+			}
+		})
+
+		return {
+			status: "success",
+			message: "Day equity curve retrieved",
+			data: equityPoints,
+		}
+	} catch (error) {
+		console.error("Get day equity curve error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve day equity curve",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get radar chart data for performance overview
+ */
+export const getRadarChartData = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<RadarChartData[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Calculate metrics
+		let wins = 0
+		let losses = 0
+		let totalR = 0
+		let rCount = 0
+		let grossProfit = 0
+		let grossLoss = 0
+		let followedPlanCount = 0
+		let planTradesCount = 0
+		const pnls: number[] = []
+
+		for (const trade of result) {
+			const pnl = fromCents(trade.pnl)
+			pnls.push(pnl)
+
+			if (trade.outcome === "win") {
+				wins++
+				grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				losses++
+				grossLoss += Math.abs(pnl)
+			}
+
+			if (trade.realizedRMultiple) {
+				totalR += Number(trade.realizedRMultiple)
+				rCount++
+			}
+
+			if (trade.followedPlan !== null) {
+				planTradesCount++
+				if (trade.followedPlan === true) {
+					followedPlanCount++
+				}
+			}
+		}
+
+		// Calculate win rate (0-100)
+		const winRate = calculateWinRate(wins, wins + losses)
+
+		// Calculate average R
+		const avgR = rCount > 0 ? totalR / rCount : 0
+
+		// Calculate profit factor (cap at 5 for visualization)
+		const profitFactor = Math.min(calculateProfitFactor(grossProfit, grossLoss), 5)
+
+		// Calculate discipline score (0-100)
+		const disciplineScore = planTradesCount > 0 ? (followedPlanCount / planTradesCount) * 100 : 0
+
+		// Calculate consistency (inverse of coefficient of variation, normalized)
+		const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length
+		const variance = pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / pnls.length
+		const stdDev = Math.sqrt(variance)
+		const cv = mean !== 0 ? stdDev / Math.abs(mean) : 0
+		// Higher consistency = lower CV, normalize to 0-100
+		const consistency = Math.max(0, Math.min(100, 100 - cv * 50))
+
+		const radarData: RadarChartData[] = [
+			{
+				metric: "Win Rate",
+				metricKey: "winRate",
+				value: winRate,
+				normalized: winRate,
+			},
+			{
+				metric: "Avg R",
+				metricKey: "avgR",
+				value: avgR,
+				// Normalize avgR: -2 to +4 range mapped to 0-100
+				normalized: Math.max(0, Math.min(100, ((avgR + 2) / 6) * 100)),
+			},
+			{
+				metric: "Profit Factor",
+				metricKey: "profitFactor",
+				value: profitFactor,
+				// Normalize profit factor: 0-5 mapped to 0-100
+				normalized: (profitFactor / 5) * 100,
+			},
+			{
+				metric: "Discipline",
+				metricKey: "discipline",
+				value: disciplineScore,
+				normalized: disciplineScore,
+			},
+			{
+				metric: "Consistency",
+				metricKey: "consistency",
+				value: consistency,
+				normalized: consistency,
+			},
+		]
+
+		return {
+			status: "success",
+			message: "Radar chart data retrieved",
+			data: radarData,
+		}
+	} catch (error) {
+		console.error("Get radar chart data error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve radar chart data",
 			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
 		}
 	}

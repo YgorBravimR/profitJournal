@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition } from "react"
+import { useTranslations } from "next-intl"
 import {
 	FilterPanel,
 	VariableComparison,
@@ -8,6 +9,9 @@ import {
 	ExpectedValue,
 	RDistribution,
 	CumulativePnlChart,
+	HourlyPerformanceChart,
+	DayOfWeekChart,
+	TimeHeatmap,
 	type FilterState,
 } from "@/components/analytics"
 import {
@@ -15,6 +19,9 @@ import {
 	getExpectedValue,
 	getRDistribution,
 	getEquityCurve,
+	getHourlyPerformance,
+	getDayOfWeekPerformance,
+	getTimeHeatmap,
 } from "@/app/actions/analytics"
 import { getTagStats } from "@/app/actions/tags"
 import type {
@@ -23,6 +30,9 @@ import type {
 	ExpectedValueData,
 	RDistributionBucket,
 	EquityPoint,
+	HourlyPerformance,
+	DayOfWeekPerformance,
+	TimeHeatmapCell,
 } from "@/types"
 
 interface TimeframeOption {
@@ -36,6 +46,9 @@ interface AnalyticsContentProps {
 	initialExpectedValue: ExpectedValueData | null
 	initialRDistribution: RDistributionBucket[]
 	initialEquityCurve: EquityPoint[]
+	initialHourlyPerformance: HourlyPerformance[]
+	initialDayOfWeekPerformance: DayOfWeekPerformance[]
+	initialTimeHeatmap: TimeHeatmapCell[]
 	availableAssets: string[]
 	availableTimeframes: TimeframeOption[]
 }
@@ -46,9 +59,13 @@ export const AnalyticsContent = ({
 	initialExpectedValue,
 	initialRDistribution,
 	initialEquityCurve,
+	initialHourlyPerformance,
+	initialDayOfWeekPerformance,
+	initialTimeHeatmap,
 	availableAssets,
 	availableTimeframes,
 }: AnalyticsContentProps) => {
+	const t = useTranslations("analytics")
 	const [isPending, startTransition] = useTransition()
 
 	const [filters, setFilters] = useState<FilterState>({
@@ -73,6 +90,12 @@ export const AnalyticsContent = ({
 		useState<RDistributionBucket[]>(initialRDistribution)
 	const [equityCurve, setEquityCurve] =
 		useState<EquityPoint[]>(initialEquityCurve)
+	const [hourlyPerformance, setHourlyPerformance] =
+		useState<HourlyPerformance[]>(initialHourlyPerformance)
+	const [dayOfWeekPerformance, setDayOfWeekPerformance] =
+		useState<DayOfWeekPerformance[]>(initialDayOfWeekPerformance)
+	const [timeHeatmap, setTimeHeatmap] =
+		useState<TimeHeatmapCell[]>(initialTimeHeatmap)
 
 	// Reset state when initial props change (e.g., account switch)
 	useEffect(() => {
@@ -95,6 +118,18 @@ export const AnalyticsContent = ({
 		setEquityCurve(initialEquityCurve)
 	}, [initialEquityCurve])
 
+	useEffect(() => {
+		setHourlyPerformance(initialHourlyPerformance)
+	}, [initialHourlyPerformance])
+
+	useEffect(() => {
+		setDayOfWeekPerformance(initialDayOfWeekPerformance)
+	}, [initialDayOfWeekPerformance])
+
+	useEffect(() => {
+		setTimeHeatmap(initialTimeHeatmap)
+	}, [initialTimeHeatmap])
+
 	// Refetch data when filters or groupBy change
 	useEffect(() => {
 		startTransition(async () => {
@@ -108,12 +143,15 @@ export const AnalyticsContent = ({
 				timeframeIds: filters.timeframeIds.length > 0 ? filters.timeframeIds : undefined,
 			}
 
-			const [perfResult, tagResult, evResult, rDistResult, equityResult] = await Promise.all([
+			const [perfResult, tagResult, evResult, rDistResult, equityResult, hourlyResult, dayOfWeekResult, heatmapResult] = await Promise.all([
 				getPerformanceByVariable(groupBy, tradeFilters),
 				getTagStats(tradeFilters),
 				getExpectedValue(tradeFilters),
 				getRDistribution(tradeFilters),
 				getEquityCurve(filters.dateFrom || undefined, filters.dateTo || undefined),
+				getHourlyPerformance(tradeFilters),
+				getDayOfWeekPerformance(tradeFilters),
+				getTimeHeatmap(tradeFilters),
 			])
 
 			if (perfResult.status === "success" && perfResult.data) {
@@ -130,6 +168,15 @@ export const AnalyticsContent = ({
 			}
 			if (equityResult.status === "success" && equityResult.data) {
 				setEquityCurve(equityResult.data)
+			}
+			if (hourlyResult.status === "success" && hourlyResult.data) {
+				setHourlyPerformance(hourlyResult.data)
+			}
+			if (dayOfWeekResult.status === "success" && dayOfWeekResult.data) {
+				setDayOfWeekPerformance(dayOfWeekResult.data)
+			}
+			if (heatmapResult.status === "success" && heatmapResult.data) {
+				setTimeHeatmap(heatmapResult.data)
 			}
 		})
 	}, [filters, groupBy])
@@ -181,6 +228,25 @@ export const AnalyticsContent = ({
 
 			{/* Tag Cloud - Full Width */}
 			<TagCloud data={tagStats} />
+
+			{/* Time-Based Analysis Section */}
+			<div className="mt-m-600">
+				<h2 className="mb-m-400 text-heading font-semibold text-txt-100">
+					{t("time.title")}
+				</h2>
+
+				{/* Time Heatmap - Full Width */}
+				<TimeHeatmap data={timeHeatmap} />
+
+				{/* Two Column Grid for Charts */}
+				<div className="mt-m-600 grid grid-cols-1 gap-m-600 lg:grid-cols-2">
+					{/* Hourly Performance */}
+					<HourlyPerformanceChart data={hourlyPerformance} />
+
+					{/* Day of Week Performance */}
+					<DayOfWeekChart data={dayOfWeekPerformance} />
+				</div>
+			</div>
 		</div>
 	)
 }

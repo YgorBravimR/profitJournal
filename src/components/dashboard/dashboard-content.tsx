@@ -5,8 +5,11 @@ import { KpiCards } from "./kpi-cards"
 import { TradingCalendar } from "./trading-calendar"
 import { EquityCurve } from "./equity-curve"
 import { QuickStats } from "./quick-stats"
+import { DailyPnLBarChart } from "./daily-pnl-bar-chart"
+import { PerformanceRadarChart } from "./performance-radar-chart"
+import { DayDetailModal } from "./day-detail-modal"
 import { getDailyPnL } from "@/app/actions/analytics"
-import type { OverallStats, DisciplineData, EquityPoint, StreakData, DailyPnL } from "@/types"
+import type { OverallStats, DisciplineData, EquityPoint, StreakData, DailyPnL, RadarChartData } from "@/types"
 
 interface DashboardContentProps {
 	initialStats: OverallStats | null
@@ -14,6 +17,7 @@ interface DashboardContentProps {
 	initialEquityCurve: EquityPoint[]
 	initialStreakData: StreakData | null
 	initialDailyPnL: DailyPnL[]
+	initialRadarData: RadarChartData[]
 	initialYear: number
 	initialMonthIndex: number
 }
@@ -24,6 +28,7 @@ export const DashboardContent = ({
 	initialEquityCurve,
 	initialStreakData,
 	initialDailyPnL,
+	initialRadarData,
 	initialYear,
 	initialMonthIndex,
 }: DashboardContentProps) => {
@@ -34,7 +39,12 @@ export const DashboardContent = ({
 	const [discipline, setDiscipline] = useState<DisciplineData | null>(initialDiscipline)
 	const [equityCurve, setEquityCurve] = useState<EquityPoint[]>(initialEquityCurve)
 	const [streakData, setStreakData] = useState<StreakData | null>(initialStreakData)
+	const [radarData, setRadarData] = useState<RadarChartData[]>(initialRadarData)
 	const [isPending, startTransition] = useTransition()
+
+	// Day detail modal state
+	const [selectedDate, setSelectedDate] = useState<string | null>(null)
+	const [isDayModalOpen, setIsDayModalOpen] = useState(false)
 
 	// Reset all state when initial props change (e.g., account switch)
 	useEffect(() => {
@@ -56,6 +66,22 @@ export const DashboardContent = ({
 	useEffect(() => {
 		setStreakData(initialStreakData)
 	}, [initialStreakData])
+
+	useEffect(() => {
+		setRadarData(initialRadarData)
+	}, [initialRadarData])
+
+	const handleDayClick = (date: string) => {
+		setSelectedDate(date)
+		setIsDayModalOpen(true)
+	}
+
+	const handleDayModalChange = (open: boolean) => {
+		setIsDayModalOpen(open)
+		if (!open) {
+			setSelectedDate(null)
+		}
+	}
 
 	const handleMonthChange = (newMonth: Date) => {
 		setCurrentMonth(newMonth)
@@ -80,6 +106,7 @@ export const DashboardContent = ({
 					data={dailyPnL}
 					month={currentMonth}
 					onMonthChange={handleMonthChange}
+					onDayClick={handleDayClick}
 				/>
 			</div>
 
@@ -88,10 +115,27 @@ export const DashboardContent = ({
 				<QuickStats streakData={streakData} stats={stats} />
 			</div>
 
+			{/* Daily P&L Bar Chart */}
+			<div className="lg:col-span-2">
+				<DailyPnLBarChart data={dailyPnL} onDayClick={handleDayClick} />
+			</div>
+
+			{/* Performance Radar */}
+			<div>
+				<PerformanceRadarChart data={radarData} />
+			</div>
+
 			{/* Equity Curve */}
 			<div className="lg:col-span-3">
 				<EquityCurve data={equityCurve} />
 			</div>
+
+			{/* Day Detail Modal */}
+			<DayDetailModal
+				date={selectedDate}
+				open={isDayModalOpen}
+				onOpenChange={handleDayModalChange}
+			/>
 		</div>
 	)
 }

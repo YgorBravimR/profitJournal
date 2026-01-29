@@ -10,6 +10,7 @@ interface TradingCalendarProps {
 	data: DailyPnL[]
 	month: Date
 	onMonthChange: (month: Date) => void
+	onDayClick?: (date: string) => void
 }
 
 const formatCurrency = (value: number): string => {
@@ -27,7 +28,7 @@ const formatDateKey = (date: Date): string => {
 	return `${year}-${month}-${day}`
 }
 
-export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarProps) => {
+export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: TradingCalendarProps) => {
 	const t = useTranslations("dashboard.calendar")
 	const tDays = useTranslations("dayOfWeek")
 	const locale = useLocale()
@@ -155,10 +156,30 @@ export const TradingCalendar = ({ data, month, onMonthChange }: TradingCalendarP
 									: "text-txt-300"
 							: "text-txt-300"
 
+						const isClickable = dailyData && onDayClick
+
+						const handleClick = () => {
+							if (isClickable) {
+								onDayClick(dateKey)
+							}
+						}
+
+						const handleKeyDown = (e: React.KeyboardEvent) => {
+							if (isClickable && (e.key === "Enter" || e.key === " ")) {
+								e.preventDefault()
+								onDayClick(dateKey)
+							}
+						}
+
 						return (
 							<div
 								key={dateKey}
-								className={`aspect-square rounded-md p-s-100 ${bgClass} ${isToday ? "ring-2 ring-acc-100" : ""}`}
+								className={`aspect-square rounded-md p-s-100 ${bgClass} ${isToday ? "ring-2 ring-acc-100" : ""} ${isClickable ? "cursor-pointer transition-opacity hover:opacity-80" : ""}`}
+								onClick={handleClick}
+								onKeyDown={handleKeyDown}
+								tabIndex={isClickable ? 0 : -1}
+								role={isClickable ? "button" : undefined}
+								aria-label={dailyData ? `${dateKey}: ${formatCurrency(dailyData.pnl)}, ${dailyData.tradeCount} trades` : undefined}
 							>
 								<div className="flex h-full flex-col">
 									<span className="text-tiny text-txt-200">

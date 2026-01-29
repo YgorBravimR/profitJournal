@@ -6,6 +6,9 @@ import {
 	getExpectedValue,
 	getRDistribution,
 	getEquityCurve,
+	getHourlyPerformance,
+	getDayOfWeekPerformance,
+	getTimeHeatmap,
 } from "@/app/actions/analytics"
 import { getTagStats } from "@/app/actions/tags"
 import { getUniqueAssets } from "@/app/actions/trades"
@@ -31,6 +34,9 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		expectedValueResult,
 		rDistributionResult,
 		equityCurveResult,
+		hourlyPerformanceResult,
+		dayOfWeekPerformanceResult,
+		timeHeatmapResult,
 		assetsResult,
 		timeframesResult,
 	] = await Promise.all([
@@ -39,6 +45,9 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		getExpectedValue(),
 		getRDistribution(),
 		getEquityCurve(),
+		getHourlyPerformance(),
+		getDayOfWeekPerformance(),
+		getTimeHeatmap(),
 		getUniqueAssets(),
 		getTimeframes(),
 	])
@@ -63,6 +72,18 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		equityCurveResult.status === "success" && equityCurveResult.data
 			? equityCurveResult.data
 			: []
+	const initialHourlyPerformance =
+		hourlyPerformanceResult.status === "success" && hourlyPerformanceResult.data
+			? hourlyPerformanceResult.data
+			: []
+	const initialDayOfWeekPerformance =
+		dayOfWeekPerformanceResult.status === "success" && dayOfWeekPerformanceResult.data
+			? dayOfWeekPerformanceResult.data
+			: []
+	const initialTimeHeatmap =
+		timeHeatmapResult.status === "success" && timeHeatmapResult.data
+			? timeHeatmapResult.data
+			: []
 	const availableAssets =
 		assetsResult.status === "success" && assetsResult.data
 			? assetsResult.data
@@ -82,6 +103,9 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 					initialExpectedValue={initialExpectedValue}
 					initialRDistribution={initialRDistribution}
 					initialEquityCurve={initialEquityCurve}
+					initialHourlyPerformance={initialHourlyPerformance}
+					initialDayOfWeekPerformance={initialDayOfWeekPerformance}
+					initialTimeHeatmap={initialTimeHeatmap}
 					availableAssets={availableAssets}
 					availableTimeframes={availableTimeframes}
 				/>

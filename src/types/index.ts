@@ -182,3 +182,85 @@ export interface ExecutionData {
 	slippage: number
 	executionValue: number
 }
+
+// Phase 11: Time-Based Analytics Types
+export interface HourlyPerformance {
+	hour: number
+	hourLabel: string
+	totalTrades: number
+	wins: number
+	losses: number
+	breakevens: number
+	winRate: number
+	totalPnl: number
+	avgPnl: number
+	avgR: number
+	profitFactor: number
+}
+
+export interface DayOfWeekPerformance {
+	dayOfWeek: number
+	dayName: string
+	totalTrades: number
+	wins: number
+	losses: number
+	breakevens: number
+	winRate: number
+	totalPnl: number
+	avgPnl: number
+	avgR: number
+	profitFactor: number
+	bestHour?: number
+	worstHour?: number
+}
+
+export interface TimeHeatmapCell {
+	dayOfWeek: number
+	dayName: string
+	hour: number
+	hourLabel: string
+	totalTrades: number
+	totalPnl: number
+	winRate: number
+	avgR: number
+}
+
+export interface DaySummary {
+	date: string
+	netPnl: number
+	grossPnl: number
+	totalFees: number
+	winRate: number
+	wins: number
+	losses: number
+	breakevens: number
+	totalTrades: number
+	avgR: number
+	profitFactor: number
+}
+
+export interface DayTrade {
+	id: string
+	time: string
+	asset: string
+	direction: TradeDirection
+	entryPrice: number
+	exitPrice: number | null
+	pnl: number
+	rMultiple: number | null
+	outcome: TradeOutcome | null
+}
+
+export interface DayEquityPoint {
+	time: string
+	cumulativePnl: number
+	tradeId?: string
+}
+
+export interface RadarChartData {
+	metric: string
+	metricKey: string
+	value: number
+	normalized: number
+	benchmark?: number
+}

@@ -173,6 +173,9 @@
 	"dashboard": {
 		"title": "Painel de Controle",
 		"description": "Visão geral do seu desempenho de trading",
+		"noData": "Nenhum dado disponível",
+		"trade": "trade",
+		"trades": "trades",
 		"kpi": {
 			"grossPnl": "P&L Bruto",
 			"netPnl": "P&L Líquido",
@@ -234,6 +237,45 @@
 			"totalTrades": "Total de Trades",
 			"w": "G",
 			"l": "L"
+		},
+		"dailyPnL": {
+			"title": "P&L Diário Líquido"
+		},
+		"cumulativePnL": {
+			"title": "P&L Acumulado",
+			"cumulative": "Acumulado",
+			"drawdown": "Drawdown"
+		},
+		"radar": {
+			"title": "Radar de Performance",
+			"winRate": "Taxa de Acerto",
+			"avgR": "R Médio",
+			"profitFactor": "Fator de Lucro",
+			"discipline": "Disciplina",
+			"consistency": "Consistência",
+			"normalized": "Normalizado"
+		},
+		"dayDetail": {
+			"netPnl": "P&L Líquido",
+			"grossPnl": "P&L Bruto",
+			"fees": "Taxas",
+			"winRate": "Taxa de Acerto",
+			"trades": "Trades",
+			"avgR": "R Médio",
+			"equityCurve": "Curva de Capital (Intraday)",
+			"clickToView": "Clique para ver trade",
+			"tradesTitle": "Trades",
+			"noTrades": "Sem trades neste dia",
+			"clickHint": "Clique em uma linha para ver os detalhes completos",
+			"noData": "Nenhum dado disponível para este dia",
+			"time": "Hora",
+			"asset": "Ativo",
+			"dir": "Dir",
+			"entry": "Entrada",
+			"exit": "Saída",
+			"pnl": "P&L",
+			"long": "Compra",
+			"short": "Venda"
 		}
 	},
 	"journal": {
@@ -287,6 +329,7 @@
 	"analytics": {
 		"title": "Análises",
 		"description": "Analise seu desempenho e identifique padrões",
+		"noData": "Nenhum dado disponível",
 		"filters": {
 			"title": "Filtros",
 			"active": "Ativos",
@@ -308,6 +351,26 @@
 				"allTime": "Todo Período",
 				"custom": "Personalizado"
 			}
+		},
+		"time": {
+			"title": "Análise de Tempo",
+			"hourlyTitle": "Performance por Hora do Dia",
+			"dayOfWeekTitle": "Performance por Dia da Semana",
+			"heatmapTitle": "Mapa de Calor (Hora × Dia)",
+			"pnl": "P&L",
+			"trades": "Trades",
+			"winRate": "Taxa de Acerto",
+			"avgR": "R Médio",
+			"bestHour": "Melhor Hora",
+			"worstHour": "Pior Hora",
+			"bestDay": "Melhor Dia",
+			"worstDay": "Pior Dia",
+			"bestHourOnDay": "Melhor Hora",
+			"bestSlot": "Melhor Horário",
+			"worstSlot": "Pior Horário",
+			"profitable": "Lucrativo",
+			"losing": "Negativo",
+			"noTrades": "Sem trades"
 		},
 		"variableComparison": {
 			"title": "Performance por Variável",
