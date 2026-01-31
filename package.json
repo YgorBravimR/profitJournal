@@ -10,7 +10,12 @@
 		"db:generate": "drizzle-kit generate --config ./drizzle.config.ts",
 		"db:migrate": "drizzle-kit migrate --config ./drizzle.config.ts",
 		"db:push": "drizzle-kit push --config ./drizzle.config.ts",
-		"db:seed": "tsx scripts/seed.ts"
+		"db:seed": "tsx scripts/seed.ts",
+		"test": "playwright test",
+		"test:ui": "playwright test --ui",
+		"test:headed": "playwright test --headed",
+		"test:debug": "playwright test --debug",
+		"test:report": "playwright show-report"
 	},
 	"dependencies": {
 		"@auth/drizzle-adapter": "^1.11.1",
@@ -49,6 +54,7 @@
 	"devDependencies": {
 		"@eslint/eslintrc": "3.3.3",
 		"@eslint/js": "9.39.2",
+		"@playwright/test": "^1.58.0",
 		"@tailwindcss/postcss": "4.1.18",
 		"@types/bcryptjs": "^3.0.0",
 		"@types/node": "25.0.10",

@@ -24,9 +24,14 @@
       "Bash(pnpm run build:*)",
       "Bash(pnpm db:migrate:*)",
       "Bash(echo:*)",
-      "Bash(pnpm exec tsc:*)"
+      "Bash(pnpm exec tsc:*)",
+      "Bash(npx playwright test:*)",
+      "Bash(pnpm exec playwright test:*)",
+      "Bash(tee:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "outputStyle": "Explanatory"
 }

@@ -254,7 +254,7 @@ export const EquityCurve = ({ data: initialData }: EquityCurveProps) => {
 				</div>
 			</div>
 			<div className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
-				<ResponsiveContainer width="100%" height="100%">
+				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
 					<AreaChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

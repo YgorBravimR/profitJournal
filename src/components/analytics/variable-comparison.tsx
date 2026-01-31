@@ -206,7 +206,7 @@ export const VariableComparison = ({
 				</div>
 			) : (
 				<div className="mt-m-400 h-80">
-					<ResponsiveContainer width="100%" height="100%">
+					<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
 						<BarChart
 							data={chartData}
 							margin={{ top: 10, right: 10, left: 10, bottom: 40 }}
