@@ -1,12 +1,11 @@
 "use client"
 
-import Link from "next/link"
+import { Link } from "@/i18n/routing"
 import {
 	ArrowUpRight,
 	ArrowDownRight,
 	Calendar,
 	TrendingUp,
-	TrendingDown,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
@@ -15,6 +14,7 @@ import { formatCurrency, formatRMultiple } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
 import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
+import { ColoredValue } from "@/components/shared"
 import type { TradeWithRelations } from "@/app/actions/trades"
 
 interface TradeCardProps {
@@ -90,26 +90,20 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 
 					{/* Right: P&L and R */}
 					<div className="text-right">
-						<div
-							className={cn(
-								"font-mono text-body font-semibold tabular-nums",
-								isWin && "text-trade-buy",
-								isLoss && "text-trade-sell",
-								!isWin && !isLoss && "text-txt-100"
-							)}
-						>
-							{pnl >= 0 ? "+" : ""}
-							{formatCurrency(pnl)}
-						</div>
+						<ColoredValue
+							value={pnl}
+							showSign
+							formatFn={(v) => formatCurrency(v)}
+							className="text-body font-semibold"
+						/>
 						{realizedR !== 0 && (
-							<div
-								className={cn(
-									"mt-s-100 font-mono text-small tabular-nums",
-									realizedR > 0 ? "text-trade-buy" : "text-trade-sell"
-								)}
-							>
-								{formatRMultiple(realizedR)}
-							</div>
+							<ColoredValue
+								value={realizedR}
+								type="r-multiple"
+								showSign
+								size="sm"
+								className="mt-s-100"
+							/>
 						)}
 					</div>
 				</div>

@@ -30,13 +30,13 @@ export const MoodSelector = ({ value, onChange, disabled = false }: MoodSelector
 					onClick={() => onChange(mood.value)}
 					disabled={disabled}
 					className={cn(
-						"flex flex-col items-center gap-s-100 rounded-lg p-s-200 transition-all",
+						"flex flex-col items-center gap-s-100 rounded-lg p-s-200 transition-colors",
 						"hover:bg-bg-300 focus:outline-none focus:ring-2 focus:ring-accent-primary",
 						value === mood.value && "bg-bg-300 ring-2 ring-accent-primary",
 						disabled && "cursor-not-allowed opacity-50"
 					)}
 					aria-label={t(mood.labelKey)}
-					tabIndex={0}
+					aria-pressed={value === mood.value}
 				>
 					<span className="text-2xl">{mood.emoji}</span>
 					<span className="text-tiny text-txt-300">{t(mood.labelKey)}</span>

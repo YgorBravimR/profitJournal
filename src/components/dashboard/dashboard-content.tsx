@@ -49,27 +49,19 @@ export const DashboardContent = ({
 	// Reset all state when initial props change (e.g., account switch)
 	useEffect(() => {
 		setDailyPnL(initialDailyPnL)
-	}, [initialDailyPnL])
-
-	useEffect(() => {
 		setStats(initialStats)
-	}, [initialStats])
-
-	useEffect(() => {
 		setDiscipline(initialDiscipline)
-	}, [initialDiscipline])
-
-	useEffect(() => {
 		setEquityCurve(initialEquityCurve)
-	}, [initialEquityCurve])
-
-	useEffect(() => {
 		setStreakData(initialStreakData)
-	}, [initialStreakData])
-
-	useEffect(() => {
 		setRadarData(initialRadarData)
-	}, [initialRadarData])
+	}, [
+		initialDailyPnL,
+		initialStats,
+		initialDiscipline,
+		initialEquityCurve,
+		initialStreakData,
+		initialRadarData,
+	])
 
 	const handleDayClick = (date: string) => {
 		setSelectedDate(date)

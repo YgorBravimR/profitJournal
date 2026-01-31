@@ -3,14 +3,20 @@
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { Search, Loader2 } from "lucide-react"
+import { Search } from "lucide-react"
 import type { JournalPeriod, TradesByDay } from "@/types"
 import { getTradesGroupedByDay } from "@/app/actions/trades"
+import { formatBrlWithSign } from "@/lib/formatting"
+import { LoadingSpinner, EmptyState, ColoredValue } from "@/components/shared"
 import { PeriodFilter } from "./period-filter"
 import { TradeDayGroup } from "./trade-day-group"
 
 /**
- * Get date range based on period selection
+ * Calculates the date range based on the selected period.
+ *
+ * @param period - The journal period type (day, week, month, custom)
+ * @param customRange - Optional custom date range when period is "custom"
+ * @returns Object containing from and to Date objects
  */
 const getDateRange = (
 	period: JournalPeriod,
@@ -65,6 +71,12 @@ interface JournalContentProps {
 	initialPeriod?: JournalPeriod
 }
 
+/**
+ * Main content component for the trading journal page.
+ * Handles period filtering, data fetching, and displays trades grouped by day.
+ *
+ * @param initialPeriod - The initial period to display (defaults to "week")
+ */
 export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) => {
 	const router = useRouter()
 	const t = useTranslations("journal")
@@ -147,16 +159,12 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 						<span className="text-txt-300">
 							{totalTrades} {t("tradesCount")}
 						</span>
-						<span
-							className={`font-medium ${
-								periodSummary.netPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-							}`}
-						>
-							{periodSummary.netPnl >= 0 ? "+" : ""}R$ {periodSummary.netPnl.toLocaleString("pt-BR", {
-								minimumFractionDigits: 2,
-								maximumFractionDigits: 2,
-							})}
-						</span>
+						<ColoredValue
+							value={periodSummary.netPnl}
+							showSign
+							formatFn={(v) => formatBrlWithSign(v)}
+							className="font-medium"
+						/>
 						<span className="text-txt-300">
 							{periodSummary.wins}W {periodSummary.losses}L ({periodWinRate.toFixed(0)}%)
 						</span>
@@ -165,24 +173,16 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 			</div>
 
 			{/* Loading State */}
-			{isLoading && (
-				<div className="flex h-[200px] items-center justify-center">
-					<Loader2 className="h-6 w-6 animate-spin text-txt-300" />
-				</div>
-			)}
+			{isLoading && <LoadingSpinner size="md" className="h-50" />}
 
 			{/* Empty State */}
 			{!isLoading && tradesByDay.length === 0 && (
 				<div className="rounded-lg border border-bg-300 bg-bg-200 p-l-700">
-					<div className="flex flex-col items-center justify-center text-center">
-						<div className="mb-m-400 flex h-16 w-16 items-center justify-center rounded-full bg-bg-300">
-							<Search className="h-8 w-8 text-txt-300" />
-						</div>
-						<p className="text-body text-txt-200">{t("noTradesInPeriod")}</p>
-						<p className="mt-s-200 text-small text-txt-300">
-							{t("tryDifferentPeriod")}
-						</p>
-					</div>
+					<EmptyState
+						icon={Search}
+						title={t("noTradesInPeriod")}
+						description={t("tryDifferentPeriod")}
+					/>
 				</div>
 			)}
 

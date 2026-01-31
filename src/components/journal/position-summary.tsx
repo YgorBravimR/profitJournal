@@ -170,7 +170,7 @@ export const PositionSummary = ({
 				<div className="h-2 overflow-hidden rounded-full bg-bg-300">
 					<div
 						className={cn(
-							"h-full transition-all",
+							"h-full transition-[width]",
 							positionStatus === "closed"
 								? "bg-trade-buy"
 								: positionStatus === "partial"

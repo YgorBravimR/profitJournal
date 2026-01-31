@@ -140,7 +140,7 @@ export const CircuitBreakerPanel = ({
 							<div className="h-2 overflow-hidden rounded-full bg-bg-400">
 								<div
 									className={cn(
-										"h-full transition-all",
+										"h-full transition-[width]",
 										status.dailyPnL >= 0 ? "bg-trade-buy" : "bg-trade-sell"
 									)}
 									style={{ width: `${Math.min(Math.abs(pnlProgress), 100)}%` }}
@@ -171,7 +171,7 @@ export const CircuitBreakerPanel = ({
 							<div className="h-2 overflow-hidden rounded-full bg-bg-400">
 								<div
 									className={cn(
-										"h-full transition-all",
+										"h-full transition-[width]",
 										tradesProgress >= 100 ? "bg-trade-sell" : "bg-accent-primary"
 									)}
 									style={{ width: `${Math.min(tradesProgress, 100)}%` }}
@@ -198,7 +198,7 @@ export const CircuitBreakerPanel = ({
 							<div className="h-2 overflow-hidden rounded-full bg-bg-400">
 								<div
 									className={cn(
-										"h-full transition-all",
+										"h-full transition-[width]",
 										consecutiveLossesProgress >= 100 ? "bg-fb-error" : "bg-trade-sell"
 									)}
 									style={{ width: `${Math.min(consecutiveLossesProgress, 100)}%` }}

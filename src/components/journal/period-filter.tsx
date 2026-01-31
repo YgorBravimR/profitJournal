@@ -12,6 +12,14 @@ interface PeriodFilterProps {
 	customDateRange?: { from: Date; to: Date }
 }
 
+/**
+ * Period filter component for selecting time ranges in the journal.
+ * Supports predefined periods (day, week, month) and custom date ranges.
+ *
+ * @param value - Currently selected period
+ * @param onChange - Callback when period or date range changes
+ * @param customDateRange - Current custom date range if selected
+ */
 export const PeriodFilter = ({
 	value,
 	onChange,
@@ -128,16 +136,17 @@ export const PeriodFilter = ({
 			)}
 
 			{/* Show current custom range if selected */}
-			{value === "custom" && customDateRange && !showCustomPicker && (
+			{value === "custom" && customDateRange && !showCustomPicker ? (
 				<button
 					type="button"
 					onClick={() => setShowCustomPicker(true)}
 					className="flex items-center gap-s-100 text-caption text-txt-300 hover:text-txt-200"
+					aria-label={t("period.editCustomRange")}
 				>
 					<Calendar className="h-3 w-3" />
 					{customDateRange.from.toLocaleDateString()} - {customDateRange.to.toLocaleDateString()}
 				</button>
-			)}
+			) : null}
 		</div>
 	)
 }

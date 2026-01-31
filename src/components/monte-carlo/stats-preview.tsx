@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
-import { Loader2 } from "lucide-react"
+import { LoadingSpinner } from "@/components/shared"
 import type { SourceStats } from "@/types/monte-carlo"
 
 interface StatsPreviewProps {
@@ -24,9 +24,7 @@ export const StatsPreview = ({
 	if (isLoading) {
 		return (
 			<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
-				<div className="py-m-500 flex items-center justify-center">
-					<Loader2 className="text-txt-300 h-5 w-5 animate-spin" />
-				</div>
+				<LoadingSpinner size="sm" className="py-m-500" />
 			</div>
 		)
 	}
@@ -51,16 +49,16 @@ export const StatsPreview = ({
 					{stats.totalTrades} trades ({formatDate(stats.dateRange.from)} -{" "}
 					{formatDate(stats.dateRange.to)})
 				</p>
-				{stats.strategiesCount && stats.strategiesCount > 1 && (
+				{(stats.strategiesCount ?? 0) > 1 ? (
 					<p className="text-tiny text-txt-300">
 						Across {stats.strategiesCount} strategies
 					</p>
-				)}
-				{stats.accountsCount && stats.accountsCount > 1 && (
+				) : null}
+				{(stats.accountsCount ?? 0) > 1 ? (
 					<p className="text-tiny text-txt-300">
 						Across {stats.accountsCount} accounts
 					</p>
-				)}
+				) : null}
 			</div>
 
 			{/* Stats Grid */}

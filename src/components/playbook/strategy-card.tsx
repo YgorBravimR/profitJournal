@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { Link } from "@/i18n/routing"
 import {
 	Target,
 	TrendingUp,
@@ -10,30 +10,16 @@ import {
 	Edit,
 	Trash2,
 	Eye,
-	CheckCircle,
-	XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { ColoredValue } from "@/components/shared"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { StrategyWithStats } from "@/app/actions/strategies"
 
 interface StrategyCardProps {
 	strategy: StrategyWithStats
 	onEdit: (strategy: StrategyWithStats) => void
 	onDelete: (strategyId: string) => void
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
-}
-
-const formatProfitFactor = (value: number): string => {
-	if (!Number.isFinite(value)) return "∞"
-	if (value === 0) return "0.00"
-	return value.toFixed(2)
 }
 
 export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) => {
@@ -46,10 +32,8 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 				? "text-warning"
 				: "text-trade-sell"
 
-	const pnlColor = strategy.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-
 	return (
-		<div className="border-bg-300 bg-bg-200 hover:border-bg-300/80 group relative rounded-lg border p-m-500 transition-all hover:shadow-md">
+		<div className="border-bg-300 bg-bg-200 hover:border-bg-300/80 group relative rounded-lg border p-m-500 transition-shadow hover:shadow-md">
 			{/* Header */}
 			<div className="flex items-start justify-between">
 				<div className="flex items-center gap-s-300">
@@ -78,14 +62,17 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 						size="sm"
 						className="h-8 w-8 p-0"
 						onClick={() => setShowMenu(!showMenu)}
+						aria-label="Strategy options menu"
+						aria-expanded={showMenu}
 					>
-						<MoreVertical className="h-4 w-4" />
+						<MoreVertical className="h-4 w-4" aria-hidden="true" />
 					</Button>
 					{showMenu && (
 						<>
 							<div
 								className="fixed inset-0 z-10"
 								onClick={() => setShowMenu(false)}
+								aria-hidden="true"
 							/>
 							<div className="border-bg-300 bg-bg-100 absolute right-0 top-full z-20 mt-1 w-40 rounded-lg border py-1 shadow-lg">
 								<Link
@@ -133,9 +120,12 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 				</div>
 				<div className="bg-bg-100 rounded-lg p-s-300 text-center">
 					<p className="text-tiny text-txt-300">P&L</p>
-					<p className={`text-body mt-s-100 font-bold ${pnlColor}`}>
-						{formatCurrency(strategy.totalPnl)}
-					</p>
+					<ColoredValue
+						value={strategy.totalPnl}
+						showSign
+						formatFn={(v) => formatCompactCurrencyWithSign(v)}
+						className="mt-s-100 text-body font-bold"
+					/>
 				</div>
 				<div className="bg-bg-100 rounded-lg p-s-300 text-center">
 					<p className="text-tiny text-txt-300">Win Rate</p>
@@ -145,14 +135,12 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 				</div>
 				<div className="bg-bg-100 rounded-lg p-s-300 text-center">
 					<p className="text-tiny text-txt-300">Avg R</p>
-					<p
-						className={`text-body mt-s-100 font-bold ${
-							strategy.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"
-						}`}
-					>
-						{strategy.avgR >= 0 ? "+" : ""}
-						{strategy.avgR.toFixed(2)}R
-					</p>
+					<ColoredValue
+						value={strategy.avgR}
+						type="r-multiple"
+						showSign
+						className="mt-s-100 text-body font-bold"
+					/>
 				</div>
 			</div>
 
@@ -166,7 +154,7 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 				</div>
 				<div className="bg-bg-300 mt-s-200 h-2 w-full overflow-hidden rounded-full">
 					<div
-						className={`h-full rounded-full transition-all ${
+						className={`h-full rounded-full transition-[width] ${
 							strategy.compliance >= 80
 								? "bg-trade-buy"
 								: strategy.compliance >= 50

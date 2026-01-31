@@ -27,6 +27,10 @@ interface CustomTooltipProps {
 	}>
 }
 
+/**
+ * Custom tooltip component for the session performance bar chart.
+ * Displays detailed session metrics on hover.
+ */
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("analytics")
 
@@ -83,6 +87,12 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	)
 }
 
+/**
+ * Displays trading performance by market session as a bar chart.
+ * Shows P&L, win rate, and trade counts for each trading session.
+ *
+ * @param data - Array of session performance data
+ */
 export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) => {
 	const t = useTranslations("analytics")
 

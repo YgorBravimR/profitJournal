@@ -1,14 +1,22 @@
 "use client"
 
-import { ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react"
+import { ChevronRight } from "lucide-react"
 import type { DayTradeCompact } from "@/types"
 import { formatBrlWithSign } from "@/lib/formatting"
+import { ColoredValue, DirectionBadge } from "@/components/shared"
 
 interface TradeRowProps {
 	trade: DayTradeCompact
 	onTradeClick?: (tradeId: string) => void
 }
 
+/**
+ * Displays a single trade row with asset, direction, time, P&L and R multiple.
+ * Supports click interaction for navigation to trade details.
+ *
+ * @param trade - The compact trade data to display
+ * @param onTradeClick - Optional callback when the trade row is clicked
+ */
 export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
 	const handleClick = () => {
 		onTradeClick?.(trade.id)
@@ -33,11 +41,13 @@ export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
 			aria-label={`Trade ${trade.asset} ${trade.direction} at ${trade.time}`}
 		>
 			{/* Direction Icon */}
-			{trade.direction === "long" ? (
-				<ArrowUpRight className="text-trade-buy h-4 w-4 shrink-0" />
-			) : (
-				<ArrowDownRight className="text-trade-sell h-4 w-4 shrink-0" />
-			)}
+			<DirectionBadge
+				direction={trade.direction}
+				showIcon
+				showLabel={false}
+				size="sm"
+				className="shrink-0 bg-transparent p-0"
+			/>
 
 			{/* Asset */}
 			<span className="text-small text-txt-100 min-w-[70px] shrink-0 font-semibold">
@@ -45,15 +55,13 @@ export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
 			</span>
 
 			{/* Direction Badge */}
-			<span
-				className={`px-s-100 text-caption hidden shrink-0 rounded py-px font-medium uppercase sm:inline ${
-					trade.direction === "long"
-						? "bg-trade-buy/10 text-trade-buy"
-						: "bg-trade-sell/10 text-trade-sell"
-				}`}
-			>
-				{trade.direction}
-			</span>
+			<DirectionBadge
+				direction={trade.direction}
+				showIcon={false}
+				showLabel
+				size="sm"
+				className="hidden shrink-0 sm:inline-flex"
+			/>
 
 			{/* Timeframe */}
 			{trade.timeframeName && (
@@ -76,28 +84,28 @@ export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
 			<div className="flex-1" />
 
 			{/* P&L */}
-			<span
-				className={`text-small min-w-[90px] shrink-0 text-right font-medium ${
-					trade.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-				}`}
-			>
-				{formatBrlWithSign(trade.pnl)}
-			</span>
+			<ColoredValue
+				value={trade.pnl}
+				showSign
+				size="sm"
+				formatFn={(v) => formatBrlWithSign(v)}
+				className="min-w-[90px] shrink-0 text-right"
+			/>
 
 			{/* R Multiple */}
-			<span
-				className={`text-small min-w-[50px] shrink-0 text-right ${
-					trade.rMultiple !== null && trade.rMultiple >= 0
-						? "text-trade-buy"
-						: trade.rMultiple !== null
-							? "text-trade-sell"
-							: "text-txt-300"
-				}`}
-			>
-				{trade.rMultiple !== null
-					? `${trade.rMultiple >= 0 ? "+" : ""}${trade.rMultiple.toFixed(1)}R`
-					: "-"}
-			</span>
+			{trade.rMultiple !== null ? (
+				<ColoredValue
+					value={trade.rMultiple}
+					type="r-multiple"
+					showSign
+					size="sm"
+					className="min-w-[50px] shrink-0 text-right"
+				/>
+			) : (
+				<span className="text-small min-w-[50px] shrink-0 text-right text-txt-300">
+					-
+				</span>
+			)}
 
 			{/* Chevron */}
 			{onTradeClick && (

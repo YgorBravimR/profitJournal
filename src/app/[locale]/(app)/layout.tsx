@@ -19,7 +19,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 			/>
 			<main
 				className={cn(
-					"min-h-screen transition-all duration-300",
+					"min-h-screen transition-[margin-left] duration-300",
 					isSidebarCollapsed ? "ml-16" : "ml-64"
 				)}
 			>

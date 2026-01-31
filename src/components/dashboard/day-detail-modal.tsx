@@ -14,7 +14,7 @@ import { DayEquityCurve } from "./day-equity-curve"
 import { DayTradesList } from "./day-trades-list"
 import { getDaySummary, getDayTrades, getDayEquityCurve } from "@/app/actions/analytics"
 import type { DaySummary, DayTrade, DayEquityPoint } from "@/types"
-import { Loader2 } from "lucide-react"
+import { LoadingSpinner } from "@/components/shared"
 
 interface DayDetailModalProps {
 	date: string | null
@@ -79,9 +79,7 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 				</DialogHeader>
 
 				{isPending ? (
-					<div className="flex h-[300px] items-center justify-center">
-						<Loader2 className="h-8 w-8 animate-spin text-acc-100" />
-					</div>
+					<LoadingSpinner size="lg" className="h-[300px]" />
 				) : summary ? (
 					<div className="space-y-m-400">
 						{/* Summary Stats */}

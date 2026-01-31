@@ -97,7 +97,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 							{/* Cost bar */}
 							<div className="h-2 w-full rounded-full bg-bg-100">
 								<div
-									className="h-full rounded-full bg-trade-sell/50 transition-all"
+									className="h-full rounded-full bg-trade-sell/50 transition-[width]"
 									style={{ width: `${barWidth}%` }}
 								/>
 							</div>

@@ -279,8 +279,9 @@ const ExecutionRow = ({
 					size="icon"
 					className="h-7 w-7"
 					onClick={onEdit}
+					aria-label={t("edit")}
 				>
-					<Pencil className="h-3.5 w-3.5" />
+					<Pencil className="h-3.5 w-3.5" aria-hidden="true" />
 				</Button>
 				<AlertDialog>
 					<AlertDialogTrigger asChild>
@@ -289,11 +290,12 @@ const ExecutionRow = ({
 							size="icon"
 							className="h-7 w-7 text-fb-error hover:text-fb-error"
 							disabled={isDeleting}
+							aria-label={t("delete")}
 						>
 							{isDeleting ? (
-								<Loader2 className="h-3.5 w-3.5 animate-spin" />
+								<Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
 							) : (
-								<Trash2 className="h-3.5 w-3.5" />
+								<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
 							)}
 						</Button>
 					</AlertDialogTrigger>

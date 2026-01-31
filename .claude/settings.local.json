@@ -31,7 +31,11 @@
       "Bash(grep:*)",
       "Bash(npx prettier:*)",
       "Bash(find:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx next lint:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

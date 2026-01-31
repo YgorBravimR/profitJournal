@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { Link, useRouter } from "@/i18n/routing"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { StrategyCard, ComplianceDashboard } from "@/components/playbook"
@@ -28,11 +27,8 @@ export const PlaybookContent = ({
 	// Reset state when initial props change (e.g., account switch)
 	useEffect(() => {
 		setStrategies(initialStrategies)
-	}, [initialStrategies])
-
-	useEffect(() => {
 		setCompliance(initialCompliance)
-	}, [initialCompliance])
+	}, [initialStrategies, initialCompliance])
 
 	const handleDelete = (strategyId: string) => {
 		const strategy = strategies.find((s) => s.id === strategyId)

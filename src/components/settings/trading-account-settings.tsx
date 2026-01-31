@@ -141,7 +141,7 @@ export const TradingAccountSettings = () => {
 					<div
 						className={cn(
 							"space-y-m-400 rounded-md border border-acc-100/20 bg-acc-100/5 p-m-400",
-							"transition-all duration-200"
+							"transition-opacity duration-200"
 						)}
 					>
 						<h3 className="flex items-center gap-s-200 text-small font-medium text-txt-100">

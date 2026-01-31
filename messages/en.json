@@ -484,7 +484,8 @@
 			"from": "From",
 			"to": "To",
 			"apply": "Apply",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"editCustomRange": "Edit custom date range"
 		},
 		"form": {
 			"basicInfo": "Basic Info",
@@ -532,6 +533,7 @@
 		"title": "Analytics",
 		"description": "Analyze your performance and identify patterns",
 		"noData": "No data available",
+		"updating": "Updating analytics...",
 		"filters": {
 			"title": "Filters",
 			"active": "Active",

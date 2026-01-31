@@ -9,9 +9,15 @@ interface TimeHeatmapProps {
 	data: TimeHeatmapCell[]
 }
 
-// B3 Trading hours (9:00 - 18:00)
+/** B3 Trading hours (9:00 - 18:00) */
 const TRADING_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
+/**
+ * Displays a heatmap of trading performance by day of week and hour.
+ * Cells are colored based on P&L and win rate, with tooltips showing details.
+ *
+ * @param data - Array of heatmap cells with performance data per time slot
+ */
 export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	const t = useTranslations("analytics")
 	const [hoveredCell, setHoveredCell] = useState<TimeHeatmapCell | null>(null)
@@ -53,9 +59,9 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	const bestSlot = sortedByPnl[0]
 	const worstSlot = sortedByPnl[sortedByPnl.length - 1]
 
-	const handleMouseEnter = (
+	const handleCellInteraction = (
 		cell: TimeHeatmapCell | undefined,
-		e: React.MouseEvent
+		e: React.MouseEvent | React.FocusEvent
 	) => {
 		if (cell && cell.totalTrades > 0) {
 			setHoveredCell(cell)
@@ -67,7 +73,7 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 		}
 	}
 
-	const handleMouseLeave = () => {
+	const handleCellLeave = () => {
 		setHoveredCell(null)
 	}
 
@@ -115,16 +121,26 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 							</div>
 							{hours.map((hour) => {
 								const cell = cellMap.get(`${dayOfWeek}-${hour}`)
+								const hasData = cell && cell.totalTrades > 0
 								return (
 									<div
 										key={`${day}-${hour}`}
-										className={`mx-[1px] h-5 w-6 shrink-0 rounded-[3px] transition-all ${getColorClass(cell)} ${
-											cell && cell.totalTrades > 0
-												? "hover:ring-acc-100 cursor-pointer hover:scale-110 hover:ring-1"
+										className={`mx-[1px] h-5 w-6 shrink-0 rounded-[3px] transition-transform ${getColorClass(cell)} ${
+											hasData
+												? "hover:ring-acc-100 focus:ring-acc-100 cursor-pointer hover:scale-110 hover:ring-1 focus:scale-110 focus:ring-1 focus:outline-none"
 												: ""
 										}`}
-										onMouseEnter={(e) => handleMouseEnter(cell, e)}
-										onMouseLeave={handleMouseLeave}
+										onMouseEnter={(e) => handleCellInteraction(cell, e)}
+										onMouseLeave={handleCellLeave}
+										onFocus={(e) => handleCellInteraction(cell, e)}
+										onBlur={handleCellLeave}
+										tabIndex={hasData ? 0 : undefined}
+										role={hasData ? "button" : undefined}
+										aria-label={
+											hasData
+												? `${cell.dayName} ${cell.hourLabel}: ${cell.totalTrades} trades, ${cell.winRate.toFixed(0)}% win rate`
+												: undefined
+										}
 									/>
 								)
 							})}

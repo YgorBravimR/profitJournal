@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { TradesByDay } from "@/types"
 import { formatBrlWithSign } from "@/lib/formatting"
+import { ColoredValue, WinRateBadge } from "@/components/shared"
 import { TradeRow } from "./trade-row"
 
 interface TradeDayGroupProps {
@@ -13,6 +14,14 @@ interface TradeDayGroupProps {
 	defaultExpanded?: boolean
 }
 
+/**
+ * Displays a collapsible group of trades for a single day.
+ * Shows day summary (P&L, win rate) in the header and individual trades when expanded.
+ *
+ * @param dayData - Trade data grouped by day including summary and individual trades
+ * @param onTradeClick - Optional callback when a trade row is clicked
+ * @param defaultExpanded - Whether the group should be expanded by default
+ */
 export const TradeDayGroup = ({
 	dayData,
 	onTradeClick,
@@ -61,13 +70,13 @@ export const TradeDayGroup = ({
 				{/* Summary Stats */}
 				<div className="gap-s-400 flex items-center">
 					{/* P&L */}
-					<span
-						className={`text-small font-semibold ${
-							summary.netPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-						}`}
-					>
-						{formatBrlWithSign(summary.netPnl)}
-					</span>
+					<ColoredValue
+						value={summary.netPnl}
+						showSign
+						size="sm"
+						formatFn={(v) => formatBrlWithSign(v)}
+						className="font-semibold"
+					/>
 
 					{/* Win/Loss */}
 					<span className="text-caption text-txt-300 hidden sm:inline">
@@ -75,13 +84,7 @@ export const TradeDayGroup = ({
 					</span>
 
 					{/* Win Rate */}
-					<span
-						className={`text-caption ${
-							summary.winRate >= 50 ? "text-trade-buy" : "text-trade-sell"
-						}`}
-					>
-						{summary.winRate.toFixed(0)}%
-					</span>
+					<WinRateBadge winRate={summary.winRate} size="sm" />
 				</div>
 			</div>
 

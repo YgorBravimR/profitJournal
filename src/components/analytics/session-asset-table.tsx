@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { Trophy } from "lucide-react"
 import type { SessionAssetPerformance, TradingSession } from "@/types"
@@ -16,8 +17,27 @@ const SESSION_LABELS: Record<TradingSession, string> = {
 	close: "Close",
 }
 
+/**
+ * Displays asset performance breakdown by trading session in a table format.
+ * Shows P&L and win rate for each asset across different market sessions.
+ *
+ * @param data - Array of asset performance data with session breakdowns
+ */
 export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 	const t = useTranslations("analytics")
+
+	// Build session lookup maps for O(1) access instead of O(n) find() calls
+	const sessionMaps = useMemo(() => {
+		const maps = new Map<string, Map<TradingSession, SessionAssetPerformance["sessions"][0]>>()
+		for (const asset of data) {
+			const sessionMap = new Map<TradingSession, SessionAssetPerformance["sessions"][0]>()
+			for (const session of asset.sessions) {
+				sessionMap.set(session.session, session)
+			}
+			maps.set(asset.asset, sessionMap)
+		}
+		return maps
+	}, [data])
 
 	if (data.length === 0) {
 		return (
@@ -81,9 +101,7 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 									{asset.asset}
 								</td>
 								{sessions.map((session) => {
-									const sessionData = asset.sessions.find(
-										(s) => s.session === session
-									)
+									const sessionData = sessionMaps.get(asset.asset)?.get(session)
 									if (!sessionData || sessionData.trades === 0) {
 										return (
 											<td key={session} className="py-s-200 text-center">

@@ -3,17 +3,10 @@
 import { Tag } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { TagStats, TagType } from "@/types"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 
 interface TagCloudProps {
 	data: TagStats[]
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
 }
 
 const getTagTypeColor = (type: TagType): string => {
@@ -71,7 +64,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 					{tags.map((tag) => (
 						<div
 							key={tag.tagId}
-							className={`group relative rounded-lg border p-s-300 transition-all hover:scale-105 ${getTagTypeColor(type)}`}
+							className={`group relative rounded-lg border p-s-300 transition-transform hover:scale-105 ${getTagTypeColor(type)}`}
 						>
 							<div className="flex items-center gap-s-200">
 								<Tag className="h-3 w-3 text-txt-300" />
@@ -87,7 +80,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							<div className="absolute bottom-full left-1/2 z-10 mb-s-200 hidden -translate-x-1/2 rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg group-hover:block">
 								<div className="whitespace-nowrap text-tiny">
 									<p className={tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-										P&L: {formatCurrency(tag.totalPnl)}
+										P&L: {formatCompactCurrencyWithSign(tag.totalPnl)}
 									</p>
 									<p className="text-txt-200">Win Rate: {tag.winRate.toFixed(1)}%</p>
 									{tag.avgR !== 0 && (
@@ -139,7 +132,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							{bestSetup.tagName}
 						</p>
 						<p className="text-tiny text-txt-200">
-							{formatCurrency(bestSetup.totalPnl)}
+							{formatCompactCurrencyWithSign(bestSetup.totalPnl)}
 						</p>
 					</div>
 				)}
@@ -147,7 +140,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 					<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 						<p className="text-tiny text-txt-300">{t("mistakeCost")}</p>
 						<p className="mt-s-100 text-small font-bold text-trade-sell">
-							-{formatCurrency(totalMistakeCost)}
+							{formatCompactCurrencyWithSign(-totalMistakeCost)}
 						</p>
 					</div>
 				)}
@@ -220,7 +213,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 													tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 												}`}
 											>
-												{formatCurrency(tag.totalPnl)}
+												{formatCompactCurrencyWithSign(tag.totalPnl)}
 											</td>
 											<td className="px-s-300 py-s-200 text-right text-small text-txt-200">
 												{tag.winRate.toFixed(1)}%

@@ -225,19 +225,21 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 														size="sm"
 														onClick={() => handleEdit(asset)}
 														className="h-8 w-8 p-0"
+														aria-label={`${tCommon("edit")} ${asset.symbol}`}
 													>
-														<Pencil className="h-4 w-4" />
+														<Pencil className="h-4 w-4" aria-hidden="true" />
 													</Button>
 													<Button
 														variant="ghost"
 														size="sm"
 														onClick={() => handleToggleActive(asset)}
 														className="h-8 w-8 p-0"
+														aria-label={asset.isActive ? t("deactivate") : t("activate")}
 													>
 														{asset.isActive ? (
-															<ToggleRight className="h-4 w-4 text-trade-buy" />
+															<ToggleRight className="h-4 w-4 text-trade-buy" aria-hidden="true" />
 														) : (
-															<ToggleLeft className="h-4 w-4 text-txt-300" />
+															<ToggleLeft className="h-4 w-4 text-txt-300" aria-hidden="true" />
 														)}
 													</Button>
 													<Button
@@ -245,8 +247,9 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 														size="sm"
 														onClick={() => handleDelete(asset)}
 														className="h-8 w-8 p-0 text-fb-error hover:text-fb-error"
+														aria-label={`${tCommon("delete")} ${asset.symbol}`}
 													>
-														<Trash2 className="h-4 w-4" />
+														<Trash2 className="h-4 w-4" aria-hidden="true" />
 													</Button>
 												</>
 											)}

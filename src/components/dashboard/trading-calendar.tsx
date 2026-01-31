@@ -5,20 +5,13 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
 import type { DailyPnL } from "@/types"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 
 interface TradingCalendarProps {
 	data: DailyPnL[]
 	month: Date
 	onMonthChange: (month: Date) => void
 	onDayClick?: (date: string) => void
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
 }
 
 const formatDateKey = (date: Date): string => {
@@ -179,7 +172,7 @@ export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: Trad
 								onKeyDown={handleKeyDown}
 								tabIndex={isClickable ? 0 : -1}
 								role={isClickable ? "button" : undefined}
-								aria-label={dailyData ? `${dateKey}: ${formatCurrency(dailyData.pnl)}, ${dailyData.tradeCount} trades` : undefined}
+								aria-label={dailyData ? `${dateKey}: ${formatCompactCurrencyWithSign(dailyData.pnl)}, ${dailyData.tradeCount} trades` : undefined}
 							>
 								<div className="flex h-full flex-col">
 									<span className="text-tiny text-txt-200">
@@ -188,7 +181,7 @@ export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: Trad
 									{dailyData && (
 										<div className="mt-auto">
 											<span className={`text-tiny font-medium ${textClass}`}>
-												{formatCurrency(dailyData.pnl)}
+												{formatCompactCurrencyWithSign(dailyData.pnl)}
 											</span>
 											<span className="block text-tiny text-txt-300">
 												{dailyData.tradeCount}t

@@ -484,7 +484,8 @@
 			"from": "De",
 			"to": "Até",
 			"apply": "Aplicar",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"editCustomRange": "Editar período personalizado"
 		},
 		"form": {
 			"basicInfo": "Informações Básicas",
@@ -532,6 +533,7 @@
 		"title": "Análises",
 		"description": "Analise seu desempenho e identifique padrões",
 		"noData": "Nenhum dado disponível",
+		"updating": "Atualizando análises...",
 		"filters": {
 			"title": "Filtros",
 			"active": "Ativos",

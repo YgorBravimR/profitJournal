@@ -52,7 +52,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 					</div>
 					<div className="h-3 w-full overflow-hidden rounded-full bg-bg-100">
 						<div
-							className="h-full rounded-full bg-acc-100 transition-all duration-500"
+							className="h-full rounded-full bg-acc-100 transition-[width] duration-500"
 							style={{ width: `${progressPercent}%` }}
 						/>
 					</div>

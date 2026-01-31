@@ -16,6 +16,7 @@ import {
 	SessionAssetTable,
 	type FilterState,
 } from "@/components/analytics"
+import { LoadingSpinner } from "@/components/shared"
 import {
 	getPerformanceByVariable,
 	getExpectedValue,
@@ -46,6 +47,11 @@ interface TimeframeOption {
 	name: string
 }
 
+/**
+ * Props for the AnalyticsContent component.
+ * Contains all initial data fetched server-side and filter options.
+ */
+
 interface AnalyticsContentProps {
 	initialPerformance: PerformanceByGroup[]
 	initialTagStats: TagStats[]
@@ -61,6 +67,13 @@ interface AnalyticsContentProps {
 	availableTimeframes: TimeframeOption[]
 }
 
+/**
+ * Main analytics dashboard component.
+ * Displays comprehensive trading analytics with filtering, charts, and performance metrics.
+ * Uses parallel data fetching for optimal performance when filters change.
+ *
+ * @param props - Initial data and filter options from server-side rendering
+ */
 export const AnalyticsContent = ({
 	initialPerformance,
 	initialTagStats,
@@ -213,12 +226,7 @@ export const AnalyticsContent = ({
 
 			{/* Loading Indicator */}
 			{isPending && (
-				<div className="py-s-200 flex items-center justify-center">
-					<div className="border-acc-100 h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
-					<span className="ml-s-200 text-small text-txt-300">
-						Updating analytics...
-					</span>
-				</div>
+				<LoadingSpinner size="sm" label={t("updating")} className="py-s-200" />
 			)}
 
 			{/* Variable Comparison - Full Width */}

@@ -8,6 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
 import type { ExpectedValueData } from "@/types"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 
 const StatLabel = ({
 	label,
@@ -34,14 +35,6 @@ const StatLabel = ({
 
 interface ExpectedValueProps {
 	data: ExpectedValueData | null
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(2)}`
 }
 
 export const ExpectedValue = ({ data }: ExpectedValueProps) => {
@@ -94,7 +87,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 								isPositiveEV ? "text-trade-buy" : "text-trade-sell"
 							}`}
 						>
-							{formatCurrency(data.expectedValue)}
+							{formatCompactCurrencyWithSign(data.expectedValue)}
 						</span>
 					</div>
 				</div>
@@ -139,7 +132,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 							data.projectedPnl100 >= 0 ? "text-trade-buy" : "text-trade-sell"
 						}`}
 					>
-						{formatCurrency(data.projectedPnl100)}
+						{formatCompactCurrencyWithSign(data.projectedPnl100)}
 					</p>
 				</div>
 			</div>
@@ -165,7 +158,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 									isPositiveEV ? "text-trade-buy" : "text-trade-sell"
 								}
 							>
-								{formatCurrency(data.expectedValue)}
+								{formatCompactCurrencyWithSign(data.expectedValue)}
 							</span>
 						</p>
 					</div>
@@ -181,7 +174,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 							<span className="font-semibold text-trade-buy">{t("positiveEdge")}</span>.
 							On average, you can expect to make{" "}
 							<span className="font-semibold text-trade-buy">
-								{formatCurrency(data.expectedValue)}
+								{formatCompactCurrencyWithSign(data.expectedValue)}
 							</span>{" "}
 							{t("perTradeOverLongRun")}.
 						</>
@@ -191,7 +184,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 							<span className="font-semibold text-trade-sell">{t("negativeEdge")}</span>.
 							On average, you can expect to lose{" "}
 							<span className="font-semibold text-trade-sell">
-								{formatCurrency(Math.abs(data.expectedValue))}
+								{formatCompactCurrencyWithSign(Math.abs(data.expectedValue))}
 							</span>{" "}
 							{t("perTradeOverLongRun")}.
 						</>

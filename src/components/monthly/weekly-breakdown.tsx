@@ -88,7 +88,7 @@ export const WeeklyBreakdown = ({ weeks }: WeeklyBreakdownProps) => {
 							<div className="relative h-3 w-full overflow-hidden rounded-full bg-bg-100">
 								<div
 									className={cn(
-										"h-full rounded-full transition-all",
+										"h-full rounded-full transition-[width]",
 										isPositive && "bg-trade-buy/50",
 										!isPositive && week.pnl < 0 && "bg-trade-sell/50",
 										week.pnl === 0 && "bg-bg-300"

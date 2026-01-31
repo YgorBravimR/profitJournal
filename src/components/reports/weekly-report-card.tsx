@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { getWeeklyReport, type WeeklyReport } from "@/app/actions/reports"
 import { format, parseISO } from "date-fns"
 import { ptBR, enUS } from "date-fns/locale"
-import Link from "next/link"
+import { Link } from "@/i18n/routing"
 
 interface WeeklyReportCardProps {
 	initialReport: WeeklyReport | null

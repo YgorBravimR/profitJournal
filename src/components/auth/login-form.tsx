@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { signIn } from "next-auth/react"
-import Link from "next/link"
+import { Link, useRouter } from "@/i18n/routing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -254,13 +253,13 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 						<button
 							type="button"
 							onClick={() => setShowPassword(!showPassword)}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200"
-							tabIndex={-1}
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acc-100 rounded"
+							aria-label={showPassword ? t("hidePassword") : t("showPassword")}
 						>
 							{showPassword ? (
-								<EyeOff className="h-4 w-4" />
+								<EyeOff className="h-4 w-4" aria-hidden="true" />
 							) : (
-								<Eye className="h-4 w-4" />
+								<Eye className="h-4 w-4" aria-hidden="true" />
 							)}
 						</button>
 					</div>

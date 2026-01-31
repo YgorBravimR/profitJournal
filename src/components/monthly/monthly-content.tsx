@@ -3,8 +3,8 @@
 import { useState, useEffect, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { startOfMonth, subMonths } from "date-fns"
-import { Loader2 } from "lucide-react"
 import { MonthNavigator } from "./month-navigator"
+import { LoadingSpinner } from "@/components/shared"
 import { PropProfitSummary } from "./prop-profit-summary"
 import { MonthlyProjection } from "./monthly-projection"
 import { MonthComparison } from "./month-comparison"
@@ -46,17 +46,11 @@ export const MonthlyContent = ({
 	// Reset state when initial props change (e.g., account switch)
 	useEffect(() => {
 		setMonthlyData(initialMonthlyData)
+		setProjectionData(initialProjectionData)
+		setComparisonData(initialComparisonData)
 		setMonthOffset(0)
 		setCurrentDate(startOfMonth(new Date()))
-	}, [initialMonthlyData])
-
-	useEffect(() => {
-		setProjectionData(initialProjectionData)
-	}, [initialProjectionData])
-
-	useEffect(() => {
-		setComparisonData(initialComparisonData)
-	}, [initialComparisonData])
+	}, [initialMonthlyData, initialProjectionData, initialComparisonData])
 
 	// Determine if we're viewing the current month
 	const isCurrentMonth = monthOffset === 0
@@ -115,11 +109,7 @@ export const MonthlyContent = ({
 	}
 
 	if (isPending && !monthlyData) {
-		return (
-			<div className="flex h-96 items-center justify-center">
-				<Loader2 className="h-8 w-8 animate-spin text-acc-100" />
-			</div>
-		)
+		return <LoadingSpinner size="md" className="h-96" />
 	}
 
 	if (error && !monthlyData) {
@@ -139,11 +129,7 @@ export const MonthlyContent = ({
 				maxDate={startOfMonth(new Date())}
 			/>
 
-			{isPending && (
-				<div className="flex items-center justify-center py-m-400">
-					<Loader2 className="h-6 w-6 animate-spin text-acc-100" />
-				</div>
-			)}
+			{isPending && <LoadingSpinner size="sm" className="py-m-400" />}
 
 			{monthlyData && !isPending && (
 				<>

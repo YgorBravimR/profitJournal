@@ -3,23 +3,12 @@
 import { Flame, Trophy, AlertTriangle, Activity } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import type { StreakData, OverallStats } from "@/types"
+import { formatCompactCurrencyWithSign, formatDateLocale } from "@/lib/formatting"
+import type { Locale } from "@/i18n/config"
 
 interface QuickStatsProps {
 	streakData: StreakData | null
 	stats: OverallStats | null
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
-}
-
-const formatDate = (dateStr: string, locale: string): string => {
-	const date = new Date(dateStr)
-	return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", { month: "short", day: "numeric" })
 }
 
 interface StatRowProps {
@@ -30,6 +19,9 @@ interface StatRowProps {
 	valueClass?: string
 }
 
+/**
+ * Displays a single stat row with icon, label, and value.
+ */
 const StatRow = ({ icon, label, value, subValue, valueClass }: StatRowProps) => (
 	<div className="flex items-center justify-between border-b border-bg-300 pb-s-300">
 		<div className="flex items-center gap-s-200">
@@ -47,9 +39,20 @@ const StatRow = ({ icon, label, value, subValue, valueClass }: StatRowProps) => 
 	</div>
 )
 
+/**
+ * Displays quick statistics including current streak, best/worst days, and totals.
+ *
+ * @param streakData - Streak and best/worst day data
+ * @param stats - Overall trading statistics
+ */
 export const QuickStats = ({ streakData, stats }: QuickStatsProps) => {
 	const t = useTranslations("dashboard.quickStats")
-	const locale = useLocale()
+	const locale = useLocale() as Locale
+
+	const formatDate = (dateStr: string): string => {
+		const date = new Date(dateStr)
+		return formatDateLocale(date, locale, { month: "short", day: "numeric" })
+	}
 
 	const getStreakDisplay = () => {
 		if (!streakData || streakData.currentStreakType === "none") {
@@ -79,16 +82,34 @@ export const QuickStats = ({ streakData, stats }: QuickStatsProps) => {
 				<StatRow
 					icon={<Trophy className="h-4 w-4" />}
 					label={t("bestDay")}
-					value={streakData?.bestDay ? formatCurrency(streakData.bestDay.pnl) : "--"}
-					subValue={streakData?.bestDay ? formatDate(streakData.bestDay.date, locale) : undefined}
+					value={
+						streakData?.bestDay
+							? formatCompactCurrencyWithSign(streakData.bestDay.pnl)
+							: "--"
+					}
+					subValue={
+						streakData?.bestDay ? formatDate(streakData.bestDay.date) : undefined
+					}
 					valueClass="text-trade-buy"
 				/>
 				<StatRow
 					icon={<AlertTriangle className="h-4 w-4" />}
 					label={t("worstDay")}
-					value={streakData?.worstDay ? formatCurrency(streakData.worstDay.pnl) : "--"}
-					subValue={streakData?.worstDay ? formatDate(streakData.worstDay.date, locale) : undefined}
-					valueClass={streakData?.worstDay && streakData.worstDay.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}
+					value={
+						streakData?.worstDay
+							? formatCompactCurrencyWithSign(streakData.worstDay.pnl)
+							: "--"
+					}
+					subValue={
+						streakData?.worstDay
+							? formatDate(streakData.worstDay.date)
+							: undefined
+					}
+					valueClass={
+						streakData?.worstDay && streakData.worstDay.pnl >= 0
+							? "text-trade-buy"
+							: "text-trade-sell"
+					}
 				/>
 				<StatRow
 					icon={<Activity className="h-4 w-4" />}

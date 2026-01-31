@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
-import { Dices, Loader2, HelpCircle } from "lucide-react"
+import { Dices, HelpCircle } from "lucide-react"
+import { LoadingSpinner } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { InputModeSelector } from "./input-mode-selector"
 import { DataSourceSelector } from "./data-source-selector"
@@ -187,10 +188,7 @@ export const MonteCarloContent = ({
 							className="min-w-[200px]"
 						>
 							{isRunning ? (
-								<>
-									<Loader2 className="mr-s-200 h-5 w-5 animate-spin" />
-									Running Simulation...
-								</>
+								<LoadingSpinner size="sm" label="Running Simulation..." />
 							) : (
 								<>
 									<Dices className="mr-s-200 h-5 w-5" />

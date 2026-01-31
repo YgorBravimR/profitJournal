@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Calendar, Filter, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
+import { FilterPill } from "@/components/shared"
 
 export interface FilterState {
 	dateFrom: Date | null
@@ -193,14 +194,12 @@ export const FilterPanel = ({
 			{/* Date Presets (always visible) */}
 			<div className="mt-m-400 flex flex-wrap gap-s-200">
 				{datePresets.map((preset) => (
-					<button
+					<FilterPill
 						key={preset.key}
-						type="button"
+						label={preset.label}
+						isActive={false}
 						onClick={() => handleDatePreset(preset)}
-						className="rounded-md border border-bg-300 bg-bg-100 px-s-300 py-s-100 text-tiny text-txt-200 transition-colors hover:border-acc-100 hover:text-acc-100"
-					>
-						{preset.label}
-					</button>
+					/>
 				))}
 			</div>
 
@@ -240,20 +239,14 @@ export const FilterPanel = ({
 							</label>
 							<div className="flex flex-wrap gap-s-200">
 								{availableAssets.map((asset) => (
-									<button
+									<FilterPill
 										key={asset}
-										type="button"
+										label={asset}
+										isActive={filters.assets.includes(asset)}
 										onClick={() =>
 											toggleArrayFilter(filters.assets, asset, "assets")
 										}
-										className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
-											filters.assets.includes(asset)
-												? "border-acc-100 bg-acc-100/20 text-acc-100"
-												: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
-										}`}
-									>
-										{asset}
-									</button>
+									/>
 								))}
 							</div>
 						</div>
@@ -266,22 +259,15 @@ export const FilterPanel = ({
 						</label>
 						<div className="flex gap-s-200">
 							{directions.map(({ value, label }) => (
-								<button
+								<FilterPill
 									key={value}
-									type="button"
+									label={label}
+									isActive={filters.directions.includes(value)}
 									onClick={() =>
 										toggleArrayFilter(filters.directions, value, "directions")
 									}
-									className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
-										filters.directions.includes(value)
-											? value === "long"
-												? "border-trade-buy bg-trade-buy/20 text-trade-buy"
-												: "border-trade-sell bg-trade-sell/20 text-trade-sell"
-											: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
-									}`}
-								>
-									{label}
-								</button>
+									variant={value === "long" ? "positive" : "negative"}
+								/>
 							))}
 						</div>
 					</div>
@@ -293,24 +279,21 @@ export const FilterPanel = ({
 						</label>
 						<div className="flex gap-s-200">
 							{outcomes.map(({ value, label }) => (
-								<button
+								<FilterPill
 									key={value}
-									type="button"
+									label={label}
+									isActive={filters.outcomes.includes(value)}
 									onClick={() =>
 										toggleArrayFilter(filters.outcomes, value, "outcomes")
 									}
-									className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
-										filters.outcomes.includes(value)
-											? value === "win"
-												? "border-trade-buy bg-trade-buy/20 text-trade-buy"
-												: value === "loss"
-													? "border-trade-sell bg-trade-sell/20 text-trade-sell"
-													: "border-acc-100 bg-acc-100/20 text-acc-100"
-											: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
-									}`}
-								>
-									{label}
-								</button>
+									variant={
+										value === "win"
+											? "positive"
+											: value === "loss"
+												? "negative"
+												: "accent"
+									}
+								/>
 							))}
 						</div>
 					</div>
@@ -323,20 +306,14 @@ export const FilterPanel = ({
 							</label>
 							<div className="flex flex-wrap gap-s-200">
 								{availableTimeframes.map((tf) => (
-									<button
+									<FilterPill
 										key={tf.id}
-										type="button"
+										label={tf.name}
+										isActive={filters.timeframeIds.includes(tf.id)}
 										onClick={() =>
 											toggleArrayFilter(filters.timeframeIds, tf.id, "timeframeIds")
 										}
-										className={`rounded-md border px-s-300 py-s-100 text-tiny transition-colors ${
-											filters.timeframeIds.includes(tf.id)
-												? "border-acc-100 bg-acc-100/20 text-acc-100"
-												: "border-bg-300 bg-bg-100 text-txt-200 hover:border-txt-300"
-										}`}
-									>
-										{tf.name}
-									</button>
+									/>
 								))}
 							</div>
 						</div>

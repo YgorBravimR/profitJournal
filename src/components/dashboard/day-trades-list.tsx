@@ -3,21 +3,34 @@
 import { useTranslations } from "next-intl"
 import { ArrowUpRight, ArrowDownRight, ChevronRight } from "lucide-react"
 import type { DayTrade } from "@/types"
+import { formatBrlWithSign } from "@/lib/formatting"
+import { ColoredValue } from "@/components/shared"
 
 interface DayTradesListProps {
 	trades: DayTrade[]
 	onTradeClick?: (tradeId: string) => void
 }
 
-const formatCurrency = (value: number): string => {
-	const prefix = value >= 0 ? "+" : ""
-	return `${prefix}R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-}
-
+/**
+ * Formats a price value for display.
+ *
+ * @param value - The numeric price value
+ * @returns Formatted price string
+ */
 const formatPrice = (value: number): string => {
-	return value.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+	return value.toLocaleString("pt-BR", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})
 }
 
+/**
+ * Displays a list of trades for a specific day in a table format.
+ * Shows time, asset, direction, entry/exit prices, P&L, and R multiple.
+ *
+ * @param trades - Array of trades for the day
+ * @param onTradeClick - Optional callback when a trade row is clicked
+ */
 export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 	const t = useTranslations("dashboard")
 
@@ -85,7 +98,9 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 								</div>
 							</td>
 							<td className="hidden px-s-300 py-s-200 text-small text-txt-200 sm:table-cell">
-								{trade.direction === "long" ? t("dayDetail.long") : t("dayDetail.short")}
+								{trade.direction === "long"
+									? t("dayDetail.long")
+									: t("dayDetail.short")}
 							</td>
 							<td className="hidden px-s-300 py-s-200 text-right text-small text-txt-200 md:table-cell">
 								{formatPrice(trade.entryPrice)}
@@ -93,25 +108,25 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 							<td className="hidden px-s-300 py-s-200 text-right text-small text-txt-200 md:table-cell">
 								{trade.exitPrice ? formatPrice(trade.exitPrice) : "-"}
 							</td>
-							<td
-								className={`px-s-300 py-s-200 text-right text-small font-medium ${
-									trade.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-								}`}
-							>
-								{formatCurrency(trade.pnl)}
+							<td className="px-s-300 py-s-200 text-right">
+								<ColoredValue
+									value={trade.pnl}
+									showSign
+									size="sm"
+									formatFn={(v) => formatBrlWithSign(v)}
+								/>
 							</td>
-							<td
-								className={`px-s-300 py-s-200 text-right text-small ${
-									trade.rMultiple !== null && trade.rMultiple >= 0
-										? "text-trade-buy"
-										: trade.rMultiple !== null
-											? "text-trade-sell"
-											: "text-txt-300"
-								}`}
-							>
-								{trade.rMultiple !== null
-									? `${trade.rMultiple >= 0 ? "+" : ""}${trade.rMultiple.toFixed(1)}R`
-									: "-"}
+							<td className="px-s-300 py-s-200 text-right">
+								{trade.rMultiple !== null ? (
+									<ColoredValue
+										value={trade.rMultiple}
+										type="r-multiple"
+										showSign
+										size="sm"
+									/>
+								) : (
+									<span className="text-small text-txt-300">-</span>
+								)}
 							</td>
 							<td className="px-s-200 py-s-200">
 								{onTradeClick && (

@@ -54,7 +54,7 @@ export const RMultipleBar = ({
 				{actual !== 0 && (
 					<div
 						className={cn(
-							"absolute top-0 h-full rounded-full transition-all",
+							"absolute top-0 h-full rounded-full transition-[width,left]",
 							isPositive ? "bg-trade-buy" : "bg-trade-sell"
 						)}
 						style={{

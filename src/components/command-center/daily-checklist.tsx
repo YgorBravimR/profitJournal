@@ -97,7 +97,7 @@ export const DailyChecklist = ({
 							<div className="h-1.5 overflow-hidden rounded-full bg-bg-400">
 								<div
 									className={cn(
-										"h-full transition-all duration-300",
+										"h-full transition-[width] duration-300",
 										isComplete ? "bg-trade-buy" : "bg-accent-primary"
 									)}
 									style={{ width: `${progress}%` }}

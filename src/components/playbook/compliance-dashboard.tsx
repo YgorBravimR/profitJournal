@@ -108,13 +108,13 @@ export const ComplianceDashboard = ({ data }: ComplianceDashboardProps) => {
 							<div className="mt-s-300">
 								<div className="bg-bg-300 flex h-4 w-full overflow-hidden rounded-full">
 									<div
-										className="bg-trade-buy flex items-center justify-center transition-all"
+										className="bg-trade-buy flex items-center justify-center transition-[width]"
 										style={{
 											width: `${(data.followedPlanCount / data.totalTrackedTrades) * 100}%`,
 										}}
 									/>
 									<div
-										className="bg-trade-sell flex items-center justify-center transition-all"
+										className="bg-trade-sell flex items-center justify-center transition-[width]"
 										style={{
 											width: `${(data.notFollowedCount / data.totalTrackedTrades) * 100}%`,
 										}}
