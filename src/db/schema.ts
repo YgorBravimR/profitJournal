@@ -545,6 +545,149 @@ export const dailyJournals = pgTable(
 	(table) => [index("daily_journals_date_idx").on(table.date)]
 )
 
+// ==========================================
+// COMMAND CENTER TABLES (Phase 12)
+// ==========================================
+
+// Daily Checklists Table (user-defined checklist templates)
+export const dailyChecklists = pgTable(
+	"daily_checklists",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+			onDelete: "cascade",
+		}),
+		name: varchar("name", { length: 100 }).notNull(),
+		items: text("items").notNull(), // JSON array of { id, label, order }
+		isActive: boolean("is_active").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("daily_checklists_user_idx").on(table.userId),
+		index("daily_checklists_account_idx").on(table.accountId),
+	]
+)
+
+// Checklist Completions Table (daily completion tracking)
+export const checklistCompletions = pgTable(
+	"checklist_completions",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		checklistId: uuid("checklist_id")
+			.notNull()
+			.references(() => dailyChecklists.id, { onDelete: "cascade" }),
+		userId: text("user_id").notNull(),
+		date: timestamp("date", { withTimezone: true }).notNull(),
+		completedItems: text("completed_items").notNull().default("[]"), // JSON array of item IDs
+		completedAt: timestamp("completed_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("checklist_completions_checklist_idx").on(table.checklistId),
+		index("checklist_completions_user_idx").on(table.userId),
+		index("checklist_completions_date_idx").on(table.date),
+		uniqueIndex("checklist_completions_unique_idx").on(table.checklistId, table.date),
+	]
+)
+
+// Daily Targets Table (profit/loss targets per account)
+export const dailyTargets = pgTable(
+	"daily_targets",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		accountId: uuid("account_id")
+			.notNull()
+			.references(() => tradingAccounts.id, { onDelete: "cascade" }),
+		profitTarget: integer("profit_target"), // cents
+		lossLimit: integer("loss_limit"), // cents (stored as positive)
+		maxTrades: integer("max_trades"),
+		maxConsecutiveLosses: integer("max_consecutive_losses"),
+		isActive: boolean("is_active").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("daily_targets_user_idx").on(table.userId),
+		index("daily_targets_account_idx").on(table.accountId),
+		uniqueIndex("daily_targets_account_unique_idx").on(table.accountId),
+	]
+)
+
+// Daily Account Notes Table (pre/post market notes)
+export const dailyAccountNotes = pgTable(
+	"daily_account_notes",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+			onDelete: "cascade",
+		}),
+		date: timestamp("date", { withTimezone: true }).notNull(),
+		preMarketNotes: text("pre_market_notes"),
+		postMarketNotes: text("post_market_notes"),
+		mood: varchar("mood", { length: 20 }), // 'great' | 'good' | 'neutral' | 'bad' | 'terrible'
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("daily_account_notes_user_idx").on(table.userId),
+		index("daily_account_notes_account_idx").on(table.accountId),
+		index("daily_account_notes_date_idx").on(table.date),
+		uniqueIndex("daily_account_notes_unique_idx").on(table.accountId, table.date),
+	]
+)
+
+// Daily Asset Settings Table (per-asset trading rules)
+export const dailyAssetSettings = pgTable(
+	"daily_asset_settings",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		accountId: uuid("account_id")
+			.notNull()
+			.references(() => tradingAccounts.id, { onDelete: "cascade" }),
+		assetId: uuid("asset_id")
+			.notNull()
+			.references(() => assets.id, { onDelete: "cascade" }),
+		maxDailyTrades: integer("max_daily_trades"),
+		maxPositionSize: integer("max_position_size"),
+		notes: text("notes"),
+		isActive: boolean("is_active").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("daily_asset_settings_user_idx").on(table.userId),
+		index("daily_asset_settings_account_idx").on(table.accountId),
+		index("daily_asset_settings_asset_idx").on(table.assetId),
+		uniqueIndex("daily_asset_settings_unique_idx").on(table.accountId, table.assetId),
+	]
+)
+
 // Settings Table (key-value store for misc settings)
 export const settings = pgTable("settings", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -621,6 +764,10 @@ export const tradingAccountsRelations = relations(tradingAccounts, ({ one, many 
 	tags: many(tags),
 	accountAssets: many(accountAssets),
 	accountTimeframes: many(accountTimeframes),
+	dailyChecklists: many(dailyChecklists),
+	dailyTargets: many(dailyTargets),
+	dailyAccountNotes: many(dailyAccountNotes),
+	dailyAssetSettings: many(dailyAssetSettings),
 }))
 
 // Session Relations
@@ -734,6 +881,48 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 		references: [assetTypes.id],
 	}),
 	accountAssets: many(accountAssets),
+	dailyAssetSettings: many(dailyAssetSettings),
+}))
+
+// Command Center Relations
+export const dailyChecklistsRelations = relations(dailyChecklists, ({ one, many }) => ({
+	account: one(tradingAccounts, {
+		fields: [dailyChecklists.accountId],
+		references: [tradingAccounts.id],
+	}),
+	completions: many(checklistCompletions),
+}))
+
+export const checklistCompletionsRelations = relations(checklistCompletions, ({ one }) => ({
+	checklist: one(dailyChecklists, {
+		fields: [checklistCompletions.checklistId],
+		references: [dailyChecklists.id],
+	}),
+}))
+
+export const dailyTargetsRelations = relations(dailyTargets, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [dailyTargets.accountId],
+		references: [tradingAccounts.id],
+	}),
+}))
+
+export const dailyAccountNotesRelations = relations(dailyAccountNotes, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [dailyAccountNotes.accountId],
+		references: [tradingAccounts.id],
+	}),
+}))
+
+export const dailyAssetSettingsRelations = relations(dailyAssetSettings, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [dailyAssetSettings.accountId],
+		references: [tradingAccounts.id],
+	}),
+	asset: one(assets, {
+		fields: [dailyAssetSettings.assetId],
+		references: [assets.id],
+	}),
 }))
 
 // ==========================================
@@ -795,3 +984,19 @@ export type NewUserSettings = typeof userSettings.$inferInsert
 
 export type TradeExecution = typeof tradeExecutions.$inferSelect
 export type NewTradeExecution = typeof tradeExecutions.$inferInsert
+
+// Command Center Types
+export type DailyChecklist = typeof dailyChecklists.$inferSelect
+export type NewDailyChecklist = typeof dailyChecklists.$inferInsert
+
+export type ChecklistCompletion = typeof checklistCompletions.$inferSelect
+export type NewChecklistCompletion = typeof checklistCompletions.$inferInsert
+
+export type DailyTarget = typeof dailyTargets.$inferSelect
+export type NewDailyTarget = typeof dailyTargets.$inferInsert
+
+export type DailyAccountNote = typeof dailyAccountNotes.$inferSelect
+export type NewDailyAccountNote = typeof dailyAccountNotes.$inferInsert
+
+export type DailyAssetSetting = typeof dailyAssetSettings.$inferSelect
+export type NewDailyAssetSetting = typeof dailyAssetSettings.$inferInsert

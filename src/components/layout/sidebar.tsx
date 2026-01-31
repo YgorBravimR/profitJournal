@@ -12,6 +12,7 @@ import {
 	Settings,
 	ChevronLeft,
 	ChevronRight,
+	Target,
 	type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -19,13 +20,14 @@ import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/settings"
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/settings"
 	icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
 	{ labelKey: "dashboard", href: "/", icon: LayoutDashboard },
+	{ labelKey: "commandCenter", href: "/command-center", icon: Target },
 	{ labelKey: "journal", href: "/journal", icon: BookOpen },
 	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
 	{ labelKey: "playbook", href: "/playbook", icon: FileText },

@@ -47,12 +47,110 @@
 	},
 	"nav": {
 		"dashboard": "Painel",
+		"commandCenter": "Central de Comando",
 		"journal": "Diário",
 		"analytics": "Análises",
 		"playbook": "Playbook",
 		"reports": "Relatórios",
 		"monthly": "Mensal",
 		"settings": "Configurações"
+	},
+	"commandCenter": {
+		"title": "Central de Comando",
+		"description": "Prepare-se para o seu dia de operações",
+		"circuitBreaker": {
+			"title": "Circuit Breaker",
+			"loading": "Carregando status...",
+			"stopTrading": "PARE DE OPERAR",
+			"profitTargetHit": "Meta de lucro atingida!",
+			"lossLimitHit": "Limite de perda atingido!",
+			"maxTradesHit": "Número máximo de operações atingido",
+			"consecutiveLossesHit": "Máximo de perdas consecutivas atingido",
+			"dailyPnL": "P&L Diário",
+			"trades": "Operações",
+			"consecutiveLosses": "Perdas Consecutivas",
+			"target": "Meta",
+			"limit": "Limite",
+			"maxTrades": "Máx",
+			"maxConsecutive": "Máx"
+		},
+		"checklist": {
+			"title": "Checklist Diário",
+			"addItem": "Adicionar item",
+			"editChecklist": "Gerenciar",
+			"noItems": "Nenhum item de checklist ainda. Clique em Gerenciar para criar.",
+			"completed": "Completo"
+		},
+		"checklistManager": {
+			"createTitle": "Criar Checklist",
+			"editTitle": "Editar Checklist",
+			"nameLabel": "Nome do Checklist",
+			"namePlaceholder": "Rotina Pré-Mercado",
+			"itemsLabel": "Itens do Checklist",
+			"itemPlaceholder": "Digite o item...",
+			"addItem": "Adicionar Item",
+			"create": "Criar",
+			"update": "Atualizar",
+			"delete": "Excluir",
+			"cancel": "Cancelar",
+			"saving": "Salvando...",
+			"deleting": "Excluindo..."
+		},
+		"targets": {
+			"title": "Metas Diárias",
+			"profitTarget": "Meta de Lucro",
+			"profitTargetHelp": "Pare de operar ao atingir este lucro",
+			"lossLimit": "Limite de Perda",
+			"lossLimitHelp": "Pare de operar se atingir esta perda",
+			"maxTrades": "Máx. Operações",
+			"maxTradesHelp": "Número máximo de operações por dia",
+			"maxConsecutiveLosses": "Máx. Perdas Consecutivas",
+			"maxConsecutiveLossesHelp": "Pare após tantas perdas seguidas",
+			"save": "Salvar",
+			"saving": "Salvando..."
+		},
+		"notes": {
+			"preMarket": "Notas Pré-Mercado",
+			"postMarket": "Notas Pós-Mercado",
+			"preMarketLabel": "Notas",
+			"postMarketLabel": "Reflexão",
+			"mood": "Humor de Hoje",
+			"placeholder": "Escreva seus pensamentos, visão de mercado, metas...",
+			"postMarketPlaceholder": "Como foi o dia? O que você aprendeu?",
+			"save": "Salvar",
+			"saving": "Salvando...",
+			"moods": {
+				"great": "Ótimo",
+				"good": "Bom",
+				"neutral": "Neutro",
+				"bad": "Ruim",
+				"terrible": "Péssimo"
+			}
+		},
+		"assetRules": {
+			"title": "Regras por Ativo",
+			"addAsset": "Adicionar Ativo",
+			"selectAsset": "Selecione o ativo",
+			"add": "Adicionar",
+			"cancel": "Cancelar",
+			"noAssets": "Nenhuma regra por ativo configurada",
+			"asset": "Ativo",
+			"maxTrades": "Máx. Trades",
+			"positionSize": "Tamanho Máx.",
+			"notes": "Notas",
+			"notesPlaceholder": "Notas opcionais..."
+		},
+		"summary": {
+			"title": "Resumo do Dia",
+			"loading": "Carregando resumo...",
+			"noTrades": "Nenhuma operação registrada hoje",
+			"totalPnL": "P&L Total",
+			"trades": "Operações",
+			"winRate": "Taxa de Acerto",
+			"bestTrade": "Melhor Operação",
+			"worstTrade": "Pior Operação",
+			"maxConsecutiveLosses": "Máx. Perdas Consecutivas"
+		}
 	},
 	"trade": {
 		"trade": "Trade",

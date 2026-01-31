@@ -4636,3 +4636,3080 @@ src/
 - [ ] Profitability Balance indicator (Win Rate vs Avg W/L)
 - [ ] Full i18n support (pt-BR, en)
 - [ ] Responsive design for all new components
+
+---
+
+## Phase 12: Daily Trading Command Center 🔜 PLANNED
+
+**Goal:** Create a dedicated daily page that serves as the trader's command center during trading sessions, with pre-market routines, real-time targets/limits tracking, intraday performance metrics, and behavioral insights to help maintain discipline throughout the day.
+
+---
+
+### 12.1 Problem Statement
+
+Traders need a focused daily view that helps them:
+
+1. **Prepare for the Trading Day** - Pre-market checklist ensures proper mental and technical preparation
+   - "Did I review yesterday's trades?"
+   - "Did I check the economic calendar?"
+   - "What's my focus strategy for today?"
+
+2. **Track Progress Against Targets** - Real-time monitoring prevents overtrading
+   - "Am I approaching my daily loss limit?"
+   - "How many trades have I taken vs my limit?"
+   - "What's my projected end-of-day P&L?"
+
+3. **Stay Disciplined** - Visual reminders and circuit breakers
+   - "Should I stop trading now?"
+   - "Am I following my playbook today?"
+   - "What mistakes am I making today?"
+
+4. **End-of-Day Review** - Quick summary for journaling
+   - "How did today compare to my targets?"
+   - "What patterns emerged today?"
+   - "What should I focus on tomorrow?"
+
+---
+
+### 12.2 Data Scope Architecture
+
+The daily command center has a clear separation between **global**, **account-level**, and **asset-specific** data:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                          ALL ACCOUNTS SUMMARY (Top Banner)                       │
+│                                                                                  │
+│  Aggregated view across all trading accounts:                                    │
+│  - Combined P&L from all accounts                                               │
+│  - Total trades across all accounts                                             │
+│  - Overall win rate / avg R                                                     │
+│                                                                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                          ACCOUNT-LEVEL (Selected Account)                        │
+│                                                                                  │
+│  Per-account settings and metrics:                                              │
+│  - Profit target / Loss limit (circuit breakers)                                │
+│  - Max daily trades / Consecutive loss limits                                   │
+│  - Stop trading time                                                            │
+│  - Pre-market checklist                                                         │
+│  - Emotional state tracking                                                     │
+│  - Day rating                                                                   │
+│  - General daily notes                                                          │
+│                                                                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                          ASSET-SPECIFIC (Per Asset within Account)               │
+│                                                                                  │
+│  Each asset has its own:                                                        │
+│  - Focus strategy (different strategy per asset)                                │
+│  - Daily bias (bullish/bearish/neutral)                                         │
+│  - Key levels (support/resistance)                                              │
+│  - Asset-specific notes and analysis                                            │
+│  - Trading rules for today                                                      │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 12.3 Database Schema Changes
+
+#### New Table: `daily_checklists`
+
+Stores customizable pre-market checklist items (per account).
+
+```sql
+CREATE TABLE daily_checklists (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID REFERENCES trading_accounts(id) ON DELETE CASCADE,
+
+  -- Checklist item details
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  category VARCHAR(50) DEFAULT 'general', -- 'mental', 'technical', 'market', 'general'
+  sort_order INTEGER DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_daily_checklists_account_id ON daily_checklists(account_id);
+```
+
+#### New Table: `checklist_completions`
+
+Tracks daily completion of checklist items.
+
+```sql
+CREATE TABLE checklist_completions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  checklist_id UUID NOT NULL REFERENCES daily_checklists(id) ON DELETE CASCADE,
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+
+  -- Completion tracking
+  completed_date DATE NOT NULL,
+  completed_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  notes TEXT,
+
+  UNIQUE(checklist_id, account_id, completed_date)
+);
+
+CREATE INDEX idx_checklist_completions_date ON checklist_completions(account_id, completed_date);
+```
+
+#### New Table: `daily_targets`
+
+Stores daily trading targets and limits per account (account-level circuit breakers).
+
+```sql
+CREATE TABLE daily_targets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+
+  -- Profit targets (account-level)
+  profit_target INTEGER, -- in cents (e.g., R$500 = 50000)
+  profit_target_enabled BOOLEAN DEFAULT FALSE,
+
+  -- Loss limits (circuit breakers)
+  max_daily_loss INTEGER, -- in cents
+  max_daily_loss_enabled BOOLEAN DEFAULT TRUE,
+
+  -- Trade count limits
+  max_daily_trades INTEGER,
+  max_daily_trades_enabled BOOLEAN DEFAULT FALSE,
+
+  -- Time-based limits
+  stop_trading_time TIME, -- e.g., 15:30:00
+  stop_trading_time_enabled BOOLEAN DEFAULT FALSE,
+
+  -- Consecutive loss limit
+  max_consecutive_losses INTEGER DEFAULT 3,
+  max_consecutive_losses_enabled BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(account_id)
+);
+```
+
+#### New Table: `daily_account_notes`
+
+Account-level daily notes (general analysis, emotional state, day review).
+
+```sql
+CREATE TABLE daily_account_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+  note_date DATE NOT NULL,
+
+  -- General pre-market
+  general_market_analysis TEXT, -- Overall market conditions
+  focus_notes TEXT,             -- What to focus on today (account-wide)
+
+  -- Post-market review
+  post_market_review TEXT,
+  lessons_learned TEXT,
+  tomorrow_focus TEXT,
+
+  -- Emotional tracking (trader state, not asset-specific)
+  emotional_state_start VARCHAR(20), -- 'calm', 'anxious', 'confident', 'fearful', 'neutral'
+  emotional_state_end VARCHAR(20),
+
+  -- Overall day rating
+  day_rating INTEGER, -- 1-5 stars
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(account_id, note_date)
+);
+
+CREATE INDEX idx_daily_account_notes_date ON daily_account_notes(account_id, note_date);
+```
+
+#### New Table: `daily_asset_settings`
+
+Asset-specific daily settings (focus strategy, bias, key levels).
+
+```sql
+CREATE TABLE daily_asset_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  account_id UUID NOT NULL REFERENCES trading_accounts(id) ON DELETE CASCADE,
+  asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+  setting_date DATE NOT NULL,
+
+  -- Focus strategy for this asset today
+  focus_strategy_id UUID REFERENCES strategies(id),
+
+  -- Daily bias for this asset
+  daily_bias VARCHAR(20), -- 'bullish', 'bearish', 'neutral', 'range_bound'
+
+  -- Key levels (stored as JSON for flexibility)
+  key_levels JSONB DEFAULT '[]',
+  -- Example: [{"type": "support", "price": 128000, "note": "Major support"}, {"type": "resistance", "price": 129500}]
+
+  -- Trading rules for today (asset-specific)
+  trading_rules TEXT,
+  -- Example: "Only trade breakouts above 128500. Avoid counter-trend trades."
+
+  -- Asset-specific notes
+  pre_market_notes TEXT,
+  post_market_notes TEXT,
+
+  -- Is this asset being traded today?
+  is_trading_today BOOLEAN DEFAULT TRUE,
+
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+  UNIQUE(account_id, asset_id, setting_date)
+);
+
+CREATE INDEX idx_daily_asset_settings_date ON daily_asset_settings(account_id, setting_date);
+CREATE INDEX idx_daily_asset_settings_asset ON daily_asset_settings(asset_id, setting_date);
+```
+
+#### Key Levels JSON Structure
+
+```typescript
+interface KeyLevel {
+  type: 'support' | 'resistance' | 'pivot' | 'vwap' | 'pdc' | 'pdh' | 'pdl' | 'custom'
+  price: number
+  note?: string
+  strength?: 'strong' | 'moderate' | 'weak'
+}
+
+// PDC = Previous Day Close
+// PDH = Previous Day High
+// PDL = Previous Day Low
+
+// Example usage:
+const keyLevels: KeyLevel[] = [
+  { type: 'resistance', price: 129500, note: 'Major resistance from last week', strength: 'strong' },
+  { type: 'support', price: 128000, note: 'Psychological level', strength: 'strong' },
+  { type: 'pdh', price: 128800, note: 'Previous day high' },
+  { type: 'pdl', price: 127500, note: 'Previous day low' },
+  { type: 'vwap', price: 128300, note: 'VWAP from yesterday' },
+]
+```
+
+---
+
+### 12.3 Daily Targets & Limits Calculation
+
+#### Circuit Breaker Logic
+
+```typescript
+interface DailyProgress {
+  // P&L tracking
+  currentPnl: number           // Today's P&L in cents
+  grossPnl: number             // Before fees
+  fees: number                 // Total fees today
+
+  // Targets progress
+  profitTargetProgress: number // 0-100% or can exceed 100%
+  profitTargetReached: boolean
+
+  // Loss limit tracking
+  lossLimitProgress: number    // 0-100% (100% = stop trading)
+  lossLimitReached: boolean
+  lossLimitRemaining: number   // How much more can lose
+
+  // Trade count tracking
+  tradesCount: number
+  tradesLimit: number
+  tradesLimitReached: boolean
+
+  // Consecutive losses
+  currentLossStreak: number
+  maxAllowedStreak: number
+  streakLimitReached: boolean
+
+  // Time-based
+  tradingHoursRemaining: string // "2h 30m" until stop time
+  shouldStopTrading: boolean    // Any limit reached
+
+  // Recommendations
+  status: 'green' | 'yellow' | 'red'
+  message: string              // "You're doing well!" or "Consider stopping"
+}
+
+const calculateDailyProgress = async (
+  accountId: string,
+  date: Date,
+  targets: DailyTargets
+): Promise<DailyProgress> => {
+  const todayTrades = await getTradesForDate(accountId, date)
+
+  // Calculate current P&L
+  const currentPnl = todayTrades.reduce((sum, t) => sum + t.netPnl, 0)
+  const grossPnl = todayTrades.reduce((sum, t) => sum + t.grossPnl, 0)
+  const fees = grossPnl - currentPnl
+
+  // Calculate loss limit progress
+  const lossLimitProgress = targets.maxDailyLossEnabled
+    ? Math.min(100, (Math.abs(Math.min(0, currentPnl)) / targets.maxDailyLoss) * 100)
+    : 0
+
+  // Calculate consecutive losses
+  let currentLossStreak = 0
+  for (let i = todayTrades.length - 1; i >= 0; i--) {
+    if (todayTrades[i].outcome === 'loss') {
+      currentLossStreak++
+    } else {
+      break
+    }
+  }
+
+  // Determine overall status
+  const shouldStopTrading =
+    (targets.maxDailyLossEnabled && currentPnl <= -targets.maxDailyLoss) ||
+    (targets.maxDailyTradesEnabled && todayTrades.length >= targets.maxDailyTrades) ||
+    (targets.maxConsecutiveLossesEnabled && currentLossStreak >= targets.maxConsecutiveLosses)
+
+  const status = shouldStopTrading ? 'red'
+    : lossLimitProgress > 70 || currentLossStreak >= 2 ? 'yellow'
+    : 'green'
+
+  return {
+    currentPnl,
+    grossPnl,
+    fees,
+    profitTargetProgress: targets.profitTargetEnabled
+      ? (currentPnl / targets.profitTarget) * 100
+      : 0,
+    profitTargetReached: targets.profitTargetEnabled && currentPnl >= targets.profitTarget,
+    lossLimitProgress,
+    lossLimitReached: targets.maxDailyLossEnabled && currentPnl <= -targets.maxDailyLoss,
+    lossLimitRemaining: targets.maxDailyLoss + currentPnl,
+    tradesCount: todayTrades.length,
+    tradesLimit: targets.maxDailyTrades || 0,
+    tradesLimitReached: targets.maxDailyTradesEnabled && todayTrades.length >= targets.maxDailyTrades,
+    currentLossStreak,
+    maxAllowedStreak: targets.maxConsecutiveLosses,
+    streakLimitReached: targets.maxConsecutiveLossesEnabled && currentLossStreak >= targets.maxConsecutiveLosses,
+    tradingHoursRemaining: calculateTradingHoursRemaining(targets.stopTradingTime),
+    shouldStopTrading,
+    status,
+    message: getStatusMessage(status, { currentLossStreak, lossLimitProgress, profitTargetProgress })
+  }
+}
+```
+
+---
+
+### 12.4 Backend Tasks
+
+#### All Accounts Summary Actions (`src/app/actions/daily.ts`)
+
+- [ ] `getAllAccountsSummary()` - Aggregated P&L, trades, win rate across ALL accounts
+- [ ] `getAccountQuickStats()` - Quick stats per account for summary row
+
+#### Account-Level Daily Actions (`src/app/actions/daily.ts`)
+
+- [ ] `getDailyOverview()` - Complete daily summary with progress for selected account
+- [ ] `getDailyProgress()` - Real-time progress against account targets
+- [ ] `getTodayTrades()` - Trades for the current day for selected account
+- [ ] `getTodayStats()` - P&L, win rate, avg R for today for selected account
+- [ ] `getIntradayEquityCurve()` - Equity curve for today (with optional asset filter)
+- [ ] `getComparisonWithAverage()` - Today vs historical averages for selected account
+
+#### Checklist Actions (`src/app/actions/checklists.ts`)
+
+- [ ] `getChecklists()` - Get all checklist items for account
+- [ ] `createChecklist()` - Add checklist item
+- [ ] `updateChecklist()` - Edit checklist item
+- [ ] `deleteChecklist()` - Remove checklist item
+- [ ] `reorderChecklists()` - Change sort order
+- [ ] `getChecklistCompletions()` - Get completions for date
+- [ ] `toggleChecklistItem()` - Mark item complete/incomplete
+- [ ] `getChecklistHistory()` - Completion rate over time
+
+#### Targets Actions (`src/app/actions/targets.ts`)
+
+- [ ] `getDailyTargets()` - Get account targets
+- [ ] `updateDailyTargets()` - Update targets/limits
+- [ ] `checkCircuitBreakers()` - Real-time limit checking
+- [ ] `getTargetHistory()` - How often targets were hit/missed
+
+#### Account-Level Notes Actions (`src/app/actions/daily-notes.ts`)
+
+- [ ] `getAccountDailyNotes()` - Get account-level notes for date
+- [ ] `saveAccountDailyNotes()` - Create/update account-level daily notes
+- [ ] `updateEmotionalState()` - Update emotional state (start/current)
+- [ ] `rateDayQuality()` - Save day rating (1-5 stars)
+
+#### Asset-Specific Settings Actions (`src/app/actions/asset-settings.ts`)
+
+- [ ] `getDailyAssetSettings()` - Get settings for an asset on a date
+- [ ] `saveDailyAssetSettings()` - Save/update asset-specific settings
+- [ ] `getAssetFocusStrategy()` - Get focus strategy for asset today
+- [ ] `setAssetFocusStrategy()` - Set focus strategy for asset today
+- [ ] `getAssetBias()` - Get daily bias for asset
+- [ ] `setAssetBias()` - Set daily bias for asset
+- [ ] `getAssetKeyLevels()` - Get key levels for asset today
+- [ ] `saveAssetKeyLevels()` - Save key levels for asset
+- [ ] `getAssetTradingRules()` - Get trading rules for asset today
+- [ ] `saveAssetTradingRules()` - Save trading rules for asset
+- [ ] `getAssetNotes()` - Get asset-specific notes
+- [ ] `saveAssetNotes()` - Save asset-specific notes
+- [ ] `getAssetsBeingTradedToday()` - List assets with settings for today
+- [ ] `addAssetToTradingDay()` - Add asset to today's trading list
+- [ ] `removeAssetFromTradingDay()` - Remove asset from today's trading list
+
+---
+
+### 12.5 Frontend - Daily Page Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ Daily Trading - January 27, 2025                  ◀ Yesterday  Tomorrow ▶ [📅]  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ╔═══════════════════════════════════════════════════════════════════════════╗  │
+│  ║  ALL ACCOUNTS SUMMARY                                                      ║  │
+│  ║                                                                            ║  │
+│  ║  Combined P&L: +R$890   │  Total Trades: 12   │  Overall Win Rate: 67%    ║  │
+│  ║                                                                            ║  │
+│  ║  ┌─ Personal ─────┐  ┌─ Atom Prop ────┐  ┌─ Raise Prop ───┐               ║  │
+│  ║  │ +R$340 (5 tr.) │  │ +R$350 (4 tr.) │  │ +R$200 (3 tr.) │               ║  │
+│  ║  │ 60% WR         │  │ 75% WR         │  │ 67% WR         │               ║  │
+│  ║  └────────────────┘  └────────────────┘  └────────────────┘               ║  │
+│  ╚═══════════════════════════════════════════════════════════════════════════╝  │
+│                                                                                  │
+│  ┌─ SELECTED ACCOUNT: [Personal Account ▼] ─────────────────────────────────┐   │
+│  │                                                                           │   │
+│  │  ┌─ STATUS BANNER ────────────────────────────────────────────────────┐  │   │
+│  │  │ 🟢 GOOD TO TRADE | P&L: +R$340 | 5/10 trades | 0 consecutive losses │  │   │
+│  │  └────────────────────────────────────────────────────────────────────┘  │   │
+│  │                                                                           │   │
+│  │  ┌─ ACCOUNT METRICS ──────────────────────────────────────────────────┐  │   │
+│  │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌────────┐│  │   │
+│  │  │  │ Today P&L│  │ Win Rate │  │  Avg R   │  │  Trades  │  │Discipl.││  │   │
+│  │  │  │ +R$340   │  │   60%    │  │  +1.2R   │  │   5/10   │  │  80%   ││  │   │
+│  │  │  │ ▲ +15%   │  │ 3W 2L    │  │ vs 0.8R  │  │ 5 left   │  │ 4/5 ✓  ││  │   │
+│  │  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘  └────────┘│  │   │
+│  │  └────────────────────────────────────────────────────────────────────┘  │   │
+│  │                                                                           │   │
+│  │  ┌─ TARGETS & LIMITS (Account) ────────┐  ┌─ PRE-MARKET CHECKLIST ─────┐ │   │
+│  │  │                                      │  │                            │ │   │
+│  │  │  Profit Target: R$500                │  │  ☑ Review yesterday trades │ │   │
+│  │  │  ██████████████████████████████░░ 68%│  │  ☑ Check economic calendar │ │   │
+│  │  │  R$340 / R$500                       │  │  ☑ Mental check - focused  │ │   │
+│  │  │                                      │  │  ☐ Set price alerts        │ │   │
+│  │  │  ──────────────────────────────────  │  │  ☐ Update journal          │ │   │
+│  │  │                                      │  │                            │ │   │
+│  │  │  Loss Limit: R$400                   │  │  ─────────────────────     │ │   │
+│  │  │  ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0%  │  │  Completion: 3/5 (60%)     │ │   │
+│  │  │  R$0 used / R$400 limit              │  │                            │ │   │
+│  │  │                                      │  │  [+ Add item]              │ │   │
+│  │  │  ──────────────────────────────────  │  │                            │ │   │
+│  │  │                                      │  └────────────────────────────┘ │   │
+│  │  │  Consecutive Losses: 0/3             │                                 │   │
+│  │  │  ○ ○ ○  Safe                        │  ┌─ EMOTIONAL STATE ──────────┐ │   │
+│  │  │                                      │  │                            │ │   │
+│  │  │  ──────────────────────────────────  │  │  Start: 😌 Calm            │ │   │
+│  │  │                                      │  │  Current: 😊 Confident     │ │   │
+│  │  │  Stop Trading Time: 15:30            │  │                            │ │   │
+│  │  │  ⏱ 2h 15m remaining                 │  │  [Update]                  │ │   │
+│  │  │                                      │  │                            │ │   │
+│  │  └──────────────────────────────────────┘  └────────────────────────────┘ │   │
+│  │                                                                           │   │
+│  └───────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ╔═══════════════════════════════════════════════════════════════════════════╗  │
+│  ║  ASSETS BEING TRADED TODAY                                                 ║  │
+│  ║                                                                            ║  │
+│  ║  [WINFUT]  [WDOFUT]  [+ Add Asset]                                         ║  │
+│  ║   ═══════                                                                  ║  │
+│  ╠═══════════════════════════════════════════════════════════════════════════╣  │
+│  ║                                                                            ║  │
+│  ║  Asset: WINFUT (Mini Índice)                        Today: 3 trades +R$200 ║  │
+│  ║                                                                            ║  │
+│  ║  ┌─ FOCUS STRATEGY ───────┐  ┌─ DAILY BIAS ────────┐  ┌─ KEY LEVELS ────┐ ║  │
+│  ║  │                        │  │                      │  │                 │ ║  │
+│  ║  │  📌 Breakout - 15min   │  │  🟢 Bullish          │  │  R: 129,500 ●   │ ║  │
+│  ║  │                        │  │                      │  │  R: 129,000     │ ║  │
+│  ║  │  "Wait for volume      │  │  Strong momentum on  │  │  PDH: 128,800   │ ║  │
+│  ║  │   confirmation before  │  │  daily chart. Look   │  │  S: 128,000 ●   │ ║  │
+│  ║  │   entering breakouts"  │  │  for long entries.   │  │  PDL: 127,500   │ ║  │
+│  ║  │                        │  │                      │  │                 │ ║  │
+│  ║  │  [Change Strategy]     │  │  [Change Bias]       │  │  [Edit Levels]  │ ║  │
+│  ║  └────────────────────────┘  └──────────────────────┘  └─────────────────┘ ║  │
+│  ║                                                                            ║  │
+│  ║  ┌─ ASSET TRADING RULES ─────────────────────────────────────────────────┐ ║  │
+│  ║  │                                                                        │ ║  │
+│  ║  │  • Only trade breakouts above 128,500 with volume confirmation         │ ║  │
+│  ║  │  • Avoid counter-trend shorts until price below 128,000                │ ║  │
+│  ║  │  • Maximum 2 trades per hour on this asset                             │ ║  │
+│  ║  │                                                                        │ ║  │
+│  ║  │  [Edit Rules]                                                          │ ║  │
+│  ║  └────────────────────────────────────────────────────────────────────────┘ ║  │
+│  ║                                                                            ║  │
+│  ║  ┌─ ASSET-SPECIFIC NOTES ────────────────────────────────────────────────┐ ║  │
+│  ║  │                                                                        │ ║  │
+│  ║  │  Pre-market: Gap up from yesterday's close. Watch for pullback to     │ ║  │
+│  ║  │  128,300 area for long entry. VWAP should act as support.             │ ║  │
+│  ║  │                                                                        │ ║  │
+│  ║  │  [Edit Notes]                                                          │ ║  │
+│  ║  └────────────────────────────────────────────────────────────────────────┘ ║  │
+│  ║                                                                            ║  │
+│  ╚═══════════════════════════════════════════════════════════════════════════╝  │
+│                                                                                  │
+│  ┌─ INTRADAY EQUITY CURVE (Account: Personal) ──────────────────────────────┐   │
+│  │                                                                           │   │
+│  │  +R$400 │                              ●───●                              │   │
+│  │  +R$300 │                         ●───●                                   │   │
+│  │  +R$200 │                    ●───●                                        │   │
+│  │  +R$100 │          ●───●    ●                                             │   │
+│  │      R$0│─●───●───●                                                       │   │
+│  │  -R$100 │     ●                                                           │   │
+│  │         └─────────────────────────────────────────────────────────────    │   │
+│  │          09:00   10:00   11:00   12:00   13:00   14:00   15:00            │   │
+│  │                                                                           │   │
+│  │  Legend: ── All Assets   ── WINFUT only   ── WDOFUT only                 │   │
+│  │                                                                           │   │
+│  └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ┌─ TODAY'S TRADES (Account: Personal) ─────────────────────────────────────┐   │
+│  │                                    Filter: [All Assets ▼]  [+ New Trade] │   │
+│  │  Time  │ Asset  │ Dir │ Strategy    │ Entry   │ Exit    │ P&L    │ R     │   │
+│  │  09:15 │ WINFUT │ L   │ Breakout    │ 128,000 │ 128,150 │ +R$60  │+1.5R →│   │
+│  │  09:45 │ WINFUT │ S   │ Mean Rev.   │ 128,200 │ 128,300 │ -R$40  │-1.0R →│   │
+│  │  10:30 │ WINFUT │ L   │ Breakout    │ 128,050 │ 128,250 │ +R$80  │+2.0R →│   │
+│  │  11:15 │ WDOFUT │ S   │ Range Break │ 5,045   │ 5,020   │ +R$125 │+1.2R →│   │
+│  │  14:00 │ WINFUT │ L   │ Breakout    │ 128,300 │ 128,500 │ +R$115 │+2.3R →│   │
+│  │                                                                           │   │
+│  └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ┌─ GENERAL DAILY NOTES (Account-Level) ────────────────────────────────────┐   │
+│  │                                                                           │   │
+│  │  [Pre-Market] [Post-Market]                                               │   │
+│  │   ═══════════                                                             │   │
+│  │                                                                           │   │
+│  │  ┌───────────────────────────────────────────────────────────────────┐   │   │
+│  │  │ General Market Analysis:                                           │   │   │
+│  │  │ Overall market showing strength. Dow futures up, VIX low.          │   │   │
+│  │  │ No major economic events today. Good day for trend following.      │   │   │
+│  │  │                                                                   │   │   │
+│  │  │ Focus for Today (General):                                        │   │   │
+│  │  │ - Stay patient for A+ setups only                                 │   │   │
+│  │  │ - Maximum 10 trades total across all assets                       │   │   │
+│  │  │ - Stop if emotional state changes                                 │   │   │
+│  │  └───────────────────────────────────────────────────────────────────┘   │   │
+│  │                                                                           │   │
+│  │                                                     [Save] [Auto-save ✓]  │   │
+│  └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+│  ┌─ COMPARISON WITH AVERAGE ────────────────────────────────────────────────┐   │
+│  │                                                                           │   │
+│  │  Account: Personal                                                        │   │
+│  │  Metric          Today      Daily Avg    Weekly Avg   vs Average         │   │
+│  │  ─────────────────────────────────────────────────────────────────────   │   │
+│  │  P&L             +R$340     +R$180       +R$850       ▲ +89%             │   │
+│  │  Win Rate        60%        55%          58%          ▲ +5pp             │   │
+│  │  Avg R           +1.2R      +0.8R        +0.9R        ▲ +0.4R            │   │
+│  │  Trades          5          7            35           ▼ -2 trades        │   │
+│  │  Discipline      80%        72%          75%          ▲ +8pp             │   │
+│  │                                                                           │   │
+│  │  💡 Insight: You're performing above average with fewer trades.          │   │
+│  │              Quality over quantity is working today!                      │   │
+│  │                                                                           │   │
+│  └──────────────────────────────────────────────────────────────────────────┘   │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 12.6 Circuit Breaker Alerts
+
+Visual alerts when approaching or reaching limits:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ ⚠️ WARNING: You're at 70% of your daily loss limit                              │
+│                                                                                  │
+│  Current P&L: -R$280   |   Loss Limit: R$400   |   Remaining: R$120             │
+│                                                                                  │
+│  Consider:                                                                       │
+│  • Taking a break for 15-30 minutes                                             │
+│  • Reducing position size for remaining trades                                   │
+│  • Reviewing recent losses for patterns                                         │
+│                                                                                  │
+│  [Continue Trading]  [Stop for Today]  [Reduce Size]                            │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ 🛑 STOP: Daily loss limit reached                                                │
+│                                                                                  │
+│  You've lost R$400 today, reaching your daily loss limit.                       │
+│                                                                                  │
+│  Today's Stats:                                                                  │
+│  • 8 trades taken                                                               │
+│  • 25% win rate (2W / 6L)                                                       │
+│  • Average R: -1.2R                                                             │
+│                                                                                  │
+│  Recommended Actions:                                                           │
+│  • Review today's trades in the journal                                         │
+│  • Identify what went wrong                                                     │
+│  • Rest and prepare for tomorrow                                                │
+│                                                                                  │
+│  [Review Trades]  [Go to Dashboard]  [Override (not recommended)]               │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 12.7 Default Checklist Items
+
+Pre-populated checklist items for new accounts:
+
+```typescript
+const defaultChecklistItems: ChecklistItem[] = [
+  // Mental Preparation
+  { category: 'mental', title: 'Good night sleep (7+ hours)', sortOrder: 1 },
+  { category: 'mental', title: 'Feeling mentally sharp and focused', sortOrder: 2 },
+  { category: 'mental', title: 'No emotional distractions', sortOrder: 3 },
+
+  // Technical Preparation
+  { category: 'technical', title: 'Review yesterday\'s trades', sortOrder: 10 },
+  { category: 'technical', title: 'Check pending orders/positions', sortOrder: 11 },
+  { category: 'technical', title: 'Verify trading platform is working', sortOrder: 12 },
+  { category: 'technical', title: 'Internet connection stable', sortOrder: 13 },
+
+  // Market Analysis
+  { category: 'market', title: 'Check economic calendar', sortOrder: 20 },
+  { category: 'market', title: 'Identify key support/resistance levels', sortOrder: 21 },
+  { category: 'market', title: 'Define daily bias (bullish/bearish/neutral)', sortOrder: 22 },
+  { category: 'market', title: 'Note any important news events', sortOrder: 23 },
+
+  // Trading Plan
+  { category: 'general', title: 'Set daily profit target', sortOrder: 30 },
+  { category: 'general', title: 'Confirm daily loss limit', sortOrder: 31 },
+  { category: 'general', title: 'Choose focus strategy for today', sortOrder: 32 },
+  { category: 'general', title: 'Set price alerts on key levels', sortOrder: 33 },
+]
+```
+
+---
+
+### 12.8 Frontend Components
+
+#### All Accounts Components (`src/components/daily/`)
+
+**All Accounts Summary Banner** - Aggregated view across all accounts
+```typescript
+interface AllAccountsSummaryProps {
+  accounts: Array<{
+    id: string
+    name: string
+    pnl: number
+    tradesCount: number
+    winRate: number
+  }>
+  combinedPnl: number
+  combinedTrades: number
+  overallWinRate: number
+  onAccountSelect: (accountId: string) => void
+}
+```
+
+#### Account-Level Components (`src/components/daily/`)
+
+**Account Selector** - Dropdown to switch between accounts
+```typescript
+interface AccountSelectorProps {
+  accounts: TradingAccount[]
+  selectedAccountId: string
+  onAccountChange: (accountId: string) => void
+}
+```
+
+**Status Banner** - Trading status for selected account
+```typescript
+interface StatusBannerProps {
+  status: 'green' | 'yellow' | 'red'
+  currentPnl: number
+  tradesCount: number
+  tradesLimit: number
+  consecutiveLosses: number
+  message: string
+}
+```
+
+**Account Metrics Row** - Today's KPIs for selected account
+```typescript
+interface AccountMetricsProps {
+  todayPnl: number
+  todayWinRate: number
+  todayAvgR: number
+  tradesCount: number
+  tradesLimit: number
+  disciplineScore: number
+  comparisons: {
+    pnlVsAverage: number
+    winRateVsAverage: number
+    avgRVsAverage: number
+  }
+}
+```
+
+**Targets Progress Card** - Account-level targets/limits
+```typescript
+interface TargetsProgressProps {
+  profitTarget: number
+  profitProgress: number
+  lossLimit: number
+  lossProgress: number
+  tradesLimit: number
+  tradesCount: number
+  consecutiveLosses: number
+  maxConsecutiveLosses: number
+  stopTime: string
+  timeRemaining: string
+}
+```
+
+**Checklist Card** - Account-level checklist
+```typescript
+interface ChecklistCardProps {
+  items: ChecklistItem[]
+  completions: ChecklistCompletion[]
+  onToggle: (itemId: string) => void
+  onAddItem: () => void
+  completionRate: number
+}
+```
+
+**Emotional State Card** - Account-level emotional tracking
+```typescript
+interface EmotionalStateCardProps {
+  stateStart: EmotionalState | null
+  stateCurrent: EmotionalState | null
+  onUpdateState: (state: EmotionalState) => void
+}
+
+type EmotionalState = 'calm' | 'anxious' | 'confident' | 'fearful' | 'neutral' | 'frustrated'
+```
+
+#### Asset-Specific Components (`src/components/daily/`)
+
+**Asset Tabs** - Switch between assets being traded today
+```typescript
+interface AssetTabsProps {
+  assets: Array<{
+    id: string
+    symbol: string
+    name: string
+    todayPnl: number
+    todayTrades: number
+  }>
+  selectedAssetId: string
+  onAssetSelect: (assetId: string) => void
+  onAddAsset: () => void
+}
+```
+
+**Asset Focus Strategy Card** - Strategy for specific asset
+```typescript
+interface AssetFocusStrategyProps {
+  assetId: string
+  strategy: Strategy | null
+  onChangeStrategy: () => void
+}
+```
+
+**Asset Bias Card** - Daily bias for specific asset
+```typescript
+interface AssetBiasCardProps {
+  assetId: string
+  bias: 'bullish' | 'bearish' | 'neutral' | 'range_bound' | null
+  biasNotes: string
+  onChangeBias: (bias: string, notes: string) => void
+}
+```
+
+**Key Levels Card** - Support/resistance for specific asset
+```typescript
+interface KeyLevelsCardProps {
+  assetId: string
+  levels: KeyLevel[]
+  onEditLevels: () => void
+}
+
+interface KeyLevel {
+  type: 'support' | 'resistance' | 'pivot' | 'vwap' | 'pdc' | 'pdh' | 'pdl' | 'custom'
+  price: number
+  note?: string
+  strength?: 'strong' | 'moderate' | 'weak'
+}
+```
+
+**Asset Trading Rules Card** - Rules for specific asset today
+```typescript
+interface AssetTradingRulesProps {
+  assetId: string
+  rules: string
+  onEditRules: () => void
+}
+```
+
+**Asset Notes Card** - Notes specific to asset
+```typescript
+interface AssetNotesProps {
+  assetId: string
+  preMarketNotes: string
+  postMarketNotes: string
+  onSaveNotes: (notes: { preMarket: string; postMarket: string }) => void
+}
+```
+
+#### Shared Components (`src/components/daily/`)
+
+**Intraday Equity Chart** - Today's equity curve with asset filter
+```typescript
+interface IntradayEquityChartProps {
+  dataPoints: Array<{
+    time: string
+    pnl: number
+    assetId?: string
+    tradeId?: string
+  }>
+  profitTarget?: number
+  lossLimit?: number
+  assetFilter?: string | null  // null = show all assets
+  availableAssets: Array<{ id: string; symbol: string }>
+  onAssetFilterChange: (assetId: string | null) => void
+}
+```
+
+**Today Trades Table** - Compact table with asset filter
+```typescript
+interface TodayTradesTableProps {
+  trades: TodaySummaryTrade[]
+  assetFilter?: string | null
+  onTradeClick: (tradeId: string) => void
+  onAddTrade: () => void
+  onAssetFilterChange: (assetId: string | null) => void
+}
+```
+
+**General Daily Notes Editor** - Account-level notes
+```typescript
+interface GeneralDailyNotesProps {
+  notes: AccountDailyNotes
+  onSave: (notes: AccountDailyNotes) => void
+  autoSave: boolean
+}
+
+interface AccountDailyNotes {
+  generalMarketAnalysis: string
+  focusNotes: string
+  postMarketReview: string
+  lessonsLearned: string
+  tomorrowFocus: string
+  dayRating: number  // 1-5
+}
+```
+
+**Comparison Table** - Today vs averages comparison
+```typescript
+interface ComparisonTableProps {
+  accountId: string
+  today: DayStats
+  dailyAverage: DayStats
+  weeklyAverage: WeekStats
+  insight: string
+}
+```
+
+**Circuit Breaker Modal** - Warning/stop dialogs
+```typescript
+interface CircuitBreakerModalProps {
+  type: 'warning' | 'stop'
+  reason: 'loss_limit' | 'trade_count' | 'consecutive_losses' | 'stop_time'
+  stats: DailyProgress
+  onContinue: () => void
+  onStop: () => void
+  onReview: () => void
+}
+```
+
+---
+
+### 12.9 Navigation Integration
+
+Add "Daily" as the first navigation item (most frequently used):
+
+```typescript
+// Sidebar navigation - Daily becomes primary entry point
+{
+  icon: CalendarClock,  // or Sun icon
+  label: t('nav.daily'),
+  href: '/daily'
+}
+```
+
+Navigation order:
+1. **Daily** (NEW - today's command center)
+2. Dashboard (overall stats)
+3. Journal (trade history)
+4. Analytics (deep analysis)
+5. Playbook (strategies)
+6. Monthly (monthly results)
+7. Reports (weekly/monthly reports)
+8. Settings
+
+---
+
+### 12.10 Implementation Order
+
+1. **Schema & Migration** (Day 1)
+   - [ ] Create `daily_checklists` table
+   - [ ] Create `checklist_completions` table
+   - [ ] Create `daily_targets` table
+   - [ ] Create `daily_notes` table
+   - [ ] Generate and run migration
+   - [ ] Seed default checklist items
+
+2. **Backend - Core Daily** (Day 2)
+   - [ ] `getDailyOverview()` - Main daily data
+   - [ ] `getDailyProgress()` - Real-time progress
+   - [ ] `getTodayTrades()` - Today's trades
+   - [ ] `getTodayStats()` - Today's metrics
+   - [ ] `getIntradayEquityCurve()` - Intraday equity
+   - [ ] `getComparisonWithAverage()` - Averages comparison
+
+3. **Backend - Checklists** (Day 3)
+   - [ ] Checklist CRUD operations
+   - [ ] Completion tracking
+   - [ ] Completion history
+
+4. **Backend - Targets & Notes** (Day 4)
+   - [ ] Targets CRUD
+   - [ ] Circuit breaker checking
+   - [ ] Daily notes CRUD
+   - [ ] Target history tracking
+
+5. **Frontend - Page Layout** (Day 5-6)
+   - [ ] Daily page structure
+   - [ ] Status banner component
+   - [ ] Daily metrics row
+   - [ ] Targets progress card
+   - [ ] Date navigation
+
+6. **Frontend - Checklist & Strategy** (Day 7)
+   - [ ] Checklist card with interactions
+   - [ ] Focus strategy card
+   - [ ] Add/edit checklist modal
+
+7. **Frontend - Charts & Tables** (Day 8)
+   - [ ] Intraday equity chart
+   - [ ] Today trades table
+   - [ ] Quick trade entry
+
+8. **Frontend - Notes & Comparison** (Day 9)
+   - [ ] Daily notes editor
+   - [ ] Pre/post market tabs
+   - [ ] Comparison table
+   - [ ] Insight generation
+
+9. **Circuit Breakers & Alerts** (Day 10)
+   - [ ] Warning modal
+   - [ ] Stop modal
+   - [ ] Real-time monitoring
+   - [ ] Notification system
+
+10. **Polish & Translations** (Day 11)
+    - [ ] Full i18n support (pt-BR, en)
+    - [ ] Responsive design
+    - [ ] Loading states
+    - [ ] Empty states
+    - [ ] Settings integration
+
+---
+
+### 12.11 Files to Create/Modify
+
+```
+src/
+├── db/
+│   ├── schema.ts                      # Add 5 new tables (checklists, completions, targets, account_notes, asset_settings)
+│   └── migrations/
+│       └── 0006_xxx.sql               # Phase 12 migration
+├── app/
+│   ├── [locale]/
+│   │   └── daily/
+│   │       └── page.tsx               # NEW: Daily command center page
+│   └── actions/
+│       ├── daily.ts                   # NEW: Daily overview + all accounts summary
+│       ├── checklists.ts              # NEW: Checklist CRUD
+│       ├── targets.ts                 # NEW: Targets CRUD (account-level)
+│       ├── daily-notes.ts             # NEW: Account-level notes CRUD
+│       └── asset-settings.ts          # NEW: Asset-specific settings CRUD
+├── components/
+│   ├── daily/
+│   │   ├── index.ts                   # NEW: Barrel exports
+│   │   ├── daily-content.tsx          # NEW: Client wrapper
+│   │   │
+│   │   │ # All Accounts Components
+│   │   ├── all-accounts-summary.tsx   # NEW: Combined stats across accounts
+│   │   ├── account-selector.tsx       # NEW: Dropdown to switch accounts
+│   │   │
+│   │   │ # Account-Level Components
+│   │   ├── status-banner.tsx          # NEW: Account trading status
+│   │   ├── account-metrics.tsx        # NEW: Account KPI row
+│   │   ├── targets-progress.tsx       # NEW: Account progress bars
+│   │   ├── checklist-card.tsx         # NEW: Account checklist
+│   │   ├── checklist-form.tsx         # NEW: Add/edit checklist item
+│   │   ├── emotional-state-card.tsx   # NEW: Account emotional tracking
+│   │   │
+│   │   │ # Asset-Specific Components
+│   │   ├── asset-tabs.tsx             # NEW: Switch between assets
+│   │   ├── asset-focus-strategy.tsx   # NEW: Strategy for asset
+│   │   ├── asset-bias-card.tsx        # NEW: Bias for asset
+│   │   ├── key-levels-card.tsx        # NEW: Support/resistance
+│   │   ├── key-levels-form.tsx        # NEW: Edit key levels modal
+│   │   ├── asset-trading-rules.tsx    # NEW: Rules for asset today
+│   │   ├── asset-notes-card.tsx       # NEW: Asset-specific notes
+│   │   │
+│   │   │ # Shared Components
+│   │   ├── intraday-equity-chart.tsx  # NEW: Today's equity (with asset filter)
+│   │   ├── today-trades-table.tsx     # NEW: Today's trades (with asset filter)
+│   │   ├── general-daily-notes.tsx    # NEW: Account-level notes editor
+│   │   ├── comparison-table.tsx       # NEW: vs averages
+│   │   ├── circuit-breaker-modal.tsx  # NEW: Warning/stop modal
+│   │   └── date-navigator.tsx         # NEW: Day navigation
+│   │
+│   ├── layout/
+│   │   └── sidebar.tsx                # UPDATE: Add Daily nav item
+│   └── settings/
+│       └── targets-settings.tsx       # NEW: Configure account daily targets
+├── lib/
+│   ├── calculations.ts                # UPDATE: Add daily calculations
+│   └── validations/
+│       ├── checklist.ts               # NEW: Checklist validation
+│       ├── targets.ts                 # NEW: Targets validation
+│       ├── daily-notes.ts             # NEW: Account notes validation
+│       └── asset-settings.ts          # NEW: Asset settings validation
+├── types/
+│   └── index.ts                       # UPDATE: Add daily + asset settings types
+├── scripts/
+│   └── seed-checklists.sql            # NEW: Default checklist items
+└── messages/
+    ├── en.json                        # UPDATE: Add daily translations
+    └── pt-BR.json                     # UPDATE: Add daily translations
+```
+
+---
+
+### 12.12 Translation Keys to Add
+
+```json
+{
+  "nav": {
+    "daily": "Daily"
+  },
+  "daily": {
+    "title": "Daily Trading",
+    "date": "{date}",
+    "yesterday": "Yesterday",
+    "tomorrow": "Tomorrow",
+    "today": "Today",
+
+    "allAccounts": {
+      "title": "All Accounts Summary",
+      "combinedPnl": "Combined P&L",
+      "totalTrades": "Total Trades",
+      "overallWinRate": "Overall Win Rate",
+      "noAccounts": "No trading accounts configured"
+    },
+
+    "account": {
+      "selectAccount": "Select Account",
+      "selectedAccount": "Selected Account"
+    },
+
+    "status": {
+      "green": "Good to Trade",
+      "yellow": "Caution",
+      "red": "Stop Trading",
+      "messages": {
+        "allGood": "You're doing well! Stay disciplined.",
+        "approachingLimit": "Approaching daily loss limit. Consider reducing size.",
+        "lossStreak": "{count} consecutive losses. Take a break.",
+        "limitReached": "Daily loss limit reached. Stop trading.",
+        "targetReached": "Profit target reached! Consider stopping.",
+        "timeUp": "Trading hours ended for today."
+      }
+    },
+
+    "metrics": {
+      "todayPnl": "Today P&L",
+      "winRate": "Win Rate",
+      "avgR": "Avg R",
+      "trades": "Trades",
+      "discipline": "Discipline",
+      "vsAverage": "vs avg"
+    },
+
+    "targets": {
+      "title": "Targets & Limits",
+      "profitTarget": "Profit Target",
+      "lossLimit": "Loss Limit",
+      "tradesLimit": "Max Trades",
+      "consecutiveLosses": "Consecutive Losses",
+      "stopTime": "Stop Trading Time",
+      "remaining": "remaining",
+      "reached": "reached",
+      "safe": "Safe"
+    },
+
+    "checklist": {
+      "title": "Pre-Market Checklist",
+      "completion": "Completion",
+      "addItem": "Add item",
+      "categories": {
+        "mental": "Mental",
+        "technical": "Technical",
+        "market": "Market",
+        "general": "General"
+      }
+    },
+
+    "emotionalState": {
+      "title": "Emotional State",
+      "start": "Start",
+      "current": "Current",
+      "update": "Update",
+      "states": {
+        "calm": "Calm",
+        "anxious": "Anxious",
+        "confident": "Confident",
+        "fearful": "Fearful",
+        "neutral": "Neutral",
+        "frustrated": "Frustrated"
+      }
+    },
+
+    "assets": {
+      "title": "Assets Being Traded Today",
+      "addAsset": "Add Asset",
+      "removeAsset": "Remove Asset",
+      "noAssets": "No assets selected for today",
+      "todayStats": "Today: {trades} trades, {pnl}"
+    },
+
+    "assetSettings": {
+      "focusStrategy": {
+        "title": "Focus Strategy",
+        "noStrategy": "No focus strategy selected",
+        "change": "Change Strategy",
+        "select": "Select strategy for {asset}"
+      },
+      "bias": {
+        "title": "Daily Bias",
+        "change": "Change Bias",
+        "values": {
+          "bullish": "Bullish",
+          "bearish": "Bearish",
+          "neutral": "Neutral",
+          "rangeBound": "Range Bound"
+        },
+        "notes": "Bias Notes"
+      },
+      "keyLevels": {
+        "title": "Key Levels",
+        "edit": "Edit Levels",
+        "addLevel": "Add Level",
+        "types": {
+          "support": "Support",
+          "resistance": "Resistance",
+          "pivot": "Pivot",
+          "vwap": "VWAP",
+          "pdc": "PDC",
+          "pdh": "PDH",
+          "pdl": "PDL",
+          "custom": "Custom"
+        },
+        "strength": {
+          "strong": "Strong",
+          "moderate": "Moderate",
+          "weak": "Weak"
+        },
+        "price": "Price",
+        "note": "Note"
+      },
+      "tradingRules": {
+        "title": "Trading Rules",
+        "edit": "Edit Rules",
+        "placeholder": "Define your trading rules for this asset today..."
+      },
+      "notes": {
+        "title": "Asset Notes",
+        "preMarket": "Pre-Market Notes",
+        "postMarket": "Post-Market Notes",
+        "edit": "Edit Notes"
+      }
+    },
+
+    "equity": {
+      "title": "Intraday Equity",
+      "allAssets": "All Assets",
+      "filterByAsset": "Filter by asset"
+    },
+
+    "trades": {
+      "title": "Today's Trades",
+      "addTrade": "New Trade",
+      "noTrades": "No trades today yet",
+      "time": "Time",
+      "asset": "Asset",
+      "direction": "Dir",
+      "strategy": "Strategy",
+      "entry": "Entry",
+      "exit": "Exit",
+      "pnl": "P&L",
+      "rMultiple": "R",
+      "filterByAsset": "Filter by asset"
+    },
+
+    "generalNotes": {
+      "title": "General Daily Notes",
+      "preMarket": "Pre-Market",
+      "postMarket": "Post-Market",
+      "generalAnalysis": "General Market Analysis",
+      "focusNotes": "Focus for Today",
+      "review": "Post-Market Review",
+      "lessons": "Lessons Learned",
+      "tomorrowFocus": "Tomorrow's Focus",
+      "dayRating": "Day Rating",
+      "save": "Save",
+      "autoSave": "Auto-save"
+    },
+
+    "comparison": {
+      "title": "Comparison with Average",
+      "metric": "Metric",
+      "today": "Today",
+      "dailyAvg": "Daily Avg",
+      "weeklyAvg": "Weekly Avg",
+      "vsAverage": "vs Average"
+    },
+
+    "circuitBreaker": {
+      "warning": {
+        "title": "Warning",
+        "lossLimit": "You're at {percent}% of your daily loss limit",
+        "consecutiveLosses": "You have {count} consecutive losses",
+        "tradesLimit": "You've used {count} of {limit} trades"
+      },
+      "stop": {
+        "title": "Stop Trading",
+        "lossLimit": "Daily loss limit reached",
+        "consecutiveLosses": "Maximum consecutive losses reached",
+        "tradesLimit": "Maximum daily trades reached",
+        "timeUp": "Trading hours ended"
+      },
+      "actions": {
+        "continue": "Continue Trading",
+        "stop": "Stop for Today",
+        "reduceSize": "Reduce Size",
+        "reviewTrades": "Review Trades",
+        "override": "Override (not recommended)"
+      },
+      "recommendations": {
+        "takeBreak": "Take a 15-30 minute break",
+        "reduceSize": "Reduce position size for remaining trades",
+        "reviewLosses": "Review recent losses for patterns",
+        "stopTrading": "Consider stopping for today",
+        "reviewJournal": "Review today's trades in the journal"
+      }
+    }
+  },
+
+  "settings": {
+    "dailyTargets": {
+      "title": "Daily Targets & Limits",
+      "description": "Configure your daily trading limits and circuit breakers",
+      "profitTarget": "Daily Profit Target",
+      "profitTargetEnabled": "Enable profit target",
+      "lossLimit": "Daily Loss Limit",
+      "lossLimitEnabled": "Enable loss limit (recommended)",
+      "maxTrades": "Maximum Daily Trades",
+      "maxTradesEnabled": "Enable trade limit",
+      "consecutiveLosses": "Max Consecutive Losses",
+      "consecutiveLossesEnabled": "Enable consecutive loss limit",
+      "stopTime": "Stop Trading Time",
+      "stopTimeEnabled": "Enable stop time"
+    }
+  }
+}
+```
+
+---
+
+### Deliverables
+
+#### Database & Schema
+- [ ] `daily_checklists` table with default items
+- [ ] `checklist_completions` tracking
+- [ ] `daily_targets` table with account-level circuit breaker settings
+- [ ] `daily_account_notes` table for account-level pre/post market notes
+- [ ] `daily_asset_settings` table for asset-specific settings (strategy, bias, levels, rules)
+
+#### All Accounts Features
+- [ ] All accounts summary banner with combined P&L across accounts
+- [ ] Quick stats per account in summary row
+- [ ] Account selector dropdown
+
+#### Account-Level Features
+- [ ] Daily page as trading command center for selected account
+- [ ] Real-time progress tracking against account targets
+- [ ] Interactive pre-market checklist (account-level)
+- [ ] Account circuit breaker warnings and stops
+- [ ] Emotional state tracking (start/current)
+- [ ] Day rating system
+- [ ] General daily notes editor (account-level analysis)
+
+#### Asset-Specific Features
+- [ ] Asset tabs to switch between assets being traded today
+- [ ] Focus strategy per asset
+- [ ] Daily bias per asset (bullish/bearish/neutral/range-bound)
+- [ ] Key levels management per asset (support/resistance/pivot/VWAP/PDC/PDH/PDL)
+- [ ] Trading rules per asset for the day
+- [ ] Asset-specific pre/post market notes
+- [ ] Add/remove assets from today's trading list
+
+#### Shared Features
+- [ ] Intraday equity curve with asset filter option
+- [ ] Today's trades table with asset filter option
+- [ ] Comparison with historical averages
+- [ ] Date navigation (previous/next day)
+
+#### Settings & Configuration
+- [ ] Settings page for account-level targets configuration
+- [ ] Default checklist items seeding
+
+#### Polish
+- [ ] Full i18n support (pt-BR, en)
+- [ ] Responsive design for all components
+- [ ] Navigation sidebar integration (Daily as primary entry point)
+
+---
+
+## Phase 13: Monte Carlo Strategy Simulator 🔜 PLANNED
+
+**Goal:** Build a comprehensive Monte Carlo simulator that allows traders to stress-test their strategies using either their actual historical trading data (auto-populated from selected strategy) or manual inputs. The simulator runs thousands of randomized trade sequences to understand the range of possible outcomes, calculate risk metrics, and provide actionable position sizing recommendations.
+
+---
+
+### 13.1 Problem Statement
+
+Traders need to understand the statistical robustness of their strategies:
+
+1. **Uncertainty in Future Performance** - Past performance doesn't guarantee future results
+   - "What's the range of outcomes I can expect?"
+   - "What's the worst-case scenario I should prepare for?"
+   - "How likely is my strategy to blow up?"
+
+2. **Risk Management Validation** - Proper position sizing is critical
+   - "Am I risking too much per trade?"
+   - "What's the optimal Kelly Criterion for my strategy?"
+   - "How much drawdown should I expect?"
+
+3. **Strategy Comparison** - Compare different approaches objectively
+   - "Is my new strategy better than my old one?"
+   - "What if I improved my win rate by 5%?"
+   - "How does commission impact my long-term results?"
+
+4. **Psychological Preparation** - Knowing the statistics helps maintain discipline
+   - "How many consecutive losses should I expect?"
+   - "Is a 10-trade losing streak normal for my strategy?"
+   - "When should I be concerned about my strategy failing?"
+
+---
+
+### 13.2 Feature Overview
+
+#### Data Scope
+
+The Monte Carlo simulator respects the global account selection and "show all accounts" flag:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                           STRATEGY SELECTION OPTIONS                              │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  DEFAULT MODE (Single Account Selected):                                         │
+│  ───────────────────────────────────────                                        │
+│  Uses the currently selected account from the global account selector.           │
+│                                                                                  │
+│  Strategy Options:                                                               │
+│  ┌────────────────────────────────────────────────────────────────────────────┐ │
+│  │ • Individual Strategy  - Test a specific strategy's metrics                 │ │
+│  │ • All Strategies       - Combined metrics from ALL strategies in account    │ │
+│  │                         "If I keep trading at this overall pace, will I     │ │
+│  │                          survive?" - Tests your general trading edge        │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                  │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  UNIVERSAL MODE (Show All Accounts Flag = TRUE):                                │
+│  ───────────────────────────────────────────────                                │
+│  When user has enabled "show reports from all accounts" in settings.            │
+│                                                                                  │
+│  Additional Strategy Option:                                                     │
+│  ┌────────────────────────────────────────────────────────────────────────────┐ │
+│  │ • All Accounts + All Strategies                                             │ │
+│  │   Universal simulation combining metrics from EVERY account and strategy.   │ │
+│  │   "What if I keep doing exactly what I've been doing across all my          │ │
+│  │    accounts? What's my overall trading edge?"                               │ │
+│  └────────────────────────────────────────────────────────────────────────────┘ │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Input Mode Selection
+
+**Mode 1: Auto-Populate from Strategy/Account Data**
+- System uses the currently selected account (no account dropdown)
+- Select data source:
+  - **Individual Strategy** - Specific strategy from current account
+  - **All Strategies (Account)** - Combined metrics from all strategies in current account
+  - **All Accounts + All Strategies** - Universal metrics (only if "show all accounts" enabled)
+- System automatically calculates:
+  - Win rate from actual trades
+  - Average reward/risk ratio from actual trades
+  - Average commission impact
+  - Actual number of trades as reference
+- User can adjust parameters or use them as-is
+
+**Mode 2: Manual Entry**
+- Enter all parameters manually for hypothetical testing
+- Useful for testing new strategy ideas before trading them
+
+#### Strategy Comparison Mode (when "Show All Accounts" enabled)
+
+When the user has "show reports from all accounts" enabled, an additional **Compare Strategies** toggle appears. When enabled:
+
+1. **Runs simulation for EACH strategy independently** (not combined)
+2. **Shows side-by-side comparison table** with key metrics
+3. **Highlights best/worst performers** in each category
+4. **Helps identify which strategies are statistically more robust**
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│  ☑ Compare Strategies                                                           │
+│                                                                                  │
+│  Run Monte Carlo simulation on each strategy individually and compare results.  │
+│  This helps identify which strategies have the strongest statistical edge.      │
+│                                                                                  │
+│  Strategies to compare: 5 strategies (from current account)                     │
+│                    or   12 strategies (from all accounts - if universal)        │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Comparison Output:**
+- Side-by-side table comparing all strategies
+- Ranking by key metrics (profitability %, Sharpe, max DD, etc.)
+- Visual indicators (🥇🥈🥉) for top performers
+- Recommendation on which strategies to focus on
+
+#### Input Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| Initial Balance | Starting account balance | $10,000 |
+| Risk Type | Percentage or Fixed amount | Percentage |
+| Risk Per Trade | How much to risk per trade | 1% |
+| Win Rate | Probability of winning a trade | 55% |
+| Reward/Risk Ratio | Average winner / Average loser | 1.5 |
+| Number of Trades | Trades to simulate per run | 100 |
+| Commission per Trade | Commission as % of risk | 0.1% |
+| Monte Carlo Simulations | Number of simulation runs | 1,000 |
+
+#### Output Visualizations
+
+1. **Total Return Progression** - Equity curve showing balance over time
+2. **Drawdown Progression** - Underwater chart showing drawdowns
+3. **Distribution of Outcomes** - Histogram of final balances across simulations
+4. **Trade-by-Trade View** - Sample sequence of simulated trades
+
+#### Output Metrics
+
+1. **Balance Summary**
+   - Initial Balance
+   - Final Balance (median)
+   - Total Return %
+   - Trade Profit
+   - Total Commission
+
+2. **Risk-Adjusted Metrics**
+   - Sharpe Ratio
+   - Sortino Ratio
+   - Calmar Ratio
+
+3. **Performance Metrics**
+   - Profit Factor
+   - Best Trade
+   - Worst Trade
+   - R-Multiple
+   - Position Impact
+
+4. **Drawdown Analysis**
+   - Max Drawdown
+   - Average Drawdown
+   - Recovery Time (trades)
+   - Underwater Time %
+   - Valley-to-Peak (trades)
+
+5. **Streak Statistics**
+   - Max Wins in Row
+   - Max Losses in Row
+   - Average Win Streak
+   - Average Loss Streak
+
+6. **Kelly Criterion Calculator**
+   - Full Kelly (Aggressive)
+   - Half Kelly (Balanced)
+   - Quarter Kelly (Conservative)
+   - Expected Return Per Trade
+   - Recommendation message
+
+7. **Strategy Analysis Summary**
+   - Monte Carlo outcome percentages
+   - Best/Average/Worst case scenarios
+   - Probability of profitability
+   - Risk assessment with ratings
+   - Psychology insights (handling losing streaks)
+   - Position sizing recommendations
+   - Strategy improvement suggestions
+
+---
+
+### 13.3 Monte Carlo Simulation Algorithm
+
+```typescript
+interface SimulationParams {
+  initialBalance: number
+  riskType: 'percentage' | 'fixed'
+  riskPerTrade: number      // % or $ based on riskType
+  winRate: number           // 0-100
+  rewardRiskRatio: number   // e.g., 1.5 means winners are 1.5x losers
+  numberOfTrades: number
+  commissionPerTrade: number // % of risk
+  simulationCount: number   // Number of Monte Carlo runs
+}
+
+interface SimulatedTrade {
+  tradeNumber: number
+  isWin: boolean
+  pnl: number
+  commission: number
+  balanceAfter: number
+  drawdown: number
+  drawdownPercent: number
+}
+
+interface SimulationRun {
+  runId: number
+  trades: SimulatedTrade[]
+  finalBalance: number
+  totalReturn: number
+  totalReturnPercent: number
+  maxDrawdown: number
+  maxDrawdownPercent: number
+  totalCommission: number
+  winCount: number
+  lossCount: number
+  maxWinStreak: number
+  maxLossStreak: number
+  peakBalance: number
+  underwaterTrades: number
+}
+
+interface MonteCarloResult {
+  params: SimulationParams
+  runs: SimulationRun[]
+  
+  // Aggregated statistics across all runs
+  statistics: {
+    // Balance outcomes
+    medianFinalBalance: number
+    meanFinalBalance: number
+    bestCaseFinalBalance: number    // 95th percentile
+    worstCaseFinalBalance: number   // 5th percentile
+    
+    // Return outcomes
+    medianReturn: number
+    meanReturn: number
+    bestCaseReturn: number
+    worstCaseReturn: number
+    
+    // Drawdown statistics
+    medianMaxDrawdown: number
+    meanMaxDrawdown: number
+    worstMaxDrawdown: number
+    
+    // Profitability
+    profitablePct: number           // % of simulations that were profitable
+    ruinPct: number                 // % that hit ruin (e.g., lost 50%+)
+    
+    // Risk-adjusted
+    sharpeRatio: number
+    sortinoRatio: number
+    calmarRatio: number
+    
+    // Performance
+    profitFactor: number
+    expectedValuePerTrade: number
+    
+    // Streaks
+    expectedMaxWinStreak: number
+    expectedMaxLossStreak: number
+    avgWinStreak: number
+    avgLossStreak: number
+    
+    // Kelly Criterion
+    kellyFull: number
+    kellyHalf: number
+    kellyQuarter: number
+    kellyRecommendation: string
+    
+    // Recovery
+    avgRecoveryTrades: number
+    avgUnderwaterPercent: number
+  }
+  
+  // Histogram data for distribution chart
+  distributionBuckets: Array<{
+    rangeStart: number
+    rangeEnd: number
+    count: number
+    percentage: number
+  }>
+  
+  // Sample run for detailed view (median outcome)
+  sampleRun: SimulationRun
+}
+
+const runMonteCarloSimulation = (params: SimulationParams): MonteCarloResult => {
+  const runs: SimulationRun[] = []
+  
+  for (let i = 0; i < params.simulationCount; i++) {
+    const run = simulateSingleRun(params, i)
+    runs.push(run)
+  }
+  
+  return aggregateResults(params, runs)
+}
+
+const simulateSingleRun = (params: SimulationParams, runId: number): SimulationRun => {
+  let balance = params.initialBalance
+  let peakBalance = balance
+  const trades: SimulatedTrade[] = []
+  let winCount = 0
+  let lossCount = 0
+  let currentWinStreak = 0
+  let currentLossStreak = 0
+  let maxWinStreak = 0
+  let maxLossStreak = 0
+  let underwaterTrades = 0
+  let totalCommission = 0
+  
+  for (let t = 0; t < params.numberOfTrades; t++) {
+    // Determine risk amount for this trade
+    const riskAmount = params.riskType === 'percentage'
+      ? balance * (params.riskPerTrade / 100)
+      : Math.min(params.riskPerTrade, balance)
+    
+    // Calculate commission
+    const commission = riskAmount * (params.commissionPerTrade / 100)
+    totalCommission += commission
+    
+    // Determine win or loss (random based on win rate)
+    const isWin = Math.random() * 100 < params.winRate
+    
+    // Calculate P&L
+    let pnl: number
+    if (isWin) {
+      pnl = riskAmount * params.rewardRiskRatio - commission
+      winCount++
+      currentWinStreak++
+      currentLossStreak = 0
+      maxWinStreak = Math.max(maxWinStreak, currentWinStreak)
+    } else {
+      pnl = -riskAmount - commission
+      lossCount++
+      currentLossStreak++
+      currentWinStreak = 0
+      maxLossStreak = Math.max(maxLossStreak, currentLossStreak)
+    }
+    
+    // Update balance
+    balance += pnl
+    balance = Math.max(0, balance) // Can't go negative
+    
+    // Track peak and drawdown
+    peakBalance = Math.max(peakBalance, balance)
+    const drawdown = peakBalance - balance
+    const drawdownPercent = peakBalance > 0 ? (drawdown / peakBalance) * 100 : 0
+    
+    // Track underwater time
+    if (balance < peakBalance) {
+      underwaterTrades++
+    }
+    
+    trades.push({
+      tradeNumber: t + 1,
+      isWin,
+      pnl,
+      commission,
+      balanceAfter: balance,
+      drawdown,
+      drawdownPercent
+    })
+    
+    // Check for ruin (optional early exit)
+    if (balance <= 0) break
+  }
+  
+  const maxDrawdownTrade = trades.reduce((max, t) => 
+    t.drawdownPercent > max.drawdownPercent ? t : max
+  , trades[0])
+  
+  return {
+    runId,
+    trades,
+    finalBalance: balance,
+    totalReturn: balance - params.initialBalance,
+    totalReturnPercent: ((balance - params.initialBalance) / params.initialBalance) * 100,
+    maxDrawdown: maxDrawdownTrade?.drawdown || 0,
+    maxDrawdownPercent: maxDrawdownTrade?.drawdownPercent || 0,
+    totalCommission,
+    winCount,
+    lossCount,
+    maxWinStreak,
+    maxLossStreak,
+    peakBalance,
+    underwaterTrades
+  }
+}
+
+// Kelly Criterion calculation
+const calculateKellyCriterion = (winRate: number, rewardRiskRatio: number): number => {
+  // Kelly % = W - (1-W)/R
+  // Where W = win probability, R = reward/risk ratio
+  const W = winRate / 100
+  const R = rewardRiskRatio
+  return W - ((1 - W) / R)
+}
+```
+
+---
+
+### 13.4 Auto-Population from Data Source
+
+```typescript
+// Data source types
+type DataSource =
+  | { type: 'strategy'; strategyId: string }           // Individual strategy
+  | { type: 'all_strategies' }                          // All strategies in current account
+  | { type: 'universal' }                               // All accounts + all strategies
+
+interface SourceStats {
+  sourceType: DataSource['type']
+  sourceName: string                                    // "Breakout - 15min" or "All Strategies" or "Universal"
+
+  // Calculated from actual trades
+  totalTrades: number
+  winRate: number
+  avgRewardRiskRatio: number
+  avgRiskPerTrade: number      // as % of account
+  avgCommissionImpact: number  // as % of risk
+
+  // Additional context
+  dateRange: { from: Date; to: Date }
+  profitFactor: number
+  avgR: number
+
+  // Multi-source context (for all_strategies and universal)
+  strategiesCount?: number
+  accountsCount?: number       // Only for universal
+  strategiesBreakdown?: Array<{
+    name: string
+    tradesCount: number
+    winRate: number
+  }>
+}
+
+/**
+ * Get stats for simulation based on selected data source.
+ * Uses the currently selected account (from global context) unless universal mode.
+ */
+const getSimulationStats = async (
+  currentAccountId: string,       // From global account selector
+  source: DataSource,
+  showAllAccountsEnabled: boolean // User setting
+): Promise<SourceStats> => {
+
+  let trades: Trade[] = []
+  let sourceName = ''
+  let strategiesCount = 0
+  let accountsCount = 1
+
+  switch (source.type) {
+    case 'strategy':
+      // Individual strategy from current account
+      trades = await getTradesByStrategy(currentAccountId, source.strategyId)
+      const strategy = await getStrategy(source.strategyId)
+      sourceName = strategy?.name || 'Unknown Strategy'
+      strategiesCount = 1
+      break
+
+    case 'all_strategies':
+      // All strategies from current account - "If I keep this pace, will I break?"
+      trades = await getAllTradesForAccount(currentAccountId)
+      sourceName = 'All Strategies'
+      const strategies = await getStrategiesForAccount(currentAccountId)
+      strategiesCount = strategies.length
+      break
+
+    case 'universal':
+      // All accounts + all strategies - requires showAllAccountsEnabled
+      if (!showAllAccountsEnabled) {
+        throw new Error('Universal mode requires "show all accounts" to be enabled')
+      }
+      trades = await getAllTradesForUser() // All trades across all accounts
+      sourceName = 'All Accounts + All Strategies'
+      const allAccounts = await getAllAccounts()
+      accountsCount = allAccounts.length
+      const allStrategies = await getAllStrategies()
+      strategiesCount = allStrategies.length
+      break
+  }
+
+  if (trades.length === 0) {
+    throw new Error(`No trades found for ${sourceName}`)
+  }
+
+  // Calculate stats (same logic for all sources)
+  const wins = trades.filter(t => t.outcome === 'win')
+  const winRate = (wins.length / trades.length) * 100
+
+  // Calculate average R (reward/risk ratio)
+  const tradesWithR = trades.filter(t => t.rMultiple !== null)
+  const avgWinR = tradesWithR
+    .filter(t => t.rMultiple > 0)
+    .reduce((sum, t) => sum + t.rMultiple, 0) / wins.length || 0
+  const avgLossR = Math.abs(tradesWithR
+    .filter(t => t.rMultiple < 0)
+    .reduce((sum, t) => sum + t.rMultiple, 0) / (trades.length - wins.length)) || 1
+  const avgRewardRiskRatio = avgWinR / avgLossR
+
+  // Calculate commission impact
+  const totalCommission = trades.reduce((sum, t) => sum + (t.commission || 0), 0)
+  const totalRisk = trades.reduce((sum, t) => sum + (t.riskAmount || 0), 0)
+  const avgCommissionImpact = totalRisk > 0 ? (totalCommission / totalRisk) * 100 : 0
+
+  // Build strategies breakdown for multi-strategy sources
+  const strategiesBreakdown = source.type !== 'strategy'
+    ? Object.values(
+        trades.reduce((acc, t) => {
+          const name = t.strategy?.name || 'No Strategy'
+          if (!acc[name]) {
+            acc[name] = { name, tradesCount: 0, wins: 0 }
+          }
+          acc[name].tradesCount++
+          if (t.outcome === 'win') acc[name].wins++
+          return acc
+        }, {} as Record<string, { name: string; tradesCount: number; wins: number }>)
+      ).map(s => ({
+        name: s.name,
+        tradesCount: s.tradesCount,
+        winRate: (s.wins / s.tradesCount) * 100
+      }))
+    : undefined
+
+  return {
+    sourceType: source.type,
+    sourceName,
+    totalTrades: trades.length,
+    winRate,
+    avgRewardRiskRatio,
+    avgRiskPerTrade: 1, // Default, would need account history for accurate %
+    avgCommissionImpact,
+    dateRange: {
+      from: trades[trades.length - 1].entryDate,
+      to: trades[0].entryDate
+    },
+    profitFactor: calculateProfitFactor(trades),
+    avgR: tradesWithR.reduce((sum, t) => sum + t.rMultiple, 0) / tradesWithR.length,
+    strategiesCount,
+    accountsCount: source.type === 'universal' ? accountsCount : undefined,
+    strategiesBreakdown
+  }
+}
+```
+
+---
+
+### 13.5 Backend Tasks
+
+#### Simulation Actions (`src/app/actions/monte-carlo.ts`)
+
+- [ ] `getSimulationStats()` - Fetch stats for any data source (strategy, all strategies, universal)
+- [ ] `getDataSourceOptions()` - List available data sources for current context
+  - Individual strategies from current account
+  - "All Strategies" option (always available)
+  - "Universal" option (only if showAllAccounts enabled)
+- [ ] `runSimulation()` - Execute Monte Carlo simulation (server-side for heavy computation)
+- [ ] `runComparisonSimulation()` - Run simulations for ALL strategies and return comparison results
+  - Runs simulation for each strategy individually
+  - Returns array of results with rankings
+  - Generates recommendations and suggested allocations
+- [ ] `saveSimulationResult()` - Optionally save simulation for later reference
+- [ ] `saveComparisonResult()` - Save comparison results for later reference
+- [ ] `getSavedSimulations()` - List saved simulations
+- [ ] `deleteSimulation()` - Remove saved simulation
+
+#### Stats Helper Actions (`src/app/actions/strategy-stats.ts`)
+
+- [ ] `getAllTradesForAccount()` - Get all trades for selected account
+- [ ] `getAllTradesForUser()` - Get all trades across all accounts (for universal)
+- [ ] `getStrategiesBreakdown()` - Win rate breakdown by strategy
+- [ ] `getStrategyPerformanceMetrics()` - Detailed strategy metrics
+- [ ] `getStrategyTradeDistribution()` - Distribution of R-multiples
+
+---
+
+### 13.6 Frontend - Page Layout
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ Monte Carlo Strategy Simulator                                          [?] Help│
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  ┌─ INPUT MODE ────────────────────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  ○ Auto-populate from Strategy    ● Manual Entry                            ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ DATA SOURCE (if Auto mode) ────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  Current Account: Personal Account                   (change in sidebar)    ││
+│  │                                                                              ││
+│  │  Data Source: [─────────────────────────────────────────────────────── ▼]   ││
+│  │               │ ○ Breakout - 15min (Individual Strategy)               │    ││
+│  │               │ ○ Mean Reversion - 5min (Individual Strategy)          │    ││
+│  │               │ ○ Scalping - 1min (Individual Strategy)                │    ││
+│  │               │ ─────────────────────────────────────────────────────  │    ││
+│  │               │ ● All Strategies (Account-wide metrics)                │    ││
+│  │               │   "Test your overall trading edge"                     │    ││
+│  │               │ ─────────────────────────────────────────────────────  │    ││
+│  │               │ ○ All Accounts + All Strategies (Universal)  🌐        │    ││
+│  │               │   "Test your complete trading profile"                 │    ││
+│  │               │   (only if "show all accounts" enabled)                │    ││
+│  │               └────────────────────────────────────────────────────────┘    ││
+│  │                                                                              ││
+│  │  ┌─ Stats Preview ───────────────────────────────────────────────────────┐  ││
+│  │  │ All Strategies - Based on 342 trades (Jan 2024 - Jan 2025)           │  ││
+│  │  │ Across 5 strategies                                                   │  ││
+│  │  │                                                                        │  ││
+│  │  │ Win Rate: 54%  │  Avg R:R: 1.42  │  Profit Factor: 1.67               │  ││
+│  │  │                                                                        │  ││
+│  │  │ [Use These Stats]  [Customize]                                        │  ││
+│  │  └────────────────────────────────────────────────────────────────────────┘  ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ SIMULATION PARAMETERS ─────────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐                            ││
+│  │  │ Initial    │  │ Risk Type  │  │ Risk Per   │                            ││
+│  │  │ Balance    │  │            │  │ Trade      │                            ││
+│  │  │ $10,000    │  │ Percentage▼│  │ 1%         │                            ││
+│  │  └────────────┘  └────────────┘  └────────────┘                            ││
+│  │                                                                              ││
+│  │  ┌────────────┐  ┌────────────┐  ┌────────────┐                            ││
+│  │  │ Win Rate   │  │ Reward/    │  │ Number of  │                            ││
+│  │  │ (%)        │  │ Risk Ratio │  │ Trades     │                            ││
+│  │  │ 58         │  │ 1.35       │  │ 100        │                            ││
+│  │  └────────────┘  └────────────┘  └────────────┘                            ││
+│  │                                                                              ││
+│  │  ┌────────────────────────────┐  ┌─────────────────────────────────────┐   ││
+│  │  │ Commission per Trade (%)   │  │ Monte Carlo Simulations             │   ││
+│  │  │ 0.1                        │  │ 1000                                │   ││
+│  │  └────────────────────────────┘  └─────────────────────────────────────┘   ││
+│  │                                                                              ││
+│  │                        [ 🎲 CALCULATE RESULTS ]                             ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════════════════════════
+                              RESULTS (After Calculation)
+═══════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                                                                  │
+│  ┌─ EXPECTED RESULTS ──────────────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  ┌─ Total Return Progression ────────────────────────────────────────────┐  ││
+│  │  │        25% │                                          ___----````       │  ││
+│  │  │        20% │                               ___----````                  │  ││
+│  │  │        15% │                    ___----````                             │  ││
+│  │  │        10% │         ___----````                                        │  ││
+│  │  │         5% │___----``                                                   │  ││
+│  │  │         0% │────────────────────────────────────────────────────────    │  ││
+│  │  │        -5% │                                                            │  ││
+│  │  │            └────────────────────────────────────────────────────────    │  ││
+│  │  │             0    10   20   30   40   50   60   70   80   90  100        │  ││
+│  │  │                              Trade Number                               │  ││
+│  │  └────────────────────────────────────────────────────────────────────────┘  ││
+│  │                                                                              ││
+│  │  ┌─ Drawdown Progression ────────────────────────────────────────────────┐  ││
+│  │  │         0% │──────────────────────────────────────────────────────────  │  ││
+│  │  │         2% │    ````---___                                             │  ││
+│  │  │         4% │              ```---___                  ___---```          │  ││
+│  │  │         6% │                       ```---___    ___---                  │  ││
+│  │  │         8% │                                ```---                      │  ││
+│  │  │        10% │                                   ````---___               │  ││
+│  │  │            └────────────────────────────────────────────────────────    │  ││
+│  │  │             0    10   20   30   40   50   60   70   80   90  100        │  ││
+│  │  └────────────────────────────────────────────────────────────────────────┘  ││
+│  │                                                                              ││
+│  │  ┌─ Distribution of Possible Outcomes ───────────────────────────────────┐  ││
+│  │  │                                                                        │  ││
+│  │  │   Frequency                                                            │  ││
+│  │  │      100 │                    ████                                     │  ││
+│  │  │       80 │                 ████████                                    │  ││
+│  │  │       60 │              ██████████████                                 │  ││
+│  │  │       40 │           ████████████████████                              │  ││
+│  │  │       20 │        ████████████████████████████                         │  ││
+│  │  │          └────────────────────────────────────────────────────────     │  ││
+│  │  │           $8k    $9k    $10k   $11k   $12k   $13k   $14k              │  ││
+│  │  │                          Final Balance                                 │  ││
+│  │  └────────────────────────────────────────────────────────────────────────┘  ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ AVERAGE CASE SCENARIO - Trade Details ─────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  ┌─ Balance Summary ────┐  ┌─ Risk-Adjusted ────┐  ┌─ Performance ────────┐ ││
+│  │  │                      │  │                    │  │                      │ ││
+│  │  │ Initial: $10,000     │  │ Sharpe: 2.85       │  │ Profit Factor: 1.87  │ ││
+│  │  │ Final: $12,340       │  │ Sortino: 2.91      │  │ Best Trade: $185     │ ││
+│  │  │ Return: +23.4%       │  │ Calmar: 6.12       │  │ Worst Trade: -$137   │ ││
+│  │  │ Profit: $2,340       │  │                    │  │ R-Multiple: 0.35     │ ││
+│  │  │ Commission: $45      │  │                    │  │                      │ ││
+│  │  │                      │  │                    │  │                      │ ││
+│  │  └──────────────────────┘  └────────────────────┘  └──────────────────────┘ ││
+│  │                                                                              ││
+│  │  ┌─ Drawdown Analysis ──┐  ┌─ Streak Stats ─────┐  ┌─ Kelly Criterion ────┐ ││
+│  │  │                      │  │                    │  │                      │ ││
+│  │  │ Max DD: 8.5%         │  │ Max Wins: 7        │  │ Full Kelly: 18.5%    │ ││
+│  │  │ Avg DD: 3.2%         │  │ Max Losses: 5      │  │ Half Kelly: 9.25%    │ ││
+│  │  │ Recovery: 12 trades  │  │ Avg Win Streak: 2.1│  │ Quarter Kelly: 4.6%  │ ││
+│  │  │ Underwater: 45%      │  │ Avg Loss Streak: 1.4│ │                      │ ││
+│  │  │ V-to-P: 8 trades     │  │                    │  │ ⚠️ Use Quarter Kelly │ ││
+│  │  │                      │  │                    │  │                      │ ││
+│  │  └──────────────────────┘  └────────────────────┘  └──────────────────────┘ ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ SAMPLE TRADE SEQUENCE (Average Case) ──────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  #1  │ 🟢 Win  │ +$135   │ Commission: $1.35   │ Balance: $10,135          ││
+│  │  #2  │ 🔴 Loss │ -$101   │ Commission: $1.01   │ Balance: $10,034          ││
+│  │  #3  │ 🟢 Win  │ +$136   │ Commission: $1.36   │ Balance: $10,169          ││
+│  │  #4  │ 🟢 Win  │ +$138   │ Commission: $1.38   │ Balance: $10,306          ││
+│  │  #5  │ 🔴 Loss │ -$103   │ Commission: $1.03   │ Balance: $10,203          ││
+│  │  ... │         │         │                      │                           ││
+│  │                                                                              ││
+│  │  [Show All Trades]                                                          ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ TRADING STRATEGY ANALYSIS ─────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  📊 Monte Carlo Simulation Analysis                                         ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Based on 1000 simulations of your strategy:                                ││
+│  │                                                                              ││
+│  │  • Average Return: 23.4% (Max DD: 8.5%) - This is your most likely outcome ││
+│  │  • Best Case: 52.3% (Max DD: 4.2%) - Achieved in top 5% of simulations     ││
+│  │  • Worst Case: -12.5% (Max DD: 18.2%) - Your maximum downside risk         ││
+│  │                                                                              ││
+│  │  ✅ 89% of all simulations were profitable, indicating a robust strategy.  ││
+│  │                                                                              ││
+│  │  💡 Tip: A reliable strategy should be profitable in at least 70% of sims. ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  💰 Balance and Returns Analysis                                            ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Starting with $10,000, your strategy shows:                                ││
+│  │                                                                              ││
+│  │  • Expected Profit: $2,340 (23.4% return)                                   ││
+│  │  • Commission Impact: $45 (1.9% of profits)                                 ││
+│  │                                                                              ││
+│  │  ✅ Commission costs are well-managed relative to profits.                  ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  ⚠️ Risk Analysis                                                           ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Your risk metrics indicate:                                                ││
+│  │                                                                              ││
+│  │  • Maximum Drawdown: 8.5% - ✅ Well-controlled                              ││
+│  │  • Sharpe Ratio: 2.85 - ✅ Excellent risk-adjusted returns                  ││
+│  │  • Sortino Ratio: 2.91 - ✅ Strong downside risk management                 ││
+│  │  • Calmar Ratio: 6.12 - ✅ Exceptional return relative to risk              ││
+│  │                                                                              ││
+│  │  💡 Your strategy's risk-adjusted performance is excellent.                 ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  🧠 Trading Psychology                                                       ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Psychological factors to consider:                                         ││
+│  │                                                                              ││
+│  │  • Win Rate: 58% - Solid performance                                        ││
+│  │  • Longest Win Streak: 7 trades                                             ││
+│  │  • Longest Loss Streak: 5 trades                                            ││
+│  │                                                                              ││
+│  │  💡 Can you maintain discipline during a 5-trade losing streak?             ││
+│  │     This is crucial for success.                                            ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  ✏️ Position Sizing Recommendations                                          ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Based on the Kelly Criterion:                                              ││
+│  │                                                                              ││
+│  │  • Full Kelly (Aggressive): 18.5% per trade                                 ││
+│  │  • Half Kelly (Balanced): 9.25% per trade                                   ││
+│  │  • Quarter Kelly (Conservative): 4.6% per trade                             ││
+│  │                                                                              ││
+│  │  Recommended Quarter Kelly position sizes:                                   ││
+│  │  • $10,000 account: Risk $460 per trade                                     ││
+│  │  • $25,000 account: Risk $1,150 per trade                                   ││
+│  │  • $50,000 account: Risk $2,300 per trade                                   ││
+│  │                                                                              ││
+│  │  💡 Risk Management Guidelines:                                              ││
+│  │  • New Traders: Start with 1% risk maximum                                  ││
+│  │  • Prop Firm Accounts: Keep risk at 0.5% or lower                          ││
+│  │  • Experienced Traders: Can gradually increase to 1-2%                      ││
+│  │  • Never exceed Quarter Kelly regardless of experience level                ││
+│  │                                                                              ││
+│  │  ✅ Your current 1% risk is reasonable for capital preservation.            ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  🎯 Strategy Improvements                                                    ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │  Key areas for optimization:                                                ││
+│  │                                                                              ││
+│  │  • ⏱️ Reduce Underwater Time: Look for better entry/exit criteria          ││
+│  │  • 📈 Improve Reward/Risk: Focus on letting winners run longer             ││
+│  │                                                                              ││
+│  │  💡 Remember: The best strategy is one you can execute consistently         ││
+│  │     with confidence.                                                        ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│                    [💾 Save Simulation]  [📤 Export PDF]  [🔄 Run Again]         │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+#### Strategy Comparison Results (when Compare Mode enabled)
+
+```
+═══════════════════════════════════════════════════════════════════════════════════
+                    STRATEGY COMPARISON (When Compare Mode Enabled)
+═══════════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│ Strategy Comparison Results                           Based on 1000 simulations │
+├─────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                  │
+│  Comparing 5 strategies from Personal Account                                   │
+│                                                                                  │
+│  ┌─ COMPARISON TABLE ──────────────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  Strategy          Trades  Win%   R:R    Profit%  MaxDD   Sharpe  Rank     ││
+│  │  ───────────────────────────────────────────────────────────────────────    ││
+│  │  🥇 Breakout 15m    127    58%   1.35   +32.4%   8.5%    2.85    #1       ││
+│  │  🥈 Mean Rev. 5m     89    62%   1.12   +24.1%   6.2%    2.41    #2       ││
+│  │  🥉 Scalping 1m     234    71%   0.85   +18.7%   4.8%    2.12    #3       ││
+│  │     Range Break      45    52%   1.65   +15.2%  12.1%    1.54    #4       ││
+│  │     Counter-trend    32    44%   2.10    -8.5%  18.3%    0.42    #5       ││
+│  │                                                                              ││
+│  │  Legend: 🟢 Best in category  🔴 Worst in category                          ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ DETAILED METRICS COMPARISON ───────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  ┌─ Profitability (% of simulations profitable) ────────────────────────┐   ││
+│  │  │                                                                       │   ││
+│  │  │  Breakout 15m    ████████████████████████████████████████████░░░ 89%  │   ││
+│  │  │  Mean Rev. 5m    █████████████████████████████████████████░░░░░░ 84%  │   ││
+│  │  │  Scalping 1m     ████████████████████████████████████░░░░░░░░░░░ 78%  │   ││
+│  │  │  Range Break     █████████████████████████████░░░░░░░░░░░░░░░░░░ 65%  │   ││
+│  │  │  Counter-trend   ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 32%  │   ││
+│  │  │                                                                       │   ││
+│  │  └───────────────────────────────────────────────────────────────────────┘   ││
+│  │                                                                              ││
+│  │  ┌─ Risk-Adjusted Returns (Sharpe Ratio) ───────────────────────────────┐   ││
+│  │  │                                                                       │   ││
+│  │  │  Breakout 15m    ████████████████████████████████████████████ 2.85   │   ││
+│  │  │  Mean Rev. 5m    ████████████████████████████████████░░░░░░░░ 2.41   │   ││
+│  │  │  Scalping 1m     █████████████████████████████████░░░░░░░░░░░ 2.12   │   ││
+│  │  │  Range Break     ██████████████████████████░░░░░░░░░░░░░░░░░░ 1.54   │   ││
+│  │  │  Counter-trend   ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 0.42   │   ││
+│  │  │                                                                       │   ││
+│  │  └───────────────────────────────────────────────────────────────────────┘   ││
+│  │                                                                              ││
+│  │  ┌─ Maximum Drawdown (lower is better) ─────────────────────────────────┐   ││
+│  │  │                                                                       │   ││
+│  │  │  Scalping 1m     ████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 4.8% 🟢│   ││
+│  │  │  Mean Rev. 5m    ██████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 6.2%   │   ││
+│  │  │  Breakout 15m    ████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 8.5%   │   ││
+│  │  │  Range Break     ████████████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 12.1%  │   ││
+│  │  │  Counter-trend   ██████████████████░░░░░░░░░░░░░░░░░░░░░░░░░░ 18.3% 🔴│   ││
+│  │  │                                                                       │   ││
+│  │  └───────────────────────────────────────────────────────────────────────┘   ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ RECOMMENDATIONS ───────────────────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  📊 Analysis Summary                                                         ││
+│  │  ───────────────────────────────────────────────────────                    ││
+│  │                                                                              ││
+│  │  🏆 Top Performers:                                                          ││
+│  │  • Breakout 15m - Best overall returns with acceptable drawdown             ││
+│  │  • Mean Reversion 5m - Excellent balance of returns and low drawdown        ││
+│  │                                                                              ││
+│  │  ⚠️ Needs Improvement:                                                       ││
+│  │  • Counter-trend - Only 32% profitable simulations, consider pausing        ││
+│  │    this strategy until parameters are refined                               ││
+│  │                                                                              ││
+│  │  💡 Suggested Focus:                                                         ││
+│  │  Based on Monte Carlo analysis, consider allocating more capital to         ││
+│  │  "Breakout 15m" and "Mean Reversion 5m" strategies, while reducing          ││
+│  │  exposure to "Counter-trend" until its edge improves.                       ││
+│  │                                                                              ││
+│  │  📈 Portfolio Suggestion (by statistical robustness):                        ││
+│  │  • Breakout 15m: 35% allocation                                             ││
+│  │  • Mean Reversion 5m: 30% allocation                                        ││
+│  │  • Scalping 1m: 25% allocation                                              ││
+│  │  • Range Break: 10% allocation                                              ││
+│  │  • Counter-trend: 0% (pause until improved)                                 ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌─ INDIVIDUAL STRATEGY DETAILS ───────────────────────────────────────────────┐│
+│  │                                                                              ││
+│  │  [Breakout 15m ▼]  [Mean Rev. 5m]  [Scalping 1m]  [Range Break]  [Counter]  ││
+│  │   ═══════════════                                                            ││
+│  │                                                                              ││
+│  │  (Shows full simulation results for selected strategy - same as single      ││
+│  │   strategy view with all charts, metrics, and analysis)                     ││
+│  │                                                                              ││
+│  └──────────────────────────────────────────────────────────────────────────────┘│
+│                                                                                  │
+│          [📤 Export Comparison PDF]  [📊 Export to CSV]  [🔄 Run Again]          │
+│                                                                                  │
+└─────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 13.7 Frontend Components
+
+#### Input Components (`src/components/monte-carlo/`)
+
+**Input Mode Selector**
+```typescript
+interface InputModeSelectorProps {
+  mode: 'auto' | 'manual'
+  onModeChange: (mode: 'auto' | 'manual') => void
+}
+```
+
+**Data Source Selector**
+```typescript
+type DataSource =
+  | { type: 'strategy'; strategyId: string }           // Individual strategy
+  | { type: 'all_strategies' }                          // All strategies in current account
+  | { type: 'universal' }                               // All accounts + all strategies
+
+interface DataSourceSelectorProps {
+  strategies: Strategy[]                                // Strategies from current account
+  selectedSource: DataSource
+  onSourceChange: (source: DataSource) => void
+  showUniversalOption: boolean                          // Based on "show all accounts" flag
+  sourceStats: SourceStats | null                       // Stats for selected source
+  isLoading: boolean
+}
+
+interface SourceStats {
+  sourceType: DataSource['type']
+  sourceName: string                                    // "Breakout - 15min" or "All Strategies" or "Universal"
+  totalTrades: number
+  winRate: number
+  avgRewardRiskRatio: number
+  avgCommissionImpact: number
+  dateRange: { from: Date; to: Date }
+  profitFactor: number
+  avgR: number
+  // For "all_strategies" and "universal", also include:
+  strategiesCount?: number
+  accountsCount?: number                                // Only for universal
+}
+```
+
+**Strategy Stats Preview**
+```typescript
+interface StrategyStatsPreviewProps {
+  stats: StrategyStats
+  onUseStats: () => void
+  onCustomize: () => void
+}
+```
+
+**Simulation Parameters Form**
+```typescript
+interface SimulationParamsFormProps {
+  params: SimulationParams
+  onChange: (params: SimulationParams) => void
+  isAutoPopulated: boolean
+  onReset: () => void
+}
+```
+
+#### Result Components (`src/components/monte-carlo/`)
+
+**Equity Curve Chart**
+```typescript
+interface EquityCurveChartProps {
+  trades: SimulatedTrade[]
+  showPercentage: boolean
+}
+```
+
+**Drawdown Chart**
+```typescript
+interface DrawdownChartProps {
+  trades: SimulatedTrade[]
+}
+```
+
+**Distribution Histogram**
+```typescript
+interface DistributionHistogramProps {
+  buckets: DistributionBucket[]
+  medianBalance: number
+  initialBalance: number
+}
+```
+
+**Balance Summary Card**
+```typescript
+interface BalanceSummaryCardProps {
+  initial: number
+  final: number
+  returnPercent: number
+  profit: number
+  commission: number
+  currency: string
+}
+```
+
+**Risk Adjusted Metrics Card**
+```typescript
+interface RiskAdjustedMetricsCardProps {
+  sharpeRatio: number
+  sortinoRatio: number
+  calmarRatio: number
+}
+```
+
+**Performance Metrics Card**
+```typescript
+interface PerformanceMetricsCardProps {
+  profitFactor: number
+  bestTrade: number
+  worstTrade: number
+  rMultiple: number
+  positionImpact: number
+  currency: string
+}
+```
+
+**Drawdown Analysis Card**
+```typescript
+interface DrawdownAnalysisCardProps {
+  maxDrawdown: number
+  avgDrawdown: number
+  recoveryTrades: number
+  underwaterPercent: number
+  valleyToPeak: number
+}
+```
+
+**Streak Statistics Card**
+```typescript
+interface StreakStatisticsCardProps {
+  maxWinStreak: number
+  maxLossStreak: number
+  avgWinStreak: number
+  avgLossStreak: number
+}
+```
+
+**Kelly Criterion Card**
+```typescript
+interface KellyCriterionCardProps {
+  fullKelly: number
+  halfKelly: number
+  quarterKelly: number
+  expectedReturnPerTrade: number
+  recommendation: string
+  recommendationLevel: 'aggressive' | 'balanced' | 'conservative'
+}
+```
+
+**Trade Sequence List**
+```typescript
+interface TradeSequenceListProps {
+  trades: SimulatedTrade[]
+  currency: string
+  initiallyCollapsed: boolean
+  maxVisible: number
+}
+```
+
+**Strategy Analysis Section**
+```typescript
+interface StrategyAnalysisProps {
+  result: MonteCarloResult
+  currency: string
+}
+```
+
+#### Comparison Components (`src/components/monte-carlo/`)
+
+**Compare Mode Toggle**
+```typescript
+interface CompareModeToggleProps {
+  enabled: boolean
+  onToggle: (enabled: boolean) => void
+  strategiesCount: number
+  accountsCount?: number  // Only for universal mode
+  isUniversalMode: boolean
+}
+```
+
+**Strategy Comparison Table**
+```typescript
+interface StrategyComparisonTableProps {
+  results: StrategyComparisonResult[]
+  sortBy: ComparisonSortField
+  onSortChange: (field: ComparisonSortField) => void
+  onStrategySelect: (strategyId: string) => void
+  currency: string
+}
+
+interface StrategyComparisonResult {
+  strategyId: string
+  strategyName: string
+  accountName?: string  // For universal mode
+  tradesCount: number
+  winRate: number
+  rewardRiskRatio: number
+  medianReturn: number
+  profitablePct: number  // % of simulations profitable
+  maxDrawdown: number
+  sharpeRatio: number
+  rank: number
+}
+
+type ComparisonSortField =
+  | 'rank'
+  | 'profitablePct'
+  | 'medianReturn'
+  | 'maxDrawdown'
+  | 'sharpeRatio'
+  | 'winRate'
+```
+
+**Comparison Bar Charts**
+```typescript
+interface ComparisonBarChartProps {
+  data: Array<{
+    strategyName: string
+    value: number
+    isHighlighted: boolean  // Best or worst in category
+  }>
+  title: string
+  metric: 'profitability' | 'sharpe' | 'drawdown' | 'return'
+  lowerIsBetter?: boolean  // For drawdown
+}
+```
+
+**Comparison Recommendations**
+```typescript
+interface ComparisonRecommendationsProps {
+  results: StrategyComparisonResult[]
+  topPerformers: string[]      // Strategy names
+  needsImprovement: string[]   // Strategy names
+  suggestedAllocations: Array<{
+    strategyName: string
+    allocationPct: number
+    reason: string
+  }>
+}
+```
+
+**Strategy Detail Tabs** (for viewing individual results in comparison mode)
+```typescript
+interface StrategyDetailTabsProps {
+  strategies: Array<{
+    id: string
+    name: string
+    result: MonteCarloResult
+  }>
+  selectedStrategyId: string
+  onStrategySelect: (id: string) => void
+}
+```
+
+---
+
+### 13.8 Database Schema (Optional - for saving simulations)
+
+```sql
+CREATE TABLE monte_carlo_simulations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  account_id UUID REFERENCES trading_accounts(id) ON DELETE SET NULL,
+  strategy_id UUID REFERENCES strategies(id) ON DELETE SET NULL,
+  
+  -- Input parameters
+  name VARCHAR(255), -- User-given name for the simulation
+  initial_balance INTEGER NOT NULL, -- in cents
+  risk_type VARCHAR(20) NOT NULL, -- 'percentage' or 'fixed'
+  risk_per_trade DECIMAL(10,4) NOT NULL,
+  win_rate DECIMAL(5,2) NOT NULL,
+  reward_risk_ratio DECIMAL(10,4) NOT NULL,
+  number_of_trades INTEGER NOT NULL,
+  commission_per_trade DECIMAL(10,4) NOT NULL,
+  simulation_count INTEGER NOT NULL,
+  
+  -- Key results (stored for quick reference)
+  median_return DECIMAL(10,4),
+  best_case_return DECIMAL(10,4),
+  worst_case_return DECIMAL(10,4),
+  profitability_percent DECIMAL(5,2),
+  median_max_drawdown DECIMAL(10,4),
+  sharpe_ratio DECIMAL(10,4),
+  kelly_quarter DECIMAL(10,4),
+  
+  -- Full results stored as JSON (for detailed view)
+  full_results JSONB,
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  
+  CONSTRAINT valid_risk_type CHECK (risk_type IN ('percentage', 'fixed'))
+);
+
+CREATE INDEX idx_monte_carlo_user ON monte_carlo_simulations(user_id);
+CREATE INDEX idx_monte_carlo_strategy ON monte_carlo_simulations(strategy_id);
+```
+
+---
+
+### 13.9 Implementation Order
+
+1. **Core Simulation Engine** (Day 1-2)
+   - [ ] Create `lib/monte-carlo.ts` with simulation algorithm
+   - [ ] Implement Kelly Criterion calculation
+   - [ ] Implement statistics aggregation
+   - [ ] Add risk metric calculations (Sharpe, Sortino, Calmar)
+   - [ ] Write unit tests for simulation accuracy
+
+2. **Backend Actions** (Day 3)
+   - [ ] `getSimulationStats()` - Auto-populate from data source (strategy/all/universal)
+   - [ ] `getDataSourceOptions()` - List available data sources for current context
+   - [ ] `runSimulation()` - Server action for heavy computation
+   - [ ] Create validation schemas
+
+3. **Frontend - Input Section** (Day 4-5)
+   - [ ] Monte Carlo page layout
+   - [ ] Input mode selector (auto/manual)
+   - [ ] Data source selector (strategy dropdown + "All Strategies" + "Universal" options)
+   - [ ] Stats preview card with strategies breakdown
+   - [ ] Simulation parameters form
+   - [ ] Form validation
+
+4. **Frontend - Charts** (Day 6-7)
+   - [ ] Equity curve chart (Recharts)
+   - [ ] Drawdown progression chart
+   - [ ] Distribution histogram
+   - [ ] Chart interactions and tooltips
+
+5. **Frontend - Metrics Cards** (Day 8-9)
+   - [ ] Balance summary card
+   - [ ] Risk-adjusted metrics card
+   - [ ] Performance metrics card
+   - [ ] Drawdown analysis card
+   - [ ] Streak statistics card
+   - [ ] Kelly Criterion card
+
+6. **Frontend - Analysis Section** (Day 10)
+   - [ ] Strategy analysis component with insights
+   - [ ] Trade sequence list
+   - [ ] Conditional insights based on metrics
+
+7. **Frontend - Strategy Comparison** (Day 11-12)
+   - [ ] Compare mode toggle
+   - [ ] `runComparisonSimulation()` backend action
+   - [ ] Strategy comparison table with sorting
+   - [ ] Comparison bar charts (profitability, Sharpe, drawdown)
+   - [ ] Comparison recommendations generator
+   - [ ] Strategy detail tabs for viewing individual results
+   - [ ] Portfolio allocation suggestions
+
+8. **Optional: Save Simulations** (Day 13)
+   - [ ] Database migration
+   - [ ] Save/load simulation actions
+   - [ ] Save comparison results
+   - [ ] Saved simulations list
+   - [ ] Delete simulation
+
+9. **Polish & Translations** (Day 14)
+   - [ ] Full i18n support (pt-BR, en)
+   - [ ] Loading states
+   - [ ] Error handling
+   - [ ] Responsive design
+   - [ ] Help tooltips
+
+---
+
+### 13.10 Files to Create/Modify
+
+```
+src/
+├── app/
+│   ├── [locale]/(app)/
+│   │   └── monte-carlo/
+│   │       └── page.tsx               # NEW: Monte Carlo simulator page
+│   └── actions/
+│       └── monte-carlo.ts             # NEW: Simulation actions
+├── components/
+│   ├── monte-carlo/
+│   │   ├── index.ts                   # NEW: Barrel exports
+│   │   ├── monte-carlo-content.tsx    # NEW: Client wrapper
+│   │   │
+│   │   │ # Input Components
+│   │   ├── input-mode-selector.tsx    # NEW: Auto/Manual toggle
+│   │   ├── strategy-selector.tsx      # NEW: Account + Strategy dropdowns
+│   │   ├── strategy-stats-preview.tsx # NEW: Stats preview card
+│   │   ├── simulation-params-form.tsx # NEW: Parameter inputs
+│   │   │
+│   │   │ # Chart Components
+│   │   ├── equity-curve-chart.tsx     # NEW: Return progression
+│   │   ├── drawdown-chart.tsx         # NEW: Drawdown progression
+│   │   ├── distribution-histogram.tsx # NEW: Outcomes distribution
+│   │   │
+│   │   │ # Metrics Cards
+│   │   ├── balance-summary-card.tsx   # NEW: Balance summary
+│   │   ├── risk-adjusted-card.tsx     # NEW: Sharpe/Sortino/Calmar
+│   │   ├── performance-card.tsx       # NEW: Profit factor, trades
+│   │   ├── drawdown-card.tsx          # NEW: Drawdown analysis
+│   │   ├── streak-stats-card.tsx      # NEW: Win/loss streaks
+│   │   ├── kelly-criterion-card.tsx   # NEW: Position sizing
+│   │   │
+│   │   │ # Analysis Components
+│   │   ├── strategy-analysis.tsx      # NEW: AI-like insights
+│   │   ├── trade-sequence-list.tsx    # NEW: Sample trades
+│   │   │
+│   │   │ # Optional
+│   │   ├── saved-simulations-list.tsx # NEW: List saved sims
+│   │   └── simulation-actions.tsx     # NEW: Save/Export buttons
+│   │
+│   └── layout/
+│       └── sidebar.tsx                # UPDATE: Add Monte Carlo nav
+├── lib/
+│   ├── monte-carlo.ts                 # NEW: Core simulation engine
+│   └── validations/
+│       └── monte-carlo.ts             # NEW: Param validation
+├── types/
+│   └── monte-carlo.ts                 # NEW: Simulation types
+├── db/
+│   ├── schema.ts                      # UPDATE: Add simulations table (optional)
+│   └── migrations/
+│       └── 0007_xxx.sql               # Phase 13 migration (optional)
+└── messages/
+    ├── en.json                        # UPDATE: Add monte-carlo translations
+    └── pt-BR.json                     # UPDATE: Add monte-carlo translations
+```
+
+---
+
+### 13.11 Navigation Integration
+
+Add "Monte Carlo" under Analytics or as standalone:
+
+```typescript
+// Sidebar navigation
+{
+  icon: Dices,  // or BarChart3
+  label: t('nav.monteCarlo'),
+  href: '/monte-carlo'
+}
+```
+
+Navigation order suggestion:
+1. Daily
+2. Dashboard
+3. Journal
+4. Analytics
+5. **Monte Carlo** (NEW)
+6. Playbook
+7. Monthly
+8. Reports
+9. Settings
+
+---
+
+### 13.12 Translation Keys to Add
+
+```json
+{
+  "nav": {
+    "monteCarlo": "Monte Carlo"
+  },
+  "monteCarlo": {
+    "title": "Monte Carlo Strategy Simulator",
+    "subtitle": "Stress-test your trading strategy with statistical simulations",
+    
+    "inputMode": {
+      "title": "Input Mode",
+      "auto": "Auto-populate from Data",
+      "manual": "Manual Entry"
+    },
+
+    "dataSource": {
+      "title": "Data Source",
+      "currentAccount": "Current Account",
+      "changeInSidebar": "(change in sidebar)",
+      "selectSource": "Select data source",
+      "noTrades": "No trades found",
+      "basedOnTrades": "Based on {count} trades ({from} - {to})",
+      "acrossStrategies": "Across {count} strategies",
+      "acrossAccounts": "Across {count} accounts",
+
+      "individual": "Individual Strategy",
+      "allStrategies": "All Strategies (Account-wide metrics)",
+      "allStrategiesDesc": "Test your overall trading edge",
+      "universal": "All Accounts + All Strategies (Universal)",
+      "universalDesc": "Test your complete trading profile",
+      "universalDisabled": "(enable 'show all accounts' in settings)"
+    },
+
+    "statsPreview": {
+      "winRate": "Win Rate",
+      "avgRR": "Avg R:R",
+      "profitFactor": "Profit Factor",
+      "useStats": "Use These Stats",
+      "customize": "Customize",
+      "strategiesBreakdown": "Strategies Breakdown"
+    },
+
+    "comparison": {
+      "title": "Compare Strategies",
+      "description": "Run Monte Carlo simulation on each strategy individually and compare results",
+      "subtitle": "This helps identify which strategies have the strongest statistical edge",
+      "strategiesToCompare": "Strategies to compare",
+      "fromCurrentAccount": "from current account",
+      "fromAllAccounts": "from all accounts",
+      "enable": "Enable comparison mode",
+
+      "resultsTitle": "Strategy Comparison Results",
+      "basedOnSimulations": "Based on {count} simulations",
+      "comparingStrategies": "Comparing {count} strategies from {account}",
+
+      "table": {
+        "strategy": "Strategy",
+        "trades": "Trades",
+        "winRate": "Win%",
+        "rr": "R:R",
+        "profit": "Profit%",
+        "maxDD": "MaxDD",
+        "sharpe": "Sharpe",
+        "rank": "Rank"
+      },
+
+      "charts": {
+        "profitability": "Profitability (% of simulations profitable)",
+        "riskAdjusted": "Risk-Adjusted Returns (Sharpe Ratio)",
+        "maxDrawdown": "Maximum Drawdown (lower is better)"
+      },
+
+      "recommendations": {
+        "title": "Recommendations",
+        "analysisSummary": "Analysis Summary",
+        "topPerformers": "Top Performers",
+        "needsImprovement": "Needs Improvement",
+        "suggestedFocus": "Suggested Focus",
+        "portfolioSuggestion": "Portfolio Suggestion (by statistical robustness)",
+        "allocation": "{percent}% allocation",
+        "pauseStrategy": "pause until improved",
+        "considerPausing": "Only {pct}% profitable simulations, consider pausing this strategy until parameters are refined"
+      },
+
+      "detailTabs": {
+        "title": "Individual Strategy Details",
+        "selectStrategy": "Select a strategy to view full simulation results"
+      },
+
+      "export": {
+        "comparisonPdf": "Export Comparison PDF",
+        "csv": "Export to CSV"
+      }
+    },
+
+    "params": {
+      "title": "Simulation Parameters",
+      "initialBalance": "Initial Balance",
+      "riskType": "Risk Type",
+      "riskTypePercentage": "Percentage",
+      "riskTypeFixed": "Fixed Amount",
+      "riskPerTrade": "Risk Per Trade",
+      "winRate": "Win Rate (%)",
+      "rewardRiskRatio": "Reward/Risk Ratio",
+      "numberOfTrades": "Number of Trades",
+      "commissionPerTrade": "Commission per Trade (%)",
+      "simulationCount": "Monte Carlo Simulations",
+      "calculate": "Calculate Results"
+    },
+    
+    "results": {
+      "title": "Expected Results",
+      "equityCurve": "Total Return Progression",
+      "drawdownCurve": "Drawdown Progression",
+      "distribution": "Distribution of Possible Outcomes",
+      "tradeNumber": "Trade Number",
+      "returnPercent": "Return %",
+      "drawdownPercent": "Drawdown %",
+      "finalBalance": "Final Balance",
+      "frequency": "Frequency"
+    },
+    
+    "metrics": {
+      "averageCase": "Average Case Scenario - Trade Details",
+      "balanceSummary": "Balance Summary",
+      "initial": "Initial Balance",
+      "final": "Final Balance",
+      "totalReturn": "Total Return",
+      "tradeProfit": "Trade Profit",
+      "totalCommission": "Total Commission",
+      
+      "riskAdjusted": "Risk-Adjusted Metrics",
+      "sharpeRatio": "Sharpe Ratio",
+      "sortinoRatio": "Sortino Ratio",
+      "calmarRatio": "Calmar Ratio",
+      
+      "performance": "Performance Metrics",
+      "profitFactor": "Profit Factor",
+      "bestTrade": "Best Trade",
+      "worstTrade": "Worst Trade",
+      "rMultiple": "R-Multiple",
+      "positionImpact": "Position Impact",
+      
+      "drawdown": "Drawdown Analysis",
+      "maxDrawdown": "Max Drawdown",
+      "avgDrawdown": "Average Drawdown",
+      "recoveryTime": "Recovery Time",
+      "underwaterTime": "Underwater Time",
+      "valleyToPeak": "Valley-to-Peak",
+      "trades": "trades",
+      
+      "streaks": "Streak Statistics",
+      "maxWinsInRow": "Max Wins in Row",
+      "maxLossesInRow": "Max Losses in Row",
+      "avgWinStreak": "Average Win Streak",
+      "avgLossStreak": "Average Loss Streak",
+      
+      "kelly": "Position Size Calculator (Kelly Criterion)",
+      "kellyDescription": "Helps you decide how much to risk per trade based on your win rate and reward/risk ratio.",
+      "fullKelly": "Aggressive (Full Kelly)",
+      "halfKelly": "Balanced (Half Kelly)",
+      "quarterKelly": "Conservative (Quarter Kelly)",
+      "expectedReturn": "Expected Return Per Trade",
+      "kellyWarning": "High potential but risky - Use Conservative (Quarter Kelly)",
+      "kellyModerate": "Reasonable Kelly - Consider Half Kelly for growth",
+      "kellySafe": "Conservative Kelly - Quarter Kelly recommended for stability"
+    },
+    
+    "trades": {
+      "title": "Sample Trade Sequence (Average Case)",
+      "win": "Win",
+      "loss": "Loss",
+      "commission": "Commission",
+      "balance": "Balance",
+      "showAll": "Show All Trades",
+      "hideAll": "Hide Trades"
+    },
+    
+    "analysis": {
+      "title": "Trading Strategy Analysis",
+      
+      "monteCarlo": "Monte Carlo Simulation Analysis",
+      "basedOn": "Based on {count} simulations of your strategy:",
+      "averageReturn": "Average Return: {return}% (Max DD: {dd}%) - This is your most likely outcome over time",
+      "bestCase": "Best Case: {return}% (Max DD: {dd}%) - Achieved in {pct}% of simulations",
+      "worstCase": "Worst Case: {return}% (Max DD: {dd}%) - Your maximum downside risk",
+      "profitableSimulations": "{pct}% of all simulations were profitable, which indicates {quality}.",
+      "robustStrategy": "a robust strategy",
+      "moderateStrategy": "a moderately reliable strategy",
+      "riskyStrategy": "a risky strategy that needs improvement",
+      "profitabilityTip": "Tip: A reliable strategy should be profitable in at least 70% of simulations.",
+      
+      "balanceReturns": "Balance and Returns Analysis",
+      "startingWith": "Starting with {amount}, your strategy shows:",
+      "expectedProfit": "Expected Profit: {amount} ({pct}% return)",
+      "commissionImpact": "Commission Impact: {amount} ({pct}% of profits)",
+      "commissionGood": "Commission costs are well-managed relative to profits.",
+      "commissionWarning": "Consider negotiating lower commissions or reducing trade frequency.",
+      
+      "riskAnalysis": "Risk Analysis",
+      "riskMetrics": "Your risk metrics indicate:",
+      "wellControlled": "Well-controlled",
+      "acceptable": "Acceptable",
+      "needsAttention": "Needs attention",
+      "excellent": "Excellent risk-adjusted returns",
+      "good": "Good risk-adjusted returns",
+      "belowAverage": "Below average",
+      "riskExcellent": "Your strategy's risk-adjusted performance is excellent.",
+      "riskGood": "Your strategy's risk-adjusted performance is good.",
+      "riskImprove": "Consider reducing risk or improving win rate.",
+      
+      "psychology": "Trading Psychology",
+      "psychFactors": "Psychological factors to consider:",
+      "winRateSolid": "Solid performance",
+      "winRateGood": "Good win rate",
+      "winRateChallenging": "Challenging - requires strong discipline",
+      "longestWinStreak": "Longest Win Streak: {count} trades",
+      "longestLossStreak": "Longest Loss Streak: {count} trades",
+      "avgWinStreak": "Average Win Streak: {count} trades",
+      "avgLossStreak": "Average Loss Streak: {count} trades",
+      "disciplineQuestion": "Can you maintain discipline during a {count}-trade losing streak? This is crucial for success.",
+      
+      "positionSizing": "Position Sizing Recommendations",
+      "kellyBased": "Based on the Kelly Criterion:",
+      "perTrade": "per trade",
+      "recommendedPositions": "Recommended {kelly} position sizes:",
+      "accountSize": "{amount} account: Risk {risk} per trade",
+      "riskGuidelines": "Risk Management Guidelines:",
+      "newTraders": "New Traders: Start with 1% risk maximum while learning",
+      "propFirm": "Prop Firm Accounts: Keep risk at 0.5% or lower to maintain account safety",
+      "experienced": "Experienced Traders: Can gradually increase to 1-2% after proving consistent profitability",
+      "neverExceed": "Never exceed Quarter Kelly size regardless of experience level",
+      "currentRiskGood": "Your current {pct}% risk is reasonable - maintain disciplined position sizing for consistent growth",
+      "currentRiskHigh": "Consider reducing your risk to {pct}% or lower",
+      
+      "improvements": "Strategy Improvements",
+      "keyAreas": "Key areas for strategy optimization:",
+      "reduceUnderwater": "Reduce Underwater Time: Look for better entry/exit criteria",
+      "improveProfitFactor": "Improve Profit Factor: Focus on better reward:risk ratios",
+      "improveWinRate": "Improve Win Rate: Refine entry criteria for higher probability setups",
+      "reduceDrawdown": "Reduce Maximum Drawdown: Consider smaller position sizes or tighter stops",
+      "bestStrategyReminder": "Remember: The best strategy is one you can execute consistently with confidence."
+    },
+    
+    "actions": {
+      "save": "Save Simulation",
+      "export": "Export PDF",
+      "runAgain": "Run Again",
+      "reset": "Reset Parameters"
+    },
+    
+    "tooltips": {
+      "riskType": "Percentage: Risk a % of current balance. Fixed: Risk a set $ amount regardless of balance.",
+      "rewardRiskRatio": "Average winner size divided by average loser size. E.g., 1.5 means winners are 1.5x larger than losers.",
+      "commissionPerTrade": "Commission expressed as a percentage of your risk amount per trade.",
+      "simulationCount": "More simulations provide more accurate probability distributions. 1000 is recommended.",
+      "sharpeRatio": "Measures risk-adjusted return. Above 1 is good, above 2 is excellent.",
+      "sortinoRatio": "Like Sharpe but only penalizes downside volatility. Higher is better.",
+      "calmarRatio": "Annual return divided by max drawdown. Higher means better return per unit of risk.",
+      "profitFactor": "Gross profits divided by gross losses. Above 1.5 is good, above 2 is excellent.",
+      "kelly": "Mathematical formula for optimal bet sizing. Quarter Kelly is recommended for safety."
+    }
+  }
+}
+```
+
+---
+
+### Deliverables
+
+#### Core Features
+- [ ] Monte Carlo simulation engine with accurate statistical calculations
+- [ ] Auto-populate parameters from three data sources:
+  - Individual strategy from current account
+  - All strategies combined (account-wide "will I survive?" test)
+  - Universal mode: all accounts + all strategies (if "show all accounts" enabled)
+- [ ] Manual entry mode for hypothetical testing
+- [ ] Run configurable number of simulations (100-10,000)
+
+#### Visualization
+- [ ] Equity curve chart showing return progression
+- [ ] Drawdown progression chart
+- [ ] Distribution histogram of final balances
+- [ ] Sample trade sequence display
+
+#### Metrics & Analysis
+- [ ] Balance summary (initial, final, return, profit, commission)
+- [ ] Risk-adjusted metrics (Sharpe, Sortino, Calmar ratios)
+- [ ] Performance metrics (profit factor, best/worst trade, R-multiple)
+- [ ] Drawdown analysis (max DD, avg DD, recovery time, underwater %)
+- [ ] Streak statistics (max/avg win and loss streaks)
+- [ ] Kelly Criterion calculator with position sizing recommendations
+
+#### Insights & Recommendations
+- [ ] Monte Carlo outcome analysis (best/avg/worst case)
+- [ ] Profitability probability assessment
+- [ ] Risk level assessment with ratings
+- [ ] Psychology preparation (handling losing streaks)
+- [ ] Position sizing recommendations by account size
+- [ ] Strategy improvement suggestions
+
+#### Strategy Comparison (when "Show All Accounts" enabled)
+- [ ] Compare mode toggle
+- [ ] Run simulation for each strategy independently
+- [ ] Side-by-side comparison table with key metrics
+- [ ] Ranking by profitability %, Sharpe ratio, max drawdown
+- [ ] Visual bar charts comparing strategies
+- [ ] Top performers and needs-improvement identification
+- [ ] Portfolio allocation suggestions based on statistical robustness
+- [ ] Individual strategy detail tabs within comparison view
+
+#### Optional
+- [ ] Save simulations for later reference
+- [ ] Save comparison results for later reference
+- [ ] Export simulation results as PDF
+- [ ] Export comparison results as PDF/CSV
+
+#### Polish
+- [ ] Full i18n support (pt-BR, en)
+- [ ] Help tooltips for all parameters
+- [ ] Loading states during simulation
+- [ ] Responsive design for all components
+- [ ] Navigation sidebar integration

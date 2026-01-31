@@ -47,12 +47,110 @@
 	},
 	"nav": {
 		"dashboard": "Dashboard",
+		"commandCenter": "Command Center",
 		"journal": "Journal",
 		"analytics": "Analytics",
 		"playbook": "Playbook",
 		"reports": "Reports",
 		"monthly": "Monthly",
 		"settings": "Settings"
+	},
+	"commandCenter": {
+		"title": "Command Center",
+		"description": "Prepare for your trading day",
+		"circuitBreaker": {
+			"title": "Circuit Breaker",
+			"loading": "Loading status...",
+			"stopTrading": "STOP TRADING",
+			"profitTargetHit": "Profit target reached!",
+			"lossLimitHit": "Loss limit hit!",
+			"maxTradesHit": "Maximum trades reached",
+			"consecutiveLossesHit": "Max consecutive losses hit",
+			"dailyPnL": "Daily P&L",
+			"trades": "Trades",
+			"consecutiveLosses": "Consecutive Losses",
+			"target": "Target",
+			"limit": "Limit",
+			"maxTrades": "Max",
+			"maxConsecutive": "Max"
+		},
+		"checklist": {
+			"title": "Daily Checklist",
+			"addItem": "Add item",
+			"editChecklist": "Manage",
+			"noItems": "No checklist items yet. Click Manage to create one.",
+			"completed": "Complete"
+		},
+		"checklistManager": {
+			"createTitle": "Create Checklist",
+			"editTitle": "Edit Checklist",
+			"nameLabel": "Checklist Name",
+			"namePlaceholder": "Pre-Market Routine",
+			"itemsLabel": "Checklist Items",
+			"itemPlaceholder": "Enter item...",
+			"addItem": "Add Item",
+			"create": "Create",
+			"update": "Update",
+			"delete": "Delete",
+			"cancel": "Cancel",
+			"saving": "Saving...",
+			"deleting": "Deleting..."
+		},
+		"targets": {
+			"title": "Daily Targets",
+			"profitTarget": "Profit Target",
+			"profitTargetHelp": "Stop trading when you reach this profit",
+			"lossLimit": "Loss Limit",
+			"lossLimitHelp": "Stop trading if you hit this loss amount",
+			"maxTrades": "Max Trades",
+			"maxTradesHelp": "Maximum number of trades per day",
+			"maxConsecutiveLosses": "Max Consecutive Losses",
+			"maxConsecutiveLossesHelp": "Stop after this many losses in a row",
+			"save": "Save",
+			"saving": "Saving..."
+		},
+		"notes": {
+			"preMarket": "Pre-Market Notes",
+			"postMarket": "Post-Market Notes",
+			"preMarketLabel": "Notes",
+			"postMarketLabel": "Reflection",
+			"mood": "Today's Mood",
+			"placeholder": "Write your thoughts, market outlook, focus goals...",
+			"postMarketPlaceholder": "How did the day go? What did you learn?",
+			"save": "Save",
+			"saving": "Saving...",
+			"moods": {
+				"great": "Great",
+				"good": "Good",
+				"neutral": "Neutral",
+				"bad": "Bad",
+				"terrible": "Terrible"
+			}
+		},
+		"assetRules": {
+			"title": "Per-Asset Rules",
+			"addAsset": "Add Asset",
+			"selectAsset": "Select asset",
+			"add": "Add",
+			"cancel": "Cancel",
+			"noAssets": "No asset-specific rules configured",
+			"asset": "Asset",
+			"maxTrades": "Max Trades",
+			"positionSize": "Max Size",
+			"notes": "Notes",
+			"notesPlaceholder": "Optional notes..."
+		},
+		"summary": {
+			"title": "Today's Summary",
+			"loading": "Loading summary...",
+			"noTrades": "No trades recorded today",
+			"totalPnL": "Total P&L",
+			"trades": "Trades",
+			"winRate": "Win Rate",
+			"bestTrade": "Best Trade",
+			"worstTrade": "Worst Trade",
+			"maxConsecutiveLosses": "Max Consecutive Losses"
+		}
 	},
 	"trade": {
 		"trade": "Trade",

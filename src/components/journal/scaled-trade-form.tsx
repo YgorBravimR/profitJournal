@@ -296,12 +296,12 @@ export const ScaledTradeForm = ({
 					{/* Direction Toggle */}
 					<div className="space-y-s-200">
 						<Label>Direction</Label>
-						<div className="flex gap-m-400">
+						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setDirection("long")}
 								className={cn(
-									"flex flex-1 items-center justify-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "long"
 										? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -314,7 +314,7 @@ export const ScaledTradeForm = ({
 								type="button"
 								onClick={() => setDirection("short")}
 								className={cn(
-									"flex flex-1 items-center justify-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "short"
 										? "border-trade-sell bg-trade-sell/10 text-trade-sell"
 										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
@@ -328,15 +328,15 @@ export const ScaledTradeForm = ({
 
 					{/* Asset */}
 					<div className="space-y-s-200">
-						<div className="flex items-center gap-s-200">
+						<div className="gap-s-200 flex items-center">
 							<Label>Asset *</Label>
 							{selectedAsset && (
 								<Tooltip>
 									<TooltipTrigger asChild>
-										<Info className="h-4 w-4 text-txt-300" />
+										<Info className="text-txt-300 h-4 w-4" />
 									</TooltipTrigger>
 									<TooltipContent>
-										<div className="space-y-1 text-tiny">
+										<div className="text-tiny space-y-1">
 											<p>
 												<span className="text-txt-300">Type:</span>{" "}
 												{selectedAsset.assetType.name}
@@ -363,7 +363,9 @@ export const ScaledTradeForm = ({
 							<SelectTrigger>
 								<SelectValue
 									placeholder={
-										hasConfiguredAssets ? "Select asset" : "No assets configured"
+										hasConfiguredAssets
+											? "Select asset"
+											: "No assets configured"
 									}
 								/>
 							</SelectTrigger>
@@ -371,7 +373,7 @@ export const ScaledTradeForm = ({
 								{assets.map((a) => (
 									<SelectItem key={a.id} value={a.symbol}>
 										<span className="font-mono">{a.symbol}</span>
-										<span className="ml-2 text-txt-300">{a.name}</span>
+										<span className="text-txt-300 ml-2">{a.name}</span>
 									</SelectItem>
 								))}
 							</SelectContent>
@@ -387,7 +389,7 @@ export const ScaledTradeForm = ({
 								variant="ghost"
 								size="sm"
 								onClick={() => handleAddExecution("entry")}
-								className="h-7 text-tiny"
+								className="text-tiny h-7"
 							>
 								<Plus className="mr-1 h-3 w-3" />
 								Add Entry
@@ -396,12 +398,12 @@ export const ScaledTradeForm = ({
 
 						<div className="space-y-s-200">
 							{/* Header */}
-							<div className="grid grid-cols-[1fr_80px_100px_100px_80px_40px] gap-s-200 text-tiny text-txt-300">
+							<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr]">
 								<span>Date</span>
 								<span>Time</span>
 								<span>Price</span>
 								<span>Quantity</span>
-								<span>Comm.</span>
+								<span>Commission</span>
 								<span></span>
 							</div>
 
@@ -425,7 +427,7 @@ export const ScaledTradeForm = ({
 								<span className="font-mono">
 									{positionSummary.avgEntryPrice.toFixed(2)}
 								</span>{" "}
-								avg
+								average
 							</p>
 						)}
 					</div>
@@ -439,7 +441,7 @@ export const ScaledTradeForm = ({
 								variant="ghost"
 								size="sm"
 								onClick={() => handleAddExecution("exit")}
-								className="h-7 text-tiny"
+								className="text-tiny h-7"
 							>
 								<Plus className="mr-1 h-3 w-3" />
 								Add Exit
@@ -449,12 +451,12 @@ export const ScaledTradeForm = ({
 						{exits.length > 0 ? (
 							<div className="space-y-s-200">
 								{/* Header */}
-								<div className="grid grid-cols-[1fr_80px_100px_100px_80px_40px] gap-s-200 text-tiny text-txt-300">
+								<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[1fr_80px_90px_90px_100px_40px]">
 									<span>Date</span>
 									<span>Time</span>
 									<span>Price</span>
 									<span>Quantity</span>
-									<span>Comm.</span>
+									<span>Commission</span>
 									<span></span>
 								</div>
 
@@ -472,7 +474,7 @@ export const ScaledTradeForm = ({
 								))}
 							</div>
 						) : (
-							<div className="rounded-lg border border-dashed border-bg-300 p-m-400 text-center">
+							<div className="border-bg-300 p-m-400 rounded-lg border border-dashed text-center">
 								<p className="text-small text-txt-300">
 									No exits yet - position is open
 								</p>
@@ -485,16 +487,18 @@ export const ScaledTradeForm = ({
 								<span className="font-mono">
 									{positionSummary.avgExitPrice.toFixed(2)}
 								</span>{" "}
-								avg
+								average
 							</p>
 						)}
 					</div>
 
 					{/* Position Summary */}
 					{positionSummary.validEntries > 0 && (
-						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-							<p className="text-small font-medium text-txt-100">Position Summary</p>
-							<div className="mt-s-300 grid grid-cols-4 gap-m-300 text-small">
+						<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+							<p className="text-small text-txt-100 font-medium">
+								Position Summary
+							</p>
+							<div className="mt-s-300 gap-m-300 text-small grid grid-cols-4">
 								<div>
 									<p className="text-tiny text-txt-300">Status</p>
 									<p
@@ -512,19 +516,21 @@ export const ScaledTradeForm = ({
 								</div>
 								<div>
 									<p className="text-tiny text-txt-300">Entries</p>
-									<p className="font-medium text-txt-100">
-										{positionSummary.validEntries} ({positionSummary.totalEntryQty})
+									<p className="text-txt-100 font-medium">
+										{positionSummary.validEntries} (
+										{positionSummary.totalEntryQty})
 									</p>
 								</div>
 								<div>
 									<p className="text-tiny text-txt-300">Exits</p>
-									<p className="font-medium text-txt-100">
-										{positionSummary.validExits} ({positionSummary.totalExitQty})
+									<p className="text-txt-100 font-medium">
+										{positionSummary.validExits} ({positionSummary.totalExitQty}
+										)
 									</p>
 								</div>
 								<div>
 									<p className="text-tiny text-txt-300">Fees</p>
-									<p className="font-medium text-txt-100">
+									<p className="text-txt-100 font-medium">
 										{selectedAsset?.currency ?? "$"}
 										{positionSummary.totalCommission.toFixed(2)}
 									</p>
@@ -532,7 +538,7 @@ export const ScaledTradeForm = ({
 							</div>
 
 							{positionSummary.status !== "open" && (
-								<div className="mt-m-400 border-t border-bg-300 pt-m-400">
+								<div className="mt-m-400 border-bg-300 pt-m-400 border-t">
 									<div className="flex items-center justify-between">
 										<div>
 											<p className="text-tiny text-txt-300">Net P&L</p>
@@ -548,7 +554,7 @@ export const ScaledTradeForm = ({
 												{selectedAsset?.currency ?? "$"}
 												{positionSummary.netPnl.toFixed(2)}
 												{calculatedR !== null && (
-													<span className="ml-2 text-body">
+													<span className="text-body ml-2">
 														({calculatedR >= 0 ? "+" : ""}
 														{calculatedR.toFixed(2)}R)
 													</span>
@@ -557,7 +563,7 @@ export const ScaledTradeForm = ({
 										</div>
 										<div className="text-right">
 											<p className="text-tiny text-txt-300">Gross P&L</p>
-											<p className="font-mono text-txt-100">
+											<p className="text-txt-100 font-mono">
 												{selectedAsset?.currency ?? "$"}
 												{positionSummary.grossPnl.toFixed(2)}
 											</p>
@@ -571,7 +577,7 @@ export const ScaledTradeForm = ({
 					{/* Risk Management */}
 					<div className="space-y-m-400">
 						<Label>Risk Management</Label>
-						<div className="grid grid-cols-3 gap-m-400">
+						<div className="gap-m-400 grid grid-cols-3">
 							<div className="space-y-s-200">
 								<Label htmlFor="stopLoss" className="text-small text-txt-300">
 									Stop Loss
@@ -617,7 +623,7 @@ export const ScaledTradeForm = ({
 
 				{/* Basic Info Tab */}
 				<TabsContent value="basic" className="space-y-m-500 pt-m-500">
-					<div className="grid grid-cols-2 gap-m-400">
+					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
 							<Label>Timeframe</Label>
 							<Select
@@ -667,14 +673,14 @@ export const ScaledTradeForm = ({
 					</div>
 
 					{/* Switch to simple mode */}
-					<div className="rounded-lg border border-bg-300 bg-bg-100 p-m-400">
+					<div className="border-bg-300 bg-bg-100 p-m-400 rounded-lg border">
 						<p className="text-small text-txt-200">
 							Need a simple single entry/exit trade?
 						</p>
 						<Button
 							type="button"
 							variant="link"
-							className="h-auto p-0 text-brand-500"
+							className="text-brand-500 h-auto p-0"
 							onClick={onModeChange}
 						>
 							Switch to Simple Mode
@@ -720,12 +726,12 @@ export const ScaledTradeForm = ({
 					{/* Compliance */}
 					<div className="space-y-s-200">
 						<Label>Did you follow your plan?</Label>
-						<div className="flex gap-m-400">
+						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setFollowedPlan(true)}
 								className={cn(
-									"flex-1 rounded-lg border-2 p-m-400 text-center transition-colors",
+									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									followedPlan === true
 										? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -737,7 +743,7 @@ export const ScaledTradeForm = ({
 								type="button"
 								onClick={() => setFollowedPlan(false)}
 								className={cn(
-									"flex-1 rounded-lg border-2 p-m-400 text-center transition-colors",
+									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									followedPlan === false
 										? "border-trade-sell bg-trade-sell/10 text-trade-sell"
 										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
@@ -767,14 +773,14 @@ export const ScaledTradeForm = ({
 					{setupTags.length > 0 && (
 						<div className="space-y-s-200">
 							<Label>Setup Type</Label>
-							<div className="flex flex-wrap gap-s-200">
+							<div className="gap-s-200 flex flex-wrap">
 								{setupTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
 										className={cn(
-											"rounded-full border px-m-400 py-s-200 text-small transition-colors",
+											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
 												? "border-trade-buy bg-trade-buy/10 text-trade-buy"
 												: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
@@ -790,14 +796,14 @@ export const ScaledTradeForm = ({
 					{mistakeTags.length > 0 && (
 						<div className="space-y-s-200">
 							<Label>Mistakes (if any)</Label>
-							<div className="flex flex-wrap gap-s-200">
+							<div className="gap-s-200 flex flex-wrap">
 								{mistakeTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
 										className={cn(
-											"rounded-full border px-m-400 py-s-200 text-small transition-colors",
+											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
 												? "border-warning bg-warning/10 text-warning"
 												: "border-bg-300 text-txt-200 hover:border-warning/50"
@@ -811,7 +817,7 @@ export const ScaledTradeForm = ({
 					)}
 
 					{tags.length === 0 && (
-						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-600 text-center">
+						<div className="border-bg-300 bg-bg-200 p-m-600 rounded-lg border text-center">
 							<p className="text-txt-200">No tags available yet</p>
 							<p className="mt-s-200 text-small text-txt-300">
 								Create tags in the Analytics section
@@ -822,7 +828,7 @@ export const ScaledTradeForm = ({
 			</Tabs>
 
 			{/* Submit Button */}
-			<div className="flex justify-end gap-m-400 border-t border-bg-300 pt-m-500">
+			<div className="gap-m-400 border-bg-300 pt-m-500 flex justify-end border-t">
 				<Button
 					type="button"
 					variant="outline"
