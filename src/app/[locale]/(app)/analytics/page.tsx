@@ -9,6 +9,8 @@ import {
 	getHourlyPerformance,
 	getDayOfWeekPerformance,
 	getTimeHeatmap,
+	getSessionPerformance,
+	getSessionAssetPerformance,
 } from "@/app/actions/analytics"
 import { getTagStats } from "@/app/actions/tags"
 import { getUniqueAssets } from "@/app/actions/trades"
@@ -37,6 +39,8 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		hourlyPerformanceResult,
 		dayOfWeekPerformanceResult,
 		timeHeatmapResult,
+		sessionPerformanceResult,
+		sessionAssetPerformanceResult,
 		assetsResult,
 		timeframesResult,
 	] = await Promise.all([
@@ -48,6 +52,8 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		getHourlyPerformance(),
 		getDayOfWeekPerformance(),
 		getTimeHeatmap(),
+		getSessionPerformance(),
+		getSessionAssetPerformance(),
 		getUniqueAssets(),
 		getTimeframes(),
 	])
@@ -84,6 +90,14 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 		timeHeatmapResult.status === "success" && timeHeatmapResult.data
 			? timeHeatmapResult.data
 			: []
+	const initialSessionPerformance =
+		sessionPerformanceResult.status === "success" && sessionPerformanceResult.data
+			? sessionPerformanceResult.data
+			: []
+	const initialSessionAssetPerformance =
+		sessionAssetPerformanceResult.status === "success" && sessionAssetPerformanceResult.data
+			? sessionAssetPerformanceResult.data
+			: []
 	const availableAssets =
 		assetsResult.status === "success" && assetsResult.data
 			? assetsResult.data
@@ -106,6 +120,8 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 					initialHourlyPerformance={initialHourlyPerformance}
 					initialDayOfWeekPerformance={initialDayOfWeekPerformance}
 					initialTimeHeatmap={initialTimeHeatmap}
+					initialSessionPerformance={initialSessionPerformance}
+					initialSessionAssetPerformance={initialSessionAssetPerformance}
 					availableAssets={availableAssets}
 					availableTimeframes={availableTimeframes}
 				/>

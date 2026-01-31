@@ -282,3 +282,27 @@ export const formatRatio = (value: number): string => {
 	if (!Number.isFinite(value)) return "∞"
 	return value.toFixed(2)
 }
+
+/**
+ * Format BRL currency with sign prefix (e.g., +R$ 1.234,56 or -R$ 500,00)
+ * Used in journal and analytics components for P&L display
+ */
+export const formatBrlWithSign = (value: number): string => {
+	const prefix = value >= 0 ? "+" : ""
+	return `${prefix}R$ ${value.toLocaleString("pt-BR", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+	})}`
+}
+
+/**
+ * Format BRL currency in compact form with sign (e.g., +R$1.5K, -R$500)
+ * Used in analytics components for chart tooltips and compact displays
+ */
+export const formatBrlCompactWithSign = (value: number): string => {
+	const absValue = Math.abs(value)
+	if (absValue >= 1000) {
+		return `${value >= 0 ? "+" : "-"}R$${(absValue / 1000).toFixed(1)}K`
+	}
+	return `${value >= 0 ? "+" : ""}R$${value.toFixed(0)}`
+}

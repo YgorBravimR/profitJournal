@@ -11,6 +11,7 @@ import {
 	ResponsiveContainer,
 	Cell,
 } from "recharts"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DailyPnL } from "@/types"
 
 interface DailyPnLBarChartProps {
@@ -27,14 +28,6 @@ interface CustomTooltipProps {
 	}>
 }
 
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}R$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : ""}R$${value.toFixed(0)}`
-}
-
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("dashboard")
 
@@ -46,7 +39,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const isProfit = data.pnl >= 0
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
+		<div className="rounded-lg border border-bg-300 bg-bg-100 px-s-300 py-s-200 shadow-lg">
 			<p className="text-small font-medium text-txt-100">
 				{new Date(data.date).toLocaleDateString("pt-BR", {
 					weekday: "short",
@@ -54,8 +47,10 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 					month: "short",
 				})}
 			</p>
-			<p className={`text-body font-semibold ${isProfit ? "text-pos" : "text-neg"}`}>
-				{formatCurrency(data.pnl)}
+			<p
+				className={`text-body font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}
+			>
+				{formatCompactCurrencyWithSign(data.pnl, "R$")}
 			</p>
 			<p className="text-caption text-txt-300">
 				{data.tradeCount} {data.tradeCount === 1 ? t("trade") : t("trades")}
@@ -67,18 +62,15 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) => {
 	const t = useTranslations("dashboard")
 
-	// Sort data by date
 	const sortedData = [...data].sort(
 		(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
 	)
 
-	// Format date for X axis
 	const formatDay = (date: string) => {
 		const d = new Date(date)
 		return d.getDate().toString()
 	}
 
-	// Calculate domain with padding
 	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.pnl)), 100)
 	const domainMax = Math.ceil(maxAbsPnl * 1.1)
 
@@ -126,7 +118,7 @@ export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) =>
 							axisLine={{ stroke: "var(--color-bg-300)" }}
 						/>
 						<YAxis
-							tickFormatter={(value: number) => formatCurrency(value)}
+							tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 12 }}
 							tickLine={false}
@@ -144,7 +136,12 @@ export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) =>
 							{sortedData.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
-									fill={entry.pnl >= 0 ? "var(--color-pos)" : "var(--color-neg)"}
+									fill={
+										entry.pnl >= 0
+											? "var(--color-trade-buy)"
+											: "var(--color-trade-sell)"
+									}
+									fillOpacity={0.85}
 								/>
 							))}
 						</Bar>

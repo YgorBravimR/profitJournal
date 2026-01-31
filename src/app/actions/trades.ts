@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
 import { trades, tradeTags, tags, strategies, timeframes, tradeExecutions } from "@/db/schema"
 import type { Trade, TradeExecution } from "@/db/schema"
-import type { ActionResponse, PaginatedResponse } from "@/types"
+import type {
+	ActionResponse,
+	PaginatedResponse,
+	TradesByDay,
+	DayTradeCompact,
+	DaySummary,
+} from "@/types"
 import {
 	createTradeSchema,
 	updateTradeSchema,
@@ -981,6 +987,183 @@ export const createScaledTrade = async (
 			status: "error",
 			message: "Failed to create scaled trade",
 			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get trades grouped by day with summaries
+ * Returns trades within date range, grouped by date with per-day statistics
+ */
+export const getTradesGroupedByDay = async (
+	dateFrom?: Date,
+	dateTo?: Date
+): Promise<ActionResponse<TradesByDay[]>> => {
+	try {
+		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+
+		// Build where conditions
+		const accountCondition = showAllAccounts
+			? inArray(trades.accountId, allAccountIds)
+			: eq(trades.accountId, accountId)
+		const conditions = [accountCondition, eq(trades.isArchived, false)]
+
+		if (dateFrom) {
+			conditions.push(gte(trades.entryDate, dateFrom))
+		}
+		if (dateTo) {
+			conditions.push(lte(trades.entryDate, dateTo))
+		}
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+			with: {
+				strategy: true,
+				timeframe: true,
+			},
+			orderBy: [desc(trades.entryDate)],
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Group trades by date
+		const groupedMap = new Map<string, {
+			trades: typeof result
+			netPnl: number
+			totalFees: number
+			wins: number
+			losses: number
+			breakevens: number
+			totalR: number
+			rCount: number
+			grossProfit: number
+			grossLoss: number
+		}>()
+
+		for (const trade of result) {
+			// Get date key in YYYY-MM-DD format
+			const dateKey = trade.entryDate.toISOString().split("T")[0]
+			const existing = groupedMap.get(dateKey) || {
+				trades: [],
+				netPnl: 0,
+				totalFees: 0,
+				wins: 0,
+				losses: 0,
+				breakevens: 0,
+				totalR: 0,
+				rCount: 0,
+				grossProfit: 0,
+				grossLoss: 0,
+			}
+
+			// P&L is stored in cents, convert to dollars
+			const pnl = trade.pnl ? trade.pnl / 100 : 0
+			const commission = trade.commission ? trade.commission / 100 : 0
+			const fees = trade.fees ? trade.fees / 100 : 0
+
+			existing.trades.push(trade)
+			existing.netPnl += pnl
+			existing.totalFees += commission + fees
+
+			if (trade.outcome === "win") {
+				existing.wins++
+				existing.grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				existing.losses++
+				existing.grossLoss += Math.abs(pnl)
+			} else {
+				existing.breakevens++
+			}
+
+			if (trade.realizedRMultiple) {
+				existing.totalR += Number(trade.realizedRMultiple)
+				existing.rCount++
+			}
+
+			groupedMap.set(dateKey, existing)
+		}
+
+		// Convert to TradesByDay array
+		const tradesByDay: TradesByDay[] = Array.from(groupedMap.entries())
+			.map(([dateKey, data]) => {
+				// Format date for display (e.g., "Friday, Jan 31, 2026")
+				const date = new Date(dateKey + "T12:00:00") // Add time to avoid timezone issues
+				const dateFormatted = date.toLocaleDateString("en-US", {
+					weekday: "long",
+					month: "short",
+					day: "numeric",
+					year: "numeric",
+				})
+
+				// Calculate summary stats
+				const totalTrades = data.trades.length
+				const winRate =
+					data.wins + data.losses > 0
+						? (data.wins / (data.wins + data.losses)) * 100
+						: 0
+				const avgR = data.rCount > 0 ? data.totalR / data.rCount : 0
+				const profitFactor =
+					data.grossLoss > 0 ? data.grossProfit / data.grossLoss : data.grossProfit > 0 ? Infinity : 0
+
+				const summary: DaySummary = {
+					date: dateKey,
+					netPnl: data.netPnl,
+					grossPnl: data.netPnl + data.totalFees,
+					totalFees: data.totalFees,
+					winRate,
+					wins: data.wins,
+					losses: data.losses,
+					breakevens: data.breakevens,
+					totalTrades,
+					avgR,
+					profitFactor: profitFactor === Infinity ? 999 : profitFactor,
+				}
+
+				// Map trades to compact format
+				const compactTrades: DayTradeCompact[] = data.trades
+					.sort((a, b) => a.entryDate.getTime() - b.entryDate.getTime())
+					.map((trade) => ({
+						id: trade.id,
+						time: trade.entryDate.toLocaleTimeString("en-US", {
+							hour: "2-digit",
+							minute: "2-digit",
+							hour12: false,
+						}),
+						asset: trade.asset,
+						direction: trade.direction as "long" | "short",
+						timeframeName: trade.timeframe?.name || null,
+						strategyName: trade.strategy?.name || null,
+						pnl: trade.pnl ? trade.pnl / 100 : 0,
+						rMultiple: trade.realizedRMultiple ? Number(trade.realizedRMultiple) : null,
+						outcome: trade.outcome as "win" | "loss" | "breakeven" | null,
+					}))
+
+				return {
+					date: dateKey,
+					dateFormatted,
+					summary,
+					trades: compactTrades,
+				}
+			})
+			.sort((a, b) => b.date.localeCompare(a.date)) // Most recent first
+
+		return {
+			status: "success",
+			message: "Trades grouped by day retrieved",
+			data: tradesByDay,
+		}
+	} catch (error) {
+		console.error("Get trades grouped by day error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve trades grouped by day",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
 		}
 	}
 }

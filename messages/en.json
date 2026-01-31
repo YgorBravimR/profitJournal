@@ -472,6 +472,20 @@
 		"newEntry": "New Entry",
 		"csvImport": "Import CSV",
 		"singleEntry": "Single Entry",
+		"noTrades": "No trades yet",
+		"noTradesInPeriod": "No trades in this period",
+		"tryDifferentPeriod": "Try selecting a different time period",
+		"tradesCount": "trades",
+		"period": {
+			"day": "Day",
+			"week": "Week",
+			"month": "Month",
+			"custom": "Custom",
+			"from": "From",
+			"to": "To",
+			"apply": "Apply",
+			"cancel": "Cancel"
+		},
 		"form": {
 			"basicInfo": "Basic Info",
 			"basic": "Basic",
@@ -559,6 +573,23 @@
 			"profitable": "Profitable",
 			"losing": "Losing",
 			"noTrades": "No trades"
+		},
+		"session": {
+			"title": "Trading Session Performance",
+			"description": "P&L by B3 trading session (09:00-17:55)",
+			"pnl": "P&L",
+			"trades": "Trades",
+			"winRate": "Win Rate",
+			"avgR": "Avg R",
+			"profitFactor": "Profit Factor",
+			"bestSession": "Best Session",
+			"worstSession": "Worst Session",
+			"assetTitle": "Performance by Asset & Session",
+			"assetDescription": "How each asset performs across trading sessions",
+			"asset": "Asset",
+			"total": "Total",
+			"legendWinRate": "Win Rate %",
+			"legendTrades": "# of Trades"
 		},
 		"variableComparison": {
 			"title": "Performance by Variable",

@@ -29,7 +29,6 @@ export const runMonteCarloSimulation = (
 
 	return {
 		params,
-		runs,
 		statistics,
 		distributionBuckets,
 		sampleRun,
@@ -213,9 +212,14 @@ const aggregateStatistics = (
 	const avgUnderwaterPct = mean(
 		runs.map((r) => (r.underwaterTrades / r.trades.length) * 100)
 	)
-	const allTrades = runs.flatMap((r) => r.trades)
-	const bestTrade = Math.max(...allTrades.map((t) => t.pnl))
-	const worstTrade = Math.min(...allTrades.map((t) => t.pnl))
+	let bestTrade = -Infinity
+	let worstTrade = Infinity
+	for (const run of runs) {
+		for (const trade of run.trades) {
+			if (trade.pnl > bestTrade) bestTrade = trade.pnl
+			if (trade.pnl < worstTrade) worstTrade = trade.pnl
+		}
+	}
 
 	return {
 		medianFinalBalance: median(finalBalances),
@@ -301,8 +305,12 @@ const calculateDistribution = (
 	_initialBalance: number
 ): DistributionBucket[] => {
 	const finalBalances = runs.map((r) => r.finalBalance)
-	const min = Math.min(...finalBalances)
-	const max = Math.max(...finalBalances)
+	let min = Infinity
+	let max = -Infinity
+	for (const balance of finalBalances) {
+		if (balance < min) min = balance
+		if (balance > max) max = balance
+	}
 	const bucketCount = 20
 	const bucketSize = (max - min) / bucketCount || 1
 

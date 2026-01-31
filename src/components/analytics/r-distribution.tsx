@@ -18,6 +18,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { RDistributionBucket } from "@/types"
 
 const StatLabel = ({
@@ -47,13 +48,6 @@ interface RDistributionProps {
 	data: RDistributionBucket[]
 }
 
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : "-"}$${absValue.toFixed(0)}`
-}
 
 interface CustomTooltipProps {
 	active?: boolean
@@ -72,7 +66,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 				<div className="mt-s-200 space-y-s-100 text-tiny">
 					<p className="text-txt-200">Trades: {data.count}</p>
 					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-						Total P&L: {formatCurrency(data.pnl)}
+						Total P&L: {formatCompactCurrencyWithSign(data.pnl)}
 					</p>
 				</div>
 			</div>
@@ -169,13 +163,13 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 					>
 						<CartesianGrid
 							strokeDasharray="3 3"
-							stroke="rgb(43 47 54)"
+							stroke="var(--color-bg-300)"
 							vertical={false}
 						/>
 						<XAxis
 							dataKey="range"
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 10 }}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 10 }}
 							tickLine={false}
 							axisLine={false}
 							angle={-45}
@@ -183,22 +177,22 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 							height={50}
 						/>
 						<YAxis
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
 							axisLine={false}
 							allowDecimals={false}
 						/>
 						<RechartsTooltip content={<CustomTooltip />} />
-						<ReferenceLine x="0R to 0.5R" stroke="rgb(90 96 106)" strokeDasharray="3 3" />
+						<ReferenceLine x="0R to 0.5R" stroke="var(--color-txt-300)" strokeDasharray="3 3" />
 						<Bar dataKey="count" radius={[4, 4, 0, 0]}>
 							{data.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
 									fill={
 										entry.rangeMin >= 0
-											? "rgb(0 255 150)"
-											: "rgb(128 128 255)"
+											? "var(--color-trade-buy)"
+											: "var(--color-trade-sell)"
 									}
 									opacity={0.8}
 								/>

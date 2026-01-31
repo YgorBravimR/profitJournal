@@ -99,7 +99,6 @@ export const MonteCarloContent = ({
 		setInputMode("manual")
 	}
 
-	// Run simulation
 	const handleRunSimulation = async () => {
 		setIsRunning(true)
 		setError(null)
@@ -110,7 +109,10 @@ export const MonteCarloContent = ({
 			if (response.status === "success" && response.data) {
 				setResult(response.data)
 			} else {
-				setError(response.message)
+				const errorDetails = response.errors
+					?.map((e) => e.detail)
+					.join(", ")
+				setError(errorDetails || response.message)
 			}
 		} catch (err) {
 			setError("Failed to run simulation")
@@ -202,9 +204,39 @@ export const MonteCarloContent = ({
 
 			{/* Results Section */}
 			{result && (
-				<div className="space-y-m-500">
-					{/* Charts */}
-					<div className="gap-m-400 grid lg:grid-cols-2">
+				<div className="space-y-m-600">
+					{/* Top Summary Banner */}
+					<div className="border-bg-300 bg-bg-200 p-m-500 gap-m-500 flex flex-wrap items-center justify-between rounded-lg border">
+						<div className="gap-m-400 flex items-center">
+							<span className="text-txt-300 text-small">Simulations:</span>
+							<span className="text-txt-100 font-medium">
+								{params.simulationCount.toLocaleString()}
+							</span>
+						</div>
+						<div className="gap-m-400 flex items-center">
+							<span className="text-txt-300 text-small">Trades:</span>
+							<span className="text-txt-100 font-medium">
+								{params.numberOfTrades}
+							</span>
+						</div>
+						<div className="gap-m-400 flex items-center">
+							<span className="text-txt-300 text-small">Win Rate:</span>
+							<span className="text-txt-100 font-medium">{params.winRate}%</span>
+						</div>
+						<div className="gap-m-400 flex items-center">
+							<span className="text-txt-300 text-small">R:R:</span>
+							<span className="text-txt-100 font-medium">
+								1:{params.rewardRiskRatio}
+							</span>
+						</div>
+						<Button variant="outline" size="sm" onClick={handleRunAgain}>
+							<Dices className="mr-s-100 h-4 w-4" />
+							Run Again
+						</Button>
+					</div>
+
+					{/* Charts Row - Two equal columns */}
+					<div className="gap-m-500 grid lg:grid-cols-2">
 						<EquityCurveChart
 							trades={result.sampleRun.trades}
 							initialBalance={params.initialBalance}
@@ -213,38 +245,30 @@ export const MonteCarloContent = ({
 						<DrawdownChart trades={result.sampleRun.trades} />
 					</div>
 
-					{/* Distribution */}
+					{/* Distribution - Full width */}
 					<DistributionHistogram
 						buckets={result.distributionBuckets}
 						medianBalance={result.statistics.medianFinalBalance}
 						initialBalance={params.initialBalance}
 					/>
 
-					{/* Metrics Cards */}
+					{/* Metrics Cards - 2x3 grid on desktop */}
 					<MetricsCards
 						statistics={result.statistics}
 						initialBalance={params.initialBalance}
 					/>
 
-					{/* Kelly Criterion */}
-					<KellyCriterionCard
-						statistics={result.statistics}
-						initialBalance={params.initialBalance}
-					/>
-
-					{/* Trade Sequence */}
-					<TradeSequenceList trades={result.sampleRun.trades} />
-
-					{/* Strategy Analysis */}
-					<StrategyAnalysis result={result} />
-
-					{/* Actions */}
-					<div className="gap-m-300 flex justify-center">
-						<Button variant="outline" onClick={handleRunAgain}>
-							<Dices className="mr-s-200 h-4 w-4" />
-							Run Again
-						</Button>
+					{/* Kelly + Trade Sequence - Side by side on desktop */}
+					<div className="gap-m-500 grid xl:grid-cols-2">
+						<KellyCriterionCard
+							statistics={result.statistics}
+							initialBalance={params.initialBalance}
+						/>
+						<TradeSequenceList trades={result.sampleRun.trades} />
 					</div>
+
+					{/* Strategy Analysis - Full width */}
+					<StrategyAnalysis result={result} />
 				</div>
 			)}
 		</div>

@@ -265,7 +265,6 @@ export const TradeForm = ({
 	}
 
 	const onSubmit = async (data: TradeFormInput) => {
-		console.log("Submitting trade data:", data)
 		setIsSubmitting(true)
 		try {
 			const result = isEditing

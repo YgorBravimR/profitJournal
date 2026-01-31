@@ -1,25 +1,24 @@
 "use client"
 
+import { useState } from "react"
 import { useTranslations } from "next-intl"
 import type { TimeHeatmapCell } from "@/types"
+import { formatBrlCompactWithSign } from "@/lib/formatting"
 
 interface TimeHeatmapProps {
 	data: TimeHeatmapCell[]
 }
 
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}R$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : ""}R$${value.toFixed(0)}`
-}
+// B3 Trading hours (9:00 - 18:00)
+const TRADING_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
 
 export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	const t = useTranslations("analytics")
+	const [hoveredCell, setHoveredCell] = useState<TimeHeatmapCell | null>(null)
+	const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
 
-	// Get unique hours and days
-	const hours = Array.from(new Set(data.map((d) => d.hour))).sort((a, b) => a - b)
+	// Use fixed trading hours instead of dynamic
+	const hours = TRADING_HOURS
 	const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 	const dayShorts = ["Mon", "Tue", "Wed", "Thu", "Fri"]
 
@@ -32,33 +31,53 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	// Calculate color intensity based on P&L
 	const getColorClass = (cell: TimeHeatmapCell | undefined): string => {
 		if (!cell || cell.totalTrades === 0) {
-			return "bg-bg-300"
+			return "bg-bg-300/50"
 		}
 		if (cell.totalPnl > 0) {
-			if (cell.winRate >= 70) return "bg-pos/90"
-			if (cell.winRate >= 60) return "bg-pos/70"
-			if (cell.winRate >= 50) return "bg-pos/50"
-			return "bg-pos/30"
+			if (cell.winRate >= 70) return "bg-trade-buy"
+			if (cell.winRate >= 60) return "bg-trade-buy/80"
+			if (cell.winRate >= 50) return "bg-trade-buy/60"
+			return "bg-trade-buy/40"
 		}
-		if (cell.winRate <= 30) return "bg-neg/90"
-		if (cell.winRate <= 40) return "bg-neg/70"
-		if (cell.winRate <= 50) return "bg-neg/50"
-		return "bg-neg/30"
+		if (cell.winRate <= 30) return "bg-trade-sell"
+		if (cell.winRate <= 40) return "bg-trade-sell/80"
+		if (cell.winRate <= 50) return "bg-trade-sell/60"
+		return "bg-trade-sell/40"
 	}
 
 	// Find best and worst slots
 	const cellsWithTrades = data.filter((c) => c.totalTrades > 0)
-	const sortedByPnl = [...cellsWithTrades].sort((a, b) => b.totalPnl - a.totalPnl)
+	const sortedByPnl = [...cellsWithTrades].sort(
+		(a, b) => b.totalPnl - a.totalPnl
+	)
 	const bestSlot = sortedByPnl[0]
 	const worstSlot = sortedByPnl[sortedByPnl.length - 1]
 
+	const handleMouseEnter = (
+		cell: TimeHeatmapCell | undefined,
+		e: React.MouseEvent
+	) => {
+		if (cell && cell.totalTrades > 0) {
+			setHoveredCell(cell)
+			const rect = (e.target as HTMLElement).getBoundingClientRect()
+			setHoverPosition({
+				x: rect.left + rect.width / 2,
+				y: rect.top - 8,
+			})
+		}
+	}
+
+	const handleMouseLeave = () => {
+		setHoveredCell(null)
+	}
+
 	if (data.length === 0) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-				<h3 className="mb-m-400 text-body font-semibold text-txt-100">
+			<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+				<h3 className="mb-m-400 text-body text-txt-100 font-semibold">
 					{t("time.heatmapTitle")}
 				</h3>
-				<div className="flex h-[200px] items-center justify-center text-txt-300">
+				<div className="text-txt-300 flex h-[150px] items-center justify-center">
 					{t("noData")}
 				</div>
 			</div>
@@ -66,92 +85,123 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	}
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
+		<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+			<h3 className="mb-s-300 text-body text-txt-100 font-semibold">
 				{t("time.heatmapTitle")}
 			</h3>
 
-			{/* Heatmap Grid */}
-			<div className="overflow-x-auto">
-				<div className="min-w-[600px]">
-					{/* Header row with hours */}
-					<div className="mb-s-100 flex">
-						<div className="w-16 shrink-0" />
-						{hours.map((hour) => (
-							<div
-								key={hour}
-								className="flex-1 px-s-100 text-center text-caption text-txt-300"
-							>
-								{hour.toString().padStart(2, "0")}
-							</div>
-						))}
-					</div>
-
-					{/* Day rows */}
-					{days.map((day, dayIndex) => {
-						const dayOfWeek = dayIndex + 1 // Monday = 1
-						return (
-							<div key={day} className="mb-s-100 flex items-center">
-								<div className="w-16 shrink-0 pr-s-200 text-right text-caption text-txt-300">
-									{dayShorts[dayIndex]}
-								</div>
-								{hours.map((hour) => {
-									const cell = cellMap.get(`${dayOfWeek}-${hour}`)
-									return (
-										<div
-											key={`${day}-${hour}`}
-											className="flex-1 px-s-100"
-											title={
-												cell
-													? `${day} ${hour}:00\n${t("time.trades")}: ${cell.totalTrades}\n${t("time.winRate")}: ${cell.winRate.toFixed(0)}%\n${t("time.pnl")}: ${formatCurrency(cell.totalPnl)}`
-													: `${day} ${hour}:00\n${t("time.noTrades")}`
-											}
-										>
-											<div
-												className={`aspect-square rounded transition-colors ${getColorClass(cell)} ${
-													cell && cell.totalTrades > 0
-														? "cursor-pointer hover:ring-2 hover:ring-acc-100"
-														: ""
-												}`}
-											/>
-										</div>
-									)
-								})}
-							</div>
-						)
-					})}
+			{/* Compact Heatmap Grid */}
+			<div className="relative">
+				{/* Header row with hours */}
+				<div className="mb-s-100 flex items-center">
+					<div className="w-10 shrink-0" />
+					{hours.map((hour) => (
+						<div
+							key={hour}
+							className="text-txt-300 w-7 shrink-0 text-center text-[10px]"
+						>
+							{hour}
+						</div>
+					))}
 				</div>
+
+				{/* Day rows */}
+				{days.map((day, dayIndex) => {
+					const dayOfWeek = dayIndex + 1 // Monday = 1
+					return (
+						<div key={day} className="mb-[3px] flex items-center">
+							<div className="text-txt-300 pr-s-100 w-10 shrink-0 text-right text-[10px]">
+								{dayShorts[dayIndex]}
+							</div>
+							{hours.map((hour) => {
+								const cell = cellMap.get(`${dayOfWeek}-${hour}`)
+								return (
+									<div
+										key={`${day}-${hour}`}
+										className={`mx-[1px] h-5 w-6 shrink-0 rounded-[3px] transition-all ${getColorClass(cell)} ${
+											cell && cell.totalTrades > 0
+												? "hover:ring-acc-100 cursor-pointer hover:scale-110 hover:ring-1"
+												: ""
+										}`}
+										onMouseEnter={(e) => handleMouseEnter(cell, e)}
+										onMouseLeave={handleMouseLeave}
+									/>
+								)
+							})}
+						</div>
+					)
+				})}
+
+				{/* Tooltip */}
+				{hoveredCell && (
+					<div
+						className="bg-bg-100 px-s-200 py-s-100 border-bg-300 pointer-events-none fixed z-50 -translate-x-1/2 -translate-y-full rounded-md border shadow-lg"
+						style={{
+							left: hoverPosition.x,
+							top: hoverPosition.y,
+						}}
+					>
+						<p className="text-txt-100 text-[10px] font-medium">
+							{hoveredCell.dayName} {hoveredCell.hourLabel}
+						</p>
+						<div className="gap-s-200 text-txt-300 flex text-[10px]">
+							<span>{hoveredCell.totalTrades} trades</span>
+							<span
+								className={
+									hoveredCell.winRate >= 50
+										? "text-trade-buy"
+										: "text-trade-sell"
+								}
+							>
+								{hoveredCell.winRate.toFixed(0)}% WR
+							</span>
+						</div>
+						<p
+							className={`text-[10px] font-medium ${hoveredCell.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}`}
+						>
+							{formatBrlCompactWithSign(hoveredCell.totalPnl)}
+						</p>
+					</div>
+				)}
 			</div>
 
-			{/* Legend */}
-			<div className="mt-m-400 flex items-center justify-center gap-m-400 text-caption text-txt-300">
-				<div className="flex items-center gap-s-100">
-					<div className="h-3 w-3 rounded bg-pos/70" />
+			{/* Compact Legend */}
+			<div className="mt-s-300 gap-s-400 text-txt-300 flex items-center justify-center text-[10px]">
+				<div className="gap-s-100 flex items-center">
+					<div className="bg-trade-buy/70 h-2.5 w-2.5 rounded-sm" />
 					<span>{t("time.profitable")}</span>
 				</div>
-				<div className="flex items-center gap-s-100">
-					<div className="h-3 w-3 rounded bg-neg/70" />
+				<div className="gap-s-100 flex items-center">
+					<div className="bg-trade-sell/70 h-2.5 w-2.5 rounded-sm" />
 					<span>{t("time.losing")}</span>
 				</div>
-				<div className="flex items-center gap-s-100">
-					<div className="h-3 w-3 rounded bg-bg-300" />
+				<div className="gap-s-100 flex items-center">
+					<div className="bg-bg-300/50 h-2.5 w-2.5 rounded-sm" />
 					<span>{t("time.noTrades")}</span>
 				</div>
 			</div>
 
 			{/* Summary */}
 			{bestSlot && worstSlot && (
-				<div className="mt-m-400 grid grid-cols-2 gap-m-400 border-t border-bg-300 pt-m-400">
+				<div className="mt-s-300 gap-s-300 border-bg-300 pt-s-300 grid grid-cols-2 border-t">
 					<div>
-						<p className="text-caption text-txt-300">{t("time.bestSlot")}</p>
-						<p className="text-small font-medium text-pos">
-							{bestSlot.dayName} {bestSlot.hourLabel} ({bestSlot.winRate.toFixed(0)}% WR, {formatCurrency(bestSlot.totalPnl)})
+						<p className="text-txt-300 text-[10px]">{t("time.bestSlot")}</p>
+						<p className="text-caption text-trade-buy font-medium">
+							{bestSlot.dayName.slice(0, 3)} {bestSlot.hourLabel}
+						</p>
+						<p className="text-trade-buy/80 text-[10px]">
+							{bestSlot.winRate.toFixed(0)}% •{" "}
+							{formatBrlCompactWithSign(bestSlot.totalPnl)}
 						</p>
 					</div>
 					<div>
-						<p className="text-caption text-txt-300">{t("time.worstSlot")}</p>
-						<p className="text-small font-medium text-neg">
-							{worstSlot.dayName} {worstSlot.hourLabel} ({worstSlot.winRate.toFixed(0)}% WR, {formatCurrency(worstSlot.totalPnl)})
+						<p className="text-txt-300 text-[10px]">{t("time.worstSlot")}</p>
+						<p className="text-caption text-trade-sell font-medium">
+							{worstSlot.dayName.slice(0, 3)} {worstSlot.hourLabel}
+						</p>
+						<p className="text-trade-sell/80 text-[10px]">
+							{worstSlot.winRate.toFixed(0)}% •{" "}
+							{formatBrlCompactWithSign(worstSlot.totalPnl)}
 						</p>
 					</div>
 				</div>

@@ -11,6 +11,7 @@ import {
 	ResponsiveContainer,
 	Cell,
 } from "recharts"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DayOfWeekPerformance } from "@/types"
 
 interface DayOfWeekChartProps {
@@ -24,14 +25,6 @@ interface CustomTooltipProps {
 		dataKey: string
 		payload: DayOfWeekPerformance
 	}>
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}R$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : ""}R$${value.toFixed(0)}`
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
@@ -50,8 +43,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 			<div className="mt-s-200 space-y-s-100">
 				<p className="text-caption">
 					<span className="text-txt-300">{t("time.pnl")}:</span>{" "}
-					<span className={`font-medium ${isProfit ? "text-pos" : "text-neg"}`}>
-						{formatCurrency(data.totalPnl)}
+					<span className={`font-medium ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}>
+						{formatCompactCurrencyWithSign(data.totalPnl, "R$")}
 					</span>
 				</p>
 				<p className="text-caption">
@@ -60,20 +53,20 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 				</p>
 				<p className="text-caption">
 					<span className="text-txt-300">{t("time.winRate")}:</span>{" "}
-					<span className={`font-medium ${data.winRate >= 50 ? "text-pos" : "text-neg"}`}>
+					<span className={`font-medium ${data.winRate >= 50 ? "text-trade-buy" : "text-trade-sell"}`}>
 						{data.winRate.toFixed(0)}%
 					</span>
 				</p>
 				<p className="text-caption">
 					<span className="text-txt-300">{t("time.avgR")}:</span>{" "}
-					<span className={`font-medium ${data.avgR >= 0 ? "text-pos" : "text-neg"}`}>
+					<span className={`font-medium ${data.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}`}>
 						{data.avgR >= 0 ? "+" : ""}{data.avgR.toFixed(2)}R
 					</span>
 				</p>
 				{data.bestHour !== undefined && (
 					<p className="text-caption">
 						<span className="text-txt-300">{t("time.bestHourOnDay")}:</span>{" "}
-						<span className="font-medium text-pos">{data.bestHour}:00</span>
+						<span className="font-medium text-trade-buy">{data.bestHour}:00</span>
 					</p>
 				)}
 			</div>
@@ -145,7 +138,7 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 							axisLine={{ stroke: "var(--color-bg-300)" }}
 						/>
 						<YAxis
-							tickFormatter={formatCurrency}
+							tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
@@ -158,7 +151,7 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 							{tradingDays.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
-									fill={entry.totalPnl >= 0 ? "var(--color-pos)" : "var(--color-neg)"}
+									fill={entry.totalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"}
 								/>
 							))}
 						</Bar>
@@ -169,13 +162,13 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 			<div className="mt-m-400 grid grid-cols-2 gap-m-400 border-t border-bg-300 pt-m-400">
 				<div>
 					<p className="text-caption text-txt-300">{t("time.bestDay")}</p>
-					<p className="text-small font-medium text-pos">
+					<p className="text-small font-medium text-trade-buy">
 						{bestDay?.dayName} ({bestDay?.winRate.toFixed(0)}% WR, {bestDay?.avgR.toFixed(1)}R avg)
 					</p>
 				</div>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.worstDay")}</p>
-					<p className="text-small font-medium text-neg">
+					<p className="text-small font-medium text-trade-sell">
 						{worstDay?.dayName} ({worstDay?.winRate.toFixed(0)}% WR, {worstDay?.avgR.toFixed(1)}R avg)
 					</p>
 				</div>

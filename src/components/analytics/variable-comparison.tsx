@@ -18,6 +18,7 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { formatCompactCurrency } from "@/lib/formatting"
 import type { PerformanceByGroup } from "@/types"
 
 // Tooltip wrapper for column headers
@@ -55,14 +56,6 @@ interface VariableComparisonProps {
 type MetricType = "pnl" | "winRate" | "avgR" | "tradeCount" | "profitFactor"
 type GroupByType = "asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
 
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "" : "-"}$${absValue.toFixed(0)}`
-}
-
 const formatProfitFactor = (value: number): string => {
 	if (!Number.isFinite(value)) return "∞"
 	if (value === 0) return "0.00"
@@ -72,7 +65,7 @@ const formatProfitFactor = (value: number): string => {
 const formatMetricValue = (value: number, metric: MetricType): string => {
 	switch (metric) {
 		case "pnl":
-			return formatCurrency(value)
+			return formatCompactCurrency(value)
 		case "winRate":
 			return `${value.toFixed(1)}%`
 		case "avgR":
@@ -103,7 +96,7 @@ const CustomTooltip = ({ active, payload, metric }: CustomTooltipProps) => {
 				<p className="text-small text-txt-100 font-semibold">{data.group}</p>
 				<div className="mt-s-200 space-y-s-100 text-tiny">
 					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-						P&L: {formatCurrency(data.pnl)}
+						P&L: {formatCompactCurrency(data.pnl)}
 					</p>
 					<p className="text-txt-200">Win Rate: {data.winRate.toFixed(1)}%</p>
 					<p className="text-txt-200">
@@ -146,11 +139,11 @@ export const VariableComparison = ({
 	]
 
 	const getBarColor = (value: number, metric: MetricType): string => {
-		if (metric === "tradeCount") return "rgb(204 162 72)" // acc-100
+		if (metric === "tradeCount") return "var(--color-acc-100)"
 		if (metric === "profitFactor") {
-			return value >= 1 ? "rgb(0 255 150)" : "rgb(128 128 255)"
+			return value >= 1 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
 		}
-		return value >= 0 ? "rgb(0 255 150)" : "rgb(128 128 255)"
+		return value >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
 	}
 
 	const chartData = data.map((item) => {
@@ -213,13 +206,13 @@ export const VariableComparison = ({
 						>
 							<CartesianGrid
 								strokeDasharray="3 3"
-								stroke="rgb(43 47 54)"
+								stroke="var(--color-bg-300)"
 								vertical={false}
 							/>
 							<XAxis
 								dataKey="group"
-								stroke="rgb(90 96 106)"
-								tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+								stroke="var(--color-txt-300)"
+								tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 								tickLine={false}
 								axisLine={false}
 								angle={-45}
@@ -227,8 +220,8 @@ export const VariableComparison = ({
 								height={60}
 							/>
 							<YAxis
-								stroke="rgb(90 96 106)"
-								tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+								stroke="var(--color-txt-300)"
+								tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 								tickLine={false}
 								axisLine={false}
 								tickFormatter={(value) => formatMetricValue(value, metric)}
@@ -331,7 +324,7 @@ export const VariableComparison = ({
 											row.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 										}`}
 									>
-										{formatCurrency(row.pnl)}
+										{formatCompactCurrency(row.pnl)}
 									</td>
 									<td className="px-s-300 py-s-200 text-small text-txt-200 text-right">
 										{row.winRate.toFixed(1)}%

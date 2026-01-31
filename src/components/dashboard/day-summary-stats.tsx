@@ -54,9 +54,9 @@ export const DaySummaryStats = ({ summary }: DaySummaryStatsProps) => {
 					<div className="mt-s-100 flex items-center gap-s-100">
 						{stat.showIcon && (
 							stat.isPositive ? (
-								<TrendingUp className="h-4 w-4 text-pos" />
+								<TrendingUp className="h-4 w-4 text-trade-buy" />
 							) : (
-								<TrendingDown className="h-4 w-4 text-neg" />
+								<TrendingDown className="h-4 w-4 text-trade-sell" />
 							)
 						)}
 						<p
@@ -64,8 +64,8 @@ export const DaySummaryStats = ({ summary }: DaySummaryStatsProps) => {
 								stat.isPositive === null
 									? "text-txt-100"
 									: stat.isPositive
-										? "text-pos"
-										: "text-neg"
+										? "text-trade-buy"
+										: "text-trade-sell"
 							}`}
 						>
 							{stat.value}

@@ -104,7 +104,6 @@ export interface SimulationStatistics {
 
 export interface MonteCarloResult {
 	params: SimulationParams
-	runs: SimulationRun[]
 	statistics: SimulationStatistics
 	distributionBuckets: DistributionBucket[]
 	sampleRun: SimulationRun

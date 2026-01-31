@@ -264,3 +264,65 @@ export interface RadarChartData {
 	normalized: number
 	benchmark?: number
 }
+
+// B3 Trading Session Types
+export type TradingSession = "preOpen" | "morning" | "afternoon" | "close"
+
+export interface SessionDefinition {
+	key: TradingSession
+	label: string
+	startHour: number // 9 = 09:00, 9.5 = 09:30
+	endHour: number // 17.92 ≈ 17:55
+}
+
+export interface SessionPerformance {
+	session: TradingSession
+	sessionLabel: string
+	startHour: number
+	endHour: number
+	totalTrades: number
+	wins: number
+	losses: number
+	breakevens: number
+	winRate: number
+	totalPnl: number
+	avgPnl: number
+	avgR: number
+	profitFactor: number
+}
+
+export interface SessionAssetPerformance {
+	asset: string
+	sessions: {
+		session: TradingSession
+		sessionLabel: string
+		pnl: number
+		winRate: number
+		trades: number
+		avgR: number
+	}[]
+	bestSession: TradingSession | null
+	totalPnl: number
+}
+
+// Journal Grouped by Day Types
+export interface TradesByDay {
+	date: string // YYYY-MM-DD
+	dateFormatted: string // "Friday, Jan 31, 2026"
+	summary: DaySummary
+	trades: DayTradeCompact[]
+}
+
+export interface DayTradeCompact {
+	id: string
+	time: string // HH:mm
+	asset: string
+	direction: TradeDirection
+	timeframeName: string | null
+	strategyName: string | null
+	pnl: number
+	rMultiple: number | null
+	outcome: TradeOutcome | null
+}
+
+export type JournalPeriod = "day" | "week" | "month" | "custom"

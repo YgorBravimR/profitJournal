@@ -472,6 +472,20 @@
 		"newEntry": "Nova Entrada",
 		"csvImport": "Importar CSV",
 		"singleEntry": "Entrada Individual",
+		"noTrades": "Nenhum trade ainda",
+		"noTradesInPeriod": "Nenhum trade neste período",
+		"tryDifferentPeriod": "Tente selecionar um período diferente",
+		"tradesCount": "trades",
+		"period": {
+			"day": "Dia",
+			"week": "Semana",
+			"month": "Mês",
+			"custom": "Personalizado",
+			"from": "De",
+			"to": "Até",
+			"apply": "Aplicar",
+			"cancel": "Cancelar"
+		},
 		"form": {
 			"basicInfo": "Informações Básicas",
 			"basic": "Básico",
@@ -559,6 +573,23 @@
 			"profitable": "Lucrativo",
 			"losing": "Negativo",
 			"noTrades": "Sem trades"
+		},
+		"session": {
+			"title": "Performance por Sessão",
+			"description": "P&L por sessão de trading B3 (09:00-17:55)",
+			"pnl": "P&L",
+			"trades": "Trades",
+			"winRate": "Taxa de Acerto",
+			"avgR": "R Médio",
+			"profitFactor": "Fator de Lucro",
+			"bestSession": "Melhor Sessão",
+			"worstSession": "Pior Sessão",
+			"assetTitle": "Performance por Ativo & Sessão",
+			"assetDescription": "Como cada ativo performa em diferentes sessões",
+			"asset": "Ativo",
+			"total": "Total",
+			"legendWinRate": "Taxa Acerto %",
+			"legendTrades": "# de Trades"
 		},
 		"variableComparison": {
 			"title": "Performance por Variável",

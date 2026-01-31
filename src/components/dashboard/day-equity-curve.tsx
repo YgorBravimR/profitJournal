@@ -11,6 +11,7 @@ import {
 	ResponsiveContainer,
 	ReferenceLine,
 } from "recharts"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DayEquityPoint } from "@/types"
 
 interface DayEquityCurveProps {
@@ -27,11 +28,6 @@ interface CustomTooltipProps {
 	}>
 }
 
-const formatCurrency = (value: number): string => {
-	const prefix = value >= 0 ? "+" : ""
-	return `${prefix}R$${value.toFixed(0)}`
-}
-
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("dashboard")
 
@@ -45,8 +41,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
 			<p className="text-small font-medium text-txt-100">{data.time}</p>
-			<p className={`text-body font-semibold ${isProfit ? "text-pos" : "text-neg"}`}>
-				{formatCurrency(data.cumulativePnl)}
+			<p className={`text-body font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}>
+				{formatCompactCurrencyWithSign(data.cumulativePnl, "R$")}
 			</p>
 			{data.tradeId && (
 				<p className="mt-s-100 text-caption text-acc-100">
@@ -76,7 +72,7 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 
 	// Determine line color based on final P&L
 	const finalPnl = data[data.length - 1]?.cumulativePnl ?? 0
-	const lineColor = finalPnl >= 0 ? "var(--color-pos)" : "var(--color-neg)"
+	const lineColor = finalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
 
 	const handleClick = (point: DayEquityPoint) => {
 		if (onPointClick && point.tradeId) {
@@ -110,7 +106,7 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 						axisLine={{ stroke: "var(--color-bg-300)" }}
 					/>
 					<YAxis
-						tickFormatter={formatCurrency}
+						tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
 						stroke="var(--color-txt-300)"
 						tick={{ fill: "var(--color-txt-300)", fontSize: 10 }}
 						tickLine={false}

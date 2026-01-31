@@ -11,21 +11,11 @@ import {
 	ReferenceLine,
 } from "recharts"
 import { useTranslations, useLocale } from "next-intl"
+import { formatCompactCurrency } from "@/lib/formatting"
 import type { EquityPoint } from "@/types"
 
 interface CumulativePnlChartProps {
 	data: EquityPoint[]
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000000) {
-		return `${value >= 0 ? "" : "-"}$${(absValue / 1000000).toFixed(1)}M`
-	}
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "" : "-"}$${absValue.toFixed(0)}`
 }
 
 const formatDate = (dateStr: string, locale: string): string => {
@@ -46,11 +36,12 @@ interface CustomTooltipProps {
 const CustomTooltip = ({ active, payload, label, locale }: CustomTooltipProps) => {
 	if (active && payload && payload.length > 0) {
 		const data = payload[0].payload
+		const sign = data.equity >= 0 ? "+" : ""
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg">
 				<p className="text-tiny text-txt-300">{formatDate(label || "", locale)}</p>
 				<p className={`text-small font-semibold ${data.equity >= 0 ? "text-trade-buy" : "text-trade-sell"}`}>
-					{data.equity >= 0 ? "+" : ""}{formatCurrency(data.equity)}
+					{sign}{formatCompactCurrency(data.equity)}
 				</p>
 			</div>
 		)
@@ -77,11 +68,10 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 	const maxEquity = Math.max(...data.map((d) => d.equity))
 	const padding = (maxEquity - minEquity) * 0.1 || 100
 
-	// Determine if overall P&L is positive or negative for color
 	const lastEquity = data[data.length - 1]?.equity ?? 0
 	const isPositive = lastEquity >= 0
-	const strokeColor = isPositive ? "rgb(38 166 91)" : "rgb(234 56 59)"
-	const gradientColor = isPositive ? "38, 166, 91" : "234, 56, 59"
+	const strokeColor = isPositive ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
+	const gradientColor = isPositive ? "0, 255, 150" : "128, 128, 255"
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
@@ -100,28 +90,28 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 						</defs>
 						<CartesianGrid
 							strokeDasharray="3 3"
-							stroke="rgb(43 47 54)"
+							stroke="var(--color-bg-300)"
 							vertical={false}
 						/>
 						<XAxis
 							dataKey="date"
 							tickFormatter={(dateStr) => formatDate(dateStr, locale)}
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
 							axisLine={false}
 						/>
 						<YAxis
-							tickFormatter={formatCurrency}
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							tickFormatter={(value: number) => formatCompactCurrency(value)}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
 							axisLine={false}
 							domain={[minEquity - padding, maxEquity + padding]}
 							width={60}
 						/>
 						<Tooltip content={<CustomTooltip locale={locale} />} />
-						<ReferenceLine y={0} stroke="rgb(43 47 54)" strokeWidth={2} />
+						<ReferenceLine y={0} stroke="var(--color-bg-300)" strokeWidth={2} />
 						<Area
 							type="monotone"
 							dataKey="equity"
@@ -132,7 +122,7 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 							activeDot={{
 								r: 4,
 								fill: strokeColor,
-								stroke: "rgb(21 25 33)",
+								stroke: "var(--color-bg-200)",
 								strokeWidth: 2,
 							}}
 						/>

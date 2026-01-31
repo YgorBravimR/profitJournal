@@ -212,9 +212,9 @@ export const SimulationParamsForm = ({
 					</label>
 					<Input
 						type="number"
-						step="100"
+						step="1000"
 						min={100}
-						max={10000}
+						max={50000}
 						value={params.simulationCount}
 						onChange={(e) =>
 							handleChange("simulationCount", parseInt(e.target.value) || 0)

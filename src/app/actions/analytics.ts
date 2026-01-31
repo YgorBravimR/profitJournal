@@ -21,6 +21,9 @@ import type {
 	DayTrade,
 	DayEquityPoint,
 	RadarChartData,
+	TradingSession,
+	SessionPerformance,
+	SessionAssetPerformance,
 } from "@/types"
 import {
 	calculateWinRate,
@@ -1551,6 +1554,275 @@ export const getRadarChartData = async (
 		return {
 			status: "error",
 			message: "Failed to retrieve radar chart data",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * B3 Brazilian Exchange trading session definitions
+ * Sessions are defined by start/end hours (decimal format: 9.5 = 09:30)
+ */
+const B3_SESSIONS: Record<TradingSession, { startHour: number; endHour: number; label: string }> = {
+	preOpen: { startHour: 9, endHour: 9.5, label: "Pre-Open" },
+	morning: { startHour: 9.5, endHour: 12, label: "Morning" },
+	afternoon: { startHour: 12, endHour: 15, label: "Afternoon" },
+	close: { startHour: 15, endHour: 17.92, label: "Close" }, // 17:55
+}
+
+/**
+ * Determine which trading session a time belongs to
+ */
+const getSessionForTime = (date: Date): TradingSession | null => {
+	const hours = date.getHours()
+	const minutes = date.getMinutes()
+	const decimalHour = hours + minutes / 60
+
+	for (const [session, def] of Object.entries(B3_SESSIONS) as [TradingSession, typeof B3_SESSIONS[TradingSession]][]) {
+		if (decimalHour >= def.startHour && decimalHour < def.endHour) {
+			return session
+		}
+	}
+	return null // Outside trading hours
+}
+
+/**
+ * Get performance by B3 trading session
+ */
+export const getSessionPerformance = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<SessionPerformance[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Group by session
+		const sessionMap = new Map<TradingSession, {
+			trades: typeof result
+			wins: number
+			losses: number
+			breakevens: number
+			totalPnl: number
+			totalR: number
+			rCount: number
+			grossProfit: number
+			grossLoss: number
+		}>()
+
+		// Initialize all sessions
+		for (const session of Object.keys(B3_SESSIONS) as TradingSession[]) {
+			sessionMap.set(session, {
+				trades: [],
+				wins: 0,
+				losses: 0,
+				breakevens: 0,
+				totalPnl: 0,
+				totalR: 0,
+				rCount: 0,
+				grossProfit: 0,
+				grossLoss: 0,
+			})
+		}
+
+		for (const trade of result) {
+			const session = getSessionForTime(trade.entryDate)
+			if (!session) continue // Skip trades outside trading hours
+
+			const data = sessionMap.get(session)!
+			const pnl = fromCents(trade.pnl)
+
+			data.trades.push(trade)
+			data.totalPnl += pnl
+
+			if (trade.outcome === "win") {
+				data.wins++
+				data.grossProfit += pnl
+			} else if (trade.outcome === "loss") {
+				data.losses++
+				data.grossLoss += Math.abs(pnl)
+			} else {
+				data.breakevens++
+			}
+
+			if (trade.realizedRMultiple) {
+				data.totalR += Number(trade.realizedRMultiple)
+				data.rCount++
+			}
+		}
+
+		const sessionData: SessionPerformance[] = (Object.keys(B3_SESSIONS) as TradingSession[]).map((session) => {
+			const data = sessionMap.get(session)!
+			const def = B3_SESSIONS[session]
+			const totalTrades = data.trades.length
+
+			return {
+				session,
+				sessionLabel: def.label,
+				startHour: def.startHour,
+				endHour: def.endHour,
+				totalTrades,
+				wins: data.wins,
+				losses: data.losses,
+				breakevens: data.breakevens,
+				winRate: calculateWinRate(data.wins, data.wins + data.losses),
+				totalPnl: data.totalPnl,
+				avgPnl: totalTrades > 0 ? data.totalPnl / totalTrades : 0,
+				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
+			}
+		})
+
+		return {
+			status: "success",
+			message: "Session performance retrieved",
+			data: sessionData,
+		}
+	} catch (error) {
+		console.error("Get session performance error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve session performance",
+			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Get performance by session and asset combination
+ */
+export const getSessionAssetPerformance = async (
+	filters?: TradeFilters
+): Promise<ActionResponse<SessionAssetPerformance[]>> => {
+	try {
+		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, filters)
+
+		const result = await db.query.trades.findMany({
+			where: and(...conditions),
+		})
+
+		if (result.length === 0) {
+			return {
+				status: "success",
+				message: "No trades found",
+				data: [],
+			}
+		}
+
+		// Group by asset → session
+		const assetSessionMap = new Map<string, Map<TradingSession, {
+			wins: number
+			losses: number
+			totalPnl: number
+			totalR: number
+			rCount: number
+			tradeCount: number
+		}>>()
+
+		for (const trade of result) {
+			const session = getSessionForTime(trade.entryDate)
+			if (!session) continue
+
+			if (!assetSessionMap.has(trade.asset)) {
+				const sessionData = new Map<TradingSession, {
+					wins: number
+					losses: number
+					totalPnl: number
+					totalR: number
+					rCount: number
+					tradeCount: number
+				}>()
+				// Initialize all sessions for this asset
+				for (const s of Object.keys(B3_SESSIONS) as TradingSession[]) {
+					sessionData.set(s, {
+						wins: 0,
+						losses: 0,
+						totalPnl: 0,
+						totalR: 0,
+						rCount: 0,
+						tradeCount: 0,
+					})
+				}
+				assetSessionMap.set(trade.asset, sessionData)
+			}
+
+			const assetData = assetSessionMap.get(trade.asset)!
+			const sessionData = assetData.get(session)!
+			const pnl = fromCents(trade.pnl)
+
+			sessionData.tradeCount++
+			sessionData.totalPnl += pnl
+
+			if (trade.outcome === "win") {
+				sessionData.wins++
+			} else if (trade.outcome === "loss") {
+				sessionData.losses++
+			}
+
+			if (trade.realizedRMultiple) {
+				sessionData.totalR += Number(trade.realizedRMultiple)
+				sessionData.rCount++
+			}
+		}
+
+		// Convert to SessionAssetPerformance array
+		const assetPerformance: SessionAssetPerformance[] = Array.from(assetSessionMap.entries())
+			.map(([asset, sessionData]) => {
+				let totalPnl = 0
+				let bestSession: TradingSession | null = null
+				let bestPnl = -Infinity
+
+				const sessions = (Object.keys(B3_SESSIONS) as TradingSession[]).map((session) => {
+					const data = sessionData.get(session)!
+					const def = B3_SESSIONS[session]
+					totalPnl += data.totalPnl
+
+					if (data.tradeCount > 0 && data.totalPnl > bestPnl) {
+						bestPnl = data.totalPnl
+						bestSession = session
+					}
+
+					return {
+						session,
+						sessionLabel: def.label,
+						pnl: data.totalPnl,
+						winRate: calculateWinRate(data.wins, data.wins + data.losses),
+						trades: data.tradeCount,
+						avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+					}
+				})
+
+				return {
+					asset,
+					sessions,
+					bestSession,
+					totalPnl,
+				}
+			})
+			.sort((a, b) => b.totalPnl - a.totalPnl) // Sort by total P&L descending
+
+		return {
+			status: "success",
+			message: "Session asset performance retrieved",
+			data: assetPerformance,
+		}
+	} catch (error) {
+		console.error("Get session asset performance error:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve session asset performance",
 			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
 		}
 	}

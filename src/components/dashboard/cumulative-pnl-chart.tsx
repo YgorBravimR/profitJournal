@@ -10,6 +10,7 @@ import {
 	Tooltip,
 	ResponsiveContainer,
 } from "recharts"
+import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { EquityPoint } from "@/types"
 
 interface CumulativePnLChartProps {
@@ -26,14 +27,6 @@ interface CustomTooltipProps {
 	}>
 }
 
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "+" : "-"}R$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "+" : ""}R$${value.toFixed(0)}`
-}
-
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("dashboard")
 
@@ -45,7 +38,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const isProfit = data.equity >= 0
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
+		<div className="rounded-lg border border-bg-300 bg-bg-100 px-s-300 py-s-200 shadow-lg">
 			<p className="text-small font-medium text-txt-100">
 				{new Date(data.date).toLocaleDateString("pt-BR", {
 					day: "numeric",
@@ -56,14 +49,18 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 			<div className="mt-s-100 space-y-s-100">
 				<p className="text-caption text-txt-300">
 					{t("cumulativePnL.cumulative")}:{" "}
-					<span className={`font-semibold ${isProfit ? "text-pos" : "text-neg"}`}>
-						{formatCurrency(data.equity)}
+					<span
+						className={`font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}
+					>
+						{formatCompactCurrencyWithSign(data.equity, "R$")}
 					</span>
 				</p>
 				{data.drawdown !== undefined && data.drawdown > 0 && (
 					<p className="text-caption text-txt-300">
 						{t("cumulativePnL.drawdown")}:{" "}
-						<span className="font-semibold text-neg">-{data.drawdown.toFixed(1)}%</span>
+						<span className="font-semibold text-trade-sell">
+							-{data.drawdown.toFixed(1)}%
+						</span>
 					</p>
 				)}
 			</div>
@@ -74,13 +71,11 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnLChartProps) => {
 	const t = useTranslations("dashboard")
 
-	// Format date for X axis
 	const formatDate = (date: string) => {
 		const d = new Date(date)
 		return d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" })
 	}
 
-	// Calculate domain with padding
 	const equityValues = data.map((d) => d.equity)
 	const minEquity = Math.min(...equityValues, 0)
 	const maxEquity = Math.max(...equityValues, 0)
@@ -99,9 +94,9 @@ export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnL
 		)
 	}
 
-	// Determine line color based on final P&L
 	const finalPnl = data[data.length - 1]?.equity ?? 0
-	const lineColor = finalPnl >= 0 ? "var(--color-pos)" : "var(--color-neg)"
+	const lineColor =
+		finalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
@@ -125,7 +120,7 @@ export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnL
 							axisLine={{ stroke: "var(--color-bg-300)" }}
 						/>
 						<YAxis
-							tickFormatter={(value: number) => formatCurrency(value)}
+							tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 12 }}
 							tickLine={false}

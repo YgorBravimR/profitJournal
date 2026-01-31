@@ -12,6 +12,7 @@ import {
 } from "recharts"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
+import { formatCompactCurrency } from "@/lib/formatting"
 import { getEquityCurve, type EquityCurveMode } from "@/app/actions/analytics"
 import type { EquityPoint } from "@/types"
 
@@ -20,17 +21,6 @@ type ViewMode = "days" | "trades"
 
 interface EquityCurveProps {
 	data: EquityPoint[]
-}
-
-const formatCurrency = (value: number): string => {
-	const absValue = Math.abs(value)
-	if (absValue >= 1000000) {
-		return `${value >= 0 ? "" : "-"}$${(absValue / 1000000).toFixed(1)}M`
-	}
-	if (absValue >= 1000) {
-		return `${value >= 0 ? "" : "-"}$${(absValue / 1000).toFixed(1)}K`
-	}
-	return `${value >= 0 ? "" : "-"}$${absValue.toFixed(0)}`
 }
 
 
@@ -149,11 +139,11 @@ const createCustomTooltip = ({ viewMode, locale, drawdownLabel }: TooltipContext
 						<p className="text-tiny text-txt-300">{formatDateLocale(data.date)}</p>
 					)}
 					<p className="text-small font-semibold text-txt-100">
-						{formatCurrency(data.accountEquity)}
+						{formatCompactCurrency(data.accountEquity)}
 					</p>
 					{data.drawdown > 0 && (
 						<p className="text-tiny text-trade-sell">
-							{drawdownLabel}: {formatCurrency(drawdownValue)} ({data.drawdown.toFixed(1)}%)
+							{drawdownLabel}: {formatCompactCurrency(drawdownValue)} ({data.drawdown.toFixed(1)}%)
 						</p>
 					)}
 				</div>
@@ -261,27 +251,27 @@ export const EquityCurve = ({ data: initialData }: EquityCurveProps) => {
 					>
 						<defs>
 							<linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="rgb(204 162 72)" stopOpacity={0.3} />
-								<stop offset="95%" stopColor="rgb(204 162 72)" stopOpacity={0} />
+								<stop offset="5%" stopColor="var(--color-acc-100)" stopOpacity={0.3} />
+								<stop offset="95%" stopColor="var(--color-acc-100)" stopOpacity={0} />
 							</linearGradient>
 						</defs>
 						<CartesianGrid
 							strokeDasharray="3 3"
-							stroke="rgb(43 47 54)"
+							stroke="var(--color-bg-300)"
 							vertical={false}
 						/>
 						<XAxis
 							dataKey={viewMode === "trades" ? "tradeNumber" : "date"}
 							tickFormatter={viewMode === "trades" ? (v) => `#${v}` : formatDateLocale}
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
 							axisLine={false}
 						/>
 						<YAxis
-							tickFormatter={formatCurrency}
-							stroke="rgb(90 96 106)"
-							tick={{ fill: "rgb(90 96 106)", fontSize: 11 }}
+							tickFormatter={(value: number) => formatCompactCurrency(value)}
+							stroke="var(--color-txt-300)"
+							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
 							axisLine={false}
 							domain={[minEquity - padding, maxEquity + padding]}
@@ -291,14 +281,14 @@ export const EquityCurve = ({ data: initialData }: EquityCurveProps) => {
 						<Area
 							type="monotone"
 							dataKey="accountEquity"
-							stroke="rgb(204 162 72)"
+							stroke="var(--color-acc-100)"
 							strokeWidth={2}
 							fill="url(#equityGradient)"
 							dot={false}
 							activeDot={{
 								r: 4,
-								fill: "rgb(204 162 72)",
-								stroke: "rgb(21 25 33)",
+								fill: "var(--color-acc-100)",
+								stroke: "var(--color-bg-200)",
 								strokeWidth: 2,
 							}}
 						/>

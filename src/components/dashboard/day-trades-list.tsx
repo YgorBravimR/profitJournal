@@ -75,9 +75,9 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 							<td className="px-s-300 py-s-200">
 								<div className="flex items-center gap-s-100">
 									{trade.direction === "long" ? (
-										<ArrowUpRight className="h-3.5 w-3.5 text-pos" />
+										<ArrowUpRight className="h-3.5 w-3.5 text-trade-buy" />
 									) : (
-										<ArrowDownRight className="h-3.5 w-3.5 text-neg" />
+										<ArrowDownRight className="h-3.5 w-3.5 text-trade-sell" />
 									)}
 									<span className="text-small font-medium text-txt-100">
 										{trade.asset}
@@ -95,7 +95,7 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 							</td>
 							<td
 								className={`px-s-300 py-s-200 text-right text-small font-medium ${
-									trade.pnl >= 0 ? "text-pos" : "text-neg"
+									trade.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 								}`}
 							>
 								{formatCurrency(trade.pnl)}
@@ -103,9 +103,9 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 							<td
 								className={`px-s-300 py-s-200 text-right text-small ${
 									trade.rMultiple !== null && trade.rMultiple >= 0
-										? "text-pos"
+										? "text-trade-buy"
 										: trade.rMultiple !== null
-											? "text-neg"
+											? "text-trade-sell"
 											: "text-txt-300"
 								}`}
 							>
