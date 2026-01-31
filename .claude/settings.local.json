@@ -28,7 +28,8 @@
       "Bash(npx playwright test:*)",
       "Bash(pnpm exec playwright test:*)",
       "Bash(tee:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(npx prettier:*)"
     ],
     "deny": [],
     "ask": []

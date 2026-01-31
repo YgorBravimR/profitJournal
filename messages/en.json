@@ -50,10 +50,100 @@
 		"commandCenter": "Command Center",
 		"journal": "Journal",
 		"analytics": "Analytics",
+		"monteCarlo": "Monte Carlo",
 		"playbook": "Playbook",
 		"reports": "Reports",
 		"monthly": "Monthly",
 		"settings": "Settings"
+	},
+	"monteCarlo": {
+		"title": "Monte Carlo Strategy Simulator",
+		"subtitle": "Stress-test your trading strategy with statistical simulations",
+		"inputMode": {
+			"title": "Input Mode",
+			"auto": "Auto-populate from Data",
+			"manual": "Manual Entry"
+		},
+		"dataSource": {
+			"title": "Data Source",
+			"selectSource": "Select data source",
+			"individual": "Individual Strategy",
+			"allStrategies": "All Strategies",
+			"universal": "All Accounts + All Strategies"
+		},
+		"statsPreview": {
+			"winRate": "Win Rate",
+			"avgRR": "Avg R:R",
+			"profitFactor": "Profit Factor",
+			"useStats": "Use These Stats",
+			"customize": "Customize",
+			"strategiesBreakdown": "Strategies Breakdown"
+		},
+		"params": {
+			"title": "Simulation Parameters",
+			"initialBalance": "Initial Balance",
+			"riskType": "Risk Type",
+			"riskTypePercentage": "Percentage",
+			"riskTypeFixed": "Fixed Amount",
+			"riskPerTrade": "Risk Per Trade",
+			"winRate": "Win Rate (%)",
+			"rewardRiskRatio": "Reward/Risk Ratio",
+			"numberOfTrades": "Number of Trades",
+			"commissionPerTrade": "Commission per Trade (%)",
+			"simulationCount": "Monte Carlo Simulations",
+			"calculate": "Calculate Results"
+		},
+		"results": {
+			"title": "Expected Results",
+			"equityCurve": "Total Return Progression",
+			"drawdownCurve": "Drawdown Progression",
+			"distribution": "Distribution of Possible Outcomes",
+			"tradeNumber": "Trade Number",
+			"finalBalance": "Final Balance"
+		},
+		"metrics": {
+			"balanceSummary": "Balance Summary",
+			"initial": "Initial Balance",
+			"final": "Final Balance",
+			"totalReturn": "Total Return",
+			"tradeProfit": "Trade Profit",
+			"riskAdjusted": "Risk-Adjusted Metrics",
+			"sharpeRatio": "Sharpe Ratio",
+			"sortinoRatio": "Sortino Ratio",
+			"calmarRatio": "Calmar Ratio",
+			"performance": "Performance Metrics",
+			"profitFactor": "Profit Factor",
+			"bestTrade": "Best Trade",
+			"worstTrade": "Worst Trade",
+			"drawdown": "Drawdown Analysis",
+			"maxDrawdown": "Max Drawdown",
+			"avgDrawdown": "Average Drawdown",
+			"underwaterTime": "Underwater Time",
+			"streaks": "Streak Statistics",
+			"maxWinsInRow": "Max Wins in Row",
+			"maxLossesInRow": "Max Losses in Row",
+			"avgWinStreak": "Average Win Streak",
+			"avgLossStreak": "Average Loss Streak",
+			"kelly": "Position Size Calculator (Kelly Criterion)",
+			"kellyDescription": "Helps you decide how much to risk per trade based on your win rate and reward/risk ratio.",
+			"fullKelly": "Aggressive (Full Kelly)",
+			"halfKelly": "Balanced (Half Kelly)",
+			"quarterKelly": "Conservative (Quarter Kelly)"
+		},
+		"trades": {
+			"title": "Sample Trade Sequence (Average Case)",
+			"win": "Win",
+			"loss": "Loss",
+			"commission": "Commission",
+			"balance": "Balance",
+			"showAll": "Show All Trades",
+			"hideAll": "Hide Trades"
+		},
+		"analysis": {
+			"title": "Trading Strategy Analysis",
+			"monteCarlo": "Monte Carlo Simulation Analysis",
+			"balanceReturns": "Balance and Returns Analysis"
+		}
 	},
 	"commandCenter": {
 		"title": "Command Center",

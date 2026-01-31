@@ -13,6 +13,7 @@ import {
 	ChevronLeft,
 	ChevronRight,
 	Target,
+	Dices,
 	type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -20,8 +21,8 @@ import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/settings"
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/settings"
 	icon: LucideIcon
 }
 
@@ -30,6 +31,7 @@ const navItems: NavItem[] = [
 	{ labelKey: "commandCenter", href: "/command-center", icon: Target },
 	{ labelKey: "journal", href: "/journal", icon: BookOpen },
 	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
+	{ labelKey: "monteCarlo", href: "/monte-carlo", icon: Dices },
 	{ labelKey: "playbook", href: "/playbook", icon: FileText },
 	{ labelKey: "reports", href: "/reports", icon: FileBarChart },
 	{ labelKey: "monthly", href: "/monthly", icon: CalendarDays },

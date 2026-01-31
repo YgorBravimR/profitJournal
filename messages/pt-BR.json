@@ -50,10 +50,100 @@
 		"commandCenter": "Central de Comando",
 		"journal": "Diário",
 		"analytics": "Análises",
+		"monteCarlo": "Monte Carlo",
 		"playbook": "Playbook",
 		"reports": "Relatórios",
 		"monthly": "Mensal",
 		"settings": "Configurações"
+	},
+	"monteCarlo": {
+		"title": "Simulador Monte Carlo",
+		"subtitle": "Teste sua estratégia de trading com simulações estatísticas",
+		"inputMode": {
+			"title": "Modo de Entrada",
+			"auto": "Auto-preencher dos Dados",
+			"manual": "Entrada Manual"
+		},
+		"dataSource": {
+			"title": "Fonte de Dados",
+			"selectSource": "Selecione a fonte de dados",
+			"individual": "Estratégia Individual",
+			"allStrategies": "Todas as Estratégias",
+			"universal": "Todas as Contas + Todas as Estratégias"
+		},
+		"statsPreview": {
+			"winRate": "Taxa de Acerto",
+			"avgRR": "R:R Médio",
+			"profitFactor": "Fator de Lucro",
+			"useStats": "Usar Estas Estatísticas",
+			"customize": "Personalizar",
+			"strategiesBreakdown": "Detalhamento das Estratégias"
+		},
+		"params": {
+			"title": "Parâmetros da Simulação",
+			"initialBalance": "Saldo Inicial",
+			"riskType": "Tipo de Risco",
+			"riskTypePercentage": "Porcentagem",
+			"riskTypeFixed": "Valor Fixo",
+			"riskPerTrade": "Risco por Trade",
+			"winRate": "Taxa de Acerto (%)",
+			"rewardRiskRatio": "Razão Ganho/Risco",
+			"numberOfTrades": "Número de Trades",
+			"commissionPerTrade": "Comissão por Trade (%)",
+			"simulationCount": "Simulações Monte Carlo",
+			"calculate": "Calcular Resultados"
+		},
+		"results": {
+			"title": "Resultados Esperados",
+			"equityCurve": "Progressão do Retorno Total",
+			"drawdownCurve": "Progressão do Drawdown",
+			"distribution": "Distribuição dos Resultados Possíveis",
+			"tradeNumber": "Número do Trade",
+			"finalBalance": "Saldo Final"
+		},
+		"metrics": {
+			"balanceSummary": "Resumo do Saldo",
+			"initial": "Saldo Inicial",
+			"final": "Saldo Final",
+			"totalReturn": "Retorno Total",
+			"tradeProfit": "Lucro dos Trades",
+			"riskAdjusted": "Métricas Ajustadas ao Risco",
+			"sharpeRatio": "Índice Sharpe",
+			"sortinoRatio": "Índice Sortino",
+			"calmarRatio": "Índice Calmar",
+			"performance": "Métricas de Desempenho",
+			"profitFactor": "Fator de Lucro",
+			"bestTrade": "Melhor Trade",
+			"worstTrade": "Pior Trade",
+			"drawdown": "Análise de Drawdown",
+			"maxDrawdown": "Drawdown Máximo",
+			"avgDrawdown": "Drawdown Médio",
+			"underwaterTime": "Tempo em Drawdown",
+			"streaks": "Estatísticas de Sequências",
+			"maxWinsInRow": "Máx. Ganhos Seguidos",
+			"maxLossesInRow": "Máx. Perdas Seguidas",
+			"avgWinStreak": "Média de Sequência de Ganhos",
+			"avgLossStreak": "Média de Sequência de Perdas",
+			"kelly": "Calculadora de Tamanho de Posição (Critério de Kelly)",
+			"kellyDescription": "Ajuda você a decidir quanto arriscar por trade com base na sua taxa de acerto e razão ganho/risco.",
+			"fullKelly": "Agressivo (Kelly Completo)",
+			"halfKelly": "Equilibrado (Meio Kelly)",
+			"quarterKelly": "Conservador (Quarto de Kelly)"
+		},
+		"trades": {
+			"title": "Sequência de Trades de Amostra (Caso Médio)",
+			"win": "Ganho",
+			"loss": "Perda",
+			"commission": "Comissão",
+			"balance": "Saldo",
+			"showAll": "Mostrar Todos os Trades",
+			"hideAll": "Ocultar Trades"
+		},
+		"analysis": {
+			"title": "Análise da Estratégia de Trading",
+			"monteCarlo": "Análise da Simulação Monte Carlo",
+			"balanceReturns": "Análise de Saldo e Retornos"
+		}
 	},
 	"commandCenter": {
 		"title": "Central de Comando",

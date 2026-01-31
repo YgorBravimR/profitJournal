@@ -5,7 +5,7 @@ import type { Locale } from "@/i18n/config"
  */
 const localeMap: Record<Locale, string> = {
 	"pt-BR": "pt-BR",
-	en: "en-US",
+	"en": "en-US",
 }
 
 /**
@@ -13,7 +13,7 @@ const localeMap: Record<Locale, string> = {
  */
 const localeCurrency: Record<Locale, string> = {
 	"pt-BR": "BRL",
-	en: "USD",
+	"en": "USD",
 }
 
 /**
@@ -59,9 +59,10 @@ export const formatNumber = (
 		minimumFractionDigits: 0,
 		maximumFractionDigits: 2,
 	}
-	return new Intl.NumberFormat(localeMap[locale], options || defaultOptions).format(
-		value
-	)
+	return new Intl.NumberFormat(
+		localeMap[locale],
+		options || defaultOptions
+	).format(value)
 }
 
 /**
@@ -105,9 +106,10 @@ export const formatDateLocale = (
 		month: "short",
 		day: "numeric",
 	}
-	return new Intl.DateTimeFormat(localeMap[locale], options || defaultOptions).format(
-		date
-	)
+	return new Intl.DateTimeFormat(
+		localeMap[locale],
+		options || defaultOptions
+	).format(date)
 }
 
 /**
@@ -159,7 +161,9 @@ export const formatMonthYear = (date: Date, locale: Locale): string => {
  * Get relative time string according to locale (e.g., "2 days ago")
  */
 export const getRelativeTimeLocale = (date: Date, locale: Locale): string => {
-	const rtf = new Intl.RelativeTimeFormat(localeMap[locale], { numeric: "auto" })
+	const rtf = new Intl.RelativeTimeFormat(localeMap[locale], {
+		numeric: "auto",
+	})
 	const now = new Date()
 	const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000)
 
@@ -193,7 +197,9 @@ export const getDayOfWeekName = (
 	const date = new Date(2024, 0, dayIndex) // January 2024 starts on Monday, so offset
 	// Adjust for Sunday-based index
 	date.setDate(date.getDate() + dayIndex)
-	return new Intl.DateTimeFormat(localeMap[locale], { weekday: format }).format(date)
+	return new Intl.DateTimeFormat(localeMap[locale], { weekday: format }).format(
+		date
+	)
 }
 
 /**
@@ -205,7 +211,9 @@ export const getMonthName = (
 	format: "long" | "short" | "narrow" = "long"
 ): string => {
 	const date = new Date(2024, monthIndex, 1)
-	return new Intl.DateTimeFormat(localeMap[locale], { month: format }).format(date)
+	return new Intl.DateTimeFormat(localeMap[locale], { month: format }).format(
+		date
+	)
 }
 
 /**
@@ -228,4 +236,49 @@ export const formatHourOfDay = (hour: number, locale: Locale): string => {
 		hour: "numeric",
 		minute: "2-digit",
 	}).format(date)
+}
+
+/**
+ * Format currency in compact form for charts (e.g., $10K, $1.5M)
+ */
+export const formatCompactCurrency = (value: number, symbol = "$"): string => {
+	const absValue = Math.abs(value)
+	const sign = value < 0 ? "-" : ""
+
+	if (absValue >= 1_000_000) {
+		return `${sign}${symbol}${(absValue / 1_000_000).toFixed(1)}M`
+	}
+	if (absValue >= 1_000) {
+		return `${sign}${symbol}${(absValue / 1_000).toFixed(1)}K`
+	}
+	return `${sign}${symbol}${absValue.toFixed(0)}`
+}
+
+/**
+ * Format currency with sign for charts (e.g., +$1.5K, -$500)
+ */
+export const formatCompactCurrencyWithSign = (
+	value: number,
+	symbol = "$"
+): string => {
+	const formatted = formatCompactCurrency(Math.abs(value), symbol)
+	if (value > 0) return `+${formatted}`
+	if (value < 0) return `-${formatted}`
+	return formatted
+}
+
+/**
+ * Format percentage for charts (e.g., +15.2%, -3.5%)
+ */
+export const formatChartPercent = (value: number, showSign = true): string => {
+	const sign = showSign && value > 0 ? "+" : ""
+	return `${sign}${value.toFixed(1)}%`
+}
+
+/**
+ * Format ratio for display (handles infinity)
+ */
+export const formatRatio = (value: number): string => {
+	if (!Number.isFinite(value)) return "∞"
+	return value.toFixed(2)
 }
