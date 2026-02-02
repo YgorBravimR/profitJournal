@@ -657,7 +657,7 @@ export const dailyAccountNotes = pgTable(
 	]
 )
 
-// Daily Asset Settings Table (per-asset trading rules)
+// Daily Asset Settings Table (per-asset trading rules, per-day)
 export const dailyAssetSettings = pgTable(
 	"daily_asset_settings",
 	{
@@ -669,6 +669,8 @@ export const dailyAssetSettings = pgTable(
 		assetId: uuid("asset_id")
 			.notNull()
 			.references(() => assets.id, { onDelete: "cascade" }),
+		date: timestamp("date", { withTimezone: true }).notNull(), // Per-day tracking
+		bias: varchar("bias", { length: 10 }), // 'long' | 'short' | 'neutral' | null
 		maxDailyTrades: integer("max_daily_trades"),
 		maxPositionSize: integer("max_position_size"),
 		notes: text("notes"),
@@ -684,7 +686,8 @@ export const dailyAssetSettings = pgTable(
 		index("daily_asset_settings_user_idx").on(table.userId),
 		index("daily_asset_settings_account_idx").on(table.accountId),
 		index("daily_asset_settings_asset_idx").on(table.assetId),
-		uniqueIndex("daily_asset_settings_unique_idx").on(table.accountId, table.assetId),
+		index("daily_asset_settings_date_idx").on(table.date),
+		uniqueIndex("daily_asset_settings_unique_idx").on(table.accountId, table.assetId, table.date),
 	]
 )
 

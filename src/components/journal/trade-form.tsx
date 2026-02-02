@@ -46,6 +46,8 @@ interface TradeFormProps {
 	assets?: AssetWithType[]
 	timeframes?: Timeframe[]
 	onSuccess?: () => void
+	redirectTo?: string
+	defaultAssetId?: string
 }
 
 // Format Date to datetime-local input value (YYYY-MM-DDTHH:mm)
@@ -65,6 +67,8 @@ export const TradeForm = ({
 	assets = [],
 	timeframes: configuredTimeframes = [],
 	onSuccess,
+	redirectTo,
+	defaultAssetId,
 }: TradeFormProps) => {
 	const router = useRouter()
 	const { showToast } = useToast()
@@ -73,6 +77,10 @@ export const TradeForm = ({
 		() => {
 			if (trade?.asset && assets.length > 0) {
 				return assets.find((a) => a.symbol === trade.asset) ?? null
+			}
+			// Pre-select asset if defaultAssetId is provided
+			if (defaultAssetId && assets.length > 0) {
+				return assets.find((a) => a.id === defaultAssetId) ?? null
 			}
 			return null
 		}
@@ -96,8 +104,6 @@ export const TradeForm = ({
 				positionSize: Number(trade.positionSize),
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
-				// riskAmount can be manually entered or calculated from stopLoss
-				riskAmount: trade.plannedRiskAmount ? fromCents(trade.plannedRiskAmount) : undefined,
 				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
@@ -140,7 +146,6 @@ export const TradeForm = ({
 				positionSize: Number(trade.positionSize),
 				stopLoss: trade.stopLoss ? Number(trade.stopLoss) : undefined,
 				takeProfit: trade.takeProfit ? Number(trade.takeProfit) : undefined,
-				riskAmount: trade.plannedRiskAmount ? fromCents(trade.plannedRiskAmount) : undefined,
 				pnl: trade.pnl ? fromCents(trade.pnl) : undefined,
 				mfe: trade.mfe ? Number(trade.mfe) : undefined,
 				mae: trade.mae ? Number(trade.mae) : undefined,
@@ -167,27 +172,27 @@ export const TradeForm = ({
 	const takeProfit = watch("takeProfit")
 	const selectedTagIds = watch("tagIds") || []
 
-	// Watch riskAmount for auto-fill logic
-	const riskAmountValue = watch("riskAmount")
-
-	// Auto-calculate planned risk from stop loss
+	// Auto-calculate planned risk from stop loss using asset-based calculation when available
 	const calculatedRisk = useMemo(() => {
 		if (!entryPrice || !stopLoss || !positionSize) return null
 		const entry = Number(entryPrice)
 		const sl = Number(stopLoss)
 		const size = Number(positionSize)
 		if (isNaN(entry) || isNaN(sl) || isNaN(size)) return null
-		const riskPerUnit =
-			direction === "long" ? entry - sl : sl - entry
-		return Math.abs(riskPerUnit * size)
-	}, [entryPrice, stopLoss, positionSize, direction])
 
-	// Auto-fill riskAmount when calculatedRisk changes and user hasn't manually entered a value
-	useEffect(() => {
-		if (calculatedRisk !== null && !riskAmountValue) {
-			setValue("riskAmount", calculatedRisk)
+		if (selectedAsset) {
+			// Use asset-based calculation (tick size and tick value)
+			const priceDiff = Math.abs(entry - sl)
+			const tickSize = parseFloat(selectedAsset.tickSize)
+			const tickValue = fromCents(selectedAsset.tickValue)
+			const ticksAtRisk = priceDiff / tickSize
+			return ticksAtRisk * tickValue * size
 		}
-	}, [calculatedRisk, riskAmountValue, setValue])
+
+		// Fallback to simple price-based calculation
+		const riskPerUnit = Math.abs(entry - sl)
+		return riskPerUnit * size
+	}, [entryPrice, stopLoss, positionSize, selectedAsset])
 
 	// Auto-calculate planned R target from TP/SL ratio (always derived, never user input)
 	const calculatedPlannedR = useMemo(() => {
@@ -267,9 +272,14 @@ export const TradeForm = ({
 	const onSubmit = async (data: TradeFormInput) => {
 		setIsSubmitting(true)
 		try {
+			// Include calculated risk amount in submission
+			const submitData = {
+				...data,
+				riskAmount: calculatedRisk ?? undefined,
+			}
 			const result = isEditing
-				? await updateTrade(trade.id, data)
-				: await createTrade(data)
+				? await updateTrade(trade.id, submitData)
+				: await createTrade(submitData)
 
 			if (result.status === "success") {
 				showToast(
@@ -277,8 +287,8 @@ export const TradeForm = ({
 					isEditing ? "Trade updated successfully" : "Trade created successfully"
 				)
 				onSuccess?.()
-				// Redirect to journal list - refresh happens automatically on navigation
-				router.push("/journal")
+				// Redirect to specified location or journal list
+				router.push(redirectTo || "/journal")
 			} else {
 				showToast("error", result.message || "Failed to save trade")
 			}
@@ -690,44 +700,36 @@ export const TradeForm = ({
 						/>
 					</div>
 
-					{/* Risk Amount (can be calculated from SL or manually entered) */}
-					<FormField
-						control={form.control}
-						name="riskAmount"
-						render={({ field }) => (
-							<FormItem>
-								<div className="flex items-center gap-s-200">
-									<FormLabel>Risk Amount ($)</FormLabel>
-									<Tooltip>
-										<TooltipTrigger asChild>
-											<Info className="text-txt-300 h-4 w-4 cursor-help" />
-										</TooltipTrigger>
-										<TooltipContent>
-											<p className="text-tiny max-w-[200px]">
-												Required for R-multiple calculation. Auto-calculated from stop loss, or enter manually if not using a stop loss.
-											</p>
-										</TooltipContent>
-									</Tooltip>
-								</div>
-								<FormControl>
-									<Input
-										type="number"
-										step="any"
-										placeholder={calculatedRisk !== null ? calculatedRisk.toFixed(2) : "Enter risk amount"}
-										{...field}
-										value={field.value ?? (calculatedRisk !== null ? calculatedRisk.toFixed(2) : "")}
-										onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
-									/>
-								</FormControl>
-								<p className="text-tiny text-txt-300">
-									{calculatedRisk !== null
-										? "Auto-calculated from stop loss (you can override)"
-										: "Enter your risk amount to calculate R-multiple"}
-								</p>
-								<FormMessage />
-							</FormItem>
-						)}
-					/>
+					{/* Risk Amount (always calculated from entry, stop loss, and position size) */}
+					<div className="space-y-s-200">
+						<div className="flex items-center gap-s-200">
+							<Label>Risk Amount ({selectedAsset?.currency ?? "$"})</Label>
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Info className="text-txt-300 h-4 w-4 cursor-help" />
+								</TooltipTrigger>
+								<TooltipContent>
+									<p className="text-tiny max-w-[200px]">
+										Auto-calculated from entry price, stop loss, and position size. Used for R-multiple calculation.
+									</p>
+								</TooltipContent>
+							</Tooltip>
+						</div>
+						<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
+							{calculatedRisk !== null ? (
+								<span className="text-small text-txt-100 font-medium">
+									{selectedAsset?.currency ?? "$"} {calculatedRisk.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+								</span>
+							) : (
+								<span className="text-small text-txt-300">
+									Enter entry price, stop loss & position size
+								</span>
+							)}
+						</div>
+						<p className="text-tiny text-txt-300">
+							Auto-calculated from stop loss distance
+						</p>
+					</div>
 
 					{/* Planned R-Multiple (calculated from TP/SL) */}
 					<div className="space-y-s-200">

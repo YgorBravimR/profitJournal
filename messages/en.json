@@ -128,7 +128,8 @@
 			"kellyDescription": "Helps you decide how much to risk per trade based on your win rate and reward/risk ratio.",
 			"fullKelly": "Aggressive (Full Kelly)",
 			"halfKelly": "Balanced (Half Kelly)",
-			"quarterKelly": "Conservative (Quarter Kelly)"
+			"quarterKelly": "Conservative (Quarter Kelly)",
+			"recommendedPositionSizes": "Recommended ({kellyType}) position sizes:"
 		},
 		"trades": {
 			"title": "Sample Trade Sequence (Average Case)",
@@ -225,10 +226,19 @@
 			"cancel": "Cancel",
 			"noAssets": "No asset-specific rules configured",
 			"asset": "Asset",
+			"bias": "Bias",
+			"biasLong": "Long",
+			"biasShort": "Short",
+			"biasNeutral": "Neutral",
+			"selectBias": "Select bias",
 			"maxTrades": "Max Trades",
 			"positionSize": "Max Size",
 			"notes": "Notes",
-			"notesPlaceholder": "Optional notes..."
+			"notesPlaceholder": "Optional notes...",
+			"addTrade": "Add trade",
+			"save": "Save",
+			"edit": "Edit",
+			"delete": "Delete"
 		},
 		"summary": {
 			"title": "Today's Summary",
@@ -839,7 +849,9 @@
 			"fees": "Fees",
 			"active": "Active",
 			"inactive": "Inactive",
-			"noAssets": "No assets found"
+			"noAssets": "No assets found",
+			"activate": "Activate asset",
+			"deactivate": "Deactivate asset"
 		},
 		"timeframes": {
 			"title": "Manage Timeframes",
@@ -1077,7 +1089,9 @@
 			"noAccount": "Don't have an account?",
 			"register": "Create account",
 			"invalidCredentials": "Invalid email or password",
-			"success": "Signed in successfully"
+			"success": "Signed in successfully",
+			"showPassword": "Show password",
+			"hidePassword": "Hide password"
 		},
 		"register": {
 			"title": "Create Account",

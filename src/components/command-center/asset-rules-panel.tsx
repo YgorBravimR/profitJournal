@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { Settings2, Save, Loader2, Plus, Trash2 } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Settings2, Save, Loader2, Plus, Trash2, PlusCircle } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -13,9 +14,11 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select"
+import { BiasSelector, BiasBadge } from "./bias-selector"
 import { upsertAssetSettings, deleteAssetSettings } from "@/app/actions/command-center"
 import type { AssetSettingWithAsset } from "@/app/actions/command-center"
 import type { Asset } from "@/db/schema"
+import type { BiasType } from "@/lib/validations/command-center"
 
 interface AssetRulesPanelProps {
 	settings: AssetSettingWithAsset[]
@@ -25,6 +28,7 @@ interface AssetRulesPanelProps {
 
 interface EditingState {
 	assetId: string
+	bias: BiasType | null
 	maxDailyTrades: string
 	maxPositionSize: string
 	notes: string
@@ -36,6 +40,7 @@ export const AssetRulesPanel = ({
 	onRefresh,
 }: AssetRulesPanelProps) => {
 	const t = useTranslations("commandCenter.assetRules")
+	const router = useRouter()
 
 	const [addingAsset, setAddingAsset] = useState(false)
 	const [selectedAssetId, setSelectedAssetId] = useState<string>("")
@@ -55,6 +60,7 @@ export const AssetRulesPanel = ({
 		try {
 			await upsertAssetSettings({
 				assetId: selectedAssetId,
+				bias: null,
 				maxDailyTrades: null,
 				maxPositionSize: null,
 				notes: null,
@@ -73,6 +79,7 @@ export const AssetRulesPanel = ({
 	const handleStartEdit = (setting: AssetSettingWithAsset) => {
 		setEditing({
 			assetId: setting.assetId,
+			bias: (setting.bias as BiasType) || null,
 			maxDailyTrades: setting.maxDailyTrades?.toString() || "",
 			maxPositionSize: setting.maxPositionSize?.toString() || "",
 			notes: setting.notes || "",
@@ -86,6 +93,7 @@ export const AssetRulesPanel = ({
 		try {
 			await upsertAssetSettings({
 				assetId: editing.assetId,
+				bias: editing.bias,
 				maxDailyTrades: editing.maxDailyTrades ? parseInt(editing.maxDailyTrades) : null,
 				maxPositionSize: editing.maxPositionSize ? parseInt(editing.maxPositionSize) : null,
 				notes: editing.notes || null,
@@ -95,6 +103,28 @@ export const AssetRulesPanel = ({
 			onRefresh()
 		} catch (error) {
 			console.error("Failed to save settings:", error)
+		} finally {
+			setSaving(null)
+		}
+	}
+
+	const handleBiasChange = async (assetId: string, bias: BiasType | null) => {
+		setSaving(assetId)
+		try {
+			const setting = settings.find((s) => s.assetId === assetId)
+			if (setting) {
+				await upsertAssetSettings({
+					assetId,
+					bias,
+					maxDailyTrades: setting.maxDailyTrades,
+					maxPositionSize: setting.maxPositionSize,
+					notes: setting.notes,
+					isActive: true,
+				})
+				onRefresh()
+			}
+		} catch (error) {
+			console.error("Failed to update bias:", error)
 		} finally {
 			setSaving(null)
 		}
@@ -112,17 +142,21 @@ export const AssetRulesPanel = ({
 		}
 	}
 
+	const handleAddTrade = (assetId: string) => {
+		router.push(`/journal/new?returnTo=/command-center&asset=${assetId}`)
+	}
+
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			{/* Header */}
 			<div className="mb-m-400 flex items-center justify-between">
 				<div className="flex items-center gap-s-200">
-					<Settings2 className="h-5 w-5 text-txt-200" />
+					<Settings2 className="h-5 w-5 text-txt-200" aria-hidden="true" />
 					<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 				</div>
 				{!addingAsset && availableToAdd.length > 0 && (
 					<Button variant="ghost" size="sm" onClick={() => setAddingAsset(true)}>
-						<Plus className="mr-s-100 h-4 w-4" />
+						<Plus className="mr-s-100 h-4 w-4" aria-hidden="true" />
 						{t("addAsset")}
 					</Button>
 				)}
@@ -149,7 +183,7 @@ export const AssetRulesPanel = ({
 						disabled={!selectedAssetId || saving === selectedAssetId}
 					>
 						{saving === selectedAssetId ? (
-							<Loader2 className="h-4 w-4 animate-spin" />
+							<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
 						) : (
 							t("add")
 						)}
@@ -169,6 +203,7 @@ export const AssetRulesPanel = ({
 						<thead>
 							<tr className="border-b border-bg-300 text-left">
 								<th className="pb-s-200 text-tiny font-medium text-txt-300">{t("asset")}</th>
+								<th className="pb-s-200 text-tiny font-medium text-txt-300">{t("bias")}</th>
 								<th className="pb-s-200 text-tiny font-medium text-txt-300">{t("maxTrades")}</th>
 								<th className="pb-s-200 text-tiny font-medium text-txt-300">{t("positionSize")}</th>
 								<th className="pb-s-200 text-tiny font-medium text-txt-300">{t("notes")}</th>
@@ -190,6 +225,24 @@ export const AssetRulesPanel = ({
 											<span className="text-small font-medium text-txt-100">
 												{setting.asset.symbol}
 											</span>
+										</td>
+										<td className="py-s-300 pr-m-400">
+											{isEditing ? (
+												<BiasSelector
+													value={editing.bias}
+													onChange={(value) =>
+														setEditing({ ...editing, bias: value })
+													}
+													compact
+												/>
+											) : (
+												<BiasSelector
+													value={(setting.bias as BiasType) || null}
+													onChange={(value) => handleBiasChange(setting.assetId, value)}
+													disabled={isSaving}
+													compact
+												/>
+											)}
 										</td>
 										<td className="py-s-300 pr-m-400">
 											{isEditing ? (
@@ -253,11 +306,12 @@ export const AssetRulesPanel = ({
 															onClick={handleSaveEdit}
 															disabled={isSaving}
 															className="h-8 w-8 p-0"
+															aria-label={t("save")}
 														>
 															{isSaving ? (
-																<Loader2 className="h-4 w-4 animate-spin" />
+																<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
 															) : (
-																<Save className="h-4 w-4 text-trade-buy" />
+																<Save className="h-4 w-4 text-trade-buy" aria-hidden="true" />
 															)}
 														</Button>
 														<Button
@@ -265,6 +319,7 @@ export const AssetRulesPanel = ({
 															size="sm"
 															onClick={() => setEditing(null)}
 															className="h-8 w-8 p-0 text-txt-300"
+															aria-label={t("cancel")}
 														>
 															&times;
 														</Button>
@@ -274,10 +329,20 @@ export const AssetRulesPanel = ({
 														<Button
 															variant="ghost"
 															size="sm"
+															onClick={() => handleAddTrade(setting.assetId)}
+															className="h-8 w-8 p-0 text-acc-100 hover:text-acc-200"
+															aria-label={t("addTrade")}
+														>
+															<PlusCircle className="h-4 w-4" aria-hidden="true" />
+														</Button>
+														<Button
+															variant="ghost"
+															size="sm"
 															onClick={() => handleStartEdit(setting)}
 															className="h-8 w-8 p-0 text-txt-300 hover:text-txt-100"
+															aria-label={t("edit")}
 														>
-															<Settings2 className="h-4 w-4" />
+															<Settings2 className="h-4 w-4" aria-hidden="true" />
 														</Button>
 														<Button
 															variant="ghost"
@@ -290,11 +355,12 @@ export const AssetRulesPanel = ({
 																	? "text-txt-400"
 																	: "text-txt-300 hover:text-fb-error"
 															)}
+															aria-label={t("delete")}
 														>
 															{isDeleting ? (
-																<Loader2 className="h-4 w-4 animate-spin" />
+																<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
 															) : (
-																<Trash2 className="h-4 w-4" />
+																<Trash2 className="h-4 w-4" aria-hidden="true" />
 															)}
 														</Button>
 													</>

@@ -59,6 +59,25 @@ export const KellyCriterionCard = ({
 		bgColor: levelBgColor,
 	} = levelConfig[kellyLevel]
 
+	// Get the recommended kelly value and label based on level
+	const recommendedKellyConfig = {
+		aggressive: {
+			value: kellyFull,
+			label: t("fullKelly"),
+		},
+		balanced: {
+			value: kellyHalf,
+			label: t("halfKelly"),
+		},
+		conservative: {
+			value: kellyQuarter,
+			label: t("quarterKelly"),
+		},
+	}
+
+	const { value: recommendedKelly, label: recommendedKellyLabel } =
+		recommendedKellyConfig[kellyLevel]
+
 	return (
 		<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 			<div className="mb-m-400 flex items-start justify-between">
@@ -133,22 +152,22 @@ export const KellyCriterionCard = ({
 			{/* Position Size Examples */}
 			<div className="mt-m-400 border-bg-300 pt-m-400 border-t">
 				<p className="mb-s-200 text-tiny text-txt-200 font-medium">
-					Recommended (Quarter Kelly) position sizes:
+					{t("recommendedPositionSizes", { kellyType: recommendedKellyLabel })}
 				</p>
 				<div className="space-y-s-100 text-tiny text-txt-300">
 					<p>
 						• {formatKellyCurrency(10000, currency)} account: Risk{" "}
-						{formatKellyCurrency((kellyQuarter / 100) * 10000, currency)} per
+						{formatKellyCurrency((recommendedKelly / 100) * 10000, currency)} per
 						trade
 					</p>
 					<p>
 						• {formatKellyCurrency(25000, currency)} account: Risk{" "}
-						{formatKellyCurrency((kellyQuarter / 100) * 25000, currency)} per
+						{formatKellyCurrency((recommendedKelly / 100) * 25000, currency)} per
 						trade
 					</p>
 					<p>
 						• {formatKellyCurrency(50000, currency)} account: Risk{" "}
-						{formatKellyCurrency((kellyQuarter / 100) * 50000, currency)} per
+						{formatKellyCurrency((recommendedKelly / 100) * 50000, currency)} per
 						trade
 					</p>
 				</div>

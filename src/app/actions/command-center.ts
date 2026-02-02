@@ -36,6 +36,7 @@ import {
 	type AssetSettingsInput,
 	type ChecklistItem,
 	type CircuitBreakerStatus,
+	type BiasType,
 } from "@/lib/validations/command-center"
 import { fromCents, toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
@@ -671,7 +672,7 @@ export const upsertDailyNotes = async (
 }
 
 // ==========================================
-// ASSET SETTINGS ACTIONS
+// ASSET SETTINGS ACTIONS (Per-Day with Copy-from-Previous)
 // ==========================================
 
 export interface AssetSettingWithAsset extends DailyAssetSetting {
@@ -679,22 +680,92 @@ export interface AssetSettingWithAsset extends DailyAssetSetting {
 }
 
 /**
- * Get asset settings for the current account
+ * Get today's asset settings for the current account.
+ * If no settings exist for today, copies from the most recent previous day.
  */
-export const getAssetSettings = async (): Promise<ActionResponse<AssetSettingWithAsset[]>> => {
+export const getTodayAssetSettings = async (): Promise<ActionResponse<AssetSettingWithAsset[]>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		const settings = await db.query.dailyAssetSettings.findMany({
+		// Get start and end of today
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+		const tomorrow = new Date(today)
+		tomorrow.setDate(tomorrow.getDate() + 1)
+
+		// Get today's active settings
+		let settings = await db.query.dailyAssetSettings.findMany({
 			where: and(
 				eq(dailyAssetSettings.userId, userId),
 				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.isActive, true)
+				eq(dailyAssetSettings.isActive, true),
+				gte(dailyAssetSettings.date, today),
+				lte(dailyAssetSettings.date, tomorrow)
 			),
 			with: {
 				asset: true,
 			},
 		})
+
+		// If no settings for today, copy from previous day
+		if (settings.length === 0) {
+			// Find the most recent day with settings
+			const previousSettings = await db.query.dailyAssetSettings.findMany({
+				where: and(
+					eq(dailyAssetSettings.userId, userId),
+					eq(dailyAssetSettings.accountId, accountId),
+					eq(dailyAssetSettings.isActive, true),
+					lte(dailyAssetSettings.date, today)
+				),
+				orderBy: [desc(dailyAssetSettings.date)],
+				with: {
+					asset: true,
+				},
+			})
+
+			if (previousSettings.length > 0) {
+				// Get the most recent date
+				const mostRecentDate = previousSettings[0].date
+				const mostRecentSettings = previousSettings.filter(
+					(s) => s.date.toDateString() === mostRecentDate.toDateString()
+				)
+
+				// Copy each setting to today
+				const newSettings = await Promise.all(
+					mostRecentSettings.map(async (setting) => {
+						const [newSetting] = await db
+							.insert(dailyAssetSettings)
+							.values({
+								userId,
+								accountId,
+								assetId: setting.assetId,
+								date: today,
+								bias: setting.bias,
+								maxDailyTrades: setting.maxDailyTrades,
+								maxPositionSize: setting.maxPositionSize,
+								notes: setting.notes,
+								isActive: true,
+							})
+							.returning()
+						return newSetting
+					})
+				)
+
+				// Fetch with asset relation
+				settings = await db.query.dailyAssetSettings.findMany({
+					where: and(
+						eq(dailyAssetSettings.userId, userId),
+						eq(dailyAssetSettings.accountId, accountId),
+						eq(dailyAssetSettings.isActive, true),
+						gte(dailyAssetSettings.date, today),
+						lte(dailyAssetSettings.date, tomorrow)
+					),
+					with: {
+						asset: true,
+					},
+				})
+			}
+		}
 
 		return {
 			status: "success",
@@ -702,7 +773,7 @@ export const getAssetSettings = async (): Promise<ActionResponse<AssetSettingWit
 			data: settings as AssetSettingWithAsset[],
 		}
 	} catch (error) {
-		console.error("Get asset settings error:", error)
+		console.error("Get today asset settings error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve asset settings",
@@ -712,7 +783,13 @@ export const getAssetSettings = async (): Promise<ActionResponse<AssetSettingWit
 }
 
 /**
- * Upsert asset settings
+ * Legacy function for backwards compatibility
+ * @deprecated Use getTodayAssetSettings instead
+ */
+export const getAssetSettings = getTodayAssetSettings
+
+/**
+ * Upsert asset settings for today
  */
 export const upsertAssetSettings = async (
 	input: AssetSettingsInput
@@ -721,20 +798,29 @@ export const upsertAssetSettings = async (
 		const { userId, accountId } = await requireAuth()
 		const validated = assetSettingsSchema.parse(input)
 
-		// Check if settings exist for this asset
+		// Get start and end of today
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+		const tomorrow = new Date(today)
+		tomorrow.setDate(tomorrow.getDate() + 1)
+
+		// Check if settings exist for this asset TODAY
 		const existing = await db.query.dailyAssetSettings.findFirst({
 			where: and(
 				eq(dailyAssetSettings.userId, userId),
 				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.assetId, validated.assetId)
+				eq(dailyAssetSettings.assetId, validated.assetId),
+				gte(dailyAssetSettings.date, today),
+				lte(dailyAssetSettings.date, tomorrow)
 			),
 		})
 
 		if (existing) {
-			// Update existing
+			// Update existing for today
 			const [settings] = await db
 				.update(dailyAssetSettings)
 				.set({
+					bias: validated.bias || null,
 					maxDailyTrades: validated.maxDailyTrades || null,
 					maxPositionSize: validated.maxPositionSize || null,
 					notes: validated.notes || null,
@@ -752,13 +838,15 @@ export const upsertAssetSettings = async (
 				data: settings,
 			}
 		} else {
-			// Create new
+			// Create new for today
 			const [settings] = await db
 				.insert(dailyAssetSettings)
 				.values({
 					userId,
 					accountId,
 					assetId: validated.assetId,
+					date: today,
+					bias: validated.bias || null,
 					maxDailyTrades: validated.maxDailyTrades || null,
 					maxPositionSize: validated.maxPositionSize || null,
 					notes: validated.notes || null,
@@ -796,25 +884,34 @@ export const upsertAssetSettings = async (
 }
 
 /**
- * Delete asset settings
+ * Delete asset settings for today (soft delete)
  */
 export const deleteAssetSettings = async (assetId: string): Promise<ActionResponse<void>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
+		// Get start and end of today
+		const today = new Date()
+		today.setHours(0, 0, 0, 0)
+		const tomorrow = new Date(today)
+		tomorrow.setDate(tomorrow.getDate() + 1)
+
+		// Find today's setting for this asset
 		const existing = await db.query.dailyAssetSettings.findFirst({
 			where: and(
 				eq(dailyAssetSettings.userId, userId),
 				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.assetId, assetId)
+				eq(dailyAssetSettings.assetId, assetId),
+				gte(dailyAssetSettings.date, today),
+				lte(dailyAssetSettings.date, tomorrow)
 			),
 		})
 
 		if (!existing) {
 			return {
 				status: "error",
-				message: "Asset settings not found",
-				errors: [{ code: "NOT_FOUND", detail: "Asset settings do not exist" }],
+				message: "Asset settings not found for today",
+				errors: [{ code: "NOT_FOUND", detail: "Asset settings do not exist for today" }],
 			}
 		}
 

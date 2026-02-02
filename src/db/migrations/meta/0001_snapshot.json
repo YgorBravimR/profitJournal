@@ -1,6 +1,6 @@
 {
-  "id": "15bd3bff-1a75-41e8-a2c5-836a83342231",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "37ab05da-5228-4a7c-9f02-00f244cbd0fe",
+  "prevId": "15bd3bff-1a75-41e8-a2c5-836a83342231",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -773,6 +773,18 @@
           "primaryKey": false,
           "notNull": true
         },
+        "date": {
+          "name": "date",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bias": {
+          "name": "bias",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "max_daily_trades": {
           "name": "max_daily_trades",
           "type": "integer",
@@ -859,6 +871,21 @@
           "method": "btree",
           "with": {}
         },
+        "daily_asset_settings_date_idx": {
+          "name": "daily_asset_settings_date_idx",
+          "columns": [
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "daily_asset_settings_unique_idx": {
           "name": "daily_asset_settings_unique_idx",
           "columns": [
@@ -870,6 +897,12 @@
             },
             {
               "expression": "asset_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "date",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

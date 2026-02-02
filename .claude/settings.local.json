@@ -35,7 +35,8 @@
       "Bash(npx eslint:*)",
       "Bash(npx next lint:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(pnpm run lint:*)"
     ],
     "deny": [],
     "ask": []

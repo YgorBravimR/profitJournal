@@ -128,7 +128,8 @@
 			"kellyDescription": "Ajuda você a decidir quanto arriscar por trade com base na sua taxa de acerto e razão ganho/risco.",
 			"fullKelly": "Agressivo (Kelly Completo)",
 			"halfKelly": "Equilibrado (Meio Kelly)",
-			"quarterKelly": "Conservador (Quarto de Kelly)"
+			"quarterKelly": "Conservador (Quarto de Kelly)",
+			"recommendedPositionSizes": "Tamanhos de posição recomendados ({kellyType}):"
 		},
 		"trades": {
 			"title": "Sequência de Trades de Amostra (Caso Médio)",
@@ -225,10 +226,19 @@
 			"cancel": "Cancelar",
 			"noAssets": "Nenhuma regra por ativo configurada",
 			"asset": "Ativo",
+			"bias": "Viés",
+			"biasLong": "Comprado",
+			"biasShort": "Vendido",
+			"biasNeutral": "Neutro",
+			"selectBias": "Selecionar viés",
 			"maxTrades": "Máx. Trades",
 			"positionSize": "Tamanho Máx.",
 			"notes": "Notas",
-			"notesPlaceholder": "Notas opcionais..."
+			"notesPlaceholder": "Notas opcionais...",
+			"addTrade": "Adicionar operação",
+			"save": "Salvar",
+			"edit": "Editar",
+			"delete": "Excluir"
 		},
 		"summary": {
 			"title": "Resumo do Dia",
@@ -839,7 +849,9 @@
 			"fees": "Taxas",
 			"active": "Ativo",
 			"inactive": "Inativo",
-			"noAssets": "Nenhum ativo encontrado"
+			"noAssets": "Nenhum ativo encontrado",
+			"activate": "Ativar ativo",
+			"deactivate": "Desativar ativo"
 		},
 		"timeframes": {
 			"title": "Gerenciar Timeframes",
@@ -1077,7 +1089,9 @@
 			"noAccount": "Não tem uma conta?",
 			"register": "Criar conta",
 			"invalidCredentials": "Email ou senha inválidos",
-			"success": "Login realizado com sucesso"
+			"success": "Login realizado com sucesso",
+			"showPassword": "Mostrar senha",
+			"hidePassword": "Ocultar senha"
 		},
 		"register": {
 			"title": "Criar Conta",

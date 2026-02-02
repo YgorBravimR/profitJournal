@@ -32,6 +32,8 @@ interface ScaledTradeFormProps {
 	timeframes?: Timeframe[]
 	onSuccess?: () => void
 	onModeChange?: () => void
+	redirectTo?: string
+	defaultAssetId?: string
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
@@ -53,13 +55,21 @@ export const ScaledTradeForm = ({
 	timeframes: configuredTimeframes = [],
 	onSuccess,
 	onModeChange,
+	redirectTo,
+	defaultAssetId,
 }: ScaledTradeFormProps) => {
 	const router = useRouter()
 	const { showToast } = useToast()
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	// Basic info
-	const [asset, setAsset] = useState("")
+	// Basic info - pre-select asset if defaultAssetId is provided
+	const [asset, setAsset] = useState(() => {
+		if (defaultAssetId) {
+			const defaultAsset = assets.find((a) => a.id === defaultAssetId)
+			return defaultAsset?.symbol || ""
+		}
+		return ""
+	})
 	const [direction, setDirection] = useState<"long" | "short">("long")
 	const [timeframeId, setTimeframeId] = useState<string | null>(null)
 	const [strategyId, setStrategyId] = useState<string | null>(null)
@@ -67,7 +77,6 @@ export const ScaledTradeForm = ({
 	// Risk management
 	const [stopLoss, setStopLoss] = useState("")
 	const [takeProfit, setTakeProfit] = useState("")
-	const [riskAmount, setRiskAmount] = useState("")
 
 	// Journal
 	const [preTradeThoughts, setPreTradeThoughts] = useState("")
@@ -169,12 +178,30 @@ export const ScaledTradeForm = ({
 		}
 	}, [entries, exits, direction, selectedAsset])
 
+	// Calculate risk amount from stop loss and position
+	const calculatedRisk = useMemo(() => {
+		const sl = parseFloat(stopLoss)
+		if (!sl || positionSummary.avgEntryPrice <= 0 || positionSummary.totalEntryQty <= 0) return null
+
+		const priceDiff = Math.abs(positionSummary.avgEntryPrice - sl)
+
+		if (selectedAsset) {
+			// Use tick-based calculation
+			const tickSize = parseFloat(selectedAsset.tickSize)
+			const tickValue = fromCents(selectedAsset.tickValue)
+			const ticksAtRisk = priceDiff / tickSize
+			return ticksAtRisk * tickValue * positionSummary.totalEntryQty
+		}
+
+		// Fallback to simple calculation
+		return priceDiff * positionSummary.totalEntryQty
+	}, [stopLoss, positionSummary.avgEntryPrice, positionSummary.totalEntryQty, selectedAsset])
+
 	// Calculate R-multiple
 	const calculatedR = useMemo(() => {
-		const risk = parseFloat(riskAmount) || 0
-		if (risk <= 0 || positionSummary.netPnl === 0) return null
-		return positionSummary.netPnl / risk
-	}, [riskAmount, positionSummary.netPnl])
+		if (!calculatedRisk || calculatedRisk <= 0 || positionSummary.netPnl === 0) return null
+		return positionSummary.netPnl / calculatedRisk
+	}, [calculatedRisk, positionSummary.netPnl])
 
 	const handleExecutionChange = useCallback(
 		(
@@ -254,7 +281,7 @@ export const ScaledTradeForm = ({
 				strategyId: strategyId || undefined,
 				stopLoss: stopLoss ? parseFloat(stopLoss) : undefined,
 				takeProfit: takeProfit ? parseFloat(takeProfit) : undefined,
-				riskAmount: riskAmount ? parseFloat(riskAmount) : undefined,
+				riskAmount: calculatedRisk ?? undefined,
 				preTradeThoughts: preTradeThoughts || undefined,
 				postTradeReflection: postTradeReflection || undefined,
 				lessonLearned: lessonLearned || undefined,
@@ -267,7 +294,7 @@ export const ScaledTradeForm = ({
 			if (result.status === "success") {
 				showToast("success", "Scaled trade created successfully")
 				onSuccess?.()
-				router.push("/journal")
+				router.push(redirectTo || "/journal")
 			} else {
 				showToast("error", result.message || "Failed to create trade")
 			}
@@ -605,17 +632,20 @@ export const ScaledTradeForm = ({
 								/>
 							</div>
 							<div className="space-y-s-200">
-								<Label htmlFor="riskAmount" className="text-small text-txt-300">
-									Risk Amount ($)
+								<Label className="text-small text-txt-300">
+									Risk Amount ({selectedAsset?.currency ?? "$"})
 								</Label>
-								<Input
-									id="riskAmount"
-									type="number"
-									step="any"
-									placeholder="0.00"
-									value={riskAmount}
-									onChange={(e) => setRiskAmount(e.target.value)}
-								/>
+								<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
+									{calculatedRisk !== null ? (
+										<span className="text-small text-txt-100 font-medium">
+											{selectedAsset?.currency ?? "$"} {calculatedRisk.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+										</span>
+									) : (
+										<span className="text-small text-txt-300">
+											Enter stop loss & entries
+										</span>
+									)}
+								</div>
 							</div>
 						</div>
 					</div>

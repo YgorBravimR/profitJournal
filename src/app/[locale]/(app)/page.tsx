@@ -23,14 +23,12 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 
 	const t = await getTranslations("dashboard")
 	const now = new Date()
-	const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-	const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
 	const [statsResult, disciplineResult, equityCurveResult, streakResult, dailyPnLResult, radarResult] =
 		await Promise.all([
 			getOverallStats(),
 			getDisciplineScore(),
-			getEquityCurve(monthStart, monthEnd),
+			getEquityCurve(), // Fetch all time data by default
 			getStreakData(),
 			getDailyPnL(now),
 			getRadarChartData(),

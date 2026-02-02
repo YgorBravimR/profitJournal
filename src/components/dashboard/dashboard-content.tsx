@@ -119,7 +119,7 @@ export const DashboardContent = ({
 
 			{/* Equity Curve */}
 			<div className="lg:col-span-3">
-				<EquityCurve data={equityCurve} />
+				<EquityCurve data={equityCurve} calendarMonth={currentMonth} />
 			</div>
 
 			{/* Day Detail Modal */}

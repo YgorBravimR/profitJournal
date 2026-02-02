@@ -23,7 +23,9 @@ import {
 } from "@/lib/validations/trade"
 import type { CsvTradeInput } from "@/lib/csv-parser"
 import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
-import { calculatePnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
+import { calculatePnL, calculateAssetPnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
+import { getAssetBySymbol } from "./assets"
+import { fromCents } from "@/lib/money"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
 import { toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
@@ -58,16 +60,24 @@ export const createTrade = async (
 		let plannedRiskAmount: number | undefined
 		let plannedRMultiple: number | undefined
 
+		// Look up asset configuration early for risk calculation
+		const assetConfigForRisk = await getAssetBySymbol(tradeData.asset)
+
 		if (tradeData.riskAmount) {
 			// Use manual risk amount if provided
 			plannedRiskAmount = tradeData.riskAmount
 		} else if (tradeData.stopLoss) {
-			// Calculate from stop loss
-			const riskPerUnit =
-				tradeData.direction === "long"
-					? tradeData.entryPrice - tradeData.stopLoss
-					: tradeData.stopLoss - tradeData.entryPrice
-			plannedRiskAmount = Math.abs(riskPerUnit * tradeData.positionSize)
+			// Calculate from stop loss using asset-based or simple calculation
+			const priceDiff = Math.abs(tradeData.entryPrice - tradeData.stopLoss)
+
+			if (assetConfigForRisk) {
+				const tickSize = parseFloat(assetConfigForRisk.tickSize)
+				const tickValue = fromCents(assetConfigForRisk.tickValue)
+				const ticksAtRisk = priceDiff / tickSize
+				plannedRiskAmount = ticksAtRisk * tickValue * tradeData.positionSize
+			} else {
+				plannedRiskAmount = priceDiff * tradeData.positionSize
+			}
 		}
 
 		// Calculate plannedRMultiple from take profit (reward/risk ratio) - only if we have stopLoss
@@ -86,13 +96,30 @@ export const createTrade = async (
 		}
 
 		if (tradeData.exitPrice && !pnl) {
-			// TODO: Apply per-asset fees from settings when implemented
-			pnl = calculatePnL({
-				direction: tradeData.direction,
-				entryPrice: tradeData.entryPrice,
-				exitPrice: tradeData.exitPrice,
-				positionSize: tradeData.positionSize,
-			})
+			// Look up asset for tick-based calculation
+			const assetConfig = await getAssetBySymbol(tradeData.asset)
+
+			if (assetConfig) {
+				// Use asset-based calculation with tick size and tick value
+				const result = calculateAssetPnL({
+					entryPrice: tradeData.entryPrice,
+					exitPrice: tradeData.exitPrice,
+					positionSize: tradeData.positionSize,
+					direction: tradeData.direction,
+					tickSize: parseFloat(assetConfig.tickSize),
+					tickValue: fromCents(assetConfig.tickValue),
+					contractsExecuted: tradeData.contractsExecuted ?? tradeData.positionSize * 2,
+				})
+				pnl = result.netPnl
+			} else {
+				// Fallback to simple price-based calculation
+				pnl = calculatePnL({
+					direction: tradeData.direction,
+					entryPrice: tradeData.entryPrice,
+					exitPrice: tradeData.exitPrice,
+					positionSize: tradeData.positionSize,
+				})
+			}
 		}
 
 		if (pnl !== undefined) {
@@ -210,14 +237,25 @@ export const updateTrade = async (
 		let plannedRiskAmount: number | undefined
 		let plannedRMultiple: number | undefined
 
+		// Look up asset configuration for risk calculation
+		const assetSymbol = tradeData.asset ?? existing.asset
+		const assetConfigForRisk = await getAssetBySymbol(assetSymbol)
+
 		if (riskAmount) {
 			// Use manual risk amount if provided
 			plannedRiskAmount = riskAmount
 		} else if (stopLoss) {
-			// Calculate from stop loss
-			const riskPerUnit =
-				direction === "long" ? entryPrice - stopLoss : stopLoss - entryPrice
-			plannedRiskAmount = Math.abs(riskPerUnit * positionSize)
+			// Calculate from stop loss using asset-based or simple calculation
+			const priceDiff = Math.abs(entryPrice - stopLoss)
+
+			if (assetConfigForRisk) {
+				const tickSize = parseFloat(assetConfigForRisk.tickSize)
+				const tickValue = fromCents(assetConfigForRisk.tickValue)
+				const ticksAtRisk = priceDiff / tickSize
+				plannedRiskAmount = ticksAtRisk * tickValue * positionSize
+			} else {
+				plannedRiskAmount = priceDiff * positionSize
+			}
 		}
 
 		// Calculate plannedRMultiple from take profit (reward/risk ratio) - only if we have stopLoss
@@ -239,13 +277,31 @@ export const updateTrade = async (
 		let realizedR: number | undefined
 
 		if (exitPrice) {
-			// TODO: Apply per-asset fees from settings when implemented
-			pnl = calculatePnL({
-				direction,
-				entryPrice,
-				exitPrice,
-				positionSize,
-			})
+			// Look up asset for tick-based calculation
+			const assetSymbol = tradeData.asset ?? existing.asset
+			const assetConfig = await getAssetBySymbol(assetSymbol)
+
+			if (assetConfig) {
+				// Use asset-based calculation with tick size and tick value
+				const result = calculateAssetPnL({
+					entryPrice,
+					exitPrice,
+					positionSize,
+					direction,
+					tickSize: parseFloat(assetConfig.tickSize),
+					tickValue: fromCents(assetConfig.tickValue),
+					contractsExecuted: tradeData.contractsExecuted ?? (existing.contractsExecuted ? Number(existing.contractsExecuted) : positionSize * 2),
+				})
+				pnl = result.netPnl
+			} else {
+				// Fallback to simple price-based calculation
+				pnl = calculatePnL({
+					direction,
+					entryPrice,
+					exitPrice,
+					positionSize,
+				})
+			}
 			outcome = determineOutcome(pnl)
 
 			if (plannedRiskAmount && plannedRiskAmount > 0) {
@@ -634,6 +690,19 @@ export const bulkCreateTrades = async (
 			}
 		}
 
+		// Collect unique asset symbols and look them up
+		const assetSymbols = [...new Set(inputs.map((i) => i.asset.toUpperCase()))]
+		const assetMap = new Map<string, { tickSize: string; tickValue: number }>()
+		for (const symbol of assetSymbols) {
+			const assetConfig = await getAssetBySymbol(symbol)
+			if (assetConfig) {
+				assetMap.set(symbol, {
+					tickSize: assetConfig.tickSize,
+					tickValue: assetConfig.tickValue,
+				})
+			}
+		}
+
 		// Process trades in batches to avoid overwhelming the database
 		const BATCH_SIZE = 50
 		const batches: CsvTradeInput[][] = []
@@ -686,12 +755,29 @@ export const bulkCreateTrades = async (
 					}
 
 					if (tradeData.exitPrice && !pnl) {
-						pnl = calculatePnL({
-							direction: tradeData.direction,
-							entryPrice: tradeData.entryPrice,
-							exitPrice: tradeData.exitPrice,
-							positionSize: tradeData.positionSize,
-						})
+						const assetConfig = assetMap.get(tradeData.asset.toUpperCase())
+
+						if (assetConfig) {
+							// Use asset-based calculation with tick size and tick value
+							const result = calculateAssetPnL({
+								entryPrice: tradeData.entryPrice,
+								exitPrice: tradeData.exitPrice,
+								positionSize: tradeData.positionSize,
+								direction: tradeData.direction,
+								tickSize: parseFloat(assetConfig.tickSize),
+								tickValue: fromCents(assetConfig.tickValue),
+								contractsExecuted: tradeData.contractsExecuted ?? tradeData.positionSize * 2,
+							})
+							pnl = result.netPnl
+						} else {
+							// Fallback to simple price-based calculation
+							pnl = calculatePnL({
+								direction: tradeData.direction,
+								entryPrice: tradeData.entryPrice,
+								exitPrice: tradeData.exitPrice,
+								positionSize: tradeData.positionSize,
+							})
+						}
 					}
 
 					if (pnl !== undefined) {
@@ -863,20 +949,36 @@ export const createScaledTrade = async (
 		let outcome: "win" | "loss" | "breakeven" | undefined
 
 		if (avgExitPrice !== null && totalExitQty > 0) {
+			// Look up asset for tick-based calculation
+			const assetConfig = await getAssetBySymbol(tradeData.asset)
+
 			// Use the smaller of entry/exit qty for closed P&L
 			const closedQty = Math.min(totalEntryQty, totalExitQty)
-			const priceDiff =
-				tradeData.direction === "long"
-					? avgExitPrice - avgEntryPrice
-					: avgEntryPrice - avgExitPrice
-			pnl = priceDiff * closedQty
 
-			// Subtract commissions and fees
+			// Calculate total commissions and fees
 			const totalCommissions = executions.reduce(
 				(sum, e) => sum + (e.commission || 0) + (e.fees || 0),
 				0
 			)
-			pnl -= totalCommissions
+
+			if (assetConfig) {
+				// Use asset-based calculation with tick size and tick value
+				const priceDiff =
+					tradeData.direction === "long"
+						? avgExitPrice - avgEntryPrice
+						: avgEntryPrice - avgExitPrice
+				const tickSize = parseFloat(assetConfig.tickSize)
+				const tickValue = fromCents(assetConfig.tickValue)
+				const ticks = priceDiff / tickSize
+				pnl = ticks * tickValue * closedQty - totalCommissions
+			} else {
+				// Fallback to simple price-based calculation
+				const priceDiff =
+					tradeData.direction === "long"
+						? avgExitPrice - avgEntryPrice
+						: avgEntryPrice - avgExitPrice
+				pnl = priceDiff * closedQty - totalCommissions
+			}
 
 			outcome = determineOutcome(pnl)
 		}
@@ -886,14 +988,24 @@ export const createScaledTrade = async (
 		let plannedRMultiple: number | undefined
 		let realizedR: number | undefined
 
+		// Re-fetch asset config if we didn't have exit price (for risk calculation)
+		const assetConfigForRisk = avgExitPrice !== null
+			? await getAssetBySymbol(tradeData.asset) // Already fetched above
+			: await getAssetBySymbol(tradeData.asset)
+
 		if (tradeData.riskAmount) {
 			plannedRiskAmount = tradeData.riskAmount
 		} else if (tradeData.stopLoss) {
-			const riskPerUnit =
-				tradeData.direction === "long"
-					? avgEntryPrice - tradeData.stopLoss
-					: tradeData.stopLoss - avgEntryPrice
-			plannedRiskAmount = Math.abs(riskPerUnit * totalEntryQty)
+			const priceDiff = Math.abs(avgEntryPrice - tradeData.stopLoss)
+
+			if (assetConfigForRisk) {
+				const tickSize = parseFloat(assetConfigForRisk.tickSize)
+				const tickValue = fromCents(assetConfigForRisk.tickValue)
+				const ticksAtRisk = priceDiff / tickSize
+				plannedRiskAmount = ticksAtRisk * tickValue * totalEntryQty
+			} else {
+				plannedRiskAmount = priceDiff * totalEntryQty
+			}
 		}
 
 		if (tradeData.stopLoss && tradeData.takeProfit) {

@@ -1,0 +1,144 @@
+"use client"
+
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import type { BiasType } from "@/lib/validations/command-center"
+import { ArrowRight, TrendingDown, TrendingUp } from "lucide-react"
+import { useTranslations } from "next-intl"
+
+interface BiasSelectorProps {
+	value: BiasType | null
+	onChange: (value: BiasType | null) => void
+	disabled?: boolean
+	compact?: boolean
+}
+
+const biasConfig = {
+	long: {
+		icon: TrendingUp,
+		color: "text-trade-buy",
+		bgColor: "bg-trade-buy/10",
+	},
+	short: {
+		icon: TrendingDown,
+		color: "text-trade-sell",
+		bgColor: "bg-trade-sell/10",
+	},
+	neutral: {
+		icon: ArrowRight,
+		color: "text-txt-300",
+		bgColor: "bg-bg-300/30",
+	},
+} as const
+
+export const BiasSelector = ({
+	value,
+	onChange,
+	disabled,
+	compact = false,
+}: BiasSelectorProps) => {
+	const t = useTranslations("commandCenter.assetRules")
+
+	const handleValueChange = (newValue: string) => {
+		if (newValue === "none") {
+			onChange(null)
+		} else {
+			onChange(newValue as BiasType)
+		}
+	}
+
+	return (
+		<Select
+			value={value || "none"}
+			onValueChange={handleValueChange}
+			disabled={disabled}
+		>
+			<SelectTrigger className={cn("w-full", compact && "h-8 w-28")}>
+				<SelectValue placeholder={t("selectBias")}>
+					{value ? (
+						<BiasDisplay bias={value} compact={compact} />
+					) : (
+						<span className="text-txt-300">-</span>
+					)}
+				</SelectValue>
+			</SelectTrigger>
+			<SelectContent>
+				<SelectItem value="none">
+					<span className="text-txt-300">-</span>
+				</SelectItem>
+				<SelectItem value="long">
+					<BiasDisplay bias="long" />
+				</SelectItem>
+				<SelectItem value="short">
+					<BiasDisplay bias="short" />
+				</SelectItem>
+				<SelectItem value="neutral">
+					<BiasDisplay bias="neutral" />
+				</SelectItem>
+			</SelectContent>
+		</Select>
+	)
+}
+
+interface BiasDisplayProps {
+	bias: BiasType
+	compact?: boolean
+}
+
+export const BiasDisplay = ({ bias, compact = false }: BiasDisplayProps) => {
+	const t = useTranslations("commandCenter.assetRules")
+	const config = biasConfig[bias]
+	const Icon = config.icon
+
+	const labels: Record<BiasType, string> = {
+		long: t("biasLong"),
+		short: t("biasShort"),
+		neutral: t("biasNeutral"),
+	}
+
+	if (compact) {
+		return (
+			<div className={cn("gap-s-100 flex items-center", config.color)}>
+				<Icon className={cn("h-3.5 w-3.5", config.color)} />
+			</div>
+		)
+	}
+
+	return (
+		<div className={cn("gap-s-100 flex items-center", config.color)}>
+			<Icon className={cn("h-4 w-4", config.color)} />
+			<span>{labels[bias]}</span>
+		</div>
+	)
+}
+
+interface BiasBadgeProps {
+	bias: BiasType | null
+}
+
+export const BiasBadge = ({ bias }: BiasBadgeProps) => {
+	if (!bias) {
+		return <span className="text-txt-300">-</span>
+	}
+
+	const config = biasConfig[bias]
+	const Icon = config.icon
+
+	return (
+		<div
+			className={cn(
+				"p-s-100 inline-flex items-center justify-center rounded",
+				config.bgColor,
+				config.color
+			)}
+		>
+			<Icon className="h-4 w-4" />
+		</div>
+	)
+}

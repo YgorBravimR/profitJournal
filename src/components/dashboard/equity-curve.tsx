@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import {
 	AreaChart,
 	Area,
@@ -21,6 +21,7 @@ type ViewMode = "days" | "trades"
 
 interface EquityCurveProps {
 	data: EquityPoint[]
+	calendarMonth: Date
 }
 
 
@@ -154,13 +155,20 @@ const createCustomTooltip = ({ viewMode, locale, drawdownLabel }: TooltipContext
 	return CustomTooltipInner
 }
 
-export const EquityCurve = ({ data: initialData }: EquityCurveProps) => {
+export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurveProps) => {
 	const t = useTranslations("dashboard.equity")
 	const locale = useLocale()
-	const [period, setPeriod] = useState<Period>("month")
+	const [period, setPeriod] = useState<Period>("all")
 	const [viewMode, setViewMode] = useState<ViewMode>("days")
 	const [data, setData] = useState<EquityPoint[]>(initialData)
 	const [isPending, startTransition] = useTransition()
+
+	// Refetch when calendar month changes and period is "month"
+	useEffect(() => {
+		if (period === "month") {
+			fetchData("month", viewMode)
+		}
+	}, [calendarMonth]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	const periodLabels = {
 		month: t("period.month"),
@@ -185,8 +193,9 @@ export const EquityCurve = ({ data: initialData }: EquityCurveProps) => {
 			let dateTo: Date | undefined
 
 			if (newPeriod === "month") {
-				dateFrom = new Date(now.getFullYear(), now.getMonth(), 1)
-				dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+				// Use calendar month instead of current month
+				dateFrom = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1)
+				dateTo = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0)
 			} else if (newPeriod === "year") {
 				dateFrom = new Date(now.getFullYear(), 0, 1)
 				dateTo = new Date(now.getFullYear(), 11, 31)

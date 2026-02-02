@@ -52,6 +52,53 @@ CREATE TABLE "assets" (
 	CONSTRAINT "assets_symbol_unique" UNIQUE("symbol")
 );
 --> statement-breakpoint
+CREATE TABLE "checklist_completions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"checklist_id" uuid NOT NULL,
+	"user_id" text NOT NULL,
+	"date" timestamp with time zone NOT NULL,
+	"completed_items" text DEFAULT '[]' NOT NULL,
+	"completed_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "daily_account_notes" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"account_id" uuid,
+	"date" timestamp with time zone NOT NULL,
+	"pre_market_notes" text,
+	"post_market_notes" text,
+	"mood" varchar(20),
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "daily_asset_settings" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"account_id" uuid NOT NULL,
+	"asset_id" uuid NOT NULL,
+	"max_daily_trades" integer,
+	"max_position_size" integer,
+	"notes" text,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "daily_checklists" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"account_id" uuid,
+	"name" varchar(100) NOT NULL,
+	"items" text NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "daily_journals" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"date" timestamp with time zone NOT NULL,
@@ -68,6 +115,19 @@ CREATE TABLE "daily_journals" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "daily_journals_date_unique" UNIQUE("date")
+);
+--> statement-breakpoint
+CREATE TABLE "daily_targets" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" text NOT NULL,
+	"account_id" uuid NOT NULL,
+	"profit_target" integer,
+	"loss_limit" integer,
+	"max_trades" integer,
+	"max_consecutive_losses" integer,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "oauth_accounts" (
@@ -281,6 +341,12 @@ ALTER TABLE "account_assets" ADD CONSTRAINT "account_assets_asset_id_assets_id_f
 ALTER TABLE "account_timeframes" ADD CONSTRAINT "account_timeframes_account_id_trading_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "account_timeframes" ADD CONSTRAINT "account_timeframes_timeframe_id_timeframes_id_fk" FOREIGN KEY ("timeframe_id") REFERENCES "public"."timeframes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "assets" ADD CONSTRAINT "assets_asset_type_id_asset_types_id_fk" FOREIGN KEY ("asset_type_id") REFERENCES "public"."asset_types"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "checklist_completions" ADD CONSTRAINT "checklist_completions_checklist_id_daily_checklists_id_fk" FOREIGN KEY ("checklist_id") REFERENCES "public"."daily_checklists"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "daily_account_notes" ADD CONSTRAINT "daily_account_notes_account_id_trading_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "daily_asset_settings" ADD CONSTRAINT "daily_asset_settings_account_id_trading_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "daily_asset_settings" ADD CONSTRAINT "daily_asset_settings_asset_id_assets_id_fk" FOREIGN KEY ("asset_id") REFERENCES "public"."assets"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "daily_checklists" ADD CONSTRAINT "daily_checklists_account_id_trading_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "daily_targets" ADD CONSTRAINT "daily_targets_account_id_trading_accounts_id_fk" FOREIGN KEY ("account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "oauth_accounts" ADD CONSTRAINT "oauth_accounts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sessions" ADD CONSTRAINT "sessions_current_account_id_trading_accounts_id_fk" FOREIGN KEY ("current_account_id") REFERENCES "public"."trading_accounts"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
@@ -299,7 +365,24 @@ CREATE INDEX "account_timeframes_account_idx" ON "account_timeframes" USING btre
 CREATE UNIQUE INDEX "account_timeframes_unique_idx" ON "account_timeframes" USING btree ("account_id","timeframe_id");--> statement-breakpoint
 CREATE INDEX "assets_symbol_idx" ON "assets" USING btree ("symbol");--> statement-breakpoint
 CREATE INDEX "assets_asset_type_idx" ON "assets" USING btree ("asset_type_id");--> statement-breakpoint
+CREATE INDEX "checklist_completions_checklist_idx" ON "checklist_completions" USING btree ("checklist_id");--> statement-breakpoint
+CREATE INDEX "checklist_completions_user_idx" ON "checklist_completions" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "checklist_completions_date_idx" ON "checklist_completions" USING btree ("date");--> statement-breakpoint
+CREATE UNIQUE INDEX "checklist_completions_unique_idx" ON "checklist_completions" USING btree ("checklist_id","date");--> statement-breakpoint
+CREATE INDEX "daily_account_notes_user_idx" ON "daily_account_notes" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "daily_account_notes_account_idx" ON "daily_account_notes" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX "daily_account_notes_date_idx" ON "daily_account_notes" USING btree ("date");--> statement-breakpoint
+CREATE UNIQUE INDEX "daily_account_notes_unique_idx" ON "daily_account_notes" USING btree ("account_id","date");--> statement-breakpoint
+CREATE INDEX "daily_asset_settings_user_idx" ON "daily_asset_settings" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "daily_asset_settings_account_idx" ON "daily_asset_settings" USING btree ("account_id");--> statement-breakpoint
+CREATE INDEX "daily_asset_settings_asset_idx" ON "daily_asset_settings" USING btree ("asset_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "daily_asset_settings_unique_idx" ON "daily_asset_settings" USING btree ("account_id","asset_id");--> statement-breakpoint
+CREATE INDEX "daily_checklists_user_idx" ON "daily_checklists" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "daily_checklists_account_idx" ON "daily_checklists" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "daily_journals_date_idx" ON "daily_journals" USING btree ("date");--> statement-breakpoint
+CREATE INDEX "daily_targets_user_idx" ON "daily_targets" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "daily_targets_account_idx" ON "daily_targets" USING btree ("account_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "daily_targets_account_unique_idx" ON "daily_targets" USING btree ("account_id");--> statement-breakpoint
 CREATE INDEX "oauth_accounts_user_idx" ON "oauth_accounts" USING btree ("user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "oauth_accounts_provider_idx" ON "oauth_accounts" USING btree ("provider","provider_account_id");--> statement-breakpoint
 CREATE INDEX "sessions_token_idx" ON "sessions" USING btree ("session_token");--> statement-breakpoint

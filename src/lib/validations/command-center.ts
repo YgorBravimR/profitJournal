@@ -64,6 +64,10 @@ export const dailyTargetsSchema = z.object({
 export const moodOptions = ["great", "good", "neutral", "bad", "terrible"] as const
 export type MoodType = (typeof moodOptions)[number]
 
+// Bias options
+export const biasOptions = ["long", "short", "neutral"] as const
+export type BiasType = (typeof biasOptions)[number]
+
 // Daily notes schema
 export const dailyNotesSchema = z.object({
 	date: z.string().or(z.date()),
@@ -83,6 +87,7 @@ export const dailyNotesSchema = z.object({
 // Asset settings schema
 export const assetSettingsSchema = z.object({
 	assetId: z.string().uuid("Invalid asset ID"),
+	bias: z.enum(biasOptions).optional().nullable(),
 	maxDailyTrades: z.coerce
 		.number()
 		.int("Max daily trades must be a whole number")

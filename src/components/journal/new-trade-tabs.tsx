@@ -15,6 +15,8 @@ interface NewTradeTabsProps {
 	tags: Tag[]
 	assets?: AssetWithType[]
 	timeframes?: Timeframe[]
+	redirectTo?: string
+	defaultAssetId?: string
 }
 
 type TabValue = "single" | "bulk"
@@ -24,6 +26,8 @@ export const NewTradeTabs = ({
 	tags,
 	assets = [],
 	timeframes = [],
+	redirectTo,
+	defaultAssetId,
 }: NewTradeTabsProps) => {
 	const t = useTranslations("journal")
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
@@ -84,6 +88,8 @@ export const NewTradeTabs = ({
 								tags={tags}
 								assets={assets}
 								timeframes={timeframes}
+								redirectTo={redirectTo}
+								defaultAssetId={defaultAssetId}
 							/>
 						) : (
 							<ScaledTradeForm
@@ -92,6 +98,8 @@ export const NewTradeTabs = ({
 								assets={assets}
 								timeframes={timeframes}
 								onModeChange={() => setTradeMode("simple")}
+								redirectTo={redirectTo}
+								defaultAssetId={defaultAssetId}
 							/>
 						)}
 					</div>
