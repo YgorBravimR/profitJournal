@@ -75,8 +75,8 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.totalPnl)), 100)
 	const domainMax = Math.ceil(maxAbsPnl * 1.1)
 
-	// Find best and worst hours
-	const sortedByPnl = [...data].sort((a, b) => b.totalPnl - a.totalPnl)
+	// Find best and worst hours (using toSorted for immutability)
+	const sortedByPnl = data.toSorted((a, b) => b.totalPnl - a.totalPnl)
 	const bestHour = sortedByPnl[0]
 	const worstHour = sortedByPnl[sortedByPnl.length - 1]
 
@@ -140,13 +140,13 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.bestHour")}</p>
 					<p className="text-small font-medium text-trade-buy">
-						{bestHour?.hourLabel} ({bestHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(bestHour?.totalPnl ?? 0, "R$")}, {bestHour?.totalTrades} trades)
+						{bestHour?.hourLabel} ({bestHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(bestHour?.totalPnl ?? 0, "R$")}, {bestHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>
 				</div>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.worstHour")}</p>
 					<p className="text-small font-medium text-trade-sell">
-						{worstHour?.hourLabel} ({worstHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(worstHour?.totalPnl ?? 0, "R$")}, {worstHour?.totalTrades} trades)
+						{worstHour?.hourLabel} ({worstHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(worstHour?.totalPnl ?? 0, "R$")}, {worstHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>
 				</div>
 			</div>

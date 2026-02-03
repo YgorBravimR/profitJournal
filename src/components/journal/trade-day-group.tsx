@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, memo, useCallback } from "react"
 import { ChevronDown, ChevronRight } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { TradesByDay } from "@/types"
@@ -18,11 +18,14 @@ interface TradeDayGroupProps {
  * Displays a collapsible group of trades for a single day.
  * Shows day summary (P&L, win rate) in the header and individual trades when expanded.
  *
+ * Wrapped with React.memo to prevent unnecessary re-renders when parent updates
+ * but day data hasn't changed.
+ *
  * @param dayData - Trade data grouped by day including summary and individual trades
  * @param onTradeClick - Optional callback when a trade row is clicked
  * @param defaultExpanded - Whether the group should be expanded by default
  */
-export const TradeDayGroup = ({
+export const TradeDayGroup = memo(({
 	dayData,
 	onTradeClick,
 	defaultExpanded = true,
@@ -32,16 +35,17 @@ export const TradeDayGroup = ({
 
 	const { summary, trades, dateFormatted } = dayData
 
-	const handleToggle = () => {
+	// Memoized handlers for stable references
+	const handleToggle = useCallback(() => {
 		setIsExpanded((prev) => !prev)
-	}
+	}, [])
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
+	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault()
-			handleToggle()
+			setIsExpanded((prev) => !prev)
 		}
-	}
+	}, [])
 
 	return (
 		<div className="border-bg-300 bg-bg-200 overflow-hidden rounded-lg border">
@@ -108,4 +112,6 @@ export const TradeDayGroup = ({
 			)}
 		</div>
 	)
-}
+})
+
+TradeDayGroup.displayName = "TradeDayGroup"

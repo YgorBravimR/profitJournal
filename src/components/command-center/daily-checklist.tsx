@@ -108,7 +108,7 @@ export const DailyChecklist = ({
 						{/* Items */}
 						<div className="space-y-s-200">
 							{checklist.parsedItems
-								.sort((a, b) => a.order - b.order)
+								.toSorted((a, b) => a.order - b.order)
 								.map((item) => {
 									const isChecked = checklist.completedItemIds.includes(item.id)
 									const isLoading = loading === `${checklist.id}-${item.id}`

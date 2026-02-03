@@ -369,7 +369,7 @@ export const getEquityCurve = async (
 				dailyPnlMap.set(dateKey, existing + pnl)
 			}
 
-			const sortedDates = Array.from(dailyPnlMap.keys()).sort()
+			const sortedDates = Array.from(dailyPnlMap.keys()).toSorted()
 
 			let cumulativePnL = 0
 			let peak = initialBalance
@@ -704,7 +704,7 @@ export const getPerformanceByVariable = async (
 				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
 				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
 			}))
-			.sort((a, b) => b.pnl - a.pnl)
+			.toSorted((a, b) => b.pnl - a.pnl)
 
 		return {
 			status: "success",
@@ -952,7 +952,7 @@ export const getHourlyPerformance = async (
 				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
 				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
 			}))
-			.sort((a, b) => a.hour - b.hour)
+			.toSorted((a, b) => a.hour - b.hour)
 
 		return {
 			status: "success",
@@ -1081,7 +1081,7 @@ export const getDayOfWeekPerformance = async (
 					worstHour: worstPnl < 0 ? worstHour : undefined,
 				}
 			})
-			.sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+			.toSorted((a, b) => a.dayOfWeek - b.dayOfWeek)
 
 		return {
 			status: "success",
@@ -1811,7 +1811,7 @@ export const getSessionAssetPerformance = async (
 					totalPnl,
 				}
 			})
-			.sort((a, b) => b.totalPnl - a.totalPnl) // Sort by total P&L descending
+			.toSorted((a, b) => b.totalPnl - a.totalPnl) // Sort by total P&L descending
 
 		return {
 			status: "success",

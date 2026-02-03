@@ -270,13 +270,13 @@ export const getTagStats = async (
 			})
 		}
 
-		// Sort by trade count descending
-		tagStats.sort((a, b) => b.tradeCount - a.tradeCount)
+		// Sort by trade count descending (using toSorted for immutability)
+		const sortedTagStats = tagStats.toSorted((a, b) => b.tradeCount - a.tradeCount)
 
 		return {
 			status: "success",
 			message: "Tag stats retrieved successfully",
-			data: tagStats,
+			data: sortedTagStats,
 		}
 	} catch (error) {
 		console.error("Get tag stats error:", error)

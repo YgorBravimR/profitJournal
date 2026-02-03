@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useCallback, memo } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,11 @@ const formatDateKey = (date: Date): string => {
 	return `${year}-${month}-${day}`
 }
 
-export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: TradingCalendarProps) => {
+/**
+ * Trading calendar component showing daily P&L for a month.
+ * Wrapped with memo to prevent unnecessary re-renders.
+ */
+export const TradingCalendar = memo(({ data, month, onMonthChange, onDayClick }: TradingCalendarProps) => {
 	const t = useTranslations("dashboard.calendar")
 	const tDays = useTranslations("dayOfWeek")
 	const locale = useLocale()
@@ -71,13 +75,14 @@ export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: Trad
 		return days
 	}, [year, monthIndex])
 
-	const handlePreviousMonth = () => {
+	// Memoized handlers for stable references
+	const handlePreviousMonth = useCallback(() => {
 		onMonthChange(new Date(year, monthIndex - 1, 1))
-	}
+	}, [onMonthChange, year, monthIndex])
 
-	const handleNextMonth = () => {
+	const handleNextMonth = useCallback(() => {
 		onMonthChange(new Date(year, monthIndex + 1, 1))
-	}
+	}, [onMonthChange, year, monthIndex])
 
 	const monthName = month.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", { month: "long", year: "numeric" })
 
@@ -196,4 +201,6 @@ export const TradingCalendar = ({ data, month, onMonthChange, onDayClick }: Trad
 			</div>
 		</div>
 	)
-}
+})
+
+TradingCalendar.displayName = "TradingCalendar"

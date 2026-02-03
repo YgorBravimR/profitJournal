@@ -89,6 +89,7 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload, metric }: CustomTooltipProps) => {
+	const t = useTranslations("analytics.tableHeaders")
 	if (active && payload && payload.length > 0) {
 		const data = payload[0].payload
 		return (
@@ -96,16 +97,16 @@ const CustomTooltip = ({ active, payload, metric }: CustomTooltipProps) => {
 				<p className="text-small text-txt-100 font-semibold">{data.group}</p>
 				<div className="mt-s-200 space-y-s-100 text-tiny">
 					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-						P&L: {formatCompactCurrency(data.pnl)}
+						{t("pnl")}: {formatCompactCurrency(data.pnl)}
 					</p>
-					<p className="text-txt-200">Win Rate: {data.winRate.toFixed(1)}%</p>
+					<p className="text-txt-200">{t("winRate")}: {data.winRate.toFixed(1)}%</p>
 					<p className="text-txt-200">
-						Avg R: {data.avgR >= 0 ? "+" : ""}
+						{t("avgR")}: {data.avgR >= 0 ? "+" : ""}
 						{data.avgR.toFixed(2)}R
 					</p>
-					<p className="text-txt-200">Trades: {data.tradeCount}</p>
+					<p className="text-txt-200">{t("trades")}: {data.tradeCount}</p>
 					<p className="text-txt-200">
-						PF: {formatProfitFactor(data.profitFactor)}
+						{t("pf")}: {formatProfitFactor(data.profitFactor)}
 					</p>
 				</div>
 			</div>
@@ -120,6 +121,8 @@ export const VariableComparison = ({
 	onGroupByChange,
 }: VariableComparisonProps) => {
 	const t = useTranslations("analytics.variableComparison")
+	const tHeaders = useTranslations("analytics.tableHeaders")
+	const tTooltips = useTranslations("analytics.tableTooltips")
 	const [metric, setMetric] = useState<MetricType>("pnl")
 
 	const groupOptions: { value: GroupByType; label: string }[] = [
@@ -252,56 +255,56 @@ export const VariableComparison = ({
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip
-										label="Trades"
-										tooltip="Total number of closed trades"
+										label={tHeaders("trades")}
+										tooltip={tTooltips("trades")}
 									/>
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip
-										label="P&L"
-										tooltip="Net Profit & Loss (total gains minus losses)"
+										label={tHeaders("pnl")}
+										tooltip={tTooltips("pnl")}
 									/>
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip
-										label="Win Rate"
-										tooltip="Percentage of winning trades (wins ÷ total trades)"
+										label={tHeaders("winRate")}
+										tooltip={tTooltips("winRate")}
 									/>
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip
-										label="Avg R"
-										tooltip="Average R-multiple per trade (actual return ÷ planned risk)"
+										label={tHeaders("avgR")}
+										tooltip={tTooltips("avgR")}
 									/>
 								</th>
 								<th className="px-s-300 py-s-200 text-tiny text-txt-300 text-right font-medium">
 									<HeaderWithTooltip
-										label="PF"
+										label={tHeaders("pf")}
 										tooltip={
 											<div className="space-y-s-100 text-tiny">
 												<p className="text-txt-100 font-medium">
-													Profit Factor
+													{tTooltips("pf")}
 												</p>
 												<ul className="text-txt-200 space-y-1">
 													<li>
-														<span className="text-trade-buy">PF &gt; 1</span> =
-														Profitable
+														<span className="text-trade-buy">{tHeaders("pf")} &gt; 1</span> ={" "}
+														{tTooltips("pfProfitable")}
 													</li>
 													<li>
-														<span className="text-txt-300">PF = 1</span> =
-														Breakeven
+														<span className="text-txt-300">{tHeaders("pf")} = 1</span> ={" "}
+														{tTooltips("pfBreakeven")}
 													</li>
 													<li>
-														<span className="text-trade-sell">PF &lt; 1</span> =
-														Losing money
+														<span className="text-trade-sell">{tHeaders("pf")} &lt; 1</span> ={" "}
+														{tTooltips("pfLosing")}
 													</li>
 													<li>
-														<span className="text-trade-buy">PF = ∞</span> = No
-														losses yet
+														<span className="text-trade-buy">{tHeaders("pf")} = ∞</span> ={" "}
+														{tTooltips("pfNoLosses")}
 													</li>
 													<li>
-														<span className="text-trade-sell">PF = 0</span> = No
-														wins yet
+														<span className="text-trade-sell">{tHeaders("pf")} = 0</span> ={" "}
+														{tTooltips("pfNoWins")}
 													</li>
 												</ul>
 											</div>

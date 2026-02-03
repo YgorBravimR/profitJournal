@@ -166,26 +166,26 @@ export const MetricsCards = ({
 			</MetricCard>
 
 			{/* Monte Carlo Outcomes */}
-			<MetricCard title="Monte Carlo Outcomes">
+			<MetricCard title={t("monteCarloOutcomes")}>
 				<MetricRow
-					label="Best Case (95th)"
+					label={t("bestCase")}
 					value={formatChartPercent(statistics.bestCaseReturn)}
 					valueClass="text-trade-buy"
 				/>
 				<MetricRow
-					label="Median"
+					label={t("medianLabel")}
 					value={formatChartPercent(statistics.medianReturn)}
 					valueClass={
 						statistics.medianReturn >= 0 ? "text-trade-buy" : "text-trade-sell"
 					}
 				/>
 				<MetricRow
-					label="Worst Case (5th)"
+					label={t("worstCase")}
 					value={formatChartPercent(statistics.worstCaseReturn)}
 					valueClass="text-trade-sell"
 				/>
 				<MetricRow
-					label="Profitable Simulations"
+					label={t("profitableSimulations")}
 					value={formatChartPercent(statistics.profitablePct, false)}
 					valueClass={
 						statistics.profitablePct >= 70 ? "text-trade-buy" : "text-txt-100"

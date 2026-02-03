@@ -156,19 +156,22 @@ export const KellyCriterionCard = ({
 				</p>
 				<div className="space-y-s-100 text-tiny text-txt-300">
 					<p>
-						• {formatKellyCurrency(10000, currency)} account: Risk{" "}
-						{formatKellyCurrency((recommendedKelly / 100) * 10000, currency)} per
-						trade
+						• {t("accountRisk", {
+							account: formatKellyCurrency(10000, currency),
+							risk: formatKellyCurrency((recommendedKelly / 100) * 10000, currency)
+						})}
 					</p>
 					<p>
-						• {formatKellyCurrency(25000, currency)} account: Risk{" "}
-						{formatKellyCurrency((recommendedKelly / 100) * 25000, currency)} per
-						trade
+						• {t("accountRisk", {
+							account: formatKellyCurrency(25000, currency),
+							risk: formatKellyCurrency((recommendedKelly / 100) * 25000, currency)
+						})}
 					</p>
 					<p>
-						• {formatKellyCurrency(50000, currency)} account: Risk{" "}
-						{formatKellyCurrency((recommendedKelly / 100) * 50000, currency)} per
-						trade
+						• {t("accountRisk", {
+							account: formatKellyCurrency(50000, currency),
+							risk: formatKellyCurrency((recommendedKelly / 100) * 50000, currency)
+						})}
 					</p>
 				</div>
 			</div>

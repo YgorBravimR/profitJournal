@@ -10,13 +10,6 @@ interface SessionAssetTableProps {
 	data: SessionAssetPerformance[]
 }
 
-const SESSION_LABELS: Record<TradingSession, string> = {
-	preOpen: "Pre-Open",
-	morning: "Morning",
-	afternoon: "Afternoon",
-	close: "Close",
-}
-
 /**
  * Displays asset performance breakdown by trading session in a table format.
  * Shows P&L and win rate for each asset across different market sessions.
@@ -25,6 +18,12 @@ const SESSION_LABELS: Record<TradingSession, string> = {
  */
 export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 	const t = useTranslations("analytics")
+	const tLabels = useTranslations("analytics.session.labels")
+
+	// Translate session labels
+	const getSessionLabel = (session: TradingSession): string => {
+		return tLabels(session)
+	}
 
 	// Build session lookup maps for O(1) access instead of O(n) find() calls
 	const sessionMaps = useMemo(() => {
@@ -80,7 +79,7 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 									key={session}
 									className="pb-s-200 text-caption text-txt-300 text-center font-medium"
 								>
-									{SESSION_LABELS[session]}
+									{getSessionLabel(session)}
 								</th>
 							))}
 							<th className="pb-s-200 text-caption text-txt-300 text-center font-medium">
@@ -139,7 +138,7 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 									{asset.bestSession ? (
 										<span className="gap-s-100 bg-acc-100/10 px-s-200 text-caption text-acc-100 inline-flex items-center rounded-full py-px font-medium">
 											<Trophy className="h-3 w-3" />
-											{SESSION_LABELS[asset.bestSession]}
+											{getSessionLabel(asset.bestSession)}
 										</span>
 									) : (
 										<span className="text-caption text-txt-300">-</span>

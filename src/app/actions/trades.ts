@@ -1237,9 +1237,9 @@ export const getTradesGroupedByDay = async (
 					profitFactor: profitFactor === Infinity ? 999 : profitFactor,
 				}
 
-				// Map trades to compact format
+				// Map trades to compact format (using toSorted for immutability)
 				const compactTrades: DayTradeCompact[] = data.trades
-					.sort((a, b) => a.entryDate.getTime() - b.entryDate.getTime())
+					.toSorted((a, b) => a.entryDate.getTime() - b.entryDate.getTime())
 					.map((trade) => ({
 						id: trade.id,
 						time: trade.entryDate.toLocaleTimeString("en-US", {
@@ -1263,7 +1263,7 @@ export const getTradesGroupedByDay = async (
 					trades: compactTrades,
 				}
 			})
-			.sort((a, b) => b.date.localeCompare(a.date)) // Most recent first
+			.toSorted((a, b) => b.date.localeCompare(a.date)) // Most recent first
 
 		return {
 			status: "success",

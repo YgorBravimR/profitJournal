@@ -20,8 +20,8 @@ export const runMonteCarloSimulation = (
 	const statistics = aggregateStatistics(params, runs)
 	const distributionBuckets = calculateDistribution(runs, params.initialBalance)
 
-	// Find median run for sample display
-	const sortedByReturn = [...runs].sort(
+	// Find median run for sample display (using toSorted for immutability)
+	const sortedByReturn = runs.toSorted(
 		(a, b) => a.totalReturnPercent - b.totalReturnPercent
 	)
 	const medianIndex = Math.floor(sortedByReturn.length / 2)
@@ -126,11 +126,12 @@ const aggregateStatistics = (
 	params: SimulationParams,
 	runs: SimulationRun[]
 ): SimulationStatistics => {
-	const finalBalances = runs.map((r) => r.finalBalance).sort((a, b) => a - b)
-	const returns = runs.map((r) => r.totalReturnPercent).sort((a, b) => a - b)
+	// Using toSorted for immutability in statistical calculations
+	const finalBalances = runs.map((r) => r.finalBalance).toSorted((a, b) => a - b)
+	const returns = runs.map((r) => r.totalReturnPercent).toSorted((a, b) => a - b)
 	const maxDrawdowns = runs
 		.map((r) => r.maxDrawdownPercent)
-		.sort((a, b) => a - b)
+		.toSorted((a, b) => a - b)
 
 	const percentile = (arr: number[], p: number): number => {
 		const index = Math.ceil((p / 100) * arr.length) - 1

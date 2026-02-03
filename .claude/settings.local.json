@@ -36,7 +36,12 @@
       "Bash(npx next lint:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(npm run build:*)",
-      "Bash(pnpm run lint:*)"
+      "Bash(pnpm run lint:*)",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(tree:*)",
+      "Bash(node -e:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

@@ -42,13 +42,13 @@ export const TradeSequenceList = ({
 					<thead>
 						<tr className="border-bg-300 border-b">
 							<th className="pb-s-200 text-tiny text-txt-300 text-left font-medium">
-								#
+								{t("number")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-left font-medium">
-								Result
+								{t("result")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
-								P&L
+								{t("pnl")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
 								{t("commission")}
@@ -124,7 +124,7 @@ export const TradeSequenceList = ({
 						) : (
 							<>
 								<ChevronDown className="mr-s-100 h-4 w-4" />
-								{t("showAll")} ({trades.length - maxVisible} more)
+								{t("showAll")} ({trades.length - maxVisible} {t("more")})
 							</>
 						)}
 					</Button>

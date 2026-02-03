@@ -447,16 +447,19 @@ export const runComparisonSimulation = async (
 			})
 		}
 
-		results.sort((a, b) => b.profitablePct - a.profitablePct)
-		results.forEach((r, i) => (r.rank = i + 1))
+		// Sort and assign ranks (using toSorted for immutability, for loop for clarity)
+		const sortedResults = results.toSorted((a, b) => b.profitablePct - a.profitablePct)
+		for (let i = 0; i < sortedResults.length; i++) {
+			sortedResults[i].rank = i + 1
+		}
 
-		const topPerformers = results
+		const topPerformers = sortedResults
 			.filter((r) => r.profitablePct >= 70)
 			.map((r) => r.strategyName)
-		const needsImprovement = results
+		const needsImprovement = sortedResults
 			.filter((r) => r.profitablePct < 50)
 			.map((r) => r.strategyName)
-		const totalScore = results.reduce(
+		const totalScore = sortedResults.reduce(
 			(sum, r) => sum + Math.max(0, r.profitablePct - 30),
 			0
 		)
@@ -466,7 +469,7 @@ export const runComparisonSimulation = async (
 			return "Moderate reliability"
 		}
 
-		const suggestedAllocations = results
+		const suggestedAllocations = sortedResults
 			.filter((r) => r.profitablePct >= 50)
 			.map((r) => {
 				const score = Math.max(0, r.profitablePct - 30)
@@ -490,7 +493,7 @@ export const runComparisonSimulation = async (
 			status: "success",
 			message: "Comparison completed",
 			data: {
-				results,
+				results: sortedResults,
 				recommendations: {
 					topPerformers,
 					needsImprovement,

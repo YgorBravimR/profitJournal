@@ -88,7 +88,7 @@ export const DataSourceSelector = ({
 										{getIcon(option.type)}
 										<span>{option.label}</span>
 										<span className="text-tiny text-txt-300">
-											({option.tradesCount} trades)
+											({option.tradesCount} {t("trades")})
 										</span>
 									</div>
 								</SelectItem>
@@ -98,28 +98,41 @@ export const DataSourceSelector = ({
 					)}
 
 					{/* Aggregate Options */}
-					{aggregateOptions.map((option) => (
-						<SelectItem
-							key={option.type}
-							value={option.type}
-							disabled={option.disabled}
-						>
-							<div className="gap-s-200 flex items-center">
-								{getIcon(option.type)}
-								<div className="flex flex-col">
-									<span>{option.label}</span>
-									{option.description && (
-										<span className="text-tiny text-txt-300">
-											{option.description}
-										</span>
-									)}
+					{aggregateOptions.map((option) => {
+						const label = option.type === "all_strategies"
+							? t("allStrategies")
+							: option.type === "universal"
+								? t("universal")
+								: option.label
+						const description = option.type === "all_strategies"
+							? t("allStrategiesDesc")
+							: option.type === "universal"
+								? t("universalDesc")
+								: option.description
+
+						return (
+							<SelectItem
+								key={option.type}
+								value={option.type}
+								disabled={option.disabled}
+							>
+								<div className="gap-s-200 flex items-center">
+									{getIcon(option.type)}
+									<div className="flex flex-col">
+										<span>{label}</span>
+										{description && (
+											<span className="text-tiny text-txt-300">
+												{description}
+											</span>
+										)}
+									</div>
+									<span className="text-tiny text-txt-300 ml-auto">
+										({option.tradesCount} {t("trades")})
+									</span>
 								</div>
-								<span className="text-tiny text-txt-300 ml-auto">
-									({option.tradesCount} trades)
-								</span>
-							</div>
-						</SelectItem>
-					))}
+							</SelectItem>
+						)
+					})}
 				</SelectContent>
 			</Select>
 		</div>

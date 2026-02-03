@@ -232,10 +232,10 @@ export const getWeeklyReport = async (
 			}
 		})
 
-		// Top wins/losses - pnl is stored in cents, convert to dollars
-		const sortedByPnl = [...weekTrades]
+		// Top wins/losses - pnl is stored in cents, convert to dollars (using toSorted for immutability)
+		const sortedByPnl = weekTrades
 			.filter((t) => t.pnl)
-			.sort((a, b) => fromCents(b.pnl) - fromCents(a.pnl))
+			.toSorted((a, b) => fromCents(b.pnl) - fromCents(a.pnl))
 
 		const topWins = sortedByPnl
 			.filter((t) => fromCents(t.pnl) > 0)
@@ -464,7 +464,7 @@ export const getMonthlyReport = async (
 				winRate:
 					data.tradeCount > 0 ? (data.winCount / data.tradeCount) * 100 : 0,
 			}))
-			.sort((a, b) => b.pnl - a.pnl)
+			.toSorted((a, b) => b.pnl - a.pnl)
 
 		return {
 			status: "success",
@@ -580,7 +580,7 @@ export const getMistakeCostAnalysis = async (): Promise<{
 				totalLoss: data.totalLoss,
 				avgLoss: data.tradeCount > 0 ? data.totalLoss / data.tradeCount : 0,
 			}))
-			.sort((a, b) => b.totalLoss - a.totalLoss)
+			.toSorted((a, b) => b.totalLoss - a.totalLoss)
 
 		const totalMistakeCost = mistakes.reduce((sum, m) => sum + m.totalLoss, 0)
 		const mostCostlyMistake =

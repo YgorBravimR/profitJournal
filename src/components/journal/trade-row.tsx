@@ -1,5 +1,6 @@
 "use client"
 
+import { memo, useCallback } from "react"
 import { ChevronRight } from "lucide-react"
 import type { DayTradeCompact } from "@/types"
 import { formatBrlWithSign } from "@/lib/formatting"
@@ -14,20 +15,23 @@ interface TradeRowProps {
  * Displays a single trade row with asset, direction, time, P&L and R multiple.
  * Supports click interaction for navigation to trade details.
  *
+ * Wrapped with React.memo to prevent unnecessary re-renders when parent updates
+ * but trade data hasn't changed.
+ *
  * @param trade - The compact trade data to display
  * @param onTradeClick - Optional callback when the trade row is clicked
  */
-export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
-	const handleClick = () => {
+export const TradeRow = memo(({ trade, onTradeClick }: TradeRowProps) => {
+	const handleClick = useCallback(() => {
 		onTradeClick?.(trade.id)
-	}
+	}, [onTradeClick, trade.id])
 
-	const handleKeyDown = (e: React.KeyboardEvent) => {
+	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
 		if (e.key === "Enter" || e.key === " ") {
 			e.preventDefault()
 			onTradeClick?.(trade.id)
 		}
-	}
+	}, [onTradeClick, trade.id])
 
 	return (
 		<div
@@ -113,4 +117,6 @@ export const TradeRow = ({ trade, onTradeClick }: TradeRowProps) => {
 			)}
 		</div>
 	)
-}
+})
+
+TradeRow.displayName = "TradeRow"

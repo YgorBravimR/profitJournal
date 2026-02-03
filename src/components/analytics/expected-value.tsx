@@ -68,7 +68,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 					</h3>
 				</div>
 				<span className="text-tiny text-txt-300">
-					{t("basedOn")} {data.sampleSize} trades
+					{t("basedOn", { count: data.sampleSize })}
 				</span>
 			</div>
 
@@ -110,7 +110,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 						tooltip={t("avgWinDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-buy">
-						+${data.avgWin.toFixed(2)}
+						{formatCompactCurrencyWithSign(data.avgWin)}
 					</p>
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
@@ -119,7 +119,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 						tooltip={t("avgLossDesc")}
 					/>
 					<p className="mt-s-100 text-body font-bold text-trade-sell">
-						-${data.avgLoss.toFixed(2)}
+						{formatCompactCurrencyWithSign(-data.avgLoss)}
 					</p>
 				</div>
 				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
@@ -168,27 +168,27 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 			{/* Interpretation */}
 			<div className="mt-m-400">
 				<p className="text-small text-txt-200">
-					{isPositiveEV ? (
-						<>
-							Your trading system has a{" "}
-							<span className="font-semibold text-trade-buy">{t("positiveEdge")}</span>.
-							On average, you can expect to make{" "}
-							<span className="font-semibold text-trade-buy">
-								{formatCompactCurrencyWithSign(data.expectedValue)}
-							</span>{" "}
-							{t("perTradeOverLongRun")}.
-						</>
-					) : (
-						<>
-							Your trading system currently has a{" "}
-							<span className="font-semibold text-trade-sell">{t("negativeEdge")}</span>.
-							On average, you can expect to lose{" "}
-							<span className="font-semibold text-trade-sell">
-								{formatCompactCurrencyWithSign(Math.abs(data.expectedValue))}
-							</span>{" "}
-							{t("perTradeOverLongRun")}.
-						</>
-					)}
+					{isPositiveEV
+						? t.rich("systemHasPositiveEdge", {
+								positive: (chunks) => (
+									<span className="font-semibold text-trade-buy">{chunks}</span>
+								),
+								amount: () => (
+									<span className="font-semibold text-trade-buy">
+										{formatCompactCurrencyWithSign(data.expectedValue)}
+									</span>
+								),
+						  })
+						: t.rich("systemHasNegativeEdge", {
+								negative: (chunks) => (
+									<span className="font-semibold text-trade-sell">{chunks}</span>
+								),
+								amount: () => (
+									<span className="font-semibold text-trade-sell">
+										{formatCompactCurrencyWithSign(Math.abs(data.expectedValue))}
+									</span>
+								),
+						  })}
 				</p>
 			</div>
 		</div>

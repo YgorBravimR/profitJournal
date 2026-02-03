@@ -33,6 +33,7 @@ interface CustomTooltipProps {
  */
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("analytics")
+	const tLabels = useTranslations("analytics.session.labels")
 
 	if (!active || !payload || payload.length === 0) {
 		return null
@@ -49,9 +50,12 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	}
 	const timeRange = `${formatTime(data.startHour)} - ${formatTime(data.endHour)}`
 
+	// Translate session label
+	const translatedLabel = tLabels(getSessionKey(data.sessionLabel) as "preOpen" | "morning" | "afternoon" | "close")
+
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
-			<p className="text-small font-semibold text-txt-100">{data.sessionLabel}</p>
+			<p className="text-small font-semibold text-txt-100">{translatedLabel}</p>
 			<p className="text-[10px] text-txt-300">{timeRange}</p>
 			<div className="mt-s-200 space-y-s-100">
 				<p className="text-caption">
@@ -93,8 +97,26 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
  *
  * @param data - Array of session performance data
  */
+// Map English session labels to translation keys
+const getSessionKey = (label: string): string => {
+	const keyMap: Record<string, string> = {
+		"Pre-Open": "preOpen",
+		"Morning": "morning",
+		"Afternoon": "afternoon",
+		"Close": "close",
+	}
+	return keyMap[label] || label.toLowerCase().replace("-", "")
+}
+
 export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) => {
 	const t = useTranslations("analytics")
+	const tLabels = useTranslations("analytics.session.labels")
+
+	// Translate session label
+	const translateSessionLabel = (label: string): string => {
+		const key = getSessionKey(label) as "preOpen" | "morning" | "afternoon" | "close"
+		return tLabels(key)
+	}
 
 	// Filter out sessions with no trades
 	const sessionsWithTrades = data.filter((s) => s.totalTrades > 0)
@@ -103,8 +125,8 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.totalPnl)), 100)
 	const domainMax = Math.ceil(maxAbsPnl * 1.1)
 
-	// Find best and worst sessions
-	const sortedByPnl = [...sessionsWithTrades].sort((a, b) => b.totalPnl - a.totalPnl)
+	// Find best and worst sessions (using toSorted for immutability)
+	const sortedByPnl = sessionsWithTrades.toSorted((a, b) => b.totalPnl - a.totalPnl)
 	const bestSession = sortedByPnl[0]
 	const worstSession = sortedByPnl[sortedByPnl.length - 1]
 
@@ -138,7 +160,7 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 					<p className={`text-body font-semibold ${totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}`}>
 						{formatCompactCurrencyWithSign(totalPnl, "R$")}
 					</p>
-					<p className="text-caption text-txt-300">{totalTrades} trades</p>
+					<p className="text-caption text-txt-300">{totalTrades} {t("session.trades").toLowerCase()}</p>
 				</div>
 			</div>
 
@@ -152,6 +174,7 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 						/>
 						<XAxis
 							dataKey="sessionLabel"
+							tickFormatter={translateSessionLabel}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
@@ -189,11 +212,11 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 							session.totalPnl >= 0 ? "border-trade-buy/20 bg-trade-buy/5" : "border-trade-sell/20 bg-trade-sell/5"
 						}`}
 					>
-						<p className="text-[10px] text-txt-300">{session.sessionLabel}</p>
+						<p className="text-[10px] text-txt-300">{translateSessionLabel(session.sessionLabel)}</p>
 						<p className={`text-caption font-medium ${session.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}`}>
 							{session.winRate.toFixed(0)}% WR
 						</p>
-						<p className="text-[10px] text-txt-300">{session.totalTrades} trades</p>
+						<p className="text-[10px] text-txt-300">{session.totalTrades} {t("session.trades").toLowerCase()}</p>
 					</div>
 				))}
 			</div>
@@ -204,7 +227,7 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 					<div>
 						<p className="text-caption text-txt-300">{t("session.bestSession")}</p>
 						<p className="text-small font-medium text-trade-buy">
-							{bestSession.sessionLabel}
+							{translateSessionLabel(bestSession.sessionLabel)}
 						</p>
 						<p className="text-[10px] text-trade-buy/80">
 							{bestSession.winRate.toFixed(0)}% WR • {formatCompactCurrencyWithSign(bestSession.totalPnl, "R$")}
@@ -213,7 +236,7 @@ export const SessionPerformanceChart = ({ data }: SessionPerformanceChartProps) 
 					<div>
 						<p className="text-caption text-txt-300">{t("session.worstSession")}</p>
 						<p className="text-small font-medium text-trade-sell">
-							{worstSession.sessionLabel}
+							{translateSessionLabel(worstSession.sessionLabel)}
 						</p>
 						<p className="text-[10px] text-trade-sell/80">
 							{worstSession.winRate.toFixed(0)}% WR • {formatCompactCurrencyWithSign(worstSession.totalPnl, "R$")}

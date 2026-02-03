@@ -491,9 +491,9 @@ export const getComplianceOverview = async (): Promise<ActionResponse<Compliance
 			}
 		}
 
-		// Find top performing (highest compliance with at least 3 trades)
+		// Find top performing (highest compliance with at least 3 trades) - using toSorted for immutability
 		const qualifiedStrategies = strategyCompliances.filter((s) => s.tradeCount >= 3)
-		const sortedByCompliance = [...qualifiedStrategies].sort((a, b) => b.compliance - a.compliance)
+		const sortedByCompliance = qualifiedStrategies.toSorted((a, b) => b.compliance - a.compliance)
 
 		const topPerformingStrategy = sortedByCompliance.length > 0
 			? { name: sortedByCompliance[0].name, compliance: sortedByCompliance[0].compliance }

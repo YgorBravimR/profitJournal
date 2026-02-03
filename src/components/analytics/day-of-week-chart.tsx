@@ -29,6 +29,7 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("analytics")
+	const tDayNames = useTranslations("analytics.time.dayNames")
 
 	if (!active || !payload || payload.length === 0) {
 		return null
@@ -37,9 +38,12 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const data = payload[0].payload
 	const isProfit = data.totalPnl >= 0
 
+	// Translate day name
+	const translatedDayName = tDayNames(data.dayName as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday")
+
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
-			<p className="text-small font-semibold text-txt-100">{data.dayName}</p>
+			<p className="text-small font-semibold text-txt-100">{translatedDayName}</p>
 			<div className="mt-s-200 space-y-s-100">
 				<p className="text-caption">
 					<span className="text-txt-300">{t("time.pnl")}:</span>{" "}
@@ -76,6 +80,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 
 export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 	const t = useTranslations("analytics")
+	const tDays = useTranslations("analytics.time.heatmapDays")
+	const tDayNames = useTranslations("analytics.time.dayNames")
 
 	// Filter only trading days (Monday-Friday usually)
 	const tradingDays = data.filter((d) => d.totalTrades > 0)
@@ -84,8 +90,8 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 	const maxAbsPnl = Math.max(...tradingDays.map((d) => Math.abs(d.totalPnl)), 100)
 	const domainMax = Math.ceil(maxAbsPnl * 1.1)
 
-	// Find best and worst days
-	const sortedByPnl = [...tradingDays].sort((a, b) => b.totalPnl - a.totalPnl)
+	// Find best and worst days (using toSorted for immutability)
+	const sortedByPnl = tradingDays.toSorted((a, b) => b.totalPnl - a.totalPnl)
 	const bestDay = sortedByPnl[0]
 	const worstDay = sortedByPnl[sortedByPnl.length - 1]
 
@@ -102,18 +108,23 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 		)
 	}
 
-	// Get short day names for display
-	const getDayShort = (dayName: string) => {
-		const shortNames: Record<string, string> = {
-			Sunday: "Sun",
-			Monday: "Mon",
-			Tuesday: "Tue",
-			Wednesday: "Wed",
-			Thursday: "Thu",
-			Friday: "Fri",
-			Saturday: "Sat",
+	// Get translated short day names for display
+	const getDayShort = (dayName: string): string => {
+		const dayMap: Record<string, string> = {
+			Sunday: tDays("sun"),
+			Monday: tDays("mon"),
+			Tuesday: tDays("tue"),
+			Wednesday: tDays("wed"),
+			Thursday: tDays("thu"),
+			Friday: tDays("fri"),
+			Saturday: tDays("sat"),
 		}
-		return shortNames[dayName] || dayName.substring(0, 3)
+		return dayMap[dayName] || dayName.substring(0, 3)
+	}
+
+	// Get translated full day name
+	const getTranslatedDayName = (dayName: string): string => {
+		return tDayNames(dayName as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday")
 	}
 
 	return (
@@ -163,13 +174,13 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 				<div>
 					<p className="text-caption text-txt-300">{t("time.bestDay")}</p>
 					<p className="text-small font-medium text-trade-buy">
-						{bestDay?.dayName} ({bestDay?.winRate.toFixed(0)}% WR, {bestDay?.avgR.toFixed(1)}R avg)
+						{bestDay ? getTranslatedDayName(bestDay.dayName) : ""} ({bestDay?.winRate.toFixed(0)}% WR, {bestDay?.avgR.toFixed(1)}R avg)
 					</p>
 				</div>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.worstDay")}</p>
 					<p className="text-small font-medium text-trade-sell">
-						{worstDay?.dayName} ({worstDay?.winRate.toFixed(0)}% WR, {worstDay?.avgR.toFixed(1)}R avg)
+						{worstDay ? getTranslatedDayName(worstDay.dayName) : ""} ({worstDay?.winRate.toFixed(0)}% WR, {worstDay?.avgR.toFixed(1)}R avg)
 					</p>
 				</div>
 			</div>

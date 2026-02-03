@@ -244,14 +244,14 @@ export const calculateFifoPnL = (
 	direction: "long" | "short",
 	asset?: { tickSize: number; tickValue: number }
 ): FifoPnLResult => {
-	// Sort entries by date (FIFO)
-	const entries = [...executions]
+	// Sort entries by date (FIFO) - using toSorted for immutability
+	const entries = executions
 		.filter((e) => e.executionType === "entry")
-		.sort((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
+		.toSorted((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
 
-	const exits = [...executions]
+	const exits = executions
 		.filter((e) => e.executionType === "exit")
-		.sort((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
+		.toSorted((a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime())
 
 	if (entries.length === 0) {
 		return {

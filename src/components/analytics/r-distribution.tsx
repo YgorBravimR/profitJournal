@@ -58,15 +58,17 @@ interface CustomTooltipProps {
 }
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
+	const t = useTranslations("analytics.rDistribution")
+
 	if (active && payload && payload.length > 0) {
 		const data = payload[0].payload
 		return (
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg">
 				<p className="text-small font-semibold text-txt-100">{data.range}</p>
 				<div className="mt-s-200 space-y-s-100 text-tiny">
-					<p className="text-txt-200">Trades: {data.count}</p>
+					<p className="text-txt-200">{t("tooltipTrades")}: {data.count}</p>
 					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-						Total P&L: {formatCompactCurrencyWithSign(data.pnl)}
+						{t("tooltipPnl")}: {formatCompactCurrencyWithSign(data.pnl)}
 					</p>
 				</div>
 			</div>
@@ -206,22 +208,15 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 			<div className="mt-m-400 rounded-lg bg-bg-100 p-m-400">
 				<p className="text-small text-txt-200">
 					{positiveCount > negativeCount ? (
-						<>
-							<span className="font-semibold text-trade-buy">
-								{((positiveCount / totalTrades) * 100).toFixed(0)}%
-							</span>{" "}
-							of your trades achieved positive R. Your most common outcome is{" "}
-							<span className="font-semibold text-acc-100">{mode.range}</span> with{" "}
-							{mode.count} trades.
-						</>
+						t("achievedPositiveR", {
+							percent: ((positiveCount / totalTrades) * 100).toFixed(0),
+							range: mode.range,
+							count: mode.count,
+						})
 					) : (
-						<>
-							<span className="font-semibold text-trade-sell">
-								{((negativeCount / totalTrades) * 100).toFixed(0)}%
-							</span>{" "}
-							of your trades resulted in negative R. Focus on cutting losers earlier
-							or improving entry timing.
-						</>
+						t("achievedNegativeR", {
+							percent: ((negativeCount / totalTrades) * 100).toFixed(0),
+						})
 					)}
 				</p>
 			</div>

@@ -989,8 +989,8 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 		let consecutiveLosses = 0
 		let maxConsecutiveLosses = 0
 
-		// Sort trades by entry date to calculate consecutive losses properly
-		const sortedTrades = [...todaysTrades].sort(
+		// Sort trades by entry date to calculate consecutive losses properly (using toSorted for immutability)
+		const sortedTrades = todaysTrades.toSorted(
 			(a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
 		)
 
@@ -1096,7 +1096,7 @@ export const getDailySummary = async (): Promise<ActionResponse<DailySummary>> =
 		let consecutiveLosses = 0
 		let maxConsecutiveLosses = 0
 
-		const sortedTrades = [...todaysTrades].sort(
+		const sortedTrades = todaysTrades.toSorted(
 			(a, b) => new Date(a.entryDate).getTime() - new Date(b.entryDate).getTime()
 		)
 

@@ -62,7 +62,8 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) => {
 	const t = useTranslations("dashboard")
 
-	const sortedData = [...data].sort(
+	// Sort by date (using toSorted for immutability)
+	const sortedData = data.toSorted(
 		(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
 	)
 

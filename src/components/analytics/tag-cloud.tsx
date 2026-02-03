@@ -24,6 +24,7 @@ const getTagTypeColor = (type: TagType): string => {
 
 export const TagCloud = ({ data }: TagCloudProps) => {
 	const t = useTranslations("analytics.tagCloud")
+	const tHeaders = useTranslations("analytics.tableHeaders")
 
 	const getTagTypeLabel = (type: TagType): string => {
 		switch (type) {
@@ -52,13 +53,26 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 		return "text-tiny"
 	}
 
+	const getTagSectionTitle = (type: TagType): string => {
+		switch (type) {
+			case "setup":
+				return t("setupTags")
+			case "mistake":
+				return t("mistakeTags")
+			case "general":
+				return t("generalTags")
+			default:
+				return `${getTagTypeLabel(type)} Tags`
+		}
+	}
+
 	const renderTagSection = (tags: TagStats[], type: TagType) => {
 		if (tags.length === 0) return null
 
 		return (
 			<div className="space-y-s-300">
 				<h4 className="text-tiny font-medium text-txt-300">
-					{getTagTypeLabel(type)} Tags
+					{getTagSectionTitle(type)}
 				</h4>
 				<div className="flex flex-wrap gap-s-200">
 					{tags.map((tag) => (
@@ -80,12 +94,12 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							<div className="absolute bottom-full left-1/2 z-10 mb-s-200 hidden -translate-x-1/2 rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg group-hover:block">
 								<div className="whitespace-nowrap text-tiny">
 									<p className={tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-										P&L: {formatCompactCurrencyWithSign(tag.totalPnl)}
+										{tHeaders("pnl")}: {formatCompactCurrencyWithSign(tag.totalPnl)}
 									</p>
-									<p className="text-txt-200">Win Rate: {tag.winRate.toFixed(1)}%</p>
+									<p className="text-txt-200">{tHeaders("winRate")}: {tag.winRate.toFixed(1)}%</p>
 									{tag.avgR !== 0 && (
 										<p className={tag.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-											Avg R: {tag.avgR >= 0 ? "+" : ""}{tag.avgR.toFixed(2)}R
+											{tHeaders("avgR")}: {tag.avgR >= 0 ? "+" : ""}{tag.avgR.toFixed(2)}R
 										</p>
 									)}
 								</div>
@@ -167,26 +181,26 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 										{t("tag")}
 									</th>
 									<th className="px-s-300 py-s-200 text-left text-tiny font-medium text-txt-300">
-										Type
+										{tHeaders("type")}
 									</th>
 									<th className="px-s-300 py-s-200 text-right text-tiny font-medium text-txt-300">
-										Trades
+										{tHeaders("trades")}
 									</th>
 									<th className="px-s-300 py-s-200 text-right text-tiny font-medium text-txt-300">
-										P&L
+										{tHeaders("pnl")}
 									</th>
 									<th className="px-s-300 py-s-200 text-right text-tiny font-medium text-txt-300">
-										Win Rate
+										{tHeaders("winRate")}
 									</th>
 									<th className="px-s-300 py-s-200 text-right text-tiny font-medium text-txt-300">
-										Avg R
+										{tHeaders("avgR")}
 									</th>
 								</tr>
 							</thead>
 							<tbody>
 								{data
 									.filter((tag) => tag.tradeCount > 0)
-									.sort((a, b) => b.totalPnl - a.totalPnl)
+									.toSorted((a, b) => b.totalPnl - a.totalPnl)
 									.map((tag) => (
 										<tr key={tag.tagId} className="border-b border-bg-300/50">
 											<td className="px-s-300 py-s-200 text-small font-medium text-txt-100">

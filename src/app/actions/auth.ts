@@ -1,5 +1,6 @@
 "use server"
 
+import { cache } from "react"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
@@ -188,7 +189,14 @@ interface AuthContext {
 	allAccountIds: string[]
 }
 
-export const requireAuth = async (): Promise<AuthContext> => {
+/**
+ * Cached auth context provider - deduplicates auth checks within a single request.
+ * When multiple server actions call requireAuth() in parallel (e.g., dashboard fetching 6 data sources),
+ * this ensures auth is only checked once per request instead of 6 times.
+ *
+ * @see React.cache() docs: https://react.dev/reference/react/cache
+ */
+export const requireAuth = cache(async (): Promise<AuthContext> => {
 	const session = await auth()
 	if (!session?.user?.id) {
 		redirect("/login")
@@ -220,7 +228,7 @@ export const requireAuth = async (): Promise<AuthContext> => {
 		showAllAccounts: settings?.showAllAccounts ?? false,
 		allAccountIds,
 	}
-}
+})
 
 // ==========================================
 // ACCOUNT SWITCHING

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Search } from "lucide-react"
@@ -114,7 +114,8 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 		})
 	}, [period, customDateRange])
 
-	const handlePeriodChange = (
+	// Memoized handlers to prevent unnecessary re-renders in child components
+	const handlePeriodChange = useCallback((
 		newPeriod: JournalPeriod,
 		dateRange?: { from: Date; to: Date }
 	) => {
@@ -122,11 +123,11 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 		if (newPeriod === "custom" && dateRange) {
 			setCustomDateRange(dateRange)
 		}
-	}
+	}, [])
 
-	const handleTradeClick = (tradeId: string) => {
+	const handleTradeClick = useCallback((tradeId: string) => {
 		router.push(`/journal/${tradeId}`)
-	}
+	}, [router])
 
 	// Calculate period summary
 	const periodSummary = tradesByDay.reduce(

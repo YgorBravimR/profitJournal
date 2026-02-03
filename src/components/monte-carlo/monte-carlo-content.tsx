@@ -137,7 +137,7 @@ export const MonteCarloContent = ({
 				</div>
 				<Button variant="ghost" size="sm" className="text-txt-300">
 					<HelpCircle className="mr-s-100 h-4 w-4" />
-					Help
+					{t("help")}
 				</Button>
 			</div>
 
@@ -206,30 +206,30 @@ export const MonteCarloContent = ({
 					{/* Top Summary Banner */}
 					<div className="border-bg-300 bg-bg-200 p-m-500 gap-m-500 flex flex-wrap items-center justify-between rounded-lg border">
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">Simulations:</span>
+							<span className="text-txt-300 text-small">{t("results.simulations")}:</span>
 							<span className="text-txt-100 font-medium">
 								{params.simulationCount.toLocaleString()}
 							</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">Trades:</span>
+							<span className="text-txt-300 text-small">{t("results.tradesLabel")}:</span>
 							<span className="text-txt-100 font-medium">
 								{params.numberOfTrades}
 							</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">Win Rate:</span>
+							<span className="text-txt-300 text-small">{t("results.winRateLabel")}:</span>
 							<span className="text-txt-100 font-medium">{params.winRate}%</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">R:R:</span>
+							<span className="text-txt-300 text-small">{t("results.rrLabel")}:</span>
 							<span className="text-txt-100 font-medium">
 								1:{params.rewardRiskRatio}
 							</span>
 						</div>
 						<Button variant="outline" size="sm" onClick={handleRunAgain}>
 							<Dices className="mr-s-100 h-4 w-4" />
-							Run Again
+							{t("results.runAgain")}
 						</Button>
 					</div>
 

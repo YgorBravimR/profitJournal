@@ -46,17 +46,17 @@ export const StatsPreview = ({
 					{stats.sourceName}
 				</h4>
 				<p className="text-tiny text-txt-300">
-					{stats.totalTrades} trades ({formatDate(stats.dateRange.from)} -{" "}
+					{stats.totalTrades} {t("trades")} ({formatDate(stats.dateRange.from)} -{" "}
 					{formatDate(stats.dateRange.to)})
 				</p>
 				{(stats.strategiesCount ?? 0) > 1 ? (
 					<p className="text-tiny text-txt-300">
-						Across {stats.strategiesCount} strategies
+						{t("acrossStrategies", { count: stats.strategiesCount ?? 0 })}
 					</p>
 				) : null}
 				{(stats.accountsCount ?? 0) > 1 ? (
 					<p className="text-tiny text-txt-300">
-						Across {stats.accountsCount} accounts
+						{t("acrossAccounts", { count: stats.accountsCount ?? 0 })}
 					</p>
 				) : null}
 			</div>
@@ -99,7 +99,7 @@ export const StatsPreview = ({
 							>
 								<span className="text-txt-200">{s.name}</span>
 								<span className="text-txt-300">
-									{s.tradesCount} trades ({s.winRate.toFixed(0)}% win)
+									{s.tradesCount} {t("trades")} ({s.winRate.toFixed(0)}% {t("win")})
 								</span>
 							</div>
 						))}

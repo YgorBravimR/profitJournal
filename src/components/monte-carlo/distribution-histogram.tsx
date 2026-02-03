@@ -11,6 +11,7 @@ import {
 	ResponsiveContainer,
 	ReferenceLine,
 	Cell,
+	Rectangle,
 } from "recharts"
 import { useTranslations } from "next-intl"
 import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
@@ -26,9 +27,135 @@ interface CustomTooltipProps {
 	active?: boolean
 	payload?: Array<{
 		value: number
-		payload: DistributionBucket & { midPoint: number }
+		payload: DistributionBucket & { midPoint: number; percentileZone: string }
 	}>
 	initialBalance: number
+}
+
+interface PercentileBoundaries {
+	p5: number
+	p15: number
+	p40: number
+	p60: number
+	p85: number
+	p95: number
+	min: number
+	max: number
+}
+
+type PercentileZone = "outer" | "middle" | "center" | "core"
+
+const calculatePercentileBoundaries = (
+	buckets: Array<{ midPoint: number; count: number }>
+): PercentileBoundaries => {
+	if (buckets.length === 0) {
+		return { p5: 0, p15: 0, p40: 0, p60: 0, p85: 0, p95: 0, min: 0, max: 0 }
+	}
+
+	const totalCount = buckets.reduce((sum, b) => sum + b.count, 0)
+	let cumulative = 0
+
+	const sortedBuckets = [...buckets].sort((a, b) => a.midPoint - b.midPoint)
+	const min = sortedBuckets[0].midPoint
+	const max = sortedBuckets[sortedBuckets.length - 1].midPoint
+
+	let p5 = min
+	let p15 = min
+	let p40 = min
+	let p60 = max
+	let p85 = max
+	let p95 = max
+
+	for (const bucket of sortedBuckets) {
+		const prevCumulative = cumulative
+		cumulative += bucket.count
+		const prevPct = (prevCumulative / totalCount) * 100
+		const currentPct = (cumulative / totalCount) * 100
+
+		if (prevPct < 5 && currentPct >= 5) {
+			p5 = bucket.midPoint
+		}
+		if (prevPct < 15 && currentPct >= 15) {
+			p15 = bucket.midPoint
+		}
+		if (prevPct < 40 && currentPct >= 40) {
+			p40 = bucket.midPoint
+		}
+		if (prevPct < 60 && currentPct >= 60) {
+			p60 = bucket.midPoint
+		}
+		if (prevPct < 85 && currentPct >= 85) {
+			p85 = bucket.midPoint
+		}
+		if (prevPct < 95 && currentPct >= 95) {
+			p95 = bucket.midPoint
+		}
+	}
+
+	return { p5, p15, p40, p60, p85, p95, min, max }
+}
+
+const getPercentileZone = (
+	midPoint: number,
+	boundaries: PercentileBoundaries
+): PercentileZone => {
+	// Outer: < 5th or > 95th percentile (5% each tail = 10% total)
+	if (midPoint < boundaries.p5 || midPoint > boundaries.p95) {
+		return "outer"
+	}
+	// Middle: 5th-15th or 85th-95th percentile (10% each side = 20% total)
+	if (midPoint < boundaries.p15 || midPoint > boundaries.p85) {
+		return "middle"
+	}
+	// Center: 15th-40th or 60th-85th percentile (25% each side = 50% total)
+	if (midPoint < boundaries.p40 || midPoint > boundaries.p60) {
+		return "center"
+	}
+	// Core: 40th-60th percentile (20% in the very middle)
+	return "core"
+}
+
+const ZONE_COLORS: Record<PercentileZone, string> = {
+	core: "rgba(255, 50, 0, 0.2)", // brightest orange - very center
+	center: "rgba(255, 153, 0, 0.2)", // accent orange
+	middle: "rgba(255, 238, 0, 0.2)", // warning yellow
+	outer: "transparent",
+}
+
+interface CustomBarBackgroundProps {
+	x?: number
+	y?: number
+	width?: number
+	height?: number
+	payload?: { percentileZone: PercentileZone }
+}
+
+const CustomBarBackground = (props: CustomBarBackgroundProps) => {
+	const { x, y, width, height, payload } = props
+	if (
+		x === undefined ||
+		y === undefined ||
+		width === undefined ||
+		height === undefined
+	) {
+		return null
+	}
+
+	const zone = payload?.percentileZone ?? "outer"
+	const fill = ZONE_COLORS[zone]
+
+	if (fill === "transparent") return null
+
+	return (
+		<Rectangle
+			x={x}
+			y={0}
+			width={width}
+			height={y + height}
+			fill={fill}
+			radius={0}
+		/>
+	)
 }
 
 const CustomTooltip = ({
@@ -67,15 +194,20 @@ export const DistributionHistogram = ({
 }: DistributionHistogramProps) => {
 	const t = useTranslations("monteCarlo.results")
 
-	const chartData = useMemo(
-		() =>
-			buckets.map((bucket) => ({
-				...bucket,
-				label: formatCompactCurrency((bucket.rangeStart + bucket.rangeEnd) / 2),
-				midPoint: (bucket.rangeStart + bucket.rangeEnd) / 2,
-			})),
-		[buckets]
-	)
+	const chartData = useMemo(() => {
+		const data = buckets.map((bucket) => ({
+			...bucket,
+			label: formatCompactCurrency((bucket.rangeStart + bucket.rangeEnd) / 2),
+			midPoint: (bucket.rangeStart + bucket.rangeEnd) / 2,
+		}))
+
+		const boundaries = calculatePercentileBoundaries(data)
+
+		return data.map((item) => ({
+			...item,
+			percentileZone: getPercentileZone(item.midPoint, boundaries),
+		}))
+	}, [buckets])
 
 	const maxCount = useMemo(
 		() => Math.max(...chartData.map((d) => d.count)),
@@ -105,13 +237,13 @@ export const DistributionHistogram = ({
 				</h3>
 				<div className="gap-m-400 flex items-center">
 					<span className="text-tiny text-txt-300">
-						Median:{" "}
+						{t("median")}:{" "}
 						<span className="text-txt-100 font-medium">
 							{formatCompactCurrency(medianBalance)}
 						</span>
 					</span>
 					<span className="text-tiny text-txt-300">
-						Profitable:{" "}
+						{t("profitable")}:{" "}
 						<span className="text-trade-buy font-medium">{profitablePct}%</span>
 					</span>
 				</div>
@@ -162,7 +294,11 @@ export const DistributionHistogram = ({
 								fontWeight: 500,
 							}}
 						/>
-						<Bar dataKey="count" radius={[3, 3, 0, 0]}>
+						<Bar
+							dataKey="count"
+							radius={[3, 3, 0, 0]}
+							background={<CustomBarBackground />}
+						>
 							{chartData.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
@@ -182,6 +318,37 @@ export const DistributionHistogram = ({
 			<p className="mt-s-300 text-tiny text-txt-300 text-center">
 				{t("finalBalance")}
 			</p>
+
+			{/* Percentile Zone Legend */}
+			<div className="mt-m-400 pt-m-300 border-t border-bg-300">
+				<div className="flex flex-wrap items-center justify-center gap-m-400">
+					<div className="flex items-center gap-s-200">
+						<div
+							className="h-3 w-6 rounded-sm"
+							style={{ backgroundColor: ZONE_COLORS.core }}
+						/>
+						<span className="text-tiny text-txt-300">{t("legendCore")}</span>
+					</div>
+					<div className="flex items-center gap-s-200">
+						<div
+							className="h-3 w-6 rounded-sm"
+							style={{ backgroundColor: ZONE_COLORS.center }}
+						/>
+						<span className="text-tiny text-txt-300">{t("legendCenter")}</span>
+					</div>
+					<div className="flex items-center gap-s-200">
+						<div
+							className="h-3 w-6 rounded-sm"
+							style={{ backgroundColor: ZONE_COLORS.middle }}
+						/>
+						<span className="text-tiny text-txt-300">{t("legendMiddle")}</span>
+					</div>
+					<div className="flex items-center gap-s-200">
+						<div className="h-3 w-6 rounded-sm border border-bg-300 bg-transparent" />
+						<span className="text-tiny text-txt-300">{t("legendOuter")}</span>
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }

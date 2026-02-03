@@ -59,6 +59,7 @@
 	"monteCarlo": {
 		"title": "Simulador Monte Carlo",
 		"subtitle": "Teste sua estratégia de trading com simulações estatísticas",
+		"help": "Ajuda",
 		"inputMode": {
 			"title": "Modo de Entrada",
 			"auto": "Auto-preencher dos Dados",
@@ -69,7 +70,10 @@
 			"selectSource": "Selecione a fonte de dados",
 			"individual": "Estratégia Individual",
 			"allStrategies": "Todas as Estratégias",
-			"universal": "Todas as Contas + Todas as Estratégias"
+			"allStrategiesDesc": "Métricas combinadas de todas as estratégias",
+			"universal": "Todas as Contas + Todas as Estratégias",
+			"universalDesc": "Métricas universais de todas as contas",
+			"trades": "trades"
 		},
 		"statsPreview": {
 			"winRate": "Taxa de Acerto",
@@ -77,7 +81,11 @@
 			"profitFactor": "Fator de Lucro",
 			"useStats": "Usar Estas Estatísticas",
 			"customize": "Personalizar",
-			"strategiesBreakdown": "Detalhamento das Estratégias"
+			"strategiesBreakdown": "Detalhamento das Estratégias",
+			"trades": "trades",
+			"acrossStrategies": "Em {count} estratégias",
+			"acrossAccounts": "Em {count} contas",
+			"win": "acerto"
 		},
 		"params": {
 			"title": "Parâmetros da Simulação",
@@ -99,7 +107,18 @@
 			"drawdownCurve": "Progressão do Drawdown",
 			"distribution": "Distribuição dos Resultados Possíveis",
 			"tradeNumber": "Número do Trade",
-			"finalBalance": "Saldo Final"
+			"finalBalance": "Saldo Final",
+			"simulations": "Simulações",
+			"tradesLabel": "Trades",
+			"winRateLabel": "Taxa de Acerto",
+			"rrLabel": "R:R",
+			"runAgain": "Rodar Novamente",
+			"median": "Mediana",
+			"profitable": "Lucrativas",
+			"legendCore": "20% Central",
+			"legendCenter": "50% Intermediário (70% total)",
+			"legendMiddle": "20% Mediano (90% total)",
+			"legendOuter": "10% Externo"
 		},
 		"metrics": {
 			"balanceSummary": "Resumo do Saldo",
@@ -129,21 +148,81 @@
 			"fullKelly": "Agressivo (Kelly Completo)",
 			"halfKelly": "Equilibrado (Meio Kelly)",
 			"quarterKelly": "Conservador (Quarto de Kelly)",
-			"recommendedPositionSizes": "Tamanhos de posição recomendados ({kellyType}):"
+			"recommendedPositionSizes": "Tamanhos de posição recomendados ({kellyType}):",
+			"accountRisk": "conta {account}: Risco {risk} por trade",
+			"monteCarloOutcomes": "Resultados Monte Carlo",
+			"bestCase": "Melhor Caso (95º)",
+			"medianLabel": "Mediana",
+			"worstCase": "Pior Caso (5º)",
+			"profitableSimulations": "Simulações Lucrativas"
 		},
 		"trades": {
 			"title": "Sequência de Trades de Amostra (Caso Médio)",
+			"number": "#",
+			"result": "Resultado",
+			"pnl": "P&L",
 			"win": "Ganho",
 			"loss": "Perda",
 			"commission": "Comissão",
 			"balance": "Saldo",
 			"showAll": "Mostrar Todos os Trades",
-			"hideAll": "Ocultar Trades"
+			"hideAll": "Ocultar Trades",
+			"more": "mais"
 		},
 		"analysis": {
 			"title": "Análise da Estratégia de Trading",
 			"monteCarlo": "Análise da Simulação Monte Carlo",
-			"balanceReturns": "Análise de Saldo e Retornos"
+			"balanceReturns": "Análise de Saldo e Retornos",
+			"basedOnSimulations": "Baseado em {count} simulações:",
+			"averageReturn": "Retorno Médio",
+			"bestCaseLabel": "Melhor Caso",
+			"worstCaseLabel": "Pior Caso",
+			"maxDD": "DD Máx",
+			"mostLikelyOutcome": "Este é seu resultado mais provável",
+			"top5Percent": "Top 5% das simulações",
+			"maximumDownsideRisk": "Seu risco máximo de queda",
+			"simulationsProfitable": "{percent}% de todas as simulações foram lucrativas, indicando {quality}.",
+			"profitQualityRobust": "uma estratégia robusta",
+			"profitQualityModerate": "uma estratégia moderadamente confiável",
+			"profitQualityRisky": "uma estratégia arriscada que precisa de melhorias",
+			"reliableStrategy": "Uma estratégia confiável deve ser lucrativa em pelo menos 70% das simulações.",
+			"startingWith": "Começando com {amount}, sua estratégia mostra:",
+			"expectedProfit": "Lucro Esperado",
+			"return": "retorno",
+			"commissionImpact": "Impacto das Comissões",
+			"ofProfits": "dos lucros",
+			"commissionCostsGood": "Custos de comissão estão bem gerenciados em relação aos lucros.",
+			"commissionCostsModerate": "Custos de comissão estão moderados em relação aos lucros.",
+			"commissionCostsHigh": "Custos de comissão estão altos em relação aos lucros.",
+			"riskAnalysis": "Análise de Risco",
+			"riskMetricsIndicate": "Suas métricas de risco indicam:",
+			"maximumDrawdown": "Drawdown Máximo",
+			"sharpeRatio": "Índice Sharpe",
+			"sortinoRatio": "Índice Sortino",
+			"winRateLabel": "Taxa de Acerto",
+			"wellControlled": "Bem controlado",
+			"moderate": "Moderado",
+			"highRisk": "Alto risco",
+			"sharpeExcellent": "Excelente",
+			"sharpeGood": "Bom",
+			"sharpeBelowAverage": "Abaixo da média",
+			"sortinoStrong": "Forte proteção contra perdas",
+			"sortinoModerate": "Moderado",
+			"riskAdjustedPerformance": "O desempenho ajustado ao risco da sua estratégia {quality}.",
+			"riskExcellent": "é excelente",
+			"riskGood": "é bom",
+			"riskModerate": "precisa de melhorias",
+			"riskConcerning": "precisa de melhorias",
+			"tradingPsychology": "Psicologia de Trading",
+			"psychologicalFactors": "Fatores psicológicos a considerar:",
+			"winRateSolid": "Desempenho sólido",
+			"winRateRequiresDiscipline": "Requer disciplina forte",
+			"longestWinStreak": "Maior Sequência de Gains",
+			"longestLossStreak": "Maior Sequência de Losses",
+			"tradesUnit": "trades",
+			"strategyImprovements": "Melhorias na Estratégia",
+			"keyAreasOptimization": "Áreas chave para otimização:",
+			"bestStrategyTip": "A melhor estratégia é aquela que você consegue executar consistentemente com confiança."
 		}
 	},
 	"commandCenter": {
@@ -544,6 +623,26 @@
 		"description": "Analise seu desempenho e identifique padrões",
 		"noData": "Nenhum dado disponível",
 		"updating": "Atualizando análises...",
+		"tableHeaders": {
+			"trades": "Trades",
+			"pnl": "P&L",
+			"winRate": "Taxa Acerto",
+			"avgR": "R Médio",
+			"pf": "FL",
+			"type": "Tipo"
+		},
+		"tableTooltips": {
+			"trades": "Número total de trades fechados",
+			"pnl": "Lucro e Prejuízo Líquido (ganhos menos perdas)",
+			"winRate": "Porcentagem de trades vencedores (ganhos ÷ total)",
+			"avgR": "Múltiplo R médio por trade (retorno real ÷ risco planejado)",
+			"pf": "Fator de Lucro (soma dos ganhos ÷ soma das perdas)",
+			"pfProfitable": "Lucrativo",
+			"pfBreakeven": "Empate",
+			"pfLosing": "Perdendo dinheiro",
+			"pfNoLosses": "Sem perdas ainda",
+			"pfNoWins": "Sem ganhos ainda"
+		},
 		"filters": {
 			"title": "Filtros",
 			"active": "Ativos",
@@ -584,7 +683,25 @@
 			"worstSlot": "Pior Horário",
 			"profitable": "Lucrativo",
 			"losing": "Negativo",
-			"noTrades": "Sem trades"
+			"noTrades": "Sem trades",
+			"heatmapDays": {
+				"mon": "Seg",
+				"tue": "Ter",
+				"wed": "Qua",
+				"thu": "Qui",
+				"fri": "Sex",
+				"sat": "Sáb",
+				"sun": "Dom"
+			},
+			"dayNames": {
+				"Monday": "Segunda",
+				"Tuesday": "Terça",
+				"Wednesday": "Quarta",
+				"Thursday": "Quinta",
+				"Friday": "Sexta",
+				"Saturday": "Sábado",
+				"Sunday": "Domingo"
+			}
 		},
 		"session": {
 			"title": "Performance por Sessão",
@@ -601,7 +718,13 @@
 			"asset": "Ativo",
 			"total": "Total",
 			"legendWinRate": "Taxa Acerto %",
-			"legendTrades": "# de Trades"
+			"legendTrades": "# de Trades",
+			"labels": {
+				"preOpen": "Pré-Abertura",
+				"morning": "Manhã",
+				"afternoon": "Tarde",
+				"close": "Fechamento"
+			}
 		},
 		"variableComparison": {
 			"title": "Performance por Variável",
@@ -637,12 +760,15 @@
 			"tag": "Tag",
 			"setup": "Setup",
 			"mistake": "Erro",
-			"general": "Geral"
+			"general": "Geral",
+			"setupTags": "Tags de Setup",
+			"mistakeTags": "Tags de Erro",
+			"generalTags": "Tags Gerais"
 		},
 		"expectedValue": {
 			"title": "Valor Esperado",
 			"noData": "Dados insuficientes para calcular o valor esperado",
-			"basedOn": "Baseado em",
+			"basedOn": "Baseado em {count} trades",
 			"perTrade": "Valor Esperado por Trade",
 			"winRateLabel": "Taxa de Acerto",
 			"winRateDesc": "Porcentagem de trades que foram lucrativos",
@@ -658,7 +784,10 @@
 			"negativeEdge": "edge negativa",
 			"perTradeOverLongRun": "por trade no longo prazo",
 			"positive": "EV Positivo - Continue assim!",
-			"negative": "EV Negativo - Revise sua estratégia"
+			"negative": "EV Negativo - Revise sua estratégia",
+			"systemHasEdge": "Seu sistema de trading tem {edge}. Em média, você pode esperar ganhar {amount} por trade no longo prazo.",
+			"systemHasPositiveEdge": "Seu sistema de trading tem uma <positive>edge positiva</positive>. Em média, você pode esperar ganhar <amount></amount> por trade no longo prazo.",
+			"systemHasNegativeEdge": "Seu sistema de trading atualmente tem uma <negative>edge negativa</negative>. Em média, você pode esperar perder <amount></amount> por trade no longo prazo."
 		},
 		"rDistribution": {
 			"title": "Distribuição de R",
@@ -671,7 +800,11 @@
 			"negativeRDesc": "Trades que perderam dinheiro (R < 0)",
 			"mostCommon": "Mais Comum",
 			"mostCommonDesc": "A faixa de R múltiplo com maior frequência",
-			"description": "Distribuição dos múltiplos de R realizados"
+			"description": "Distribuição dos múltiplos de R realizados",
+			"tooltipTrades": "Trades",
+			"tooltipPnl": "P&L Total",
+			"achievedPositiveR": "{percent}% dos seus trades tiveram R positivo. Seu resultado mais comum é {range} com {count} trades.",
+			"achievedNegativeR": "{percent}% dos seus trades resultaram em R negativo. Foque em cortar perdas mais cedo ou melhorar o timing de entrada."
 		}
 	},
 	"playbook": {
@@ -690,7 +823,19 @@
 			"followed": "Trades com Plano",
 			"deviated": "Trades sem Plano",
 			"topPerforming": "Melhores Estratégias",
-			"needsAttention": "Precisam de Atenção"
+			"needsAttention": "Precisam de Atenção",
+			"overview": "Visão Geral de Aderência",
+			"unableToLoad": "Não foi possível carregar dados de aderência",
+			"noDataYet": "Sem dados de aderência ainda",
+			"trackAdherence": "Acompanhe a aderência ao plano ao registrar seus trades",
+			"followedPlan": "Você seguiu seu plano de trading em {followed} de {total} trades rastreados",
+			"followedCount": "Seguidos: {count}",
+			"deviatedCount": "Desviados: {count}",
+			"bestCompliance": "Melhor Aderência",
+			"compliancePercent": "{percent}% de aderência",
+			"strategiesCount": "{count} Estratégia",
+			"strategiesCountPlural": "{count} Estratégias",
+			"planCompliance": "Aderência ao Plano"
 		},
 		"strategy": {
 			"name": "Nome",
@@ -799,7 +944,9 @@
 			"theme": "Tema",
 			"themeLight": "Claro",
 			"themeDark": "Escuro",
-			"language": "Idioma"
+			"language": "Idioma",
+			"lightMode": "Modo Claro",
+			"darkMode": "Modo Escuro"
 		},
 		"account": {
 			"accountInfo": "Informações da Conta",

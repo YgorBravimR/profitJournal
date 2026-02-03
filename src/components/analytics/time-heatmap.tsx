@@ -20,13 +20,28 @@ const TRADING_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17]
  */
 export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 	const t = useTranslations("analytics")
+	const tDays = useTranslations("analytics.time.heatmapDays")
 	const [hoveredCell, setHoveredCell] = useState<TimeHeatmapCell | null>(null)
 	const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
 
 	// Use fixed trading hours instead of dynamic
 	const hours = TRADING_HOURS
 	const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-	const dayShorts = ["Mon", "Tue", "Wed", "Thu", "Fri"]
+	const dayShorts = [tDays("mon"), tDays("tue"), tDays("wed"), tDays("thu"), tDays("fri")]
+
+	// Get translated short day name from English day name
+	const getTranslatedDayShort = (dayName: string): string => {
+		const dayMap: Record<string, string> = {
+			Sunday: tDays("sun"),
+			Monday: tDays("mon"),
+			Tuesday: tDays("tue"),
+			Wednesday: tDays("wed"),
+			Thursday: tDays("thu"),
+			Friday: tDays("fri"),
+			Saturday: tDays("sat"),
+		}
+		return dayMap[dayName] || dayName.slice(0, 3)
+	}
 
 	// Create lookup map
 	const cellMap = new Map<string, TimeHeatmapCell>()
@@ -51,9 +66,9 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 		return "bg-trade-sell/40"
 	}
 
-	// Find best and worst slots
+	// Find best and worst slots (using toSorted for immutability)
 	const cellsWithTrades = data.filter((c) => c.totalTrades > 0)
-	const sortedByPnl = [...cellsWithTrades].sort(
+	const sortedByPnl = cellsWithTrades.toSorted(
 		(a, b) => b.totalPnl - a.totalPnl
 	)
 	const bestSlot = sortedByPnl[0]
@@ -203,7 +218,7 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 					<div>
 						<p className="text-txt-300 text-[10px]">{t("time.bestSlot")}</p>
 						<p className="text-caption text-trade-buy font-medium">
-							{bestSlot.dayName.slice(0, 3)} {bestSlot.hourLabel}
+							{getTranslatedDayShort(bestSlot.dayName)} {bestSlot.hourLabel}
 						</p>
 						<p className="text-trade-buy/80 text-[10px]">
 							{bestSlot.winRate.toFixed(0)}% •{" "}
@@ -213,7 +228,7 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 					<div>
 						<p className="text-txt-300 text-[10px]">{t("time.worstSlot")}</p>
 						<p className="text-caption text-trade-sell font-medium">
-							{worstSlot.dayName.slice(0, 3)} {worstSlot.hourLabel}
+							{getTranslatedDayShort(worstSlot.dayName)} {worstSlot.hourLabel}
 						</p>
 						<p className="text-trade-sell/80 text-[10px]">
 							{worstSlot.winRate.toFixed(0)}% •{" "}

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useCallback } from "react"
 import { KpiCards } from "./kpi-cards"
 import { TradingCalendar } from "./trading-calendar"
 import { EquityCurve } from "./equity-curve"
@@ -63,19 +63,20 @@ export const DashboardContent = ({
 		initialRadarData,
 	])
 
-	const handleDayClick = (date: string) => {
+	// Memoized handlers to prevent unnecessary re-renders in child components
+	const handleDayClick = useCallback((date: string) => {
 		setSelectedDate(date)
 		setIsDayModalOpen(true)
-	}
+	}, [])
 
-	const handleDayModalChange = (open: boolean) => {
+	const handleDayModalChange = useCallback((open: boolean) => {
 		setIsDayModalOpen(open)
 		if (!open) {
 			setSelectedDate(null)
 		}
-	}
+	}, [])
 
-	const handleMonthChange = (newMonth: Date) => {
+	const handleMonthChange = useCallback((newMonth: Date) => {
 		setCurrentMonth(newMonth)
 		startTransition(async () => {
 			const result = await getDailyPnL(newMonth)
@@ -83,7 +84,7 @@ export const DashboardContent = ({
 				setDailyPnL(result.data)
 			}
 		})
-	}
+	}, [])
 
 	return (
 		<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-3">
