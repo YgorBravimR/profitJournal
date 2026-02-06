@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { Input } from "@/components/ui/input"
@@ -9,13 +9,18 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { LanguageSwitcher } from "./language-switcher"
+import { BrandSwitcher } from "./brand-switcher"
 import { useToast } from "@/components/ui/toast"
 import { getCurrentUser, updateUserProfile, changePassword } from "@/app/actions/auth"
 import { getUserSettings, updateUserSettings } from "@/app/actions/settings"
 import { Loader2 } from "lucide-react"
 import type { User } from "@/db/schema"
 
-export const UserProfileSettings = () => {
+/**
+ * User profile settings component.
+ * Allows users to manage their profile, password, display settings, and appearance.
+ */
+const UserProfileSettings = () => {
 	const t = useTranslations("settings.profile")
 	const tCommon = useTranslations("common")
 	const tAuth = useTranslations("auth")
@@ -61,7 +66,7 @@ export const UserProfileSettings = () => {
 		loadData()
 	}, [])
 
-	const handleToggleShowAllAccounts = (checked: boolean) => {
+	const handleToggleShowAllAccounts = useCallback((checked: boolean) => {
 		setShowAllAccounts(checked)
 		startTransition(async () => {
 			const result = await updateUserSettings({ showAllAccounts: checked })
@@ -69,28 +74,28 @@ export const UserProfileSettings = () => {
 				showToast("success", t("settingsUpdated"))
 				// Refresh the page to apply the new setting
 				router.refresh()
-			} else {
-				// Revert on error
-				setShowAllAccounts(!checked)
-				showToast("error", result.message || t("settingsUpdateError"))
+				return
 			}
+			// Revert on error
+			setShowAllAccounts(!checked)
+			showToast("error", result.message || t("settingsUpdateError"))
 		})
-	}
+	}, [router, showToast, t])
 
-	const handleSaveProfile = () => {
+	const handleSaveProfile = useCallback(() => {
 		startTransition(async () => {
 			const result = await updateUserProfile(profileForm)
 			if (result.status === "success") {
 				setUser((prev) => (prev ? { ...prev, name: profileForm.name } : null))
 				setIsEditingProfile(false)
 				showToast("success", t("profileUpdated"))
-			} else {
-				showToast("error", result.error || t("profileUpdateError"))
+				return
 			}
+			showToast("error", result.error || t("profileUpdateError"))
 		})
-	}
+	}, [profileForm, showToast, t])
 
-	const handleChangePassword = () => {
+	const handleChangePassword = useCallback(() => {
 		if (passwordForm.newPassword !== passwordForm.confirmPassword) {
 			showToast("error", tAuth("register.passwordMismatch"))
 			return
@@ -110,11 +115,49 @@ export const UserProfileSettings = () => {
 					confirmPassword: "",
 				})
 				showToast("success", t("passwordChanged"))
-			} else {
-				showToast("error", result.error || t("passwordChangeError"))
+				return
 			}
+			showToast("error", result.error || t("passwordChangeError"))
 		})
-	}
+	}, [passwordForm, showToast, t, tAuth])
+
+	const handleProfileNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setProfileForm((prev) => ({ ...prev, name: e.target.value }))
+	}, [])
+
+	const handleCurrentPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+	}, [])
+
+	const handleNewPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+	}, [])
+
+	const handleConfirmPasswordChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+	}, [])
+
+	const handleCancelEditProfile = useCallback(() => {
+		setIsEditingProfile(false)
+		setProfileForm({ name: user?.name || "" })
+	}, [user?.name])
+
+	const handleCancelChangePassword = useCallback(() => {
+		setIsChangingPassword(false)
+		setPasswordForm({
+			currentPassword: "",
+			newPassword: "",
+			confirmPassword: "",
+		})
+	}, [])
+
+	const handleStartEditProfile = useCallback(() => {
+		setIsEditingProfile(true)
+	}, [])
+
+	const handleStartChangePassword = useCallback(() => {
+		setIsChangingPassword(true)
+	}, [])
 
 	if (isLoading) {
 		return (
@@ -132,15 +175,15 @@ export const UserProfileSettings = () => {
 					<h2 className="text-body font-semibold text-txt-100">
 						{t("profileInfo")}
 					</h2>
-					{!isEditingProfile && (
+					{!isEditingProfile ? (
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => setIsEditingProfile(true)}
+							onClick={handleStartEditProfile}
 						>
 							{tCommon("edit")}
 						</Button>
-					)}
+					) : null}
 				</div>
 				<div className="mt-m-400 space-y-m-400">
 					<div className="flex items-center justify-between gap-m-400">
@@ -150,9 +193,7 @@ export const UserProfileSettings = () => {
 						{isEditingProfile ? (
 							<Input
 								value={profileForm.name}
-								onChange={(e) =>
-									setProfileForm((prev) => ({ ...prev, name: e.target.value }))
-								}
+								onChange={handleProfileNameChange}
 								className="w-64"
 							/>
 						) : (
@@ -167,25 +208,22 @@ export const UserProfileSettings = () => {
 						<span className="text-small text-txt-200">{user?.email}</span>
 					</div>
 				</div>
-				{isEditingProfile && (
+				{isEditingProfile ? (
 					<div className="mt-m-500 flex justify-end gap-s-300">
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => {
-								setIsEditingProfile(false)
-								setProfileForm({ name: user?.name || "" })
-							}}
+							onClick={handleCancelEditProfile}
 							disabled={isPending}
 						>
 							{tCommon("cancel")}
 						</Button>
 						<Button size="sm" onClick={handleSaveProfile} disabled={isPending}>
-							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+							{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
 							{tCommon("save")}
 						</Button>
 					</div>
-				)}
+				) : null}
 			</div>
 
 			{/* Change Password */}
@@ -194,15 +232,15 @@ export const UserProfileSettings = () => {
 					<h2 className="text-body font-semibold text-txt-100">
 						{t("changePassword")}
 					</h2>
-					{!isChangingPassword && (
+					{!isChangingPassword ? (
 						<Button
 							variant="ghost"
 							size="sm"
-							onClick={() => setIsChangingPassword(true)}
+							onClick={handleStartChangePassword}
 						>
 							{tCommon("edit")}
 						</Button>
-					)}
+					) : null}
 				</div>
 				{isChangingPassword ? (
 					<div className="mt-m-400 space-y-m-400">
@@ -212,12 +250,7 @@ export const UserProfileSettings = () => {
 								id="currentPassword"
 								type="password"
 								value={passwordForm.currentPassword}
-								onChange={(e) =>
-									setPasswordForm((prev) => ({
-										...prev,
-										currentPassword: e.target.value,
-									}))
-								}
+								onChange={handleCurrentPasswordChange}
 							/>
 						</div>
 						<div className="space-y-s-200">
@@ -226,12 +259,7 @@ export const UserProfileSettings = () => {
 								id="newPassword"
 								type="password"
 								value={passwordForm.newPassword}
-								onChange={(e) =>
-									setPasswordForm((prev) => ({
-										...prev,
-										newPassword: e.target.value,
-									}))
-								}
+								onChange={handleNewPasswordChange}
 							/>
 						</div>
 						<div className="space-y-s-200">
@@ -240,26 +268,14 @@ export const UserProfileSettings = () => {
 								id="confirmPassword"
 								type="password"
 								value={passwordForm.confirmPassword}
-								onChange={(e) =>
-									setPasswordForm((prev) => ({
-										...prev,
-										confirmPassword: e.target.value,
-									}))
-								}
+								onChange={handleConfirmPasswordChange}
 							/>
 						</div>
 						<div className="flex justify-end gap-s-300">
 							<Button
 								variant="ghost"
 								size="sm"
-								onClick={() => {
-									setIsChangingPassword(false)
-									setPasswordForm({
-										currentPassword: "",
-										newPassword: "",
-										confirmPassword: "",
-									})
-								}}
+								onClick={handleCancelChangePassword}
 								disabled={isPending}
 							>
 								{tCommon("cancel")}
@@ -269,7 +285,7 @@ export const UserProfileSettings = () => {
 								onClick={handleChangePassword}
 								disabled={isPending}
 							>
-								{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+								{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
 								{t("updatePassword")}
 							</Button>
 						</div>
@@ -320,6 +336,16 @@ export const UserProfileSettings = () => {
 						</div>
 						<ThemeToggle />
 					</div>
+					{/* Color Scheme / Brand */}
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="text-small text-txt-100">{t("colorScheme")}</p>
+							<p className="text-tiny text-txt-300">
+								{t("colorSchemeDescription")}
+							</p>
+						</div>
+						<BrandSwitcher />
+					</div>
 					{/* Language */}
 					<div className="flex items-center justify-between">
 						<div>
@@ -335,3 +361,5 @@ export const UserProfileSettings = () => {
 		</div>
 	)
 }
+
+export { UserProfileSettings }

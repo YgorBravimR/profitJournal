@@ -1,0 +1,91 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
+import { useBrand, type Brand } from "@/components/providers/brand-provider"
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select"
+
+/** Color swatches for each brand to give visual preview */
+const brandColors: Record<Brand, { primary: string; bg: string }> = {
+	bravo: { primary: "#D4AF37", bg: "#151C2C" },
+	retro: { primary: "#C9A227", bg: "#171614" },
+	luxury: { primary: "#C0C0C0", bg: "#141416" },
+	tsr: { primary: "#2563EB", bg: "#161B22" },
+	neon: { primary: "#00FFFF", bg: "#12121C" },
+}
+
+interface BrandColorSwatchProps {
+	brand: Brand
+	label: string
+}
+
+/**
+ * Renders a color swatch indicator for a brand.
+ *
+ * @param props - The component props
+ * @param props.brand - The brand to display
+ * @param props.label - The label text to display
+ */
+const BrandColorSwatch = ({ brand, label }: BrandColorSwatchProps) => (
+	<div className="flex items-center gap-s-200">
+		<span
+			className="h-3 w-3 rounded-full border border-bg-300"
+			style={{ backgroundColor: brandColors[brand].primary }}
+			aria-hidden="true"
+		/>
+		{label}
+	</div>
+)
+
+/**
+ * Component for switching between brand color schemes.
+ * Provides a dropdown selector with visual color previews.
+ */
+const BrandSwitcher = () => {
+	const t = useTranslations("settings.profile")
+	const { brand, setBrand, brands } = useBrand()
+	const [mounted, setMounted] = useState(false)
+
+	useEffect(() => {
+		setMounted(true)
+	}, [])
+
+	const handleBrandChange = (value: string) => {
+		setBrand(value as Brand)
+	}
+
+	// Avoid hydration mismatch
+	if (!mounted) {
+		return (
+			<div className="h-9 w-36 animate-pulse rounded-md bg-bg-300" />
+		)
+	}
+
+	return (
+		<Select value={brand} onValueChange={handleBrandChange}>
+			<SelectTrigger
+				className="w-40"
+				aria-label={t("colorScheme")}
+			>
+				<SelectValue>
+					<BrandColorSwatch brand={brand} label={t(`brands.${brand}`)} />
+				</SelectValue>
+			</SelectTrigger>
+			<SelectContent>
+				{brands.map((b) => (
+					<SelectItem key={b} value={b}>
+						<BrandColorSwatch brand={b} label={t(`brands.${b}`)} />
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	)
+}
+
+export { BrandSwitcher }

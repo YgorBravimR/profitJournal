@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server"
 import { ThemeProvider } from "next-themes"
 import { ToastProvider } from "@/components/ui/toast"
 import { AuthProvider } from "@/components/auth"
+import { BrandProvider } from "@/components/providers/brand-provider"
 import { routing } from "@/i18n/routing"
 
 interface LocaleLayoutProps {
@@ -11,10 +12,23 @@ interface LocaleLayoutProps {
 	params: Promise<{ locale: string }>
 }
 
-export const generateStaticParams = () => {
+/**
+ * Generates static params for all supported locales.
+ *
+ * @returns Array of locale params for static generation
+ */
+const generateStaticParams = () => {
 	return routing.locales.map((locale) => ({ locale }))
 }
 
+/**
+ * Root layout component for locale-specific pages.
+ * Provides internationalization, theming, and authentication context.
+ *
+ * @param props - The layout props
+ * @param props.children - Child components to render
+ * @param props.params - Promise containing the locale parameter
+ */
 const LocaleLayout = async ({ children, params }: LocaleLayoutProps) => {
 	const { locale } = await params
 
@@ -37,16 +51,18 @@ const LocaleLayout = async ({ children, params }: LocaleLayoutProps) => {
 				enableSystem={false}
 				disableTransitionOnChange={false}
 			>
-				<ToastProvider>
-					<AuthProvider>
-						<div className="min-h-screen bg-bg-100">
-							{children}
-						</div>
-					</AuthProvider>
-				</ToastProvider>
+				<BrandProvider>
+					<ToastProvider>
+						<AuthProvider>
+							<div className="min-h-screen bg-bg-100">
+								{children}
+							</div>
+						</AuthProvider>
+					</ToastProvider>
+				</BrandProvider>
 			</ThemeProvider>
 		</NextIntlClientProvider>
 	)
 }
 
-export default LocaleLayout
+export { LocaleLayout as default, generateStaticParams }

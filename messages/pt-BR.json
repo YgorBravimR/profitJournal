@@ -988,7 +988,16 @@
 			"themeDark": "Escuro",
 			"language": "Idioma",
 			"lightMode": "Modo Claro",
-			"darkMode": "Modo Escuro"
+			"darkMode": "Modo Escuro",
+			"colorScheme": "Esquema de Cores",
+			"colorSchemeDescription": "Escolha sua paleta de cores preferida",
+			"brands": {
+				"bravo": "Bravo Dourado",
+				"retro": "Retrô Metálico",
+				"luxury": "Luxo Prateado",
+				"tsr": "TSR Azul",
+				"neon": "Neon Cyber"
+			}
 		},
 		"account": {
 			"accountInfo": "Informações da Conta",

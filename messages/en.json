@@ -988,7 +988,16 @@
 			"themeDark": "Dark",
 			"language": "Language",
 			"lightMode": "Light Mode",
-			"darkMode": "Dark Mode"
+			"darkMode": "Dark Mode",
+			"colorScheme": "Color Scheme",
+			"colorSchemeDescription": "Choose your preferred color palette",
+			"brands": {
+				"bravo": "Bravo Gold",
+				"retro": "Retro Metallic",
+				"luxury": "Luxury Silver",
+				"tsr": "TSR Blue",
+				"neon": "Neon Cyber"
+			}
 		},
 		"account": {
 			"accountInfo": "Account Information",
