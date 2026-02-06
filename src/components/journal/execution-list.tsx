@@ -120,7 +120,7 @@ export const ExecutionList = ({
 					{entries.length > 0 && (
 						<div className="space-y-s-200">
 							<div className="flex items-center gap-s-200">
-								<ArrowUp className="h-4 w-4 text-trade-buy" />
+								<ArrowUp className="h-4 w-4 text-action-buy" />
 								<span className="text-small font-medium text-txt-200">
 									{t("entries")} ({entries.length})
 								</span>
@@ -148,7 +148,7 @@ export const ExecutionList = ({
 					{exits.length > 0 && (
 						<div className="space-y-s-200">
 							<div className="flex items-center gap-s-200">
-								<ArrowDown className="h-4 w-4 text-trade-sell" />
+								<ArrowDown className="h-4 w-4 text-action-sell" />
 								<span className="text-small font-medium text-txt-200">
 									{t("exits")} ({exits.length})
 								</span>
@@ -248,8 +248,8 @@ const ExecutionRow = ({
 			className={cn(
 				"flex items-center justify-between rounded-md border px-m-300 py-s-200",
 				type === "entry"
-					? "border-trade-buy/20 bg-trade-buy/5"
-					: "border-trade-sell/20 bg-trade-sell/5"
+					? "border-action-buy/20 bg-action-buy/5"
+					: "border-action-sell/20 bg-action-sell/5"
 			)}
 		>
 			<div className="flex items-center gap-m-300">

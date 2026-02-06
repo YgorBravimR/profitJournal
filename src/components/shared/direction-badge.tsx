@@ -55,8 +55,8 @@ export const DirectionBadge = ({
 
 	const Icon = isLong ? ArrowUpRight : ArrowDownRight
 	const colorClasses = isLong
-		? "text-trade-buy bg-trade-buy/10"
-		: "text-trade-sell bg-trade-sell/10"
+		? "text-action-buy bg-action-buy/10"
+		: "text-action-sell bg-action-sell/10"
 
 	return (
 		<span

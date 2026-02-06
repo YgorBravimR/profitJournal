@@ -41,7 +41,10 @@
       "Bash(head:*)",
       "Bash(tree:*)",
       "Bash(node -e:*)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install:*)",
+      "Bash(pnpm approve-builds:*)",
+      "Bash(lsof:*)"
     ],
     "deny": [],
     "ask": []

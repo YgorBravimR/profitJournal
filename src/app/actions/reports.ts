@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { trades, tags, tradeTags } from "@/db/schema"
+import { trades, tags, tradeTags, tradingAccounts } from "@/db/schema"
 import { eq, and, gte, lte, desc, sql, inArray } from "drizzle-orm"
 import {
 	startOfWeek,
@@ -727,11 +727,20 @@ export const getMonthlyResultsWithProp = async (
 	message?: string
 }> => {
 	try {
-		// Get user settings and monthly report in parallel
-		const [settingsResult, reportResult] = await Promise.all([
+		const authContext = await requireAuth()
+
+		// Get current account, user settings, and monthly report in parallel
+		const [account, settingsResult, reportResult] = await Promise.all([
+			db.query.tradingAccounts.findFirst({
+				where: eq(tradingAccounts.id, authContext.accountId),
+			}),
 			getUserSettings(),
 			getMonthlyReport(monthOffset),
 		])
+
+		if (!account) {
+			return { status: "error", message: "Trading account not found" }
+		}
 
 		if (settingsResult.status !== "success" || !settingsResult.data) {
 			return { status: "error", message: "Failed to get user settings" }
@@ -741,11 +750,27 @@ export const getMonthlyResultsWithProp = async (
 			return { status: "error", message: "Failed to get monthly report" }
 		}
 
-		const settings = settingsResult.data
+		const userSettings = settingsResult.data
 		const report = reportResult.data
 
-		// Calculate prop profit breakdown
-		const prop = calculatePropProfit(report.summary.netPnl, settings)
+		// Use account-specific settings (from tradingAccounts table)
+		// isPropAccount is determined by accountType, other settings come from account
+		const isPropAccount = account.accountType === "prop"
+		const profitSharePercentage = Number(account.profitSharePercentage)
+		const dayTradeTaxRate = Number(account.dayTradeTaxRate)
+
+		// Build settings object for calculation using account-specific values
+		const accountSettings: UserSettingsData = {
+			...userSettings,
+			isPropAccount,
+			propFirmName: account.propFirmName,
+			profitSharePercentage,
+			dayTradeTaxRate,
+			showTaxEstimates: account.showTaxEstimates,
+		}
+
+		// Calculate prop profit breakdown using account-specific settings
+		const prop = calculatePropProfit(report.summary.netPnl, accountSettings)
 
 		return {
 			status: "success",
@@ -755,10 +780,10 @@ export const getMonthlyResultsWithProp = async (
 				report: report.summary,
 				prop,
 				settings: {
-					isPropAccount: settings.isPropAccount,
-					propFirmName: settings.propFirmName,
-					profitSharePercentage: settings.profitSharePercentage,
-					dayTradeTaxRate: settings.dayTradeTaxRate,
+					isPropAccount,
+					propFirmName: account.propFirmName,
+					profitSharePercentage,
+					dayTradeTaxRate,
 				},
 				weeklyBreakdown: report.weeklyBreakdown,
 			},
@@ -788,8 +813,11 @@ export const getMonthlyProjection = async (): Promise<{
 		const monthStart = startOfMonth(now)
 		const monthEnd = endOfMonth(now)
 
-		// Get settings and current month trades
-		const [settingsResult, monthTrades] = await Promise.all([
+		// Get account, user settings, and current month trades in parallel
+		const [account, settingsResult, monthTrades] = await Promise.all([
+			db.query.tradingAccounts.findFirst({
+				where: eq(tradingAccounts.id, authContext.accountId),
+			}),
 			getUserSettings(),
 			db.query.trades.findMany({
 				where: and(
@@ -801,11 +829,15 @@ export const getMonthlyProjection = async (): Promise<{
 			}),
 		])
 
+		if (!account) {
+			return { status: "error", message: "Trading account not found" }
+		}
+
 		if (settingsResult.status !== "success" || !settingsResult.data) {
 			return { status: "error", message: "Failed to get user settings" }
 		}
 
-		const settings = settingsResult.data
+		const userSettings = settingsResult.data
 		const totalTradingDays = getBusinessDaysInMonth(now)
 		const daysTraded = getUniqueTradingDays(monthTrades)
 		const tradingDaysRemaining = Math.max(
@@ -821,8 +853,18 @@ export const getMonthlyProjection = async (): Promise<{
 		const projectedMonthlyProfit =
 			currentProfit + dailyAverage * tradingDaysRemaining
 
-		// Calculate projected prop values
-		const projectedProp = calculatePropProfit(projectedMonthlyProfit, settings)
+		// Use account-specific settings for projection
+		const accountSettings: UserSettingsData = {
+			...userSettings,
+			isPropAccount: account.accountType === "prop",
+			propFirmName: account.propFirmName,
+			profitSharePercentage: Number(account.profitSharePercentage),
+			dayTradeTaxRate: Number(account.dayTradeTaxRate),
+			showTaxEstimates: account.showTaxEstimates,
+		}
+
+		// Calculate projected prop values using account-specific settings
+		const projectedProp = calculatePropProfit(projectedMonthlyProfit, accountSettings)
 
 		return {
 			status: "success",

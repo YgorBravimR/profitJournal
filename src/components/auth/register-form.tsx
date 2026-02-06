@@ -7,6 +7,7 @@ import { Link, useRouter } from "@/i18n/routing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import Image from "next/image"
 import { Loader2, Eye, EyeOff, Check, X } from "lucide-react"
 import { registerUser } from "@/app/actions/auth"
 import { cn } from "@/lib/utils"
@@ -86,6 +87,18 @@ export const RegisterForm = () => {
 
 	return (
 		<div className="w-full max-w-sm space-y-m-600">
+			{/* Logo */}
+			<div className="flex justify-center">
+				<Image
+					src="/bravo_written.png"
+					alt="Bravo"
+					width={200}
+					height={57}
+					className="h-14 w-auto object-contain"
+					priority
+				/>
+			</div>
+
 			<div className="text-center">
 				<h1 className="text-h2 font-bold text-txt-100">{t("title")}</h1>
 				<p className="mt-s-200 text-small text-txt-300">{t("subtitle")}</p>

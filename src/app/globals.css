@@ -16,13 +16,24 @@
   --color-acc-200: rgb(80 110 200);
   --color-fb-error: rgb(204 85 85);
 
-  /* Trading Colors */
+  /* Trading Colors (for profit/loss visualization) */
   --color-trade-buy: rgb(0 255 150);
   --color-trade-sell: rgb(128 128 255);
   --color-warning: rgb(252 213 53);
   --color-trade-buy-muted: rgb(0 255 150 / 0.2);
   --color-trade-sell-muted: rgb(128 128 255 / 0.2);
-  
+
+  /* Action Colors (for buy/sell actions - distinct from profit/loss) */
+  --color-action-buy: rgb(100 180 255);
+  --color-action-sell: rgb(255 140 100);
+  --color-action-buy-muted: rgb(100 180 255 / 0.2);
+  --color-action-sell-muted: rgb(255 140 100 / 0.2);
+
+  /* Brand Colors */
+  --color-brand-400: rgb(224 182 92);
+  --color-brand-500: rgb(204 162 72);
+  --color-brand-600: rgb(184 142 52);
+
   --radius: 0.625rem;
   --color-background: var(--color-bg-100);
   --color-foreground: var(--color-txt-100);
@@ -57,12 +68,14 @@
   --color-sidebar-ring: var(--color-acc-100);
 
   /* Trading semantic colors */
+  /* Result colors (profit/loss, win/lose) use trade colors */
   --color-profit: var(--color-trade-buy);
   --color-loss: var(--color-trade-sell);
-  --color-long: var(--color-trade-buy);
-  --color-short: var(--color-trade-sell);
   --color-win: var(--color-trade-buy);
   --color-lose: var(--color-trade-sell);
+  /* Direction colors (long/short, buy/sell action) use action colors */
+  --color-long: var(--color-action-buy);
+  --color-short: var(--color-action-sell);
 
   --spacing-s-100: 4px;
   --spacing-s-200: 8px;
@@ -114,7 +127,18 @@
   --color-warning: rgb(220 180 20);
   --color-trade-buy-muted: rgb(0 180 100 / 0.15);
   --color-trade-sell-muted: rgb(100 100 220 / 0.15);
-  
+
+  /* Action Colors - Light mode adjustments */
+  --color-action-buy: rgb(70 150 225);
+  --color-action-sell: rgb(225 110 70);
+  --color-action-buy-muted: rgb(70 150 225 / 0.15);
+  --color-action-sell-muted: rgb(225 110 70 / 0.15);
+
+  /* Brand Colors - Light mode */
+  --color-brand-400: rgb(255 214 122);
+  --color-brand-500: rgb(245 194 9);
+  --color-brand-600: rgb(220 174 0);
+
   --color-background: var(--color-bg-100);
   --color-foreground: var(--color-txt-100);
   --color-card: var(--color-bg-200);
@@ -146,4 +170,399 @@
   --color-sidebar-accent-foreground: var(--color-bg-100);
   --color-sidebar-border: var(--color-bg-300);
   --color-sidebar-ring: var(--color-acc-100);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BRAVO BRAND THEME - Navy Slate + Metallic Gold
+   To activate: add data-brand="bravo" to the wrapper div in layout
+   Based on friendRecommendation.md design guidelines
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="bravo"] {
+  /* Deep Navy/Slate Backgrounds */
+  --color-bg-100: #0B0E14;
+  --color-bg-200: #151C2C;
+  --color-bg-300: #1E293B;
+  --color-bg-stripe: #1A1F26;
+
+  /* Text - Crisp whites and slate grays */
+  --color-txt-100: #F8FAFC;
+  --color-txt-200: #94A3B8;
+  --color-txt-300: #64748B;
+  --color-txt-placeholder: #475569;
+
+  /* Metallic Gold Accent */
+  --color-acc-100: #D4AF37;
+  --color-acc-200: #3B82F6;
+  --color-fb-error: #EF4444;
+
+  /* Trading Colors - Emerald + Coral */
+  --color-trade-buy: #10B981;
+  --color-trade-sell: #FF4E64;
+  --color-warning: #FBBF24;
+  --color-trade-buy-muted: rgba(16, 185, 129, 0.15);
+  --color-trade-sell-muted: rgba(255, 78, 100, 0.15);
+
+  /* Action Colors */
+  --color-action-buy: #38BDF8;
+  --color-action-sell: #FB923C;
+  --color-action-buy-muted: rgba(56, 189, 248, 0.2);
+  --color-action-sell-muted: rgba(251, 146, 60, 0.2);
+
+  /* Brand Colors */
+  --color-brand-400: #E5B84B;
+  --color-brand-500: #D4AF37;
+  --color-brand-600: #B8941F;
+}
+
+/* Bravo theme + Light mode combination */
+[data-brand="bravo"][data-theme="light"] {
+  /* Light slate backgrounds */
+  --color-bg-100: #F8FAFC;
+  --color-bg-200: #F1F5F9;
+  --color-bg-300: #E2E8F0;
+  --color-bg-stripe: #EDF2F7;
+
+  /* Dark text for light mode */
+  --color-txt-100: #0F172A;
+  --color-txt-200: #475569;
+  --color-txt-300: #64748B;
+  --color-txt-placeholder: #94A3B8;
+
+  /* Adjusted accents for light backgrounds */
+  --color-acc-100: #B8941F;
+  --color-acc-200: #2563EB;
+  --color-fb-error: #DC2626;
+
+  /* Trading Colors - darker for light mode */
+  --color-trade-buy: #059669;
+  --color-trade-sell: #DC2626;
+  --color-trade-buy-muted: rgba(5, 150, 105, 0.15);
+  --color-trade-sell-muted: rgba(220, 38, 38, 0.15);
+
+  /* Action Colors - darker for light mode */
+  --color-action-buy: #0284C7;
+  --color-action-sell: #EA580C;
+  --color-action-buy-muted: rgba(2, 132, 199, 0.15);
+  --color-action-sell-muted: rgba(234, 88, 12, 0.15);
+
+  /* Brand Colors - adjusted for light */
+  --color-brand-400: #D4AF37;
+  --color-brand-500: #B8941F;
+  --color-brand-600: #996F00;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RETRO THEME - Warm Metallic Gold, Silver & Rose Gold
+   To activate: add data-brand="retro" to the body in layout
+   Sophisticated, muted metallic tones with warm earth undertones
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="retro"] {
+  /* Rich Charcoal Backgrounds (warm undertone) */
+  --color-bg-100: #0C0B0A;
+  --color-bg-200: #171614;
+  --color-bg-300: #252321;
+  --color-bg-stripe: #1A1918;
+
+  /* Platinum/Silver Text */
+  --color-txt-100: #E8E6E3;
+  --color-txt-200: #A8A5A0;
+  --color-txt-300: #787572;
+  --color-txt-placeholder: #58554F;
+
+  /* Antique Gold Primary + Platinum Secondary */
+  --color-acc-100: #C9A227;
+  --color-acc-200: #9CA3A8;
+  --color-fb-error: #A85454;
+
+  /* Trading Colors - Muted Metallic */
+  --color-trade-buy: #6B9E78;
+  --color-trade-sell: #B86B6B;
+  --color-warning: #C9A227;
+  --color-trade-buy-muted: rgba(107, 158, 120, 0.18);
+  --color-trade-sell-muted: rgba(184, 107, 107, 0.18);
+
+  /* Action Colors - Steel Blue & Rose Gold */
+  --color-action-buy: #7A9EB8;
+  --color-action-sell: #D4A574;
+  --color-action-buy-muted: rgba(122, 158, 184, 0.2);
+  --color-action-sell-muted: rgba(212, 165, 116, 0.2);
+
+  /* Brand Colors - Antique Gold scale */
+  --color-brand-400: #D4B445;
+  --color-brand-500: #C9A227;
+  --color-brand-600: #A6851E;
+}
+
+/* Retro theme + Light mode */
+[data-brand="retro"][data-theme="light"] {
+  /* Warm Ivory/Champagne Backgrounds */
+  --color-bg-100: #FAF8F5;
+  --color-bg-200: #F2EFE9;
+  --color-bg-300: #E0DCD4;
+  --color-bg-stripe: #EBE8E2;
+
+  /* Warm Charcoal Text */
+  --color-txt-100: #2C2825;
+  --color-txt-200: #5C5652;
+  --color-txt-300: #8A847E;
+  --color-txt-placeholder: #AAA49C;
+
+  /* Burnished Gold + Slate */
+  --color-acc-100: #A6851E;
+  --color-acc-200: #6B7278;
+  --color-fb-error: #8B4545;
+
+  /* Trading Colors - Refined for light */
+  --color-trade-buy: #4A7A55;
+  --color-trade-sell: #8B4545;
+  --color-trade-buy-muted: rgba(74, 122, 85, 0.15);
+  --color-trade-sell-muted: rgba(139, 69, 69, 0.15);
+
+  /* Action Colors - Muted Steel & Terracotta */
+  --color-action-buy: #5A7A8C;
+  --color-action-sell: #B8866A;
+  --color-action-buy-muted: rgba(90, 122, 140, 0.15);
+  --color-action-sell-muted: rgba(184, 134, 106, 0.15);
+
+  /* Brand Colors - Burnished Gold */
+  --color-brand-400: #C9A227;
+  --color-brand-500: #A6851E;
+  --color-brand-600: #7A6215;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LUXURY THEME - Faded Black & White + Silver, Gold, Copper
+   To activate: add data-brand="luxury" to the body in layout
+   Monochromatic base with metallic accent highlights
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="luxury"] {
+  /* Faded Black Backgrounds (cool gray undertone) */
+  --color-bg-100: #0A0A0B;
+  --color-bg-200: #141416;
+  --color-bg-300: #1F1F22;
+  --color-bg-stripe: #18181A;
+
+  /* Pure Silver/White Text */
+  --color-txt-100: #F5F5F5;
+  --color-txt-200: #A0A0A0;
+  --color-txt-300: #6E6E6E;
+  --color-txt-placeholder: #4A4A4A;
+
+  /* Silver Primary + Gold Secondary */
+  --color-acc-100: #C0C0C0;
+  --color-acc-200: #CFB53B;
+  --color-fb-error: #8B3A3A;
+
+  /* Trading Colors - Luminous Metallic */
+  --color-trade-buy: #70C090;
+  --color-trade-sell: #D07070;
+  --color-warning: #CFB53B;
+  --color-trade-buy-muted: rgba(112, 192, 144, 0.18);
+  --color-trade-sell-muted: rgba(208, 112, 112, 0.18);
+
+  /* Action Colors - Steel Silver & Copper */
+  --color-action-buy: #7A8A98;
+  --color-action-sell: #B87333;
+  --color-action-buy-muted: rgba(122, 138, 152, 0.2);
+  --color-action-sell-muted: rgba(184, 115, 51, 0.2);
+
+  /* Brand Colors - Silver scale */
+  --color-brand-400: #D4D4D4;
+  --color-brand-500: #C0C0C0;
+  --color-brand-600: #A0A0A0;
+}
+
+/* Luxury theme + Light mode */
+[data-brand="luxury"][data-theme="light"] {
+  /* Faded White Backgrounds (cool undertone) */
+  --color-bg-100: #FAFAFA;
+  --color-bg-200: #F0F0F0;
+  --color-bg-300: #E0E0E0;
+  --color-bg-stripe: #F5F5F5;
+
+  /* Dark Gray Text */
+  --color-txt-100: #1A1A1A;
+  --color-txt-200: #555555;
+  --color-txt-300: #808080;
+  --color-txt-placeholder: #A8A8A8;
+
+  /* Darker Silver + Antique Gold */
+  --color-acc-100: #808080;
+  --color-acc-200: #9A7B4F;
+  --color-fb-error: #7A3030;
+
+  /* Trading Colors - Clear for light */
+  --color-trade-buy: #2A8A4A;
+  --color-trade-sell: #C04040;
+  --color-trade-buy-muted: rgba(42, 138, 74, 0.15);
+  --color-trade-sell-muted: rgba(192, 64, 64, 0.15);
+
+  /* Action Colors - Slate & Bronze */
+  --color-action-buy: #5A6A78;
+  --color-action-sell: #8A5A2A;
+  --color-action-buy-muted: rgba(90, 106, 120, 0.15);
+  --color-action-sell-muted: rgba(138, 90, 42, 0.15);
+
+  /* Brand Colors - Slate Silver */
+  --color-brand-400: #909090;
+  --color-brand-500: #707070;
+  --color-brand-600: #505050;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TSR INVESTMENTS THEME - Electric Blue & Silver
+   To activate: add data-brand="tsr" to the body in layout
+   Based on TSR Investments branding: deep navy, electric blue, metallic silver
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="tsr"] {
+  /* Deep Navy/Charcoal Backgrounds */
+  --color-bg-100: #0D1117;
+  --color-bg-200: #161B22;
+  --color-bg-300: #21262D;
+  --color-bg-stripe: #13171D;
+
+  /* Clean Silver-White Text */
+  --color-txt-100: #F0F6FC;
+  --color-txt-200: #8B949E;
+  --color-txt-300: #6E7681;
+  --color-txt-placeholder: #484F58;
+
+  /* Electric Blue Primary + Silver Secondary */
+  --color-acc-100: #2563EB;
+  --color-acc-200: #A8B2C1;
+  --color-fb-error: #F85149;
+
+  /* Trading Colors - Blue-based scheme */
+  --color-trade-buy: #3FB950;
+  --color-trade-sell: #F85149;
+  --color-warning: #D29922;
+  --color-trade-buy-muted: rgba(63, 185, 80, 0.15);
+  --color-trade-sell-muted: rgba(248, 81, 73, 0.15);
+
+  /* Action Colors - Electric Blue for buy, Steel for sell */
+  --color-action-buy: #58A6FF;
+  --color-action-sell: #F78166;
+  --color-action-buy-muted: rgba(88, 166, 255, 0.2);
+  --color-action-sell-muted: rgba(247, 129, 102, 0.2);
+
+  /* Brand Colors - Blue scale */
+  --color-brand-400: #58A6FF;
+  --color-brand-500: #2563EB;
+  --color-brand-600: #1D4ED8;
+}
+
+/* TSR theme + Light mode */
+[data-brand="tsr"][data-theme="light"] {
+  /* Light Gray-Blue Backgrounds */
+  --color-bg-100: #FFFFFF;
+  --color-bg-200: #F6F8FA;
+  --color-bg-300: #E1E4E8;
+  --color-bg-stripe: #F0F3F6;
+
+  /* Dark Text */
+  --color-txt-100: #24292F;
+  --color-txt-200: #57606A;
+  --color-txt-300: #6E7781;
+  --color-txt-placeholder: #8C959F;
+
+  /* Deeper Blue + Slate */
+  --color-acc-100: #1D4ED8;
+  --color-acc-200: #64748B;
+  --color-fb-error: #CF222E;
+
+  /* Trading Colors */
+  --color-trade-buy: #1A7F37;
+  --color-trade-sell: #CF222E;
+  --color-trade-buy-muted: rgba(26, 127, 55, 0.15);
+  --color-trade-sell-muted: rgba(207, 34, 46, 0.15);
+
+  /* Action Colors */
+  --color-action-buy: #0969DA;
+  --color-action-sell: #BF5700;
+  --color-action-buy-muted: rgba(9, 105, 218, 0.15);
+  --color-action-sell-muted: rgba(191, 87, 0, 0.15);
+
+  /* Brand Colors */
+  --color-brand-400: #3B82F6;
+  --color-brand-500: #1D4ED8;
+  --color-brand-600: #1E40AF;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   NEON THEME - Cyberpunk Futuristic Glow
+   To activate: add data-brand="neon" to the body in layout
+   High-energy, vibrant neon colors with dark cyber backgrounds
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="neon"] {
+  /* Deep Cyber Dark Backgrounds (purple/blue undertone) */
+  --color-bg-100: #0A0A12;
+  --color-bg-200: #12121C;
+  --color-bg-300: #1C1C2A;
+  --color-bg-stripe: #14141E;
+
+  /* Bright Neon White/Cyan Text */
+  --color-txt-100: #F0F8FF;
+  --color-txt-200: #A0C4E8;
+  --color-txt-300: #6A8CB0;
+  --color-txt-placeholder: #4A6080;
+
+  /* Neon Cyan Primary + Hot Magenta Secondary */
+  --color-acc-100: #00FFFF;
+  --color-acc-200: #FF00FF;
+  --color-fb-error: #FF3366;
+
+  /* Trading Colors - Electric Neon */
+  --color-trade-buy: #00FF88;
+  --color-trade-sell: #FF4488;
+  --color-warning: #FFCC00;
+  --color-trade-buy-muted: rgba(0, 255, 136, 0.2);
+  --color-trade-sell-muted: rgba(255, 68, 136, 0.2);
+
+  /* Action Colors - Electric Blue & Neon Orange */
+  --color-action-buy: #00AAFF;
+  --color-action-sell: #FF8800;
+  --color-action-buy-muted: rgba(0, 170, 255, 0.25);
+  --color-action-sell-muted: rgba(255, 136, 0, 0.25);
+
+  /* Brand Colors - Neon Cyan scale */
+  --color-brand-400: #40FFFF;
+  --color-brand-500: #00FFFF;
+  --color-brand-600: #00CCCC;
+}
+
+/* Neon theme + Light mode (Vapor Wave aesthetic) */
+[data-brand="neon"][data-theme="light"] {
+  /* Soft Pastel Backgrounds */
+  --color-bg-100: #FFF0F5;
+  --color-bg-200: #FFE4EC;
+  --color-bg-300: #E0D4F0;
+  --color-bg-stripe: #F5E8F0;
+
+  /* Deep Purple/Blue Text */
+  --color-txt-100: #2A1A40;
+  --color-txt-200: #5A4A70;
+  --color-txt-300: #8A7AA0;
+  --color-txt-placeholder: #A898B8;
+
+  /* Vivid Magenta + Cyan */
+  --color-acc-100: #CC00CC;
+  --color-acc-200: #00AAAA;
+  --color-fb-error: #CC2255;
+
+  /* Trading Colors - Bright for light */
+  --color-trade-buy: #00AA66;
+  --color-trade-sell: #DD2266;
+  --color-trade-buy-muted: rgba(0, 170, 102, 0.2);
+  --color-trade-sell-muted: rgba(221, 34, 102, 0.2);
+
+  /* Action Colors - Vivid */
+  --color-action-buy: #0088DD;
+  --color-action-sell: #DD6600;
+  --color-action-buy-muted: rgba(0, 136, 221, 0.2);
+  --color-action-sell-muted: rgba(221, 102, 0, 0.2);
+
+  /* Brand Colors - Hot Magenta */
+  --color-brand-400: #DD44DD;
+  --color-brand-500: #CC00CC;
+  --color-brand-600: #990099;
 }

@@ -616,6 +616,48 @@
 			"formatGuide": "CSV Format Guide",
 			"requiredColumns": "Your CSV should include these required columns:",
 			"optionalColumns": "Optional columns: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan"
+		},
+		"ocr": {
+			"title": "Import from Screenshot",
+			"dropImage": "Drop ProfitChart screenshot here",
+			"orClick": "or click to select image",
+			"selectImage": "Select Image",
+			"processing": "Processing image...",
+			"loadingLanguage": "Loading language data...",
+			"recognizing": "Recognizing text...",
+			"rawText": "Raw extracted text",
+			"detectedTrade": "Detected Trade",
+			"detectedExecutions": "Detected Executions",
+			"noExecutionsFound": "No executions found in image",
+			"importTrade": "Import Trade",
+			"readyToImport": "Ready to import trade with {count} executions",
+			"lowConfidence": "Low confidence detection. Please review carefully.",
+			"imageQualityTip": "For best results, use high-resolution screenshots with clear text",
+			"requirements": {
+				"title": "Screenshot Requirements",
+				"description": "For successful import, your ProfitChart screenshot MUST show:",
+				"requiredColumns": "Required columns",
+				"columns": {
+					"ativo": "Ativo (Asset)",
+					"abertura": "Abertura (Opening time)",
+					"qtd": "Qtd (Quantity)",
+					"precoCompra": "Preço Compra (Buy Price)",
+					"precoVenda": "Preço Venda (Sell Price)"
+				},
+				"settings": "Settings",
+				"settingsItems": {
+					"headers": "Column headers must be visible (scroll to top)",
+					"expand": "Expand all rows if trade is collapsed",
+					"contrast": "Use high contrast/zoom for better OCR accuracy"
+				},
+				"tip": "Tip: In ProfitChart, right-click the table header to access \"Colunas Visíveis\" and enable required columns"
+			},
+			"columnDetection": {
+				"title": "Column Detection",
+				"detected": "Detected",
+				"notFound": "Not found",
+				"missingRequired": "Missing required columns. Please ensure they are visible in your screenshot."
+			}
 		}
 	},
 	"analytics": {

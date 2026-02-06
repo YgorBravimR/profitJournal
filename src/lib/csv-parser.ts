@@ -1,9 +1,14 @@
 import type { CreateTradeInput } from "./validations/trade"
+import { normalizeB3Asset } from "@/lib/ocr"
 
-// Extended type that includes strategy code and timeframe code for CSV import
+// Extended type that includes strategy code, timeframe code, and asset normalization for CSV import
 export interface CsvTradeInput extends CreateTradeInput {
 	strategyCode?: string
 	timeframeCode?: string
+	// Asset normalization fields (for B3 futures: WING26 → WIN)
+	normalizedAsset: string
+	originalAssetCode: string
+	isFutures: boolean
 }
 
 export interface CsvParseResult {
@@ -26,7 +31,65 @@ export interface CsvColumn {
 	required: boolean
 }
 
-// Expected CSV columns mapping
+// ProfitChart specific column mappings (Portuguese)
+// These map to a special "profitchart" field that we handle separately
+type ProfitChartField =
+	| "pc_asset"
+	| "pc_openDateTime"
+	| "pc_closeDateTime"
+	| "pc_side"
+	| "pc_buyQty"
+	| "pc_sellQty"
+	| "pc_buyPrice"
+	| "pc_sellPrice"
+	| "pc_pnl"
+	| "pc_mfe"
+	| "pc_mae"
+
+const PROFITCHART_COLUMN_MAPPINGS: Record<string, ProfitChartField> = {
+	// Asset
+	ativo: "pc_asset",
+	// Dates
+	abertura: "pc_openDateTime",
+	fechamento: "pc_closeDateTime",
+	// Side (C = Compra/Buy/Long, V = Venda/Sell/Short)
+	lado: "pc_side",
+	// Quantities (with encoding fallbacks)
+	qtd_compra: "pc_buyQty",
+	qtdcompra: "pc_buyQty",
+	qtd_venda: "pc_sellQty",
+	qtdvenda: "pc_sellQty",
+	// Prices (with encoding fallbacks - "Preço" can become "preco", "preo", or "pre_o")
+	preco_compra: "pc_buyPrice",
+	precocompra: "pc_buyPrice",
+	preo_compra: "pc_buyPrice", // Encoding issue: ç stripped
+	preocompra: "pc_buyPrice",
+	pre_o_compra: "pc_buyPrice", // Encoding issue: ç becomes _o_
+	preco_venda: "pc_sellPrice",
+	precovenda: "pc_sellPrice",
+	preo_venda: "pc_sellPrice", // Encoding issue: ç stripped
+	preovenda: "pc_sellPrice",
+	pre_o_venda: "pc_sellPrice", // Encoding issue: ç becomes _o_
+	// Results (with encoding fallbacks - "Operação" can have issues)
+	res_intervalo_bruto: "pc_pnl",
+	resintervalobruto: "pc_pnl",
+	res_operacao: "pc_pnl",
+	resoperacao: "pc_pnl",
+	res_opera_o: "pc_pnl", // Encoding issue: ç stripped
+	res_operaao: "pc_pnl", // Another encoding variant
+	// MFE/MAE
+	ganho_max: "pc_mfe",
+	ganhomax: "pc_mfe",
+	ganho_max_: "pc_mfe",
+	perda_max: "pc_mae",
+	perdamax: "pc_mae",
+	perda_max_: "pc_mae",
+}
+
+// Headers that indicate ProfitChart format
+const PROFITCHART_INDICATOR_HEADERS = ["ativo", "abertura", "fechamento", "lado"]
+
+// Expected CSV columns mapping (standard format)
 const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 	// Asset
 	asset: "asset",
@@ -131,16 +194,40 @@ const REQUIRED_FIELDS: Array<keyof CreateTradeInput> = [
 	"positionSize",
 ]
 
-const VALID_DIRECTIONS = ["long", "short", "buy", "sell"]
+// ProfitChart required fields (different from standard)
+const PROFITCHART_REQUIRED_FIELDS: ProfitChartField[] = [
+	"pc_asset",
+	"pc_openDateTime",
+	"pc_side",
+	"pc_buyPrice",
+	"pc_sellPrice",
+]
 
 const normalizeHeader = (header: string): string => {
-	return header.toLowerCase().trim().replace(/[\s-]/g, "_")
+	return header
+		.toLowerCase()
+		.trim()
+		.replace(/[\s-]/g, "_")
+		// Handle common encoding issues with Portuguese characters
+		.replace(/[çã]/g, (char) => (char === "ç" ? "c" : "a"))
+		// Remove special characters that might appear due to encoding
+		.replace(/[^\w_]/g, "_")
+		.replace(/_+/g, "_")
+		.replace(/^_|_$/g, "")
 }
 
 const parseDirection = (value: string): "long" | "short" | null => {
 	const normalized = value.toLowerCase().trim()
 	if (normalized === "long" || normalized === "buy") return "long"
 	if (normalized === "short" || normalized === "sell") return "short"
+	return null
+}
+
+// Parse ProfitChart side (C = Compra/Buy/Long, V = Venda/Sell/Short)
+const parseProfitChartSide = (value: string): "long" | "short" | null => {
+	const normalized = value.toUpperCase().trim()
+	if (normalized === "C") return "long"
+	if (normalized === "V") return "short"
 	return null
 }
 
@@ -175,6 +262,36 @@ const parseDate = (value: string): Date | null => {
 	return null
 }
 
+// Parse Brazilian date/time format: DD/MM/YYYY HH:MM:SS
+const parseBrazilianDateTime = (value: string): Date | null => {
+	if (!value) return null
+
+	// Format: DD/MM/YYYY HH:MM:SS (e.g., "13/06/2025 12:10:56")
+	const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/)
+	if (match) {
+		const [, day, month, year, hours, minutes, seconds] = match
+		const date = new Date(
+			parseInt(year),
+			parseInt(month) - 1,
+			parseInt(day),
+			parseInt(hours),
+			parseInt(minutes),
+			parseInt(seconds)
+		)
+		if (!isNaN(date.getTime())) return date
+	}
+
+	// Try without time: DD/MM/YYYY
+	const dateOnlyMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+	if (dateOnlyMatch) {
+		const [, day, month, year] = dateOnlyMatch
+		const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+		if (!isNaN(date.getTime())) return date
+	}
+
+	return null
+}
+
 const parseNumber = (value: string): number | null => {
 	if (!value) return null
 	// Remove currency symbols and commas
@@ -183,11 +300,63 @@ const parseNumber = (value: string): number | null => {
 	return isNaN(num) ? null : num
 }
 
+// Parse Brazilian number format: 1.234,56 (dots for thousands, comma for decimals)
+const parseBrazilianNumber = (value: string): number | null => {
+	if (!value || value === "-") return null
+	// Remove thousand separators (dots) and replace decimal comma with dot
+	const cleaned = value.replace(/\./g, "").replace(",", ".").trim()
+	const num = parseFloat(cleaned)
+	return isNaN(num) ? null : num
+}
+
 const parseBoolean = (value: string): boolean | null => {
 	const normalized = value.toLowerCase().trim()
-	if (["true", "yes", "1", "y"].includes(normalized)) return true
-	if (["false", "no", "0", "n"].includes(normalized)) return false
+	if (["true", "yes", "1", "y", "sim"].includes(normalized)) return true
+	if (["false", "no", "0", "n", "não", "nao"].includes(normalized)) return false
 	return null
+}
+
+// Detect CSV delimiter (comma or semicolon) by analyzing multiple lines
+const detectDelimiter = (lines: string[]): string => {
+	let totalSemicolons = 0
+	let totalCommas = 0
+
+	// Check first 10 lines to get a good sample
+	const linesToCheck = lines.slice(0, Math.min(10, lines.length))
+	for (const line of linesToCheck) {
+		totalSemicolons += (line.match(/;/g) || []).length
+		totalCommas += (line.match(/,/g) || []).length
+	}
+
+	return totalSemicolons > totalCommas ? ";" : ","
+}
+
+// Detect if the CSV is in ProfitChart format
+const isProfitChartFormat = (headers: string[]): boolean => {
+	const normalizedHeaders = headers.map(normalizeHeader)
+	const matchCount = PROFITCHART_INDICATOR_HEADERS.filter((indicator) =>
+		normalizedHeaders.some((h) => h.includes(indicator))
+	).length
+	// If we match at least 3 of the 4 indicators, it's ProfitChart format
+	return matchCount >= 3
+}
+
+// Find the actual header row in ProfitChart format (skip metadata rows)
+const findHeaderRow = (lines: string[], delimiter: string): number => {
+	for (let i = 0; i < Math.min(lines.length, 10); i++) {
+		const line = lines[i]
+		const values = line.split(delimiter)
+		const normalizedValues = values.map(normalizeHeader)
+
+		// Check if this line contains ProfitChart headers
+		const hasAtivoHeader = normalizedValues.some((v) => v === "ativo")
+		const hasAberturaHeader = normalizedValues.some((v) => v === "abertura")
+
+		if (hasAtivoHeader && hasAberturaHeader) {
+			return i
+		}
+	}
+	return 0 // Fallback to first line
 }
 
 export const parseCsvContent = (content: string): CsvParseResult => {
@@ -211,10 +380,216 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 		return result
 	}
 
-	// Parse header row
-	const headerLine = lines[0]
-	const headers = parseCSVLine(headerLine).map(normalizeHeader)
+	// Detect delimiter from multiple lines (handles metadata rows)
+	const delimiter = detectDelimiter(lines)
 
+	// Find the actual header row (ProfitChart has metadata rows before headers)
+	const headerRowIndex = findHeaderRow(lines, delimiter)
+
+	// Parse header row
+	const headerLine = lines[headerRowIndex]
+	const headers = parseCSVLine(headerLine, delimiter).map(normalizeHeader)
+
+	// Check if this is ProfitChart format
+	const isProfitChart = isProfitChartFormat(headers)
+
+	if (isProfitChart) {
+		return parseProfitChartContent(lines, headerRowIndex, headers, delimiter, result)
+	}
+
+	// Standard format parsing
+	return parseStandardContent(lines, headers, delimiter, result)
+}
+
+// Parse ProfitChart specific format
+const parseProfitChartContent = (
+	lines: string[],
+	headerRowIndex: number,
+	headers: string[],
+	delimiter: string,
+	result: CsvParseResult
+): CsvParseResult => {
+	// Map headers to ProfitChart fields
+	const columnMap: Array<{ index: number; field: ProfitChartField }> = []
+	const unmappedHeaders: string[] = []
+
+	headers.forEach((header, index) => {
+		const field = PROFITCHART_COLUMN_MAPPINGS[header]
+		if (field) {
+			columnMap.push({ index, field })
+		} else if (header && header !== "") {
+			unmappedHeaders.push(header)
+		}
+	})
+
+	// Check for required ProfitChart fields
+	const mappedFields = columnMap.map((c) => c.field)
+	const missingRequired = PROFITCHART_REQUIRED_FIELDS.filter((f) => !mappedFields.includes(f))
+
+	if (missingRequired.length > 0) {
+		result.success = false
+		const missingReadable = missingRequired.map((f) => {
+			const readableNames: Record<ProfitChartField, string> = {
+				pc_asset: "Ativo",
+				pc_openDateTime: "Abertura",
+				pc_closeDateTime: "Fechamento",
+				pc_side: "Lado",
+				pc_buyQty: "Qtd Compra",
+				pc_sellQty: "Qtd Venda",
+				pc_buyPrice: "Preço Compra",
+				pc_sellPrice: "Preço Venda",
+				pc_pnl: "Res. Operação",
+				pc_mfe: "Ganho Max.",
+				pc_mae: "Perda Max.",
+			}
+			return readableNames[f] || f
+		})
+		result.errors.push({
+			row: headerRowIndex + 1,
+			field: "headers",
+			message: `Missing required columns for ProfitChart format: ${missingReadable.join(", ")}`,
+		})
+		return result
+	}
+
+	// Warn about ignored columns
+	if (unmappedHeaders.length > 0) {
+		result.warnings.push({
+			row: headerRowIndex + 1,
+			message: `Ignored columns: ${unmappedHeaders.slice(0, 5).join(", ")}${unmappedHeaders.length > 5 ? ` and ${unmappedHeaders.length - 5} more` : ""}`,
+		})
+	}
+
+	// Parse data rows (starting after header row)
+	for (let i = headerRowIndex + 1; i < lines.length; i++) {
+		const rowNumber = i + 1
+		const line = lines[i].trim()
+
+		if (!line) continue
+
+		const values = parseCSVLine(line, delimiter)
+
+		// Extract raw values
+		const rawData: Partial<Record<ProfitChartField, string>> = {}
+		for (const { index, field } of columnMap) {
+			rawData[field] = values[index]?.trim() || ""
+		}
+
+		// Skip rows without essential data
+		if (!rawData.pc_asset || !rawData.pc_side) {
+			continue
+		}
+
+		// Parse side first (determines price logic)
+		const direction = parseProfitChartSide(rawData.pc_side || "")
+		if (!direction) {
+			result.errors.push({
+				row: rowNumber,
+				field: "direction",
+				message: `Invalid side: ${rawData.pc_side}. Expected "C" or "V"`,
+			})
+			continue
+		}
+
+		// Parse dates
+		const entryDate = parseBrazilianDateTime(rawData.pc_openDateTime || "")
+		if (!entryDate) {
+			result.errors.push({
+				row: rowNumber,
+				field: "entryDate",
+				message: `Invalid entry date: ${rawData.pc_openDateTime}`,
+			})
+			continue
+		}
+
+		const exitDate = parseBrazilianDateTime(rawData.pc_closeDateTime || "")
+
+		// Parse prices based on direction
+		// Long (C/Compra): Buy = Entry, Sell = Exit
+		// Short (V/Venda): Sell = Entry, Buy = Exit
+		const buyPrice = parseBrazilianNumber(rawData.pc_buyPrice || "")
+		const sellPrice = parseBrazilianNumber(rawData.pc_sellPrice || "")
+
+		let entryPrice: number | null
+		let exitPrice: number | null
+
+		if (direction === "long") {
+			entryPrice = buyPrice
+			exitPrice = sellPrice
+		} else {
+			entryPrice = sellPrice
+			exitPrice = buyPrice
+		}
+
+		if (entryPrice === null) {
+			result.errors.push({
+				row: rowNumber,
+				field: "entryPrice",
+				message: `Invalid entry price`,
+			})
+			continue
+		}
+
+		// Parse quantity (use buy or sell qty based on direction)
+		const buyQty = parseBrazilianNumber(rawData.pc_buyQty || "")
+		const sellQty = parseBrazilianNumber(rawData.pc_sellQty || "")
+		const positionSize = direction === "long" ? buyQty : sellQty
+
+		if (positionSize === null || positionSize <= 0) {
+			result.errors.push({
+				row: rowNumber,
+				field: "positionSize",
+				message: `Invalid position size`,
+			})
+			continue
+		}
+
+		// Parse PnL
+		const pnl = parseBrazilianNumber(rawData.pc_pnl || "")
+
+		// Parse MFE/MAE
+		const mfe = parseBrazilianNumber(rawData.pc_mfe || "")
+		const mae = parseBrazilianNumber(rawData.pc_mae || "")
+
+		// Normalize asset (WING26 → WIN, WDOH25 → WDO, etc.)
+		const assetInfo = normalizeB3Asset(rawData.pc_asset)
+
+		// Build trade object
+		const trade: CsvTradeInput = {
+			asset: assetInfo.normalizedSymbol, // Use normalized symbol (WIN, WDO, etc.)
+			direction,
+			entryDate,
+			entryPrice,
+			positionSize,
+			// Asset normalization fields
+			normalizedAsset: assetInfo.normalizedSymbol,
+			originalAssetCode: assetInfo.originalCode,
+			isFutures: assetInfo.isFutures,
+		}
+
+		if (exitDate) trade.exitDate = exitDate
+		if (exitPrice !== null && exitPrice !== 0) trade.exitPrice = exitPrice
+		if (pnl !== null) trade.pnl = pnl
+		if (mfe !== null && mfe > 0) trade.mfe = mfe
+		if (mae !== null && mae < 0) trade.mae = Math.abs(mae) // MAE should be positive in our system
+
+		result.trades.push(trade)
+	}
+
+	if (result.errors.length > 0 && result.trades.length === 0) {
+		result.success = false
+	}
+
+	return result
+}
+
+// Parse standard CSV format
+const parseStandardContent = (
+	lines: string[],
+	headers: string[],
+	delimiter: string,
+	result: CsvParseResult
+): CsvParseResult => {
 	// Map headers to fields
 	const columnMap: Array<{ index: number; field: keyof CreateTradeInput }> = []
 	const unmappedHeaders: string[] = []
@@ -271,7 +646,7 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 
 		if (!line) continue
 
-		const values = parseCSVLine(line)
+		const values = parseCSVLine(line, delimiter)
 		const trade: Partial<CsvTradeInput> = {}
 		let rowHasErrors = false
 
@@ -308,9 +683,15 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 
 			// Parse based on field type
 			switch (field) {
-				case "asset":
-					trade.asset = value.toUpperCase()
+				case "asset": {
+					// Normalize asset (WING26 → WIN, WDOH25 → WDO, etc.)
+					const assetInfo = normalizeB3Asset(value)
+					trade.asset = assetInfo.normalizedSymbol
+					trade.normalizedAsset = assetInfo.normalizedSymbol
+					trade.originalAssetCode = assetInfo.originalCode
+					trade.isFutures = assetInfo.isFutures
 					break
+				}
 
 				case "direction": {
 					const direction = parseDirection(value)
@@ -410,7 +791,7 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 }
 
 // Parse a single CSV line handling quoted values
-const parseCSVLine = (line: string): string[] => {
+const parseCSVLine = (line: string, delimiter: string = ","): string[] => {
 	const result: string[] = []
 	let current = ""
 	let inQuotes = false
@@ -428,7 +809,7 @@ const parseCSVLine = (line: string): string[] => {
 				// Toggle quote mode
 				inQuotes = !inQuotes
 			}
-		} else if (char === "," && !inQuotes) {
+		} else if (char === delimiter && !inQuotes) {
 			result.push(current.trim())
 			current = ""
 		} else {

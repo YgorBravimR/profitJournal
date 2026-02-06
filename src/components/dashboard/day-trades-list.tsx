@@ -88,9 +88,9 @@ export const DayTradesList = ({ trades, onTradeClick }: DayTradesListProps) => {
 							<td className="px-s-300 py-s-200">
 								<div className="flex items-center gap-s-100">
 									{trade.direction === "long" ? (
-										<ArrowUpRight className="h-3.5 w-3.5 text-trade-buy" />
+										<ArrowUpRight className="h-3.5 w-3.5 text-action-buy" />
 									) : (
-										<ArrowDownRight className="h-3.5 w-3.5 text-trade-sell" />
+										<ArrowDownRight className="h-3.5 w-3.5 text-action-sell" />
 									)}
 									<span className="text-small font-medium text-txt-100">
 										{trade.asset}

@@ -50,13 +50,13 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 						<div
 							className={cn(
 								"flex h-10 w-10 items-center justify-center rounded-lg",
-								isLong ? "bg-trade-buy-muted" : "bg-trade-sell-muted"
+								isLong ? "bg-action-buy-muted" : "bg-action-sell-muted"
 							)}
 						>
 							{isLong ? (
-								<ArrowUpRight className="h-5 w-5 text-trade-buy" />
+								<ArrowUpRight className="h-5 w-5 text-action-buy" />
 							) : (
-								<ArrowDownRight className="h-5 w-5 text-trade-sell" />
+								<ArrowDownRight className="h-5 w-5 text-action-sell" />
 							)}
 						</div>
 						<div>

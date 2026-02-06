@@ -22,13 +22,13 @@ interface BiasSelectorProps {
 const biasConfig = {
 	long: {
 		icon: TrendingUp,
-		color: "text-trade-buy",
-		bgColor: "bg-trade-buy/10",
+		color: "text-action-buy",
+		bgColor: "bg-action-buy/10",
 	},
 	short: {
 		icon: TrendingDown,
-		color: "text-trade-sell",
-		bgColor: "bg-trade-sell/10",
+		color: "text-action-sell",
+		bgColor: "bg-action-sell/10",
 	},
 	neutral: {
 		icon: ArrowRight,

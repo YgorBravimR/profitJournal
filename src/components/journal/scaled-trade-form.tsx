@@ -330,8 +330,8 @@ export const ScaledTradeForm = ({
 								className={cn(
 									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "long"
-										? "border-trade-buy bg-trade-buy/10 text-trade-buy"
-										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
+										? "border-action-buy bg-action-buy/10 text-action-buy"
+										: "border-bg-300 text-txt-200 hover:border-action-buy/50"
 								)}
 							>
 								<ArrowUpRight className="h-5 w-5" />
@@ -343,8 +343,8 @@ export const ScaledTradeForm = ({
 								className={cn(
 									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "short"
-										? "border-trade-sell bg-trade-sell/10 text-trade-sell"
-										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
+										? "border-action-sell bg-action-sell/10 text-action-sell"
+										: "border-bg-300 text-txt-200 hover:border-action-sell/50"
 								)}
 							>
 								<ArrowDownRight className="h-5 w-5" />
@@ -410,7 +410,7 @@ export const ScaledTradeForm = ({
 					{/* Entries Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-trade-buy">Entries</Label>
+							<Label className="text-action-buy">Entries</Label>
 							<Button
 								type="button"
 								variant="ghost"
@@ -462,7 +462,7 @@ export const ScaledTradeForm = ({
 					{/* Exits Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-trade-sell">Exits</Label>
+							<Label className="text-action-sell">Exits</Label>
 							<Button
 								type="button"
 								variant="ghost"

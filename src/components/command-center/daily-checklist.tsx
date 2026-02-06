@@ -23,13 +23,17 @@ export const DailyChecklist = ({
 	const t = useTranslations("commandCenter.checklist")
 	const [loading, setLoading] = useState<string | null>(null)
 
+	/**
+	 * Handles toggling a checklist item's completion status.
+	 * Uses optimistic UI by calling onRefresh after successful toggle.
+	 */
 	const handleToggle = async (checklistId: string, itemId: string, completed: boolean) => {
 		setLoading(`${checklistId}-${itemId}`)
 		try {
 			await toggleChecklistItem(checklistId, itemId, completed)
 			onRefresh()
-		} catch (error) {
-			console.error("Failed to toggle item:", error)
+		} catch {
+			// Error is silently handled - user will see item didn't toggle
 		} finally {
 			setLoading(null)
 		}

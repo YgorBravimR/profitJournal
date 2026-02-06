@@ -16,6 +16,7 @@ import {
 	Dices,
 	type LucideIcon,
 } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
@@ -50,19 +51,35 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 	return (
 		<aside
 			className={cn(
-				"fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-bg-300 bg-bg-200 transition-[width] duration-300",
+				"border-bg-300 bg-bg-200 fixed top-0 left-0 z-40 flex h-screen flex-col border-r transition-[width] duration-300",
 				isCollapsed ? "w-16" : "w-64"
 			)}
 		>
 			{/* Logo */}
-			<div className="flex h-16 items-center justify-between border-b border-bg-300 px-4">
-				{!isCollapsed && (
-					<span className="text-h3 font-bold text-acc-100">ProfitJournal</span>
+			<div className="border-bg-300 flex h-16 items-center justify-between border-b px-4">
+				{isCollapsed ? (
+					<Image
+						src="/logo_nobg.png"
+						alt="Bravo"
+						width={32}
+						height={32}
+						className="h-8 w-8 object-contain"
+						priority
+					/>
+				) : (
+					<Image
+						src="/bravo-nobg.png"
+						alt="Bravo"
+						width={140}
+						height={40}
+						className="h-10 w-auto object-contain"
+						priority
+					/>
 				)}
 				<button
 					type="button"
 					onClick={onToggleCollapse}
-					className="rounded-md p-2 text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acc-100"
+					className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
 					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
 				>
 					{isCollapsed ? (
@@ -86,7 +103,7 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 							key={item.href}
 							href={item.href}
 							className={cn(
-								"flex items-center gap-3 rounded-md px-3 py-2 text-small transition-colors",
+								"text-small flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
 								isActive
 									? "bg-acc-100/10 text-acc-100"
 									: "text-txt-200 hover:bg-bg-300 hover:text-txt-100",
@@ -102,10 +119,14 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 			</nav>
 
 			{/* Account Switcher */}
-			<div className={cn(
-				"border-t border-bg-300",
-				isCollapsed ? "flex flex-col items-center gap-2 py-4" : "space-y-2 p-4"
-			)}>
+			<div
+				className={cn(
+					"border-bg-300 border-t",
+					isCollapsed
+						? "flex flex-col items-center gap-2 py-4"
+						: "space-y-2 p-4"
+				)}
+			>
 				<AccountSwitcher isCollapsed={isCollapsed} />
 				<UserMenu isCollapsed={isCollapsed} />
 			</div>

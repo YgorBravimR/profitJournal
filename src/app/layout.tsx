@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
 	title: "Profit Journal",
 	description: "Personal trading performance analysis and journaling platform",
+	icons: {
+		icon: "/logo_nobg.png",
+		shortcut: "/logo_nobg.png",
+		apple: "/logo_nobg.png",
+	},
 }
 
 interface RootLayoutProps {
@@ -23,7 +28,7 @@ interface RootLayoutProps {
 
 const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
-		<html suppressHydrationWarning>
+		<html suppressHydrationWarning data-brand="bravo">
 			<body
 				className={`${geistSans.variable} ${geistMono.variable} antialiased`}
 			>

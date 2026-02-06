@@ -91,13 +91,13 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 								<div
 									className={cn(
 										"flex h-14 w-14 items-center justify-center rounded-xl",
-										isLong ? "bg-trade-buy-muted" : "bg-trade-sell-muted"
+										isLong ? "bg-action-buy-muted" : "bg-action-sell-muted"
 									)}
 								>
 									{isLong ? (
-										<ArrowUpRight className="h-7 w-7 text-trade-buy" />
+										<ArrowUpRight className="h-7 w-7 text-action-buy" />
 									) : (
-										<ArrowDownRight className="h-7 w-7 text-trade-sell" />
+										<ArrowDownRight className="h-7 w-7 text-action-sell" />
 									)}
 								</div>
 								<div>

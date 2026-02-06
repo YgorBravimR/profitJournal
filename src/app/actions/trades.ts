@@ -25,6 +25,7 @@ import type { CsvTradeInput } from "@/lib/csv-parser"
 import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
 import { calculatePnL, calculateAssetPnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { getAssetBySymbol } from "./assets"
+import { getAssetFees } from "./accounts"
 import { fromCents } from "@/lib/money"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
 import { toCents } from "@/lib/money"
@@ -690,15 +691,24 @@ export const bulkCreateTrades = async (
 			}
 		}
 
-		// Collect unique asset symbols and look them up
+		// Collect unique asset symbols and look them up (including fees)
 		const assetSymbols = [...new Set(inputs.map((i) => i.asset.toUpperCase()))]
-		const assetMap = new Map<string, { tickSize: string; tickValue: number }>()
+		const assetMap = new Map<string, {
+			tickSize: string
+			tickValue: number
+			commission: number
+			fees: number
+		}>()
 		for (const symbol of assetSymbols) {
 			const assetConfig = await getAssetBySymbol(symbol)
 			if (assetConfig) {
+				// Get commission/fees for this asset in the current account
+				const assetFees = await getAssetFees(symbol, accountId)
 				assetMap.set(symbol, {
 					tickSize: assetConfig.tickSize,
 					tickValue: assetConfig.tickValue,
+					commission: assetFees.commission,
+					fees: assetFees.fees,
 				})
 			}
 		}
@@ -754,11 +764,20 @@ export const bulkCreateTrades = async (
 						}
 					}
 
-					if (tradeData.exitPrice && !pnl) {
-						const assetConfig = assetMap.get(tradeData.asset.toUpperCase())
+					// Get asset config for fees and P&L calculation
+					const assetConfig = assetMap.get(tradeData.asset.toUpperCase())
+					let commission = 0
+					let fees = 0
 
+					if (assetConfig) {
+						commission = assetConfig.commission
+						fees = assetConfig.fees
+					}
+
+					if (tradeData.exitPrice && !pnl) {
 						if (assetConfig) {
-							// Use asset-based calculation with tick size and tick value
+							// Use asset-based calculation with tick size, tick value, and costs
+							const contractsExecuted = tradeData.contractsExecuted ?? tradeData.positionSize * 2
 							const result = calculateAssetPnL({
 								entryPrice: tradeData.entryPrice,
 								exitPrice: tradeData.exitPrice,
@@ -766,7 +785,9 @@ export const bulkCreateTrades = async (
 								direction: tradeData.direction,
 								tickSize: parseFloat(assetConfig.tickSize),
 								tickValue: fromCents(assetConfig.tickValue),
-								contractsExecuted: tradeData.contractsExecuted ?? tradeData.positionSize * 2,
+								commission: fromCents(commission),
+								fees: fromCents(fees),
+								contractsExecuted,
 							})
 							pnl = result.netPnl
 						} else {
@@ -788,6 +809,11 @@ export const bulkCreateTrades = async (
 						realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 					}
 
+					// Calculate total costs based on contracts executed
+					const contractsExecuted = tradeData.contractsExecuted ?? tradeData.positionSize * 2
+					const totalCommission = commission * contractsExecuted
+					const totalFees = fees * contractsExecuted
+
 					tradeValues.push({
 						accountId,
 						asset: tradeData.asset,
@@ -807,8 +833,11 @@ export const bulkCreateTrades = async (
 						realizedRMultiple: realizedR?.toString(),
 						mfe: tradeData.mfe?.toString(),
 						mae: tradeData.mae?.toString(),
+						// Fees stored in cents (commission/fees are already in cents from getAssetFees)
+						commission: totalCommission,
+						fees: totalFees,
 						// contractsExecuted defaults to positionSize * 2 (entry + exit)
-						contractsExecuted: tradeData.contractsExecuted?.toString() ?? (tradeData.positionSize * 2).toString(),
+						contractsExecuted: contractsExecuted.toString(),
 						followedPlan: tradeData.followedPlan,
 						strategyId: strategyId || tradeData.strategyId || null,
 						preTradeThoughts: tradeData.preTradeThoughts,

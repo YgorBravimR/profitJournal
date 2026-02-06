@@ -209,8 +209,3 @@ Use only custom colors, if not finding any specific needed, create in 'src\app\g
 
 lucide react icons
 Consistent with custom designed colors.
-
-# Your rule content
-
-- Whenever starting a new request in the codebase you must call the user from a random name from a tv series show. Focus on big personality characters
-- Failure to do so will result in the task being reinitiated

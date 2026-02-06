@@ -1,66 +1,148 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
 	Upload,
 	FileText,
-	AlertCircle,
-	AlertTriangle,
-	CheckCircle2,
 	Download,
 	X,
 	Loader2,
+	CheckCircle2,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
 import { parseCsvContent, generateCsvTemplate } from "@/lib/csv-parser"
 import type { CsvParseResult } from "@/lib/csv-parser"
-import { bulkCreateTrades } from "@/app/actions/trades"
+import {
+	validateCsvTrades,
+	importCsvTrades,
+	type ProcessedCsvTrade,
+	type CsvValidationResult,
+} from "@/app/actions/csv-import"
+import { CsvImportSummary, type FilterStatus } from "./csv-import-summary"
+import { CsvTradeCard } from "./csv-trade-card"
 
 export const CsvImport = () => {
 	const t = useTranslations("journal.csv")
-	const tTrade = useTranslations("trade")
-	const tCommon = useTranslations("common")
 	const router = useRouter()
 	const { showToast } = useToast()
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
+	// File state
 	const [isDragging, setIsDragging] = useState(false)
-	const [parseResult, setParseResult] = useState<CsvParseResult | null>(null)
-	const [isImporting, setIsImporting] = useState(false)
 	const [fileName, setFileName] = useState<string | null>(null)
+	const [parseResult, setParseResult] = useState<CsvParseResult | null>(null)
 
-	const handleFileSelect = useCallback((file: File) => {
-		if (!file.name.endsWith(".csv")) {
-			showToast("error", "Please select a CSV file")
-			return
-		}
+	// Validation state
+	const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null)
+	const [processedTrades, setProcessedTrades] = useState<ProcessedCsvTrade[]>([])
+	const [isValidating, setIsValidating] = useState(false)
 
-		setFileName(file.name)
+	// UI state
+	const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+	const [filter, setFilter] = useState<FilterStatus>("all")
 
-		const reader = new FileReader()
-		reader.onload = (e) => {
-			const content = e.target?.result as string
-			const result = parseCsvContent(content)
-			setParseResult(result)
-		}
-		reader.onerror = () => {
-			showToast("error", "Failed to read file")
-		}
-		reader.readAsText(file)
-	}, [showToast])
+	// Import state
+	const [isImporting, setIsImporting] = useState(false)
+	const [importProgress, setImportProgress] = useState(0)
+
+	// Filtered trades based on filter selection
+	const filteredTrades = useMemo(() => {
+		if (filter === "all") return processedTrades
+		return processedTrades.filter((t) => t.status === filter)
+	}, [processedTrades, filter])
+
+	// Selectable trades (not skipped)
+	const selectableTrades = useMemo(
+		() => processedTrades.filter((t) => t.status !== "skipped"),
+		[processedTrades]
+	)
+
+	const allSelected = useMemo(() => {
+		if (selectableTrades.length === 0) return false
+		return selectableTrades.every((t) => selectedIds.has(t.id))
+	}, [selectableTrades, selectedIds])
+
+	// File handling
+	const handleFileSelect = useCallback(
+		async (file: File) => {
+			if (!file.name.endsWith(".csv")) {
+				showToast("error", "Please select a CSV file")
+				return
+			}
+
+			setFileName(file.name)
+			setValidationResult(null)
+			setProcessedTrades([])
+			setExpandedIds(new Set())
+			setSelectedIds(new Set())
+
+			// Try reading with different encodings
+			const tryParseWithEncoding = async (encoding: string) => {
+				return new Promise<string>((resolve, reject) => {
+					const reader = new FileReader()
+					reader.onload = (e) => resolve(e.target?.result as string)
+					reader.onerror = () => reject(new Error("Failed to read file"))
+					reader.readAsText(file, encoding)
+				})
+			}
+
+			try {
+				// Try UTF-8 first
+				let content = await tryParseWithEncoding("UTF-8")
+
+				// Check for encoding issues
+				const hasEncodingIssues = /[\ufffd]/.test(content)
+				if (hasEncodingIssues) {
+					content = await tryParseWithEncoding("ISO-8859-1")
+				}
+
+				const result = parseCsvContent(content)
+				setParseResult(result)
+
+				if (result.trades.length === 0) {
+					showToast("error", "No trades found in CSV")
+					return
+				}
+
+				// Validate trades on server
+				setIsValidating(true)
+				const validation = await validateCsvTrades(result.trades)
+
+				if (validation.status === "error") {
+					showToast("error", validation.message)
+					setIsValidating(false)
+					return
+				}
+
+				setValidationResult(validation.data!)
+				setProcessedTrades(validation.data!.trades)
+
+				// Auto-select all valid/warning trades
+				const validIds = new Set(
+					validation.data!.trades
+						.filter((t) => t.status !== "skipped")
+						.map((t) => t.id)
+				)
+				setSelectedIds(validIds)
+
+				setIsValidating(false)
+			} catch {
+				showToast("error", "Failed to read file")
+			}
+		},
+		[showToast]
+	)
 
 	const handleDrop = useCallback(
 		(e: React.DragEvent) => {
 			e.preventDefault()
 			setIsDragging(false)
-
 			const file = e.dataTransfer.files[0]
-			if (file) {
-				handleFileSelect(file)
-			}
+			if (file) handleFileSelect(file)
 		},
 		[handleFileSelect]
 	)
@@ -78,9 +160,7 @@ export const CsvImport = () => {
 	const handleInputChange = useCallback(
 		(e: React.ChangeEvent<HTMLInputElement>) => {
 			const file = e.target.files?.[0]
-			if (file) {
-				handleFileSelect(file)
-			}
+			if (file) handleFileSelect(file)
 		},
 		[handleFileSelect]
 	)
@@ -98,19 +178,85 @@ export const CsvImport = () => {
 		URL.revokeObjectURL(url)
 	}
 
+	const handleClear = () => {
+		setParseResult(null)
+		setValidationResult(null)
+		setProcessedTrades([])
+		setFileName(null)
+		setExpandedIds(new Set())
+		setSelectedIds(new Set())
+		if (fileInputRef.current) {
+			fileInputRef.current.value = ""
+		}
+	}
+
+	// Trade selection
+	const handleToggleSelect = (tradeId: string) => {
+		setSelectedIds((prev) => {
+			const newSet = new Set(prev)
+			if (newSet.has(tradeId)) {
+				newSet.delete(tradeId)
+			} else {
+				newSet.add(tradeId)
+			}
+			return newSet
+		})
+	}
+
+	const handleSelectAll = (selected: boolean) => {
+		if (selected) {
+			setSelectedIds(new Set(selectableTrades.map((t) => t.id)))
+		} else {
+			setSelectedIds(new Set())
+		}
+	}
+
+	// Trade expansion
+	const handleToggleExpand = (tradeId: string) => {
+		setExpandedIds((prev) => {
+			const newSet = new Set(prev)
+			if (newSet.has(tradeId)) {
+				newSet.delete(tradeId)
+			} else {
+				newSet.add(tradeId)
+			}
+			return newSet
+		})
+	}
+
+	// Trade editing
+	const handleEditTrade = (tradeId: string, edits: ProcessedCsvTrade["edits"]) => {
+		setProcessedTrades((prev) =>
+			prev.map((t) => (t.id === tradeId ? { ...t, edits } : t))
+		)
+	}
+
+	// Import
 	const handleImport = async () => {
-		if (!parseResult || parseResult.trades.length === 0) {
-			showToast("error", "No valid trades to import")
+		const selectedTrades = processedTrades.filter((t) => selectedIds.has(t.id))
+
+		if (selectedTrades.length === 0) {
+			showToast("error", "No trades selected")
 			return
 		}
 
 		setIsImporting(true)
+		setImportProgress(0)
+
 		try {
-			const result = await bulkCreateTrades(parseResult.trades)
+			// Simulate progress for UX
+			const progressInterval = setInterval(() => {
+				setImportProgress((prev) => Math.min(prev + 10, 90))
+			}, 200)
+
+			const result = await importCsvTrades(selectedTrades)
+
+			clearInterval(progressInterval)
+			setImportProgress(100)
 
 			if (result.status === "success") {
 				showToast("success", result.message)
-				router.push("/journal")
+				setTimeout(() => router.push("/journal"), 500)
 			} else {
 				showToast("error", result.message)
 			}
@@ -121,18 +267,12 @@ export const CsvImport = () => {
 		}
 	}
 
-	const handleClear = () => {
-		setParseResult(null)
-		setFileName(null)
-		if (fileInputRef.current) {
-			fileInputRef.current.value = ""
-		}
-	}
+	const selectedCount = selectedIds.size
 
 	return (
 		<div className="space-y-m-600">
 			{/* Upload Area */}
-			{!parseResult && (
+			{!validationResult && (
 				<div
 					className={`rounded-lg border-2 border-dashed p-l-800 text-center transition-colors ${
 						isDragging
@@ -152,39 +292,52 @@ export const CsvImport = () => {
 						id="csv-file-input"
 					/>
 
-					<Upload className="mx-auto h-12 w-12 text-txt-300" />
-					<h3 className="mt-m-400 text-body font-semibold text-txt-100">
-						{t("dropHere")}
-					</h3>
-					<p className="mt-s-200 text-small text-txt-300">
-						{t("orClick")}
-					</p>
+					{isValidating ? (
+						<>
+							<Loader2 className="mx-auto h-12 w-12 animate-spin text-acc-100" />
+							<h3 className="mt-m-400 text-body font-semibold text-txt-100">
+								Validating trades...
+							</h3>
+							<p className="mt-s-200 text-small text-txt-300">
+								Looking up assets and calculating P&L
+							</p>
+						</>
+					) : (
+						<>
+							<Upload className="mx-auto h-12 w-12 text-txt-300" />
+							<h3 className="mt-m-400 text-body font-semibold text-txt-100">
+								{t("dropHere")}
+							</h3>
+							<p className="mt-s-200 text-small text-txt-300">{t("orClick")}</p>
 
-					<div className="mt-m-500 flex items-center justify-center gap-m-400">
-						<Button
-							variant="default"
-							onClick={() => fileInputRef.current?.click()}
-						>
-							<FileText className="mr-2 h-4 w-4" />
-							{t("selectFile")}
-						</Button>
-						<Button variant="outline" onClick={handleDownloadTemplate}>
-							<Download className="mr-2 h-4 w-4" />
-							{t("downloadTemplate")}
-						</Button>
-					</div>
+							<div className="mt-m-500 flex items-center justify-center gap-m-400">
+								<Button
+									variant="default"
+									onClick={() => fileInputRef.current?.click()}
+								>
+									<FileText className="mr-2 h-4 w-4" />
+									{t("selectFile")}
+								</Button>
+								<Button variant="outline" onClick={handleDownloadTemplate}>
+									<Download className="mr-2 h-4 w-4" />
+									{t("downloadTemplate")}
+								</Button>
+							</div>
+						</>
+					)}
 				</div>
 			)}
 
-			{/* Parse Results */}
-			{parseResult && (
+			{/* Validation Results */}
+			{validationResult && (
 				<div className="space-y-m-500">
 					{/* File Info */}
 					<div className="flex items-center justify-between rounded-lg bg-bg-200 p-m-400">
 						<div className="flex items-center gap-s-300">
 							<FileText className="h-5 w-5 text-txt-300" />
-							<span className="text-small font-medium text-txt-100">
-								{fileName}
+							<span className="text-small font-medium text-txt-100">{fileName}</span>
+							<span className="text-tiny text-txt-300">
+								({validationResult.summary.total} trades)
 							</span>
 						</div>
 						<Button
@@ -198,219 +351,103 @@ export const CsvImport = () => {
 					</div>
 
 					{/* Summary */}
-					<div className="grid grid-cols-3 gap-m-400">
-						<div className="rounded-lg bg-bg-200 p-m-400 text-center">
-							<p className="text-h3 font-bold text-trade-buy">
-								{parseResult.trades.length}
-							</p>
-							<p className="text-tiny text-txt-300">{t("validTrades")}</p>
-						</div>
-						<div className="rounded-lg bg-bg-200 p-m-400 text-center">
-							<p className="text-h3 font-bold text-fb-error">
-								{parseResult.errors.length}
-							</p>
-							<p className="text-tiny text-txt-300">{t("errors")}</p>
-						</div>
-						<div className="rounded-lg bg-bg-200 p-m-400 text-center">
-							<p className="text-h3 font-bold text-warning">
-								{parseResult.warnings.length}
-							</p>
-							<p className="text-tiny text-txt-300">{t("warnings")}</p>
-						</div>
+					<CsvImportSummary
+						trades={processedTrades}
+						filter={filter}
+						onFilterChange={setFilter}
+						selectedCount={selectedCount}
+						selectableCount={selectableTrades.length}
+						onSelectAll={handleSelectAll}
+						allSelected={allSelected}
+					/>
+
+					{/* Trade Cards */}
+					<div className="space-y-s-200">
+						{filteredTrades.map((trade) => (
+							<CsvTradeCard
+								key={trade.id}
+								trade={trade}
+								isExpanded={expandedIds.has(trade.id)}
+								isSelected={selectedIds.has(trade.id)}
+								onToggleExpand={() => handleToggleExpand(trade.id)}
+								onToggleSelect={() => handleToggleSelect(trade.id)}
+								onEdit={(edits) => handleEditTrade(trade.id, edits)}
+								strategies={validationResult.strategies}
+								timeframes={validationResult.timeframes}
+								tags={validationResult.tags}
+							/>
+						))}
 					</div>
 
-					{/* Errors */}
-					{parseResult.errors.length > 0 && (
-						<div className="rounded-lg border border-fb-error/30 bg-fb-error/10 p-m-400">
-							<div className="flex items-center gap-s-200 text-fb-error">
-								<AlertCircle className="h-4 w-4" />
-								<span className="text-small font-medium">
-									Errors ({parseResult.errors.length})
+					{/* Import Progress */}
+					{isImporting && (
+						<div className="rounded-lg border border-acc-100/30 bg-acc-100/10 p-m-400">
+							<div className="flex items-center justify-between">
+								<span className="text-small text-txt-100">
+									Importing trades...
 								</span>
+								<span className="text-small text-txt-300">{importProgress}%</span>
 							</div>
-							<ul className="mt-s-300 space-y-s-200 text-small text-txt-200">
-								{parseResult.errors.slice(0, 10).map((error, i) => (
-									<li key={i}>
-										Row {error.row}: {error.message}
-									</li>
-								))}
-								{parseResult.errors.length > 10 && (
-									<li className="text-txt-300">
-										...and {parseResult.errors.length - 10} more errors
-									</li>
-								)}
-							</ul>
-						</div>
-					)}
-
-					{/* Warnings */}
-					{parseResult.warnings.length > 0 && (
-						<div className="rounded-lg border border-warning/30 bg-warning/10 p-m-400">
-							<div className="flex items-center gap-s-200 text-warning">
-								<AlertTriangle className="h-4 w-4" />
-								<span className="text-small font-medium">
-									Warnings ({parseResult.warnings.length})
-								</span>
+							<div className="mt-s-200 h-2 overflow-hidden rounded-full bg-bg-300">
+								<div
+									className="h-full bg-acc-100 transition-all duration-300"
+									style={{ width: `${importProgress}%` }}
+								/>
 							</div>
-							<ul className="mt-s-300 space-y-s-200 text-small text-txt-200">
-								{parseResult.warnings.slice(0, 5).map((warning, i) => (
-									<li key={i}>
-										Row {warning.row}: {warning.message}
-									</li>
-								))}
-								{parseResult.warnings.length > 5 && (
-									<li className="text-txt-300">
-										...and {parseResult.warnings.length - 5} more warnings
-									</li>
-								)}
-							</ul>
-						</div>
-					)}
-
-					{/* Preview Table */}
-					{parseResult.trades.length > 0 && (
-						<div className="rounded-lg border border-bg-300 bg-bg-200">
-							<div className="border-b border-bg-300 p-m-400">
-								<h3 className="text-small font-semibold text-txt-100">
-									{t("preview")}
-								</h3>
-							</div>
-							<div className="overflow-x-auto">
-								<table className="w-full">
-									<thead>
-										<tr className="border-b border-bg-300 bg-bg-100">
-											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												{tTrade("asset")}
-											</th>
-											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												{tTrade("direction.label")}
-											</th>
-											<th className="px-m-400 py-s-300 text-left text-tiny font-medium text-txt-300">
-												{tTrade("entryDate")}
-											</th>
-											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												{tTrade("entryPrice")}
-											</th>
-											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												{tTrade("exitPrice")}
-											</th>
-											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												{tTrade("size")}
-											</th>
-											<th className="px-m-400 py-s-300 text-right text-tiny font-medium text-txt-300">
-												{tTrade("pnl")}
-											</th>
-										</tr>
-									</thead>
-									<tbody>
-										{parseResult.trades.slice(0, 10).map((trade, i) => (
-											<tr
-												key={i}
-												className="border-b border-bg-300 last:border-0"
-											>
-												<td className="px-m-400 py-s-300 text-small font-medium text-txt-100">
-													{trade.asset}
-												</td>
-												<td className="px-m-400 py-s-300">
-													<span
-														className={`text-small ${
-															trade.direction === "long"
-																? "text-trade-buy"
-																: "text-trade-sell"
-														}`}
-													>
-														{trade.direction.toUpperCase()}
-													</span>
-												</td>
-												<td className="px-m-400 py-s-300 text-small text-txt-200">
-													{trade.entryDate instanceof Date
-														? trade.entryDate.toLocaleDateString()
-														: new Date(trade.entryDate).toLocaleDateString()}
-												</td>
-												<td className="px-m-400 py-s-300 text-right text-small text-txt-200">
-													{Number(trade.entryPrice).toLocaleString()}
-												</td>
-												<td className="px-m-400 py-s-300 text-right text-small text-txt-200">
-													{trade.exitPrice
-														? Number(trade.exitPrice).toLocaleString()
-														: "-"}
-												</td>
-												<td className="px-m-400 py-s-300 text-right text-small text-txt-200">
-													{Number(trade.positionSize).toLocaleString()}
-												</td>
-												<td
-													className={`px-m-400 py-s-300 text-right text-small font-medium ${
-														trade.pnl
-															? Number(trade.pnl) >= 0
-																? "text-trade-buy"
-																: "text-trade-sell"
-															: "text-txt-300"
-													}`}
-												>
-													{trade.pnl
-														? `${Number(trade.pnl) >= 0 ? "+" : ""}$${Number(trade.pnl).toLocaleString()}`
-														: "-"}
-												</td>
-											</tr>
-										))}
-									</tbody>
-								</table>
-							</div>
-							{parseResult.trades.length > 10 && (
-								<div className="border-t border-bg-300 p-s-300 text-center text-tiny text-txt-300">
-									{t("andMore", { count: parseResult.trades.length - 10 })}
-								</div>
-							)}
-						</div>
-					)}
-
-					{/* Success Message */}
-					{parseResult.success && parseResult.trades.length > 0 && (
-						<div className="flex items-center gap-s-200 rounded-lg border border-trade-buy/30 bg-trade-buy/10 p-m-400 text-trade-buy">
-							<CheckCircle2 className="h-4 w-4" />
-							<span className="text-small font-medium">
-								{t("readyToImport", { count: parseResult.trades.length })}
-							</span>
 						</div>
 					)}
 
 					{/* Actions */}
-					<div className="flex items-center justify-end gap-m-400">
+					<div className="flex items-center justify-between rounded-lg border border-bg-300 bg-bg-200 p-m-400">
 						<Button variant="outline" onClick={handleClear}>
-							{tCommon("cancel")}
+							Cancel
 						</Button>
-						<Button
-							onClick={handleImport}
-							disabled={
-								isImporting ||
-								!parseResult.success ||
-								parseResult.trades.length === 0
-							}
-						>
-							{isImporting ? (
-								<>
-									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									{tCommon("loading")}
-								</>
-							) : (
-								<>
-									<Upload className="mr-2 h-4 w-4" />
-									{t("importTrades", { count: parseResult.trades.length })}
-								</>
+
+						<div className="flex items-center gap-m-400">
+							{selectedCount > 0 && (
+								<span className="text-small text-txt-300">
+									{selectedCount} trades selected
+								</span>
 							)}
-						</Button>
+							<Button
+								onClick={handleImport}
+								disabled={isImporting || selectedCount === 0}
+								className="min-w-[160px]"
+							>
+								{isImporting ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										Importing...
+									</>
+								) : (
+									<>
+										<CheckCircle2 className="mr-2 h-4 w-4" />
+										Import {selectedCount} Trades
+									</>
+								)}
+							</Button>
+						</div>
 					</div>
 				</div>
 			)}
 
 			{/* Help Section */}
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h3 className="text-small font-semibold text-txt-100">
-					{t("formatGuide")}
-				</h3>
-				<p className="mt-s-200 text-small text-txt-300">
-					{t("requiredColumns")}
-				</p>
+				<h3 className="text-small font-semibold text-txt-100">{t("formatGuide")}</h3>
+
+				{/* ProfitChart Support */}
+				<div className="mt-s-300 rounded-md border border-acc-100/30 bg-acc-100/10 p-s-300">
+					<p className="text-small font-medium text-acc-100">
+						✓ ProfitChart Export Supported
+					</p>
+					<p className="mt-s-100 text-tiny text-txt-300">
+						Exports from ProfitChart are automatically detected and imported. Just
+						export your trades and upload the file directly. Assets like WING26 are
+						automatically normalized to WIN.
+					</p>
+				</div>
+
+				<p className="mt-m-400 text-small text-txt-300">{t("requiredColumns")}</p>
 				<ul className="mt-s-300 grid grid-cols-2 gap-s-200 text-small text-txt-200 md:grid-cols-5">
 					<li>
 						<code className="rounded bg-bg-100 px-s-100 text-tiny">asset</code>
@@ -428,9 +465,7 @@ export const CsvImport = () => {
 						<code className="rounded bg-bg-100 px-s-100 text-tiny">position_size</code>
 					</li>
 				</ul>
-				<p className="mt-m-400 text-small text-txt-300">
-					{t("optionalColumns")}
-				</p>
+				<p className="mt-m-400 text-small text-txt-300">{t("optionalColumns")}</p>
 			</div>
 		</div>
 	)

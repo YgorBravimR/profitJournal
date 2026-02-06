@@ -616,6 +616,48 @@
 			"formatGuide": "Guia do Formato CSV",
 			"requiredColumns": "Seu CSV deve incluir estas colunas obrigatórias:",
 			"optionalColumns": "Colunas opcionais: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan"
+		},
+		"ocr": {
+			"title": "Importar de Screenshot",
+			"dropImage": "Arraste o screenshot do ProfitChart aqui",
+			"orClick": "ou clique para selecionar imagem",
+			"selectImage": "Selecionar Imagem",
+			"processing": "Processando imagem...",
+			"loadingLanguage": "Carregando dados de idioma...",
+			"recognizing": "Reconhecendo texto...",
+			"rawText": "Texto extraído",
+			"detectedTrade": "Trade Detectado",
+			"detectedExecutions": "Execuções Detectadas",
+			"noExecutionsFound": "Nenhuma execução encontrada na imagem",
+			"importTrade": "Importar Trade",
+			"readyToImport": "Pronto para importar trade com {count} execuções",
+			"lowConfidence": "Detecção com baixa confiança. Por favor, revise cuidadosamente.",
+			"imageQualityTip": "Para melhores resultados, use screenshots em alta resolução com texto legível",
+			"requirements": {
+				"title": "Requisitos do Screenshot",
+				"description": "Para importação bem-sucedida, seu screenshot do ProfitChart DEVE mostrar:",
+				"requiredColumns": "Colunas obrigatórias",
+				"columns": {
+					"ativo": "Ativo",
+					"abertura": "Abertura",
+					"qtd": "Qtd (Quantidade)",
+					"precoCompra": "Preço Compra",
+					"precoVenda": "Preço Venda"
+				},
+				"settings": "Configurações",
+				"settingsItems": {
+					"headers": "Cabeçalhos das colunas devem estar visíveis (role até o topo)",
+					"expand": "Expanda todas as linhas se o trade estiver recolhido",
+					"contrast": "Use alto contraste/zoom para melhor precisão do OCR"
+				},
+				"tip": "Dica: No ProfitChart, clique com botão direito no cabeçalho da tabela para acessar \"Colunas Visíveis\" e habilitar as colunas necessárias"
+			},
+			"columnDetection": {
+				"title": "Detecção de Colunas",
+				"detected": "Detectado",
+				"notFound": "Não encontrado",
+				"missingRequired": "Colunas obrigatórias ausentes. Por favor, certifique-se de que estão visíveis no screenshot."
+			}
 		}
 	},
 	"analytics": {
