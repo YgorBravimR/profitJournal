@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast"
 import { RecalculateButton } from "./recalculate-button"
+import { RecalculatePnLButton } from "./recalculate-pnl-button"
 import { Link } from "@/i18n/routing"
 import { getCurrentAccount } from "@/app/actions/auth"
 import { updateAccount, getAccountAssets, updateAccountAsset } from "@/app/actions/accounts"
@@ -516,6 +517,13 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							{tGeneral("recalculateRDescription")}
 						</p>
 						<RecalculateButton />
+					</div>
+					<div>
+						<p className="text-small text-txt-100">{tGeneral("recalculatePnL")}</p>
+						<p className="mb-m-400 text-tiny text-txt-300">
+							{tGeneral("recalculatePnLDescription")}
+						</p>
+						<RecalculatePnLButton />
 					</div>
 				</div>
 			</div>

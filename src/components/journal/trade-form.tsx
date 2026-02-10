@@ -76,6 +76,15 @@ const formatDateTimeLocal = (date: Date): string => {
 	return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
+// End-of-today in datetime-local format — prevents selecting future days
+const getEndOfTodayLocal = (): string => {
+	const now = new Date()
+	const year = now.getFullYear()
+	const month = String(now.getMonth() + 1).padStart(2, "0")
+	const day = String(now.getDate()).padStart(2, "0")
+	return `${year}-${month}-${day}T23:59`
+}
+
 type TradeWithTags = Trade & { tradeTags?: Array<{ tag: Tag }> }
 
 /** Build form values from an existing trade (used for both initial state and reset) */
@@ -159,6 +168,7 @@ export const TradeForm = ({
 		: {
 				direction: "long",
 				entryDate: formatDateTimeLocal(new Date()),
+				exitDate: formatDateTimeLocal(new Date()),
 				tagIds: [],
 			}
 
@@ -583,6 +593,7 @@ export const TradeForm = ({
 										<FormControl>
 											<Input
 												type="datetime-local"
+												max={getEndOfTodayLocal()}
 												value={
 													typeof field.value === "string" ? field.value : ""
 												}
@@ -605,6 +616,7 @@ export const TradeForm = ({
 										<FormControl>
 											<Input
 												type="datetime-local"
+												max={getEndOfTodayLocal()}
 												value={
 													typeof field.value === "string" ? field.value : ""
 												}

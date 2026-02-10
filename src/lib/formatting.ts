@@ -241,7 +241,7 @@ export const formatHourOfDay = (hour: number, locale: Locale): string => {
 /**
  * Format currency in compact form for charts (e.g., $10K, $1.5M)
  */
-export const formatCompactCurrency = (value: number, symbol = "$"): string => {
+export const formatCompactCurrency = (value: number, symbol = "R$"): string => {
 	const absValue = Math.abs(value)
 	const sign = value < 0 ? "-" : ""
 
@@ -259,7 +259,7 @@ export const formatCompactCurrency = (value: number, symbol = "$"): string => {
  */
 export const formatCompactCurrencyWithSign = (
 	value: number,
-	symbol = "$"
+	symbol = "R$"
 ): string => {
 	const formatted = formatCompactCurrency(Math.abs(value), symbol)
 	if (value > 0) return `+${formatted}`

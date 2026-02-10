@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useTranslations } from "next-intl"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { Dices, HelpCircle } from "lucide-react"
 import { LoadingSpinner } from "@/components/shared"
 import { Button } from "@/components/ui/button"
@@ -38,6 +39,8 @@ export const MonteCarloContent = ({
 	initialOptions,
 }: MonteCarloContentProps) => {
 	const t = useTranslations("monteCarlo")
+	const tOverlay = useTranslations("overlay")
+	const { showLoading, hideLoading } = useLoadingOverlay()
 
 	// Mode state
 	const [inputMode, setInputMode] = useState<"auto" | "manual">("auto")
@@ -104,6 +107,7 @@ export const MonteCarloContent = ({
 		setIsRunning(true)
 		setError(null)
 		setResult(null)
+		showLoading({ message: tOverlay("runningSimulation") })
 
 		try {
 			const response = await runSimulation(params)
@@ -118,6 +122,7 @@ export const MonteCarloContent = ({
 		} catch (err) {
 			setError("Failed to run simulation")
 		} finally {
+			hideLoading()
 			setIsRunning(false)
 		}
 	}

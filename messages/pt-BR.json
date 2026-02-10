@@ -54,7 +54,45 @@
 		"playbook": "Playbook",
 		"reports": "Relatórios",
 		"monthly": "Mensal",
-		"settings": "Configurações"
+		"settings": "Configurações",
+		"monitor": "Monitor",
+		"newTrade": "Novo Trade"
+	},
+	"market": {
+		"title": "Monitor de Mercado",
+		"subtitle": "Cotações em tempo real e calendário econômico",
+		"lastUpdated": "Última atualização",
+		"autoRefresh": "Atualização automática",
+		"refreshNow": "Atualizar agora",
+		"groups": {
+			"indices": "Índices Globais",
+			"b3": "B3 / Brasil",
+			"commodities": "Commodities",
+			"forex": "Forex",
+			"crypto": "Cripto",
+			"cme": "Futuros BRL na CME"
+		},
+		"calendar": {
+			"title": "Calendário Econômico",
+			"noEvents": "Nenhum evento agendado para hoje",
+			"time": "Hora",
+			"country": "País",
+			"event": "Evento",
+			"impact": "Impacto",
+			"actual": "Real",
+			"forecast": "Previsão",
+			"previous": "Anterior",
+			"high": "Alto",
+			"medium": "Médio",
+			"low": "Baixo"
+		},
+		"quote": {
+			"name": "Ativo",
+			"price": "Preço",
+			"change": "Variação",
+			"loading": "Carregando dados do mercado...",
+			"error": "Erro ao carregar dados do mercado"
+		}
 	},
 	"monteCarlo": {
 		"title": "Simulador Monte Carlo",
@@ -339,6 +377,9 @@
 		"newTrade": "Novo Trade",
 		"editTrade": "Editar Trade",
 		"deleteTrade": "Excluir Trade",
+		"deleteConfirm": "Excluir?",
+		"deleteSuccess": "Trade excluído com sucesso",
+		"deleteError": "Erro ao excluir trade",
 		"saveTrade": "Salvar Trade",
 		"updateTrade": "Atualizar Trade",
 		"tradeDetails": "Detalhes do Trade",
@@ -462,6 +503,11 @@
 		"title": "Painel de Controle",
 		"description": "Visão geral do seu desempenho de trading",
 		"noData": "Nenhum dado disponível",
+		"period": {
+			"month": "Mês",
+			"year": "Ano",
+			"allTime": "Geral"
+		},
 		"trade": "trade",
 		"trades": "trades",
 		"kpi": {
@@ -738,6 +784,12 @@
 			"profitable": "Lucrativo",
 			"losing": "Negativo",
 			"noTrades": "Sem trades",
+			"bestSlotAction": "Concentre seus melhores setups aqui",
+			"worstSlotAction": "Considere reduzir exposição",
+			"bestSlotPlaceholder": "Continue operando para encontrar sua melhor janela",
+			"worstSlotPlaceholder": "Continue operando para identificar áreas de risco",
+			"totalTrades": "{count} trades",
+			"heatmapSubtitle": "Identifique suas janelas de operação mais e menos lucrativas",
 			"heatmapDays": {
 				"mon": "Seg",
 				"tue": "Ter",
@@ -767,6 +819,11 @@
 			"profitFactor": "Fator de Lucro",
 			"bestSession": "Melhor Sessão",
 			"worstSession": "Pior Sessão",
+			"bestSessionAction": "Priorize seus melhores setups nessa janela",
+			"worstSessionAction": "Revise sua abordagem ou reduza o tamanho aqui",
+			"bestSessionPlaceholder": "Continue operando para encontrar sua melhor sessão",
+			"worstSessionPlaceholder": "Continue operando para identificar sessões de risco",
+			"totalTrades": "{count} trades",
 			"assetTitle": "Performance por Ativo & Sessão",
 			"assetDescription": "Como cada ativo performa em diferentes sessões",
 			"asset": "Ativo",
@@ -1005,6 +1062,7 @@
 			"colorScheme": "Esquema de Cores",
 			"colorSchemeDescription": "Escolha sua paleta de cores preferida",
 			"brands": {
+				"default": "Default",
 				"bravo": "Bravo Dourado",
 				"retro": "Retrô Metálico",
 				"luxury": "Luxo Prateado",
@@ -1129,6 +1187,10 @@
 			"dataMaintenance": "Manutenção de Dados",
 			"recalculateR": "Recalcular Valores de R",
 			"recalculateRDescription": "Atualiza todos os trades que possuem stop loss para calcular risco planejado e R realizado",
+			"recalculatePnL": "Recalcular Todo P&L",
+			"recalculatePnLDescription": "Recalcula o lucro e prejuízo de todos os trades fechados usando a configuração de ticks do ativo. Útil após corrigir configurações de ativos ou importar trades com P&L incorreto.",
+			"recalculatingPnL": "Recalculando...",
+			"recalculatePnLButton": "Recalcular P&L",
 			"dataImport": "Importação de Dados",
 			"dataImportDesc": "Importar trades de arquivo CSV",
 			"goTo": "Ir para",
@@ -1310,6 +1372,15 @@
 		"scaledMode": "Posição Escalada",
 		"simpleMode": "Trade Simples",
 		"executionMode": "Modo de Execução"
+	},
+	"overlay": {
+		"runningSimulation": "Executando simulação Monte Carlo...",
+		"validatingTrades": "Validando operações...",
+		"importingTrades": "Importando {count} operações...",
+		"recalculatingR": "Recalculando valores R de todas as operações...",
+		"recalculatingPnL": "Recalculando P&L de todas as operações...",
+		"processingImage": "Analisando captura de tela...",
+		"importingOcr": "Importando {count} operações da imagem..."
 	},
 	"auth": {
 		"login": {

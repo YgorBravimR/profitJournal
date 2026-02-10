@@ -14,6 +14,8 @@ import {
 	ChevronRight,
 	Target,
 	Dices,
+	Plus,
+	Activity,
 	type LucideIcon,
 } from "lucide-react"
 import Image from "next/image"
@@ -22,14 +24,15 @@ import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/settings"
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "monitor" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/monitor" | "/settings"
 	icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
 	{ labelKey: "dashboard", href: "/", icon: LayoutDashboard },
 	{ labelKey: "commandCenter", href: "/command-center", icon: Target },
+	{ labelKey: "monitor", href: "/monitor", icon: Activity },
 	{ labelKey: "journal", href: "/journal", icon: BookOpen },
 	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
 	{ labelKey: "monteCarlo", href: "/monte-carlo", icon: Dices },
@@ -46,6 +49,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 	const t = useTranslations("nav")
+	const tCommon = useTranslations("common")
 	const pathname = usePathname()
 
 	return (
@@ -80,7 +84,7 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 					type="button"
 					onClick={onToggleCollapse}
 					className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
-					aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+					aria-label={isCollapsed ? tCommon("expandSidebar") : tCommon("collapseSidebar")}
 				>
 					{isCollapsed ? (
 						<ChevronRight className="h-5 w-5" />
@@ -88,6 +92,34 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 						<ChevronLeft className="h-5 w-5" />
 					)}
 				</button>
+			</div>
+
+			{/* New Trade Button */}
+			<div className="px-2 pt-2">
+				{pathname === "/journal/new" ? (
+					<span
+						className={cn(
+							"bg-acc-100/10 text-acc-100 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium",
+							isCollapsed && "justify-center"
+						)}
+						aria-current="page"
+					>
+						<Plus className="h-5 w-5 flex-shrink-0" />
+						{!isCollapsed && <span>{t("newTrade")}</span>}
+					</span>
+				) : (
+					<Link
+						href="/journal/new"
+						className={cn(
+							"bg-acc-100 hover:bg-acc-100/90 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium text-white transition-colors",
+							isCollapsed && "justify-center"
+						)}
+						aria-label={t("newTrade")}
+					>
+						<Plus className="h-5 w-5 flex-shrink-0" />
+						{!isCollapsed && <span>{t("newTrade")}</span>}
+					</Link>
+				)}
 			</div>
 
 			{/* Navigation */}

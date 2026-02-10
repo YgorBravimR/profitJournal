@@ -3,6 +3,7 @@ import { NextIntlClientProvider } from "next-intl"
 import { getMessages, setRequestLocale } from "next-intl/server"
 import { ThemeProvider } from "next-themes"
 import { ToastProvider } from "@/components/ui/toast"
+import { LoadingOverlayProvider } from "@/components/ui/loading-overlay"
 import { AuthProvider } from "@/components/auth"
 import { BrandProvider } from "@/components/providers/brand-provider"
 import { routing } from "@/i18n/routing"
@@ -53,11 +54,13 @@ const LocaleLayout = async ({ children, params }: LocaleLayoutProps) => {
 			>
 				<BrandProvider>
 					<ToastProvider>
-						<AuthProvider>
-							<div className="min-h-screen bg-bg-100">
-								{children}
-							</div>
-						</AuthProvider>
+						<LoadingOverlayProvider>
+							<AuthProvider>
+								<div className="min-h-screen bg-bg-100">
+									{children}
+								</div>
+							</AuthProvider>
+						</LoadingOverlayProvider>
 					</ToastProvider>
 				</BrandProvider>
 			</ThemeProvider>

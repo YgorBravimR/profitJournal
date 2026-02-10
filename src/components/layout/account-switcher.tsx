@@ -3,7 +3,6 @@
 import { useState, useTransition, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useTranslations } from "next-intl"
-import { useRouter } from "next/navigation"
 import { ChevronDown, Check, Building2, User, Loader2, Plus } from "lucide-react"
 import {
 	DropdownMenu,
@@ -43,7 +42,6 @@ interface AccountSwitcherProps {
 export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 	const t = useTranslations("auth.accountSwitcher")
 	const { update } = useSession()
-	const router = useRouter()
 	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
 	const [isOpen, setIsOpen] = useState(false)
@@ -85,15 +83,10 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 		startTransition(async () => {
 			// Update the session with the new account ID
 			await update({ accountId })
-			// Update the local state
-			const newAccount = accounts.find((a) => a.id === accountId)
-			if (newAccount) {
-				setCurrentAccount(newAccount)
-			}
 			// Revalidate all app paths to ensure fresh data
 			await revalidateAfterAccountSwitch()
-			router.refresh()
-			setIsOpen(false)
+			// Full page reload to clear all stale client-side state
+			window.location.reload()
 		})
 	}
 
@@ -109,21 +102,13 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 			})
 
 			if (result.status === "success" && result.data) {
-				setAccounts((prev) => [...prev, result.data!])
 				showToast("success", t("createSuccess"))
-				setIsCreateOpen(false)
-				setCreateForm({
-					name: "",
-					accountType: "personal",
-					propFirmName: "",
-					profitSharePercentage: "100",
-				})
 				// Switch to the new account
 				await update({ accountId: result.data.id })
-				setCurrentAccount(result.data)
 				// Revalidate all app paths to ensure fresh data
 				await revalidateAfterAccountSwitch()
-				router.refresh()
+				// Full page reload to clear all stale client-side state
+				window.location.reload()
 			} else {
 				showToast("error", result.error || t("createError"))
 			}

@@ -257,12 +257,9 @@ export const AnalyticsContent = ({
 					{t("time.title")}
 				</h2>
 
-				{/* Two Column Grid for Heatmap and Session Chart */}
-				<div className="gap-m-600 grid grid-cols-1 lg:grid-cols-2">
-					{/* Time Heatmap */}
+				{/* Heatmap + Session: stacked on small/medium, side-by-side on xl+ */}
+				<div className="gap-m-600 grid grid-cols-1 xl:grid-cols-2">
 					<TimeHeatmap data={timeHeatmap} />
-
-					{/* Session Performance Chart */}
 					<SessionPerformanceChart data={sessionPerformance} />
 				</div>
 

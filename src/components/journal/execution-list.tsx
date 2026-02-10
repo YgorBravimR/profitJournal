@@ -96,7 +96,7 @@ export const ExecutionList = ({
 	return (
 		<div className={cn("space-y-m-400", className)}>
 			<div className="flex items-center justify-between">
-				<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
+				<h3 className="text-body text-txt-100 font-semibold">{t("title")}</h3>
 				<Button variant="outline" size="sm" onClick={onAddExecution}>
 					<Plus className="mr-1 h-4 w-4" />
 					{t("add")}
@@ -104,7 +104,7 @@ export const ExecutionList = ({
 			</div>
 
 			{executions.length === 0 ? (
-				<div className="rounded-lg border border-stroke-100 bg-bg-200 p-m-400 text-center">
+				<div className="border-stroke-100 bg-bg-200 p-m-400 rounded-lg border text-center">
 					<p className="text-small text-txt-300">{t("noExecutions")}</p>
 					<Button
 						variant="ghost"
@@ -117,11 +117,15 @@ export const ExecutionList = ({
 					</Button>
 				</div>
 			) : (
-				<div className="space-y-m-300">
+				<div className="space-y-s-300">
 					{/* Chronological Execution List */}
-					<div className="flex items-center gap-m-300 text-small text-txt-300">
-						<span>{t("entries")}: {entries.length}</span>
-						<span>{t("exits")}: {exits.length}</span>
+					<div className="gap-s-300 text-small text-txt-300 flex items-center">
+						<span>
+							{t("entries")}: {entries.length}
+						</span>
+						<span>
+							{t("exits")}: {exits.length}
+						</span>
 					</div>
 					<div className="space-y-s-200">
 						{sortedExecutions.map((execution) => (
@@ -141,29 +145,29 @@ export const ExecutionList = ({
 					</div>
 
 					{/* Summary */}
-					<div className="rounded-lg border border-stroke-100 bg-bg-200 p-m-300">
-						<div className="grid grid-cols-2 gap-m-300 text-small">
+					<div className="border-stroke-100 bg-bg-200 p-s-300 rounded-lg border">
+						<div className="gap-s-300 text-small grid grid-cols-2">
 							<div>
 								<span className="text-txt-300">{t("totalIn")}:</span>
-								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
+								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
 									{formatQuantity(totalEntryQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("totalOut")}:</span>
-								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
+								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
 									{formatQuantity(totalExitQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgEntry")}:</span>
-								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
+								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
 									{formatPrice(avgEntryPrice)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgExit")}:</span>
-								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
+								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
 									{totalExitQty > 0 ? formatPrice(avgExitPrice) : "-"}
 								</span>
 							</div>
@@ -171,7 +175,7 @@ export const ExecutionList = ({
 								<span className="text-txt-300">{t("remaining")}:</span>
 								<span
 									className={cn(
-										"ml-s-200 font-mono tabular-nums font-semibold",
+										"ml-s-200 font-mono font-semibold tabular-nums",
 										totalEntryQty - totalExitQty > 0
 											? "text-fb-warning"
 											: "text-trade-buy"
@@ -214,18 +218,24 @@ const ExecutionRow = ({
 	return (
 		<div
 			className={cn(
-				"flex items-center justify-between rounded-md border px-m-300 py-s-200",
+				"px-s-300 py-s-200 flex items-center justify-between rounded-md border",
 				type === "entry"
 					? "border-action-buy/20 bg-action-buy/5"
 					: "border-action-sell/20 bg-action-sell/5"
 			)}
 		>
-			<div className="flex items-center gap-m-400">
+			<div className="gap-m-400 flex items-center">
 				{/* Type indicator */}
 				{type === "entry" ? (
-					<ArrowUp className="h-3.5 w-3.5 shrink-0 text-action-buy" aria-label={t("entry")} />
+					<ArrowUp
+						className="text-action-buy h-3.5 w-3.5 shrink-0"
+						aria-label={t("entry")}
+					/>
 				) : (
-					<ArrowDown className="h-3.5 w-3.5 shrink-0 text-action-sell" aria-label={t("exit")} />
+					<ArrowDown
+						className="text-action-sell h-3.5 w-3.5 shrink-0"
+						aria-label={t("exit")}
+					/>
 				)}
 				<div className="text-small tabular-nums">
 					<span className="text-txt-300">
@@ -233,21 +243,21 @@ const ExecutionRow = ({
 					</span>
 				</div>
 				<div className="text-small tabular-nums">
-					<span className="font-mono font-semibold text-txt-100">
+					<span className="text-txt-100 font-mono font-semibold">
 						{formatQuantity(execution.quantity)}
 					</span>
 					<span className="mx-s-100 text-txt-300">@</span>
-					<span className="font-mono text-txt-100">
+					<span className="text-txt-100 font-mono">
 						{formatPrice(execution.price)}
 					</span>
 				</div>
 				{execution.orderType && (
-					<span className="rounded bg-bg-300 px-s-200 py-s-100 text-caption text-txt-300">
+					<span className="bg-bg-300 px-s-200 py-s-100 text-caption text-txt-300 rounded">
 						{execution.orderType}
 					</span>
 				)}
 			</div>
-			<div className="flex items-center gap-s-200">
+			<div className="gap-s-200 flex items-center">
 				<Button
 					variant="ghost"
 					size="icon"
@@ -262,12 +272,15 @@ const ExecutionRow = ({
 						<Button
 							variant="ghost"
 							size="icon"
-							className="h-7 w-7 text-fb-error hover:text-fb-error"
+							className="text-fb-error hover:text-fb-error h-7 w-7"
 							disabled={isDeleting}
 							aria-label={t("delete")}
 						>
 							{isDeleting ? (
-								<Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+								<Loader2
+									className="h-3.5 w-3.5 animate-spin"
+									aria-hidden="true"
+								/>
 							) : (
 								<Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
 							)}

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useTransition, useCallback } from "react"
+import { useTranslations } from "next-intl"
 import { KpiCards } from "./kpi-cards"
 import { TradingCalendar } from "./trading-calendar"
 import { EquityCurve } from "./equity-curve"
@@ -8,8 +9,26 @@ import { QuickStats } from "./quick-stats"
 import { DailyPnLBarChart } from "./daily-pnl-bar-chart"
 import { PerformanceRadarChart } from "./performance-radar-chart"
 import { DayDetailModal } from "./day-detail-modal"
-import { getDailyPnL } from "@/app/actions/analytics"
-import type { OverallStats, DisciplineData, EquityPoint, StreakData, DailyPnL, RadarChartData } from "@/types"
+import { LoadingSpinner } from "@/components/shared"
+import {
+	getDailyPnL,
+	getOverallStats,
+	getDisciplineScore,
+	getEquityCurve,
+	getStreakData,
+	getRadarChartData,
+} from "@/app/actions/analytics"
+import { cn } from "@/lib/utils"
+import type {
+	OverallStats,
+	DisciplineData,
+	EquityPoint,
+	StreakData,
+	DailyPnL,
+	RadarChartData,
+} from "@/types"
+
+type DashboardPeriod = "month" | "year" | "allTime"
 
 interface DashboardContentProps {
 	initialStats: OverallStats | null
@@ -22,6 +41,67 @@ interface DashboardContentProps {
 	initialMonthIndex: number
 }
 
+/** Compute dateFrom/dateTo for a given dashboard period */
+const getDateRangeForPeriod = (
+	period: DashboardPeriod
+): { dateFrom?: Date; dateTo?: Date } => {
+	if (period === "allTime") {
+		return {}
+	}
+
+	const now = new Date()
+
+	if (period === "month") {
+		const dateFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+		const dateTo = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
+		return { dateFrom, dateTo }
+	}
+
+	// year
+	const dateFrom = new Date(now.getFullYear(), 0, 1)
+	const dateTo = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999)
+	return { dateFrom, dateTo }
+}
+
+interface PeriodToggleProps {
+	period: DashboardPeriod
+	onChange: (period: DashboardPeriod) => void
+	disabled?: boolean
+}
+
+const PeriodToggle = ({ period, onChange, disabled }: PeriodToggleProps) => {
+	const t = useTranslations("dashboard.period")
+
+	const options: { value: DashboardPeriod; label: string }[] = [
+		{ value: "month", label: t("month") },
+		{ value: "year", label: t("year") },
+		{ value: "allTime", label: t("allTime") },
+	]
+
+	return (
+		<div className="flex rounded-lg border border-bg-300 bg-bg-100 p-s-100">
+			{options.map((option) => (
+				<button
+					key={option.value}
+					type="button"
+					onClick={() => onChange(option.value)}
+					disabled={disabled}
+					className={cn(
+						"rounded-md px-s-300 py-s-100 text-small font-medium transition-colors",
+						period === option.value
+							? "bg-acc-100 text-bg-100"
+							: "text-txt-300 hover:text-txt-100",
+						disabled && "cursor-not-allowed opacity-50"
+					)}
+					aria-pressed={period === option.value}
+				>
+					{option.label}
+				</button>
+			))}
+		</div>
+	)
+}
+
 export const DashboardContent = ({
 	initialStats,
 	initialDiscipline,
@@ -32,15 +112,20 @@ export const DashboardContent = ({
 	initialYear,
 	initialMonthIndex,
 }: DashboardContentProps) => {
-	// Create Date on client side to avoid hydration issues
+	// Calendar month state (independent of the period filter)
 	const [currentMonth, setCurrentMonth] = useState(() => new Date(initialYear, initialMonthIndex, 1))
 	const [dailyPnL, setDailyPnL] = useState<DailyPnL[]>(initialDailyPnL)
+
+	// Period-filtered data
+	const [period, setPeriod] = useState<DashboardPeriod>("allTime")
 	const [stats, setStats] = useState<OverallStats | null>(initialStats)
 	const [discipline, setDiscipline] = useState<DisciplineData | null>(initialDiscipline)
 	const [equityCurve, setEquityCurve] = useState<EquityPoint[]>(initialEquityCurve)
 	const [streakData, setStreakData] = useState<StreakData | null>(initialStreakData)
 	const [radarData, setRadarData] = useState<RadarChartData[]>(initialRadarData)
+
 	const [isPending, startTransition] = useTransition()
+	const [isPeriodLoading, startPeriodTransition] = useTransition()
 
 	// Day detail modal state
 	const [selectedDate, setSelectedDate] = useState<string | null>(null)
@@ -54,6 +139,7 @@ export const DashboardContent = ({
 		setEquityCurve(initialEquityCurve)
 		setStreakData(initialStreakData)
 		setRadarData(initialRadarData)
+		setPeriod("allTime")
 	}, [
 		initialDailyPnL,
 		initialStats,
@@ -63,7 +149,7 @@ export const DashboardContent = ({
 		initialRadarData,
 	])
 
-	// Memoized handlers to prevent unnecessary re-renders in child components
+	// Memoized handlers
 	const handleDayClick = useCallback((date: string) => {
 		setSelectedDate(date)
 		setIsDayModalOpen(true)
@@ -86,8 +172,44 @@ export const DashboardContent = ({
 		})
 	}, [])
 
+	const handlePeriodChange = useCallback((newPeriod: DashboardPeriod) => {
+		setPeriod(newPeriod)
+		const { dateFrom, dateTo } = getDateRangeForPeriod(newPeriod)
+
+		startPeriodTransition(async () => {
+			const [statsResult, disciplineResult, equityCurveResult, streakResult, radarResult] =
+				await Promise.all([
+					getOverallStats(dateFrom, dateTo),
+					getDisciplineScore(dateFrom, dateTo),
+					getEquityCurve(dateFrom, dateTo),
+					getStreakData(dateFrom, dateTo),
+					getRadarChartData(
+						dateFrom || dateTo
+							? { dateFrom, dateTo }
+							: undefined
+					),
+				])
+
+			if (statsResult.status === "success") setStats(statsResult.data ?? null)
+			if (disciplineResult.status === "success") setDiscipline(disciplineResult.data ?? null)
+			if (equityCurveResult.status === "success") setEquityCurve(equityCurveResult.data ?? [])
+			if (streakResult.status === "success") setStreakData(streakResult.data ?? null)
+			if (radarResult.status === "success") setRadarData(radarResult.data ?? [])
+		})
+	}, [])
+
 	return (
 		<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-3">
+			{/* Period Toggle + Loading */}
+			<div className="lg:col-span-3 flex items-center gap-m-400">
+				<PeriodToggle
+					period={period}
+					onChange={handlePeriodChange}
+					disabled={isPeriodLoading}
+				/>
+				{isPeriodLoading && <LoadingSpinner size="sm" />}
+			</div>
+
 			{/* KPI Cards */}
 			<div className="lg:col-span-3">
 				<KpiCards stats={stats} discipline={discipline} />

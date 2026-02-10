@@ -2,7 +2,7 @@
 
 import { db } from "@/db/drizzle"
 import { assetTypes, assets, type Asset, type AssetType } from "@/db/schema"
-import { eq, asc, desc } from "drizzle-orm"
+import { eq, inArray, asc, desc } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import {
 	createAssetTypeSchema,
@@ -157,14 +157,42 @@ export const getAsset = async (id: string): Promise<AssetWithType | null> => {
 	return result ?? null
 }
 
+// B3 futures prefixes that map to canonical FUT-suffixed symbols
+// e.g., WIN → WINFUT, WINM25 → WINFUT, WDOG26 → WDOFUT
+const B3_FUT_PREFIXES = ["WIN", "WDO", "DOL", "IND", "BGI", "CCM", "ICF", "SFI", "DI1"]
+
+/**
+ * Find the B3 futures prefix that a symbol starts with.
+ * e.g., "WINM25" → "WIN", "WDOG26" → "WDO", "AAPL" → null
+ */
+const extractB3Prefix = (symbol: string): string | null => {
+	const upper = symbol.toUpperCase()
+	return B3_FUT_PREFIXES.find((prefix) => upper.startsWith(prefix)) ?? null
+}
+
 export const getAssetBySymbol = async (
 	symbol: string
 ): Promise<AssetWithType | null> => {
+	const upper = symbol.toUpperCase()
+	const prefix = extractB3Prefix(upper)
+
+	if (prefix) {
+		// Build candidate symbols: exact input, base prefix, prefix+FUT
+		const candidates = [...new Set([upper, prefix, `${prefix}FUT`])]
+		const results = await db.query.assets.findMany({
+			where: inArray(assets.symbol, candidates),
+			with: { assetType: true },
+		})
+		// Priority: exact match > base prefix > FUT variant
+		return results.find((a) => a.symbol === upper)
+			?? results.find((a) => a.symbol === prefix)
+			?? results.find((a) => a.symbol === `${prefix}FUT`)
+			?? null
+	}
+
 	const result = await db.query.assets.findFirst({
-		where: eq(assets.symbol, symbol.toUpperCase()),
-		with: {
-			assetType: true,
-		},
+		where: eq(assets.symbol, upper),
+		with: { assetType: true },
 	})
 	return result ?? null
 }

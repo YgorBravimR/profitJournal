@@ -96,8 +96,8 @@ export const createTrade = async (
 			}
 		}
 
-		if (tradeData.exitPrice && !pnl) {
-			// Look up asset for tick-based calculation
+		if (tradeData.exitPrice) {
+			// Always recalculate P&L from prices — any provided pnl is unreliable
 			const assetConfig = await getAssetBySymbol(tradeData.asset)
 
 			if (assetConfig) {
@@ -112,8 +112,8 @@ export const createTrade = async (
 					contractsExecuted: tradeData.contractsExecuted ?? tradeData.positionSize * 2,
 				})
 				pnl = result.netPnl
-			} else {
-				// Fallback to simple price-based calculation
+			} else if (!pnl) {
+				// Fallback to simple price-based calculation only when no pnl exists
 				pnl = calculatePnL({
 					direction: tradeData.direction,
 					entryPrice: tradeData.entryPrice,
@@ -702,8 +702,8 @@ export const bulkCreateTrades = async (
 		for (const symbol of assetSymbols) {
 			const assetConfig = await getAssetBySymbol(symbol)
 			if (assetConfig) {
-				// Get commission/fees for this asset in the current account
-				const assetFees = await getAssetFees(symbol, accountId)
+				// Use the resolved symbol (e.g., "WINFUT") for fee lookup, not the input symbol ("WIN")
+				const assetFees = await getAssetFees(assetConfig.symbol, accountId)
 				assetMap.set(symbol, {
 					tickSize: assetConfig.tickSize,
 					tickValue: assetConfig.tickValue,
@@ -774,9 +774,9 @@ export const bulkCreateTrades = async (
 						fees = assetConfig.fees
 					}
 
-					if (tradeData.exitPrice && !pnl) {
+					if (tradeData.exitPrice) {
 						if (assetConfig) {
-							// Use asset-based calculation with tick size, tick value, and costs
+							// Always recalculate P&L from prices — any CSV pnl is unreliable
 							const contractsExecuted = tradeData.contractsExecuted ?? tradeData.positionSize * 2
 							const result = calculateAssetPnL({
 								entryPrice: tradeData.entryPrice,
@@ -790,8 +790,8 @@ export const bulkCreateTrades = async (
 								contractsExecuted,
 							})
 							pnl = result.netPnl
-						} else {
-							// Fallback to simple price-based calculation
+						} else if (!pnl) {
+							// Fallback to simple price-based calculation only when no pnl exists
 							pnl = calculatePnL({
 								direction: tradeData.direction,
 								entryPrice: tradeData.entryPrice,
@@ -1392,6 +1392,130 @@ export const recalculateRValues = async (): Promise<
 			status: "error",
 			message: "Failed to recalculate R values",
 			errors: [{ code: "RECALCULATE_FAILED", detail: String(error) }],
+		}
+	}
+}
+
+/**
+ * Recalculate P&L for all closed trades in the current account.
+ * Uses asset tick configuration when available, falling back to simple price-based calculation.
+ * This is useful for fixing trades imported before the asset-based P&L bug was fixed.
+ */
+export const recalculateAllTradesPnL = async (): Promise<
+	ActionResponse<{ updatedCount: number }>
+> => {
+	try {
+		const { accountId } = await requireAuth()
+
+		// Get all non-archived trades that have an exit price (closed trades)
+		const allTrades = await db.query.trades.findMany({
+			where: and(eq(trades.accountId, accountId), eq(trades.isArchived, false)),
+		})
+
+		const closedTrades = allTrades.filter((t) => t.exitPrice !== null)
+
+		// Build asset config map upfront to avoid per-trade DB queries
+		const uniqueAssets = [...new Set(closedTrades.map((t) => t.asset))]
+		const assetMap = new Map<
+			string,
+			{
+				tickSize: string
+				tickValue: number
+				commission: number
+				fees: number
+			}
+		>()
+
+		for (const symbol of uniqueAssets) {
+			const assetConfig = await getAssetBySymbol(symbol)
+			if (assetConfig) {
+				// Use the resolved symbol (e.g., "WINFUT") for fee lookup, not the trade's stored symbol ("WIN")
+				const assetFees = await getAssetFees(assetConfig.symbol, accountId)
+				assetMap.set(symbol, {
+					tickSize: assetConfig.tickSize,
+					tickValue: assetConfig.tickValue,
+					commission: assetFees.commission,
+					fees: assetFees.fees,
+				})
+			}
+		}
+
+		let updatedCount = 0
+
+		for (const trade of closedTrades) {
+			const entryPrice = Number(trade.entryPrice)
+			const exitPrice = Number(trade.exitPrice)
+			const positionSize = Number(trade.positionSize)
+			const direction = trade.direction as "long" | "short"
+			const contractsExecuted = trade.contractsExecuted
+				? Number(trade.contractsExecuted)
+				: positionSize * 2
+
+			if (!entryPrice || !exitPrice || !positionSize) continue
+
+			let pnl: number
+			const assetConfig = assetMap.get(trade.asset.toUpperCase())
+
+			if (assetConfig) {
+				const result = calculateAssetPnL({
+					entryPrice,
+					exitPrice,
+					positionSize,
+					direction,
+					tickSize: parseFloat(assetConfig.tickSize),
+					tickValue: fromCents(assetConfig.tickValue),
+					commission: fromCents(assetConfig.commission),
+					fees: fromCents(assetConfig.fees),
+					contractsExecuted,
+				})
+				pnl = result.netPnl
+			} else {
+				pnl = calculatePnL({
+					direction,
+					entryPrice,
+					exitPrice,
+					positionSize,
+				})
+			}
+
+			const outcome = determineOutcome(pnl)
+
+			// Recalculate realized R-multiple if risk data exists
+			const plannedRiskAmount = trade.plannedRiskAmount
+				? fromCents(trade.plannedRiskAmount)
+				: null
+			const realizedRMultiple =
+				plannedRiskAmount && plannedRiskAmount > 0
+					? calculateRMultiple(pnl, plannedRiskAmount)
+					: null
+
+			await db
+				.update(trades)
+				.set({
+					pnl: toCents(pnl),
+					outcome,
+					realizedRMultiple: realizedRMultiple?.toString() ?? null,
+				})
+				.where(eq(trades.id, trade.id))
+
+			updatedCount++
+		}
+
+		revalidatePath("/")
+		revalidatePath("/journal")
+		revalidatePath("/analytics")
+
+		return {
+			status: "success",
+			message: `Recalculated P&L for ${updatedCount} trades`,
+			data: { updatedCount },
+		}
+	} catch (error) {
+		console.error("Recalculate all trades P&L error:", error)
+		return {
+			status: "error",
+			message: "Failed to recalculate P&L",
+			errors: [{ code: "RECALCULATE_PNL_FAILED", detail: String(error) }],
 		}
 	}
 }

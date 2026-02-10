@@ -28,7 +28,7 @@ interface SectionProps {
 
 const Section = ({ icon: Icon, title, children }: SectionProps) => (
 	<div className="border-bg-300 pb-m-400 border-b last:border-0 last:pb-0">
-		<div className="mb-m-300 gap-s-200 flex items-center">
+		<div className="mb-s-300 gap-s-200 flex items-center">
 			<Icon className="text-accent-primary h-5 w-5" />
 			<h4 className="text-small text-txt-100 font-semibold">{title}</h4>
 		</div>

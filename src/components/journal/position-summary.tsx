@@ -108,15 +108,20 @@ export const PositionSummary = ({
 	return (
 		<div
 			className={cn(
-				"rounded-lg border border-stroke-100 bg-bg-100 p-m-400",
+				"border-stroke-100 bg-bg-100 p-m-400 rounded-lg border",
 				className
 			)}
 		>
-			<div className="mb-m-300 flex items-center justify-between">
-				<h4 className="text-body font-semibold text-txt-100">
+			<div className="mb-s-300 flex items-center justify-between">
+				<h4 className="text-body text-txt-100 font-semibold">
 					{t("positionSummary")}
 				</h4>
-				<div className={cn("flex items-center gap-s-200", getStatusColor(positionStatus))}>
+				<div
+					className={cn(
+						"gap-s-200 flex items-center",
+						getStatusColor(positionStatus)
+					)}
+				>
 					{getStatusIcon(positionStatus)}
 					<span className="text-small font-medium">
 						{getStatusText(positionStatus)}
@@ -126,17 +131,17 @@ export const PositionSummary = ({
 
 			{/* Price Movement Visualization */}
 			<div className="mb-m-400 space-y-s-200">
-				<div className="flex items-center justify-between text-small">
+				<div className="text-small flex items-center justify-between">
 					<div>
 						<span className="text-txt-300">{t("avgEntry")}:</span>
-						<span className="ml-s-200 font-mono font-semibold text-txt-100">
+						<span className="ml-s-200 text-txt-100 font-mono font-semibold">
 							{formatPrice(avgEntryPrice)}
 						</span>
 					</div>
 					{hasExits && (
 						<div>
 							<span className="text-txt-300">{t("avgExit")}:</span>
-							<span className="ml-s-200 font-mono font-semibold text-txt-100">
+							<span className="ml-s-200 text-txt-100 font-mono font-semibold">
 								{formatPrice(avgExitPrice)}
 							</span>
 						</div>
@@ -144,10 +149,14 @@ export const PositionSummary = ({
 				</div>
 
 				{hasExits && (
-					<div className="flex items-center gap-s-200 rounded-md bg-bg-200 p-s-300">
-						<span className="font-mono text-txt-200">{formatPrice(avgEntryPrice)}</span>
-						<ArrowRight className="h-4 w-4 text-txt-300" />
-						<span className="font-mono text-txt-200">{formatPrice(avgExitPrice)}</span>
+					<div className="gap-s-200 bg-bg-200 p-s-300 flex items-center rounded-md">
+						<span className="text-txt-200 font-mono">
+							{formatPrice(avgEntryPrice)}
+						</span>
+						<ArrowRight className="text-txt-300 h-4 w-4" />
+						<span className="text-txt-200 font-mono">
+							{formatPrice(avgExitPrice)}
+						</span>
 						<span
 							className={cn(
 								"ml-auto font-mono font-semibold",
@@ -163,19 +172,19 @@ export const PositionSummary = ({
 
 			{/* Progress Bar */}
 			<div className="mb-m-400">
-				<div className="mb-s-100 flex justify-between text-caption text-txt-300">
+				<div className="mb-s-100 text-caption text-txt-300 flex justify-between">
 					<span>{t("closed")}</span>
 					<span>{closedPercent.toFixed(0)}%</span>
 				</div>
-				<div className="h-2 overflow-hidden rounded-full bg-bg-300">
+				<div className="bg-bg-300 h-2 overflow-hidden rounded-full">
 					<div
 						className={cn(
 							"h-full transition-[width]",
 							positionStatus === "closed"
 								? "bg-trade-buy"
 								: positionStatus === "partial"
-								? "bg-fb-warning"
-								: "bg-fb-info"
+									? "bg-fb-warning"
+									: "bg-fb-info"
 						)}
 						style={{ width: `${Math.min(closedPercent, 100)}%` }}
 					/>
@@ -183,16 +192,16 @@ export const PositionSummary = ({
 			</div>
 
 			{/* Summary Stats */}
-			<div className="grid grid-cols-3 gap-m-300 border-t border-stroke-100 pt-m-300">
+			<div className="gap-s-300 border-stroke-100 pt-s-300 grid grid-cols-3 border-t">
 				<div className="text-center">
 					<div className="text-caption text-txt-300">{t("totalIn")}</div>
-					<div className="font-mono text-body font-semibold text-txt-100">
+					<div className="text-body text-txt-100 font-mono font-semibold">
 						{formatQuantity(totalEntryQuantity)}
 					</div>
 				</div>
 				<div className="text-center">
 					<div className="text-caption text-txt-300">{t("totalOut")}</div>
-					<div className="font-mono text-body font-semibold text-txt-100">
+					<div className="text-body text-txt-100 font-mono font-semibold">
 						{formatQuantity(totalExitQuantity)}
 					</div>
 				</div>
@@ -200,7 +209,7 @@ export const PositionSummary = ({
 					<div className="text-caption text-txt-300">{t("remaining")}</div>
 					<div
 						className={cn(
-							"font-mono text-body font-semibold",
+							"text-body font-mono font-semibold",
 							remainingQuantity > 0 ? "text-fb-warning" : "text-trade-buy"
 						)}
 					>
@@ -211,7 +220,7 @@ export const PositionSummary = ({
 
 			{/* P&L Summary (if closed or partially closed) */}
 			{hasExits && (
-				<div className="mt-m-300 border-t border-stroke-100 pt-m-300">
+				<div className="mt-s-300 border-stroke-100 pt-s-300 border-t">
 					<div className="flex items-center justify-between">
 						<span className="text-small text-txt-300">{t("realizedPnL")}</span>
 						<PnLDisplay value={totalPnl} size="lg" />

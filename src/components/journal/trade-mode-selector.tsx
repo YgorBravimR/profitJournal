@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { Layers, BarChart3 } from "lucide-react"
 
@@ -16,16 +17,18 @@ export const TradeModeSelector = ({
 	onChange,
 	disabled = false,
 }: TradeModeSelectorProps) => {
+	const t = useTranslations("trade.mode")
+
 	return (
 		<div className="space-y-s-200">
-			<label className="text-small font-medium text-txt-100">Trade Mode</label>
-			<div className="grid grid-cols-2 gap-m-300">
+			<label className="text-small text-txt-100 font-medium">{t("label")}</label>
+			<div className="gap-s-300 grid grid-cols-2">
 				<button
 					type="button"
 					onClick={() => onChange("simple")}
 					disabled={disabled}
 					className={cn(
-						"flex flex-col items-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+						"gap-s-200 p-m-400 flex flex-col items-center rounded-lg border-2 transition-colors",
 						value === "simple"
 							? "border-brand-500 bg-brand-500/10 text-brand-500"
 							: "border-bg-300 text-txt-200 hover:border-brand-500/50",
@@ -34,8 +37,8 @@ export const TradeModeSelector = ({
 				>
 					<BarChart3 className="h-5 w-5" />
 					<div className="text-center">
-						<p className="text-small font-medium">Simple Trade</p>
-						<p className="text-tiny text-txt-300">Single entry & exit</p>
+						<p className="text-small font-medium">{t("simple")}</p>
+						<p className="text-tiny text-txt-300">{t("simpleDescription")}</p>
 					</div>
 				</button>
 				<button
@@ -43,7 +46,7 @@ export const TradeModeSelector = ({
 					onClick={() => onChange("scaled")}
 					disabled={disabled}
 					className={cn(
-						"flex flex-col items-center gap-s-200 rounded-lg border-2 p-m-400 transition-colors",
+						"gap-s-200 p-m-400 flex flex-col items-center rounded-lg border-2 transition-colors",
 						value === "scaled"
 							? "border-brand-500 bg-brand-500/10 text-brand-500"
 							: "border-bg-300 text-txt-200 hover:border-brand-500/50",
@@ -52,8 +55,8 @@ export const TradeModeSelector = ({
 				>
 					<Layers className="h-5 w-5" />
 					<div className="text-center">
-						<p className="text-small font-medium">Scaled Position</p>
-						<p className="text-tiny text-txt-300">Multiple entries/exits</p>
+						<p className="text-small font-medium">{t("scaled")}</p>
+						<p className="text-tiny text-txt-300">{t("scaledDescription")}</p>
 					</div>
 				</button>
 			</div>

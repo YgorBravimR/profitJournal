@@ -54,7 +54,45 @@
 		"playbook": "Playbook",
 		"reports": "Reports",
 		"monthly": "Monthly",
-		"settings": "Settings"
+		"settings": "Settings",
+		"monitor": "Monitor",
+		"newTrade": "New Trade"
+	},
+	"market": {
+		"title": "Market Monitor",
+		"subtitle": "Real-time quotes and economic calendar",
+		"lastUpdated": "Last updated",
+		"autoRefresh": "Auto-refresh",
+		"refreshNow": "Refresh now",
+		"groups": {
+			"indices": "Global Indices",
+			"b3": "B3 / Brazil",
+			"commodities": "Commodities",
+			"forex": "Forex",
+			"crypto": "Crypto",
+			"cme": "CME BRL Futures"
+		},
+		"calendar": {
+			"title": "Economic Calendar",
+			"noEvents": "No events scheduled for today",
+			"time": "Time",
+			"country": "Country",
+			"event": "Event",
+			"impact": "Impact",
+			"actual": "Actual",
+			"forecast": "Forecast",
+			"previous": "Previous",
+			"high": "High",
+			"medium": "Medium",
+			"low": "Low"
+		},
+		"quote": {
+			"name": "Asset",
+			"price": "Price",
+			"change": "Change",
+			"loading": "Loading market data...",
+			"error": "Failed to load market data"
+		}
 	},
 	"monteCarlo": {
 		"title": "Monte Carlo Strategy Simulator",
@@ -339,6 +377,9 @@
 		"newTrade": "New Trade",
 		"editTrade": "Edit Trade",
 		"deleteTrade": "Delete Trade",
+		"deleteConfirm": "Delete?",
+		"deleteSuccess": "Trade deleted successfully",
+		"deleteError": "Failed to delete trade",
 		"saveTrade": "Save Trade",
 		"updateTrade": "Update Trade",
 		"tradeDetails": "Trade Details",
@@ -462,6 +503,11 @@
 		"title": "Dashboard",
 		"description": "Overview of your trading performance",
 		"noData": "No data available",
+		"period": {
+			"month": "Month",
+			"year": "Year",
+			"allTime": "All Time"
+		},
 		"trade": "trade",
 		"trades": "trades",
 		"kpi": {
@@ -738,6 +784,12 @@
 			"profitable": "Profitable",
 			"losing": "Losing",
 			"noTrades": "No trades",
+			"bestSlotAction": "Focus your best setups here",
+			"worstSlotAction": "Consider reducing exposure",
+			"bestSlotPlaceholder": "Keep trading to find your best window",
+			"worstSlotPlaceholder": "Keep trading to identify risk areas",
+			"totalTrades": "{count} trades",
+			"heatmapSubtitle": "Identify your most and least profitable trading windows",
 			"heatmapDays": {
 				"mon": "Mon",
 				"tue": "Tue",
@@ -767,6 +819,11 @@
 			"profitFactor": "Profit Factor",
 			"bestSession": "Best Session",
 			"worstSession": "Worst Session",
+			"bestSessionAction": "Prioritize your best setups in this window",
+			"worstSessionAction": "Review your approach or reduce size here",
+			"bestSessionPlaceholder": "Keep trading to find your best session",
+			"worstSessionPlaceholder": "Keep trading to identify risk sessions",
+			"totalTrades": "{count} trades",
 			"assetTitle": "Performance by Asset & Session",
 			"assetDescription": "How each asset performs across trading sessions",
 			"asset": "Asset",
@@ -1005,6 +1062,7 @@
 			"colorScheme": "Color Scheme",
 			"colorSchemeDescription": "Choose your preferred color palette",
 			"brands": {
+				"default": "Default",
 				"bravo": "Bravo Gold",
 				"retro": "Retro Metallic",
 				"luxury": "Luxury Silver",
@@ -1129,6 +1187,10 @@
 			"dataMaintenance": "Data Maintenance",
 			"recalculateR": "Recalculate R Values",
 			"recalculateRDescription": "Updates all trades that have stop loss data to calculate planned risk and realized R-multiple",
+			"recalculatePnL": "Recalculate All P&L",
+			"recalculatePnLDescription": "Recalculates profit and loss for all closed trades using asset tick configuration. Useful after fixing asset settings or importing trades with incorrect P&L.",
+			"recalculatingPnL": "Recalculating...",
+			"recalculatePnLButton": "Recalculate P&L",
 			"dataImport": "Data Import",
 			"dataImportDesc": "Import trades from CSV file",
 			"goTo": "Go to",
@@ -1310,6 +1372,15 @@
 		"scaledMode": "Scaled Position",
 		"simpleMode": "Simple Trade",
 		"executionMode": "Execution Mode"
+	},
+	"overlay": {
+		"runningSimulation": "Running Monte Carlo simulation...",
+		"validatingTrades": "Validating trades...",
+		"importingTrades": "Importing {count} trades...",
+		"recalculatingR": "Recalculating R-values for all trades...",
+		"recalculatingPnL": "Recalculating P&L for all trades...",
+		"processingImage": "Analyzing screenshot...",
+		"importingOcr": "Importing {count} trades from image..."
 	},
 	"auth": {
 		"login": {

@@ -118,6 +118,7 @@ export const tradingAccounts = pgTable(
 		// Display preferences
 		showTaxEstimates: boolean("show_tax_estimates").default(true).notNull(),
 		showPropCalculations: boolean("show_prop_calculations").default(true).notNull(),
+		brand: varchar("brand", { length: 20 }).default("bravo").notNull(),
 
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

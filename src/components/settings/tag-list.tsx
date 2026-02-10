@@ -181,7 +181,7 @@ export const TagList = () => {
 			</div>
 
 			{/* Tags Grid */}
-			<div className="gap-m-300 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+			<div className="gap-s-300 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
 				{filteredTags.length === 0 ? (
 					<div className="border-bg-300 bg-bg-200 p-l-700 text-txt-300 col-span-full rounded-lg border text-center">
 						{tags.length === 0 ? t("noTags") : t("noTagsInFilter")}

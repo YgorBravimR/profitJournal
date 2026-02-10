@@ -59,7 +59,7 @@ export const DataSourceSelector = ({
 
 	return (
 		<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
-			<h3 className="mb-m-300 text-small text-txt-200 font-medium">
+			<h3 className="mb-s-300 text-small text-txt-200 font-medium">
 				{t("title")}
 			</h3>
 
@@ -99,16 +99,18 @@ export const DataSourceSelector = ({
 
 					{/* Aggregate Options */}
 					{aggregateOptions.map((option) => {
-						const label = option.type === "all_strategies"
-							? t("allStrategies")
-							: option.type === "universal"
-								? t("universal")
-								: option.label
-						const description = option.type === "all_strategies"
-							? t("allStrategiesDesc")
-							: option.type === "universal"
-								? t("universalDesc")
-								: option.description
+						const label =
+							option.type === "all_strategies"
+								? t("allStrategies")
+								: option.type === "universal"
+									? t("universal")
+									: option.label
+						const description =
+							option.type === "all_strategies"
+								? t("allStrategiesDesc")
+								: option.type === "universal"
+									? t("universalDesc")
+									: option.description
 
 						return (
 							<SelectItem

@@ -55,7 +55,7 @@ const calculatePercentileBoundaries = (
 	const totalCount = buckets.reduce((sum, b) => sum + b.count, 0)
 	let cumulative = 0
 
-	const sortedBuckets = [...buckets].sort((a, b) => a.midPoint - b.midPoint)
+	const sortedBuckets = buckets.toSorted((a, b) => a.midPoint - b.midPoint)
 	const min = sortedBuckets[0].midPoint
 	const max = sortedBuckets[sortedBuckets.length - 1].midPoint
 
@@ -320,31 +320,31 @@ export const DistributionHistogram = ({
 			</p>
 
 			{/* Percentile Zone Legend */}
-			<div className="mt-m-400 pt-m-300 border-t border-bg-300">
-				<div className="flex flex-wrap items-center justify-center gap-m-400">
-					<div className="flex items-center gap-s-200">
+			<div className="mt-m-400 pt-s-300 border-bg-300 border-t">
+				<div className="gap-m-400 flex flex-wrap items-center justify-center">
+					<div className="gap-s-200 flex items-center">
 						<div
 							className="h-3 w-6 rounded-sm"
 							style={{ backgroundColor: ZONE_COLORS.core }}
 						/>
 						<span className="text-tiny text-txt-300">{t("legendCore")}</span>
 					</div>
-					<div className="flex items-center gap-s-200">
+					<div className="gap-s-200 flex items-center">
 						<div
 							className="h-3 w-6 rounded-sm"
 							style={{ backgroundColor: ZONE_COLORS.center }}
 						/>
 						<span className="text-tiny text-txt-300">{t("legendCenter")}</span>
 					</div>
-					<div className="flex items-center gap-s-200">
+					<div className="gap-s-200 flex items-center">
 						<div
 							className="h-3 w-6 rounded-sm"
 							style={{ backgroundColor: ZONE_COLORS.middle }}
 						/>
 						<span className="text-tiny text-txt-300">{t("legendMiddle")}</span>
 					</div>
-					<div className="flex items-center gap-s-200">
-						<div className="h-3 w-6 rounded-sm border border-bg-300 bg-transparent" />
+					<div className="gap-s-200 flex items-center">
+						<div className="border-bg-300 h-3 w-6 rounded-sm border bg-transparent" />
 						<span className="text-tiny text-txt-300">{t("legendOuter")}</span>
 					</div>
 				</div>

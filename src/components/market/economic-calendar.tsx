@@ -1,0 +1,108 @@
+"use client"
+
+import { useTranslations } from "next-intl"
+import type { EconomicEvent, EventImpact } from "@/types/market"
+import { cn } from "@/lib/utils"
+
+interface EconomicCalendarProps {
+	events: EconomicEvent[]
+}
+
+const COUNTRY_FLAGS: Record<string, string> = {
+	US: "🇺🇸",
+	BR: "🇧🇷",
+	EU: "🇪🇺",
+	CN: "🇨🇳",
+	JP: "🇯🇵",
+	GB: "🇬🇧",
+}
+
+const ImpactDot = ({ impact }: { impact: EventImpact }) => {
+	const t = useTranslations("market.calendar")
+
+	return (
+		<div className="flex items-center gap-1.5" aria-label={t(impact)}>
+			<span
+				className={cn(
+					"inline-block h-2.5 w-2.5 rounded-full",
+					impact === "high" && "bg-fb-error",
+					impact === "medium" && "bg-warning",
+					impact === "low" && "bg-txt-300"
+				)}
+				aria-hidden="true"
+			/>
+			<span className="text-tiny text-txt-300 hidden sm:inline">{t(impact)}</span>
+		</div>
+	)
+}
+
+export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
+	const t = useTranslations("market.calendar")
+
+	return (
+		<div className="border-bg-300 bg-bg-200 rounded-lg border">
+			{/* Header */}
+			<div className="border-bg-300 border-b px-4 py-3">
+				<h3 className="text-small text-txt-100 font-semibold">{t("title")}</h3>
+			</div>
+
+			{/* Events table */}
+			{events.length === 0 ? (
+				<div className="text-small text-txt-300 px-4 py-8 text-center">{t("noEvents")}</div>
+			) : (
+				<div className="overflow-x-auto">
+					<table className="w-full" role="table" aria-label={t("title")}>
+						<thead>
+							<tr className="text-tiny text-txt-300 border-bg-300/50 border-b">
+								<th className="px-4 py-2 text-left font-medium">{t("time")}</th>
+								<th className="px-3 py-2 text-left font-medium">{t("country")}</th>
+								<th className="px-3 py-2 text-left font-medium">{t("event")}</th>
+								<th className="px-3 py-2 text-left font-medium">{t("impact")}</th>
+								<th className="px-3 py-2 text-right font-medium">{t("actual")}</th>
+								<th className="px-3 py-2 text-right font-medium">{t("forecast")}</th>
+								<th className="px-4 py-2 text-right font-medium">{t("previous")}</th>
+							</tr>
+						</thead>
+						<tbody>
+							{events.map((event) => (
+								<tr
+									key={event.id}
+									className="border-bg-300/50 hover:bg-bg-300/30 border-b transition-colors last:border-b-0"
+								>
+									<td className="text-small text-txt-100 px-4 py-2.5 font-mono tabular-nums">
+										{event.time}
+									</td>
+									<td className="px-3 py-2.5">
+										<span className="text-body" aria-label={event.country}>
+											{COUNTRY_FLAGS[event.country] || event.country}
+										</span>
+									</td>
+									<td className="text-small text-txt-100 max-w-[200px] truncate px-3 py-2.5 sm:max-w-none">
+										{event.event}
+									</td>
+									<td className="px-3 py-2.5">
+										<ImpactDot impact={event.impact} />
+									</td>
+									<td
+										className={cn(
+											"text-small px-3 py-2.5 text-right font-mono tabular-nums",
+											event.actual ? "text-txt-100" : "text-txt-300"
+										)}
+									>
+										{event.actual || "—"}
+									</td>
+									<td className="text-small text-txt-200 px-3 py-2.5 text-right font-mono tabular-nums">
+										{event.forecast || "—"}
+									</td>
+									<td className="text-small text-txt-300 px-4 py-2.5 text-right font-mono tabular-nums">
+										{event.previous || "—"}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			)}
+		</div>
+	)
+}

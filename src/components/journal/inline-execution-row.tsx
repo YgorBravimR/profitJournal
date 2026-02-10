@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
+import { format } from "date-fns"
 
 export interface ExecutionRowData {
 	id: string
@@ -22,6 +24,8 @@ interface InlineExecutionRowProps {
 	currency?: string
 }
 
+const todayDateString = format(new Date(), "yyyy-MM-dd")
+
 export const InlineExecutionRow = ({
 	data,
 	onChange,
@@ -29,10 +33,13 @@ export const InlineExecutionRow = ({
 	canRemove,
 	currency = "$",
 }: InlineExecutionRowProps) => {
+	const t = useTranslations("execution")
+
 	return (
 		<div className="gap-s-200 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr] items-center">
 			<Input
 				type="date"
+				max={todayDateString}
 				value={data.date}
 				onChange={(e) => onChange(data.id, "date", e.target.value)}
 				className="text-small h-8"
@@ -46,7 +53,7 @@ export const InlineExecutionRow = ({
 			<Input
 				type="number"
 				step="any"
-				placeholder="Price"
+				placeholder={t("price")}
 				value={data.price}
 				onChange={(e) => onChange(data.id, "price", e.target.value)}
 				className="text-small h-8"
@@ -54,7 +61,7 @@ export const InlineExecutionRow = ({
 			<Input
 				type="number"
 				step="any"
-				placeholder="Quantity"
+				placeholder={t("quantity")}
 				value={data.quantity}
 				onChange={(e) => onChange(data.id, "quantity", e.target.value)}
 				className="text-small h-8"

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useTranslations } from "next-intl"
 import { useBrand, type Brand } from "@/components/providers/brand-provider"
+import { updateAccountBrand } from "@/app/actions/settings"
 import {
 	Select,
 	SelectContent,
@@ -13,8 +14,9 @@ import {
 
 /** Color swatches for each brand to give visual preview */
 const brandColors: Record<Brand, { primary: string; bg: string }> = {
+	default: { primary: "#8080ff", bg: "#151C2C" },
 	bravo: { primary: "#D4AF37", bg: "#151C2C" },
-	retro: { primary: "#C9A227", bg: "#171614" },
+	retro: { primary: "#dddd7a", bg: "#171614" },
 	luxury: { primary: "#C0C0C0", bg: "#141416" },
 	tsr: { primary: "#2563EB", bg: "#161B22" },
 	neon: { primary: "#00FFFF", bg: "#12121C" },
@@ -46,6 +48,7 @@ const BrandColorSwatch = ({ brand, label }: BrandColorSwatchProps) => (
 /**
  * Component for switching between brand color schemes.
  * Provides a dropdown selector with visual color previews.
+ * Persists the selected brand to the database via server action.
  */
 const BrandSwitcher = () => {
 	const t = useTranslations("settings.profile")
@@ -57,7 +60,11 @@ const BrandSwitcher = () => {
 	}, [])
 
 	const handleBrandChange = (value: string) => {
-		setBrand(value as Brand)
+		const newBrand = value as Brand
+		// Optimistic UI update
+		setBrand(newBrand)
+		// Persist to database
+		updateAccountBrand(newBrand)
 	}
 
 	// Avoid hydration mismatch

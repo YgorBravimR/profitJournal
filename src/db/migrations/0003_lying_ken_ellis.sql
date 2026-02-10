@@ -1,0 +1,1 @@
+ALTER TABLE "trading_accounts" ADD COLUMN "brand" varchar(20) DEFAULT 'bravo' NOT NULL;

@@ -222,6 +222,7 @@ export const ExecutionForm = ({
 							<Input
 								id="executionDate"
 								type="date"
+								max={format(new Date(), "yyyy-MM-dd")}
 								value={formData.executionDate}
 								onChange={(e) => handleChange("executionDate", e.target.value)}
 								required
@@ -288,7 +289,7 @@ export const ExecutionForm = ({
 					</div>
 
 					{/* Costs */}
-					<div className="gap-m-300 grid grid-cols-3">
+					<div className="gap-s-300 grid grid-cols-3">
 						<div className="space-y-s-200">
 							<Label htmlFor="commission" className="text-small">
 								{t("commission")}

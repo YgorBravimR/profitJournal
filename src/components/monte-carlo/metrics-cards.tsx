@@ -22,7 +22,7 @@ interface MetricCardProps {
 
 const MetricCard = ({ title, children }: MetricCardProps) => (
 	<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
-		<h4 className="mb-m-300 text-small text-txt-100 font-semibold">{title}</h4>
+		<h4 className="mb-s-300 text-small text-txt-100 font-semibold">{title}</h4>
 		<div className="space-y-s-200">{children}</div>
 	</div>
 )

@@ -525,7 +525,7 @@ export const ScaledTradeForm = ({
 							<p className="text-small text-txt-100 font-medium">
 								Position Summary
 							</p>
-							<div className="mt-s-300 gap-m-300 text-small grid grid-cols-4">
+							<div className="mt-s-300 gap-s-300 text-small grid grid-cols-4">
 								<div>
 									<p className="text-tiny text-txt-300">Status</p>
 									<p
@@ -638,7 +638,11 @@ export const ScaledTradeForm = ({
 								<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
 									{calculatedRisk !== null ? (
 										<span className="text-small text-txt-100 font-medium">
-											{selectedAsset?.currency ?? "$"} {calculatedRisk.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+											{selectedAsset?.currency ?? "$"}{" "}
+											{calculatedRisk.toLocaleString("pt-BR", {
+												minimumFractionDigits: 2,
+												maximumFractionDigits: 2,
+											})}
 										</span>
 									) : (
 										<span className="text-small text-txt-300">

@@ -404,3 +404,71 @@ export const updateTheme = async (
 		}
 	}
 }
+
+// Valid brand values (must match Brand type in brand-provider)
+const VALID_BRANDS = ["bravo", "retro", "luxury", "tsr", "neon", "default"] as const
+type BrandValue = (typeof VALID_BRANDS)[number]
+
+/**
+ * Get the current account's brand (color scheme) from the database.
+ */
+export const getAccountBrand = async (): Promise<ActionResponse<string>> => {
+	try {
+		const { accountId } = await requireAuth()
+
+		const account = await db.query.tradingAccounts.findFirst({
+			where: eq(tradingAccounts.id, accountId),
+			columns: { brand: true },
+		})
+
+		return {
+			status: "success",
+			message: "Brand retrieved",
+			data: account?.brand ?? "bravo",
+		}
+	} catch (error) {
+		console.error("Failed to get account brand:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve brand",
+		}
+	}
+}
+
+/**
+ * Persist the account's brand (color scheme) to the database.
+ */
+export const updateAccountBrand = async (
+	brand: string
+): Promise<ActionResponse<string>> => {
+	try {
+		const { accountId } = await requireAuth()
+
+		if (!VALID_BRANDS.includes(brand as BrandValue)) {
+			return {
+				status: "error",
+				message: "Invalid brand value",
+				errors: [{ code: "INVALID_BRAND", detail: `Brand must be one of: ${VALID_BRANDS.join(", ")}` }],
+			}
+		}
+
+		await db
+			.update(tradingAccounts)
+			.set({ brand, updatedAt: new Date() })
+			.where(eq(tradingAccounts.id, accountId))
+
+		revalidatePath("/settings")
+
+		return {
+			status: "success",
+			message: "Brand updated",
+			data: brand,
+		}
+	} catch (error) {
+		console.error("Failed to update account brand:", error)
+		return {
+			status: "error",
+			message: "Failed to update brand",
+		}
+	}
+}

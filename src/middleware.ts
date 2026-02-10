@@ -11,7 +11,7 @@ const intlMiddleware = createIntlMiddleware(routing)
 const { auth } = NextAuth(authConfig)
 
 // Public paths that don't require authentication
-const publicPaths = ["/login", "/register", "/api/auth"]
+const publicPaths = ["/login", "/register", "/api/auth", "/painel", "/api/market"]
 
 // Check if a path is public
 const isPublicPath = (pathname: string): boolean => {

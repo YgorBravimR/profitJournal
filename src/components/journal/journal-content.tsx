@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 import type { JournalPeriod, TradesByDay } from "@/types"
-import { getTradesGroupedByDay } from "@/app/actions/trades"
+import { getTradesGroupedByDay, deleteTrade } from "@/app/actions/trades"
 import { formatBrlWithSign } from "@/lib/formatting"
 import { LoadingSpinner, EmptyState, ColoredValue } from "@/components/shared"
+import { useToast } from "@/components/ui/toast"
 import { PeriodFilter } from "./period-filter"
 import { TradeDayGroup } from "./trade-day-group"
 
@@ -51,10 +52,9 @@ const getDateRange = (
 			return { from, to }
 		}
 		case "all": {
-			// Far past to now — fetch all trades
+			// Far past to far future — fetch all trades (including ghost trades with future dates)
 			const from = new Date(2000, 0, 1)
-			const to = new Date(now)
-			to.setHours(23, 59, 59, 999)
+			const to = new Date(2099, 11, 31, 23, 59, 59, 999)
 			return { from, to }
 		}
 		case "custom": {
@@ -81,12 +81,15 @@ interface JournalContentProps {
 /**
  * Main content component for the trading journal page.
  * Handles period filtering, data fetching, and displays trades grouped by day.
+ * Manages inline trade deletion with two-step confirmation.
  *
  * @param initialPeriod - The initial period to display (defaults to "week")
  */
 export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) => {
 	const router = useRouter()
 	const t = useTranslations("journal")
+	const tTrade = useTranslations("trade")
+	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
 
 	const [period, setPeriod] = useState<JournalPeriod>(initialPeriod)
@@ -94,6 +97,10 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	const [tradesByDay, setTradesByDay] = useState<TradesByDay[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [totalTrades, setTotalTrades] = useState(0)
+
+	// Delete state — lifted here so it applies across all day groups
+	const [deletingTradeId, setDeletingTradeId] = useState<string | null>(null)
+	const [isDeleting, setIsDeleting] = useState(false)
 
 	// Fetch trades when period or custom range changes
 	useEffect(() => {
@@ -135,6 +142,43 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	const handleTradeClick = useCallback((tradeId: string) => {
 		router.push(`/journal/${tradeId}`)
 	}, [router])
+
+	// Delete handlers
+	const handleDeleteRequest = useCallback((tradeId: string) => {
+		setDeletingTradeId(tradeId)
+	}, [])
+
+	const handleDeleteCancel = useCallback(() => {
+		setDeletingTradeId(null)
+	}, [])
+
+	const handleDeleteConfirm = useCallback(async (tradeId: string) => {
+		setIsDeleting(true)
+		const result = await deleteTrade(tradeId)
+
+		if (result.status === "success") {
+			showToast("success", tTrade("deleteSuccess"))
+			// Remove trade from local state for instant UI feedback
+			setTradesByDay((prev) =>
+				prev
+					.map((day) => ({
+						...day,
+						trades: day.trades.filter((t) => t.id !== tradeId),
+						summary: {
+							...day.summary,
+							totalTrades: day.summary.totalTrades - (day.trades.some((t) => t.id === tradeId) ? 1 : 0),
+						},
+					}))
+					.filter((day) => day.trades.length > 0)
+			)
+			setTotalTrades((prev) => prev - 1)
+		} else {
+			showToast("error", result.message || tTrade("deleteError"))
+		}
+
+		setIsDeleting(false)
+		setDeletingTradeId(null)
+	}, [showToast, tTrade])
 
 	// Calculate period summary
 	const periodSummary = tradesByDay.reduce(
@@ -202,6 +246,11 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 							key={dayData.date}
 							dayData={dayData}
 							onTradeClick={handleTradeClick}
+							deletingTradeId={deletingTradeId}
+							onDeleteRequest={handleDeleteRequest}
+							onDeleteConfirm={handleDeleteConfirm}
+							onDeleteCancel={handleDeleteCancel}
+							isDeleting={isDeleting}
 						/>
 					))}
 				</div>

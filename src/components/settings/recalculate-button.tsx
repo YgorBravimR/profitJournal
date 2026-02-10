@@ -3,9 +3,13 @@
 import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { recalculateRValues } from "@/app/actions/trades"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
+import { cn } from "@/lib/utils"
 
 export const RecalculateButton = () => {
 	const t = useTranslations("settings.timeframes")
+	const tOverlay = useTranslations("overlay")
+	const { showLoading, hideLoading } = useLoadingOverlay()
 	const [isPending, startTransition] = useTransition()
 	const [result, setResult] = useState<{
 		message: string
@@ -14,8 +18,10 @@ export const RecalculateButton = () => {
 
 	const handleRecalculate = () => {
 		setResult(null)
+		showLoading({ message: tOverlay("recalculatingR") })
 		startTransition(async () => {
 			const response = await recalculateRValues()
+			hideLoading()
 			setResult({
 				message: response.message,
 				status: response.status,
@@ -35,9 +41,10 @@ export const RecalculateButton = () => {
 			</button>
 			{result && (
 				<p
-					className={`text-small ${
+					className={cn(
+						"text-small",
 						result.status === "success" ? "text-trade-buy" : "text-trade-sell"
-					}`}
+					)}
 				>
 					{result.message}
 				</p>

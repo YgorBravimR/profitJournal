@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { ThemeSynchronizer } from "@/components/providers/theme-synchronizer"
+import { BrandSynchronizer } from "@/components/providers/brand-synchronizer"
 import { cn } from "@/lib/utils"
 
 interface AppLayoutProps {
@@ -15,6 +16,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 	return (
 		<>
 			<ThemeSynchronizer />
+			<BrandSynchronizer />
 			<Sidebar
 				isCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}

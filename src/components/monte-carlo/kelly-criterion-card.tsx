@@ -90,10 +90,10 @@ export const KellyCriterionCard = ({
 			</div>
 
 			{/* Kelly Values */}
-			<div className="mb-m-400 gap-m-300 grid grid-cols-3">
+			<div className="mb-m-400 gap-s-300 grid grid-cols-3">
 				<div
 					className={cn(
-						"p-m-300 rounded-lg border text-center",
+						"p-s-300 rounded-lg border text-center",
 						kellyLevel === "conservative"
 							? levelBgColor
 							: "border-bg-300 bg-bg-100"
@@ -109,7 +109,7 @@ export const KellyCriterionCard = ({
 				</div>
 				<div
 					className={cn(
-						"p-m-300 rounded-lg border text-center",
+						"p-s-300 rounded-lg border text-center",
 						kellyLevel === "balanced" ? levelBgColor : "border-bg-300 bg-bg-100"
 					)}
 				>
@@ -123,7 +123,7 @@ export const KellyCriterionCard = ({
 				</div>
 				<div
 					className={cn(
-						"p-m-300 rounded-lg border text-center",
+						"p-s-300 rounded-lg border text-center",
 						kellyLevel === "aggressive"
 							? levelBgColor
 							: "border-bg-300 bg-bg-100"
@@ -140,7 +140,7 @@ export const KellyCriterionCard = ({
 			</div>
 
 			{/* Recommendation */}
-			<div className={cn("p-m-300 rounded-lg border", levelBgColor)}>
+			<div className={cn("p-s-300 rounded-lg border", levelBgColor)}>
 				<div className="gap-s-200 flex items-start">
 					<LevelIcon
 						className={cn("mt-0.5 h-4 w-4 flex-shrink-0", levelColor)}
@@ -156,21 +156,33 @@ export const KellyCriterionCard = ({
 				</p>
 				<div className="space-y-s-100 text-tiny text-txt-300">
 					<p>
-						• {t("accountRisk", {
+						•{" "}
+						{t("accountRisk", {
 							account: formatKellyCurrency(10000, currency),
-							risk: formatKellyCurrency((recommendedKelly / 100) * 10000, currency)
+							risk: formatKellyCurrency(
+								(recommendedKelly / 100) * 10000,
+								currency
+							),
 						})}
 					</p>
 					<p>
-						• {t("accountRisk", {
+						•{" "}
+						{t("accountRisk", {
 							account: formatKellyCurrency(25000, currency),
-							risk: formatKellyCurrency((recommendedKelly / 100) * 25000, currency)
+							risk: formatKellyCurrency(
+								(recommendedKelly / 100) * 25000,
+								currency
+							),
 						})}
 					</p>
 					<p>
-						• {t("accountRisk", {
+						•{" "}
+						{t("accountRisk", {
 							account: formatKellyCurrency(50000, currency),
-							risk: formatKellyCurrency((recommendedKelly / 100) * 50000, currency)
+							risk: formatKellyCurrency(
+								(recommendedKelly / 100) * 50000,
+								currency
+							),
 						})}
 					</p>
 				</div>

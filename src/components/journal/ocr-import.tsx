@@ -22,6 +22,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/toast"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import {
 	recognizeImage,
 	parseProfitChartOcr,
@@ -65,8 +66,10 @@ export const OcrImport = () => {
 	const t = useTranslations("journal.ocr")
 	const tTrade = useTranslations("trade")
 	const tCommon = useTranslations("common")
+	const tOverlay = useTranslations("overlay")
 	const router = useRouter()
 	const { showToast } = useToast()
+	const { showLoading, hideLoading } = useLoadingOverlay()
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	// State
@@ -92,10 +95,8 @@ export const OcrImport = () => {
 	// Check Vision availability on mount
 	useEffect(() => {
 		const checkVision = async () => {
-			console.log("[OCR DEBUG] Checking Vision availability...")
 			const result = await checkVisionAvailability()
 			const isAvailable = result.data?.available ?? false
-			console.log("[OCR DEBUG] AI Vision available:", isAvailable)
 			setVisionAvailable(isAvailable)
 		}
 		checkVision()
@@ -118,16 +119,13 @@ export const OcrImport = () => {
 			setImage(imageData)
 			setFileName(file.name)
 			setStep("processing")
+			showLoading({ message: tOverlay("processingImage") })
 
 			try {
 				let parsed: OcrParseResult
 
-				console.log("[OCR DEBUG] Starting OCR process...")
-				console.log("[OCR DEBUG] AI Vision available:", visionAvailable)
-
 				// Try AI Vision cascade first if available
 				if (visionAvailable) {
-					console.log("[OCR DEBUG] ✨ Using AI Vision cascade (OpenAI → Google → Claude → Groq)")
 					setProgress({
 						status: "recognizing",
 						progress: 50,
@@ -137,20 +135,15 @@ export const OcrImport = () => {
 					// Extract base64 without the data URL prefix
 					const base64Data = imageData.replace(/^data:image\/\w+;base64,/, "")
 					const mimeType = file.type
-					console.log("[OCR DEBUG] Sending to Vision cascade, mimeType:", mimeType)
 
 					const result = await extractTradesWithVision(base64Data, mimeType)
-					console.log("[OCR DEBUG] Vision cascade response status:", result.status)
-					console.log("[OCR DEBUG] Vision cascade response:", result)
 
 					if (result.status === "success" && result.data) {
 						const provider = (result.data as OcrParseResult & { provider?: string }).provider ?? "ai"
-						console.log(`[OCR DEBUG] ✅ Vision succeeded via ${provider}! Trades found:`, result.data.trades.length)
 						setOcrProvider(provider)
 						parsed = result.data
 					} else {
 						// Fall back to Tesseract if all AI providers fail
-						console.warn("[OCR DEBUG] ⚠️ AI Vision failed, falling back to Tesseract:", result.message)
 						setOcrProvider("tesseract")
 						setProgress({
 							status: "recognizing",
@@ -159,15 +152,12 @@ export const OcrImport = () => {
 						})
 						const ocrResult = await recognizeImage(imageData, setProgress)
 						parsed = parseProfitChartOcr(ocrResult)
-						console.log("[OCR DEBUG] Tesseract fallback result:", parsed.trades.length, "trades")
 					}
 				} else {
 					// Use Tesseract as fallback
-					console.log("[OCR DEBUG] ⚙️ Using Tesseract (no AI Vision configured)")
 					setOcrProvider("tesseract")
 					const ocrResult = await recognizeImage(imageData, setProgress)
 					parsed = parseProfitChartOcr(ocrResult)
-					console.log("[OCR DEBUG] Tesseract result:", parsed.trades.length, "trades")
 				}
 
 				setParseResult(parsed)
@@ -188,9 +178,10 @@ export const OcrImport = () => {
 				setEditedTrades(trades)
 				setEditedDate(new Date().toISOString().split("T")[0])
 
+				hideLoading()
 				setStep("review")
-			} catch (error) {
-				console.error("OCR error:", error)
+			} catch {
+				hideLoading()
 				showToast("error", "Failed to process image")
 				setStep("upload")
 			}
@@ -199,7 +190,7 @@ export const OcrImport = () => {
 			showToast("error", "Failed to read file")
 		}
 		reader.readAsDataURL(file)
-	}, [showToast, visionAvailable])
+	}, [showToast, visionAvailable, showLoading, hideLoading, tOverlay])
 
 	const handleDrop = useCallback(
 		(e: React.DragEvent) => {
@@ -297,6 +288,9 @@ export const OcrImport = () => {
 
 		setIsImporting(true)
 		setStep("importing")
+		showLoading({
+			message: tOverlay("importingOcr", { count: validTrades.length }),
+		})
 
 		try {
 			// Parse the date
@@ -343,6 +337,7 @@ export const OcrImport = () => {
 			showToast("error", "An unexpected error occurred")
 			setStep("review")
 		} finally {
+			hideLoading()
 			setIsImporting(false)
 		}
 	}

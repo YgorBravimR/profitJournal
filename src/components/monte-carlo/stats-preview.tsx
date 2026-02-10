@@ -41,13 +41,13 @@ export const StatsPreview = ({
 	return (
 		<div className="border-accent-primary/30 bg-accent-primary/5 p-m-400 rounded-lg border">
 			{/* Header */}
-			<div className="mb-m-300">
+			<div className="mb-s-300">
 				<h4 className="text-small text-txt-100 font-medium">
 					{stats.sourceName}
 				</h4>
 				<p className="text-tiny text-txt-300">
-					{stats.totalTrades} {t("trades")} ({formatDate(stats.dateRange.from)} -{" "}
-					{formatDate(stats.dateRange.to)})
+					{stats.totalTrades} {t("trades")} ({formatDate(stats.dateRange.from)}{" "}
+					- {formatDate(stats.dateRange.to)})
 				</p>
 				{(stats.strategiesCount ?? 0) > 1 ? (
 					<p className="text-tiny text-txt-300">
@@ -62,7 +62,7 @@ export const StatsPreview = ({
 			</div>
 
 			{/* Stats Grid */}
-			<div className="mb-m-400 gap-m-300 grid grid-cols-3">
+			<div className="mb-m-400 gap-s-300 grid grid-cols-3">
 				<div className="bg-bg-100 p-s-300 rounded-md text-center">
 					<p className="text-tiny text-txt-300">{t("winRate")}</p>
 					<p className="text-body text-txt-100 font-semibold">
@@ -99,7 +99,8 @@ export const StatsPreview = ({
 							>
 								<span className="text-txt-200">{s.name}</span>
 								<span className="text-txt-300">
-									{s.tradesCount} {t("trades")} ({s.winRate.toFixed(0)}% {t("win")})
+									{s.tradesCount} {t("trades")} ({s.winRate.toFixed(0)}%{" "}
+									{t("win")})
 								</span>
 							</div>
 						))}

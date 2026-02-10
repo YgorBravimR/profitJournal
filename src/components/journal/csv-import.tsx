@@ -13,6 +13,7 @@ import {
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/toast"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { parseCsvContent, generateCsvTemplate } from "@/lib/csv-parser"
 import type { CsvParseResult } from "@/lib/csv-parser"
 import {
@@ -26,8 +27,10 @@ import { CsvTradeCard } from "./csv-trade-card"
 
 export const CsvImport = () => {
 	const t = useTranslations("journal.csv")
+	const tOverlay = useTranslations("overlay")
 	const router = useRouter()
 	const { showToast } = useToast()
+	const { showLoading, updateLoading, hideLoading } = useLoadingOverlay()
 	const fileInputRef = useRef<HTMLInputElement>(null)
 
 	// File state
@@ -110,11 +113,13 @@ export const CsvImport = () => {
 
 				// Validate trades on server
 				setIsValidating(true)
+				showLoading({ message: tOverlay("validatingTrades") })
 				const validation = await validateCsvTrades(result.trades)
 
 				if (validation.status === "error") {
 					showToast("error", validation.message)
 					setIsValidating(false)
+					hideLoading()
 					return
 				}
 
@@ -130,11 +135,13 @@ export const CsvImport = () => {
 				setSelectedIds(validIds)
 
 				setIsValidating(false)
+				hideLoading()
 			} catch {
+				hideLoading()
 				showToast("error", "Failed to read file")
 			}
 		},
-		[showToast]
+		[showToast, showLoading, hideLoading, tOverlay]
 	)
 
 	const handleDrop = useCallback(
@@ -242,17 +249,26 @@ export const CsvImport = () => {
 
 		setIsImporting(true)
 		setImportProgress(0)
+		showLoading({
+			message: tOverlay("importingTrades", { count: selectedTrades.length }),
+			progress: 0,
+		})
 
 		try {
 			// Simulate progress for UX
 			const progressInterval = setInterval(() => {
-				setImportProgress((prev) => Math.min(prev + 10, 90))
+				setImportProgress((prev) => {
+					const next = Math.min(prev + 10, 90)
+					updateLoading({ progress: next })
+					return next
+				})
 			}, 200)
 
 			const result = await importCsvTrades(selectedTrades)
 
 			clearInterval(progressInterval)
 			setImportProgress(100)
+			updateLoading({ progress: 100 })
 
 			if (result.status === "success") {
 				showToast("success", result.message)
@@ -263,6 +279,7 @@ export const CsvImport = () => {
 		} catch {
 			showToast("error", "An unexpected error occurred")
 		} finally {
+			hideLoading()
 			setIsImporting(false)
 		}
 	}
@@ -378,24 +395,6 @@ export const CsvImport = () => {
 							/>
 						))}
 					</div>
-
-					{/* Import Progress */}
-					{isImporting && (
-						<div className="rounded-lg border border-acc-100/30 bg-acc-100/10 p-m-400">
-							<div className="flex items-center justify-between">
-								<span className="text-small text-txt-100">
-									Importing trades...
-								</span>
-								<span className="text-small text-txt-300">{importProgress}%</span>
-							</div>
-							<div className="mt-s-200 h-2 overflow-hidden rounded-full bg-bg-300">
-								<div
-									className="h-full bg-acc-100 transition-all duration-300"
-									style={{ width: `${importProgress}%` }}
-								/>
-							</div>
-						</div>
-					)}
 
 					{/* Actions */}
 					<div className="flex items-center justify-between rounded-lg border border-bg-300 bg-bg-200 p-m-400">

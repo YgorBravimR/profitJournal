@@ -109,7 +109,7 @@ export const TradeSequenceList = ({
 			</div>
 
 			{hasMore && (
-				<div className="mt-m-300 text-center">
+				<div className="mt-s-300 text-center">
 					<Button
 						variant="ghost"
 						size="sm"

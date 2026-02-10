@@ -8017,7 +8017,7 @@ AFTER:  WHERE tags.userId = :currentUserId
 - `ExecutionRow` shows `dd/MM HH:mm` (no seconds)
 - `ExecutionForm` defaults date/time to `new Date()` (current time)
 - No validation preventing exits > entries
-- Spacing between numbers is too tight (font-mono elements with `gap-m-300`)
+- Spacing between numbers is too tight (font-mono elements with `gap-s-300`)
 
 **Changes Required:**
 
@@ -8087,7 +8087,7 @@ AFTER:  WHERE tags.userId = :currentUserId
 
 **File: `src/components/journal/execution-list.tsx`**
 - Increase gap between date, quantity, price, and order type in `ExecutionRow`
-- Change from `gap-m-300` to `gap-m-400` or `gap-m-500`
+- Change from `gap-s-300` to `gap-m-400` or `gap-m-500`
 - Add minimum widths to key columns to prevent overlap
 - Use tabular-nums font feature for consistent number alignment: `font-variant-numeric: tabular-nums` via Tailwind `tabular-nums` class
 

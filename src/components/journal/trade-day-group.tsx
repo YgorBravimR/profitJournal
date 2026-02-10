@@ -12,30 +12,41 @@ interface TradeDayGroupProps {
 	dayData: TradesByDay
 	onTradeClick?: (tradeId: string) => void
 	defaultExpanded?: boolean
+	deletingTradeId: string | null
+	onDeleteRequest: (tradeId: string) => void
+	onDeleteConfirm: (tradeId: string) => void
+	onDeleteCancel: () => void
+	isDeleting: boolean
 }
 
 /**
  * Displays a collapsible group of trades for a single day.
  * Shows day summary (P&L, win rate) in the header and individual trades when expanded.
  *
- * Wrapped with React.memo to prevent unnecessary re-renders when parent updates
- * but day data hasn't changed.
- *
  * @param dayData - Trade data grouped by day including summary and individual trades
  * @param onTradeClick - Optional callback when a trade row is clicked
  * @param defaultExpanded - Whether the group should be expanded by default
+ * @param deletingTradeId - ID of the trade in delete-confirmation state, or null
+ * @param onDeleteRequest - Callback to show delete confirmation for a trade
+ * @param onDeleteConfirm - Callback to confirm deletion
+ * @param onDeleteCancel - Callback to cancel deletion
+ * @param isDeleting - Whether a delete action is in flight
  */
 export const TradeDayGroup = memo(({
 	dayData,
 	onTradeClick,
 	defaultExpanded = true,
+	deletingTradeId,
+	onDeleteRequest,
+	onDeleteConfirm,
+	onDeleteCancel,
+	isDeleting,
 }: TradeDayGroupProps) => {
 	const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 	const t = useTranslations("journal")
 
 	const { summary, trades, dateFormatted } = dayData
 
-	// Memoized handlers for stable references
 	const handleToggle = useCallback(() => {
 		setIsExpanded((prev) => !prev)
 	}, [])
@@ -97,11 +108,17 @@ export const TradeDayGroup = memo(({
 				<div className="divide-bg-300 divide-y">
 					{trades.length > 0 ? (
 						trades.map((trade) => (
-							<TradeRow
-								key={trade.id}
-								trade={trade}
-								onTradeClick={onTradeClick}
-							/>
+							<div key={trade.id} className="group/row">
+								<TradeRow
+									trade={trade}
+									onTradeClick={onTradeClick}
+									deletingTradeId={deletingTradeId}
+									onDeleteRequest={onDeleteRequest}
+									onDeleteConfirm={onDeleteConfirm}
+									onDeleteCancel={onDeleteCancel}
+									isDeleting={isDeleting}
+								/>
+							</div>
 						))
 					) : (
 						<div className="text-txt-300 flex h-[60px] items-center justify-center">

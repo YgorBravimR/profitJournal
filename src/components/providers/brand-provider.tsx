@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback } from "react"
 
-type Brand = "bravo" | "retro" | "luxury" | "tsr" | "neon"
+type Brand = "bravo" | "retro" | "luxury" | "tsr" | "neon" | "default"
 
 interface BrandContextType {
 	brand: Brand
@@ -15,9 +15,15 @@ interface BrandProviderProps {
 	defaultBrand?: Brand
 }
 
-const STORAGE_KEY = "profit-journal-brand"
 const DEFAULT_BRAND: Brand = "bravo"
-const BRANDS: readonly Brand[] = ["bravo", "retro", "luxury", "tsr", "neon"] as const
+const BRANDS: readonly Brand[] = [
+	"bravo",
+	"retro",
+	"luxury",
+	"tsr",
+	"neon",
+	"default",
+] as const
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined)
 
@@ -33,36 +39,30 @@ const isValidBrand = (value: string | null): value is Brand => {
 
 /**
  * Provider component for brand theming context.
- * Manages brand selection state and persists it to localStorage.
+ * Manages brand selection state and applies it to the DOM.
+ * Brand persistence is handled by BrandSynchronizer + server actions (DB-backed).
  *
  * @param props - The provider props
  * @param props.children - Child components to wrap
- * @param props.defaultBrand - Default brand to use if none is stored
+ * @param props.defaultBrand - Default brand to use before DB sync completes
  */
 const BrandProvider = ({ children, defaultBrand = DEFAULT_BRAND }: BrandProviderProps) => {
 	const [brand, setBrandState] = useState<Brand>(defaultBrand)
 	const [mounted, setMounted] = useState(false)
 
-	// Initialize brand from localStorage on mount
+	// Set default data-brand attribute on mount
 	useEffect(() => {
-		const storedBrand = localStorage.getItem(STORAGE_KEY)
-		if (isValidBrand(storedBrand)) {
-			setBrandState(storedBrand)
-			document.documentElement.setAttribute("data-brand", storedBrand)
-		} else {
-			document.documentElement.setAttribute("data-brand", defaultBrand)
-		}
+		document.documentElement.setAttribute("data-brand", defaultBrand)
 		setMounted(true)
 	}, [defaultBrand])
 
 	const setBrand = useCallback((newBrand: Brand) => {
+		if (!isValidBrand(newBrand)) return
 		setBrandState(newBrand)
-		localStorage.setItem(STORAGE_KEY, newBrand)
 		document.documentElement.setAttribute("data-brand", newBrand)
 	}, [])
 
 	// Prevent hydration mismatch by only rendering children after mount
-	// The brand is applied via useEffect to avoid SSR/client mismatch
 	const value: BrandContextType = {
 		brand: mounted ? brand : defaultBrand,
 		setBrand,
