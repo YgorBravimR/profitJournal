@@ -43,7 +43,7 @@ export const HeroQuoteCard = ({ quote }: HeroQuoteCardProps) => {
 				</span>
 				<span
 					className={cn(
-						"text-tiny shrink-0 font-mono tabular-nums",
+						"text-tiny shrink-0",
 						isZero && "text-txt-300",
 						!isZero && isPositive && "text-trade-buy",
 						!isZero && !isPositive && "text-trade-sell"
@@ -52,7 +52,7 @@ export const HeroQuoteCard = ({ quote }: HeroQuoteCardProps) => {
 					{formatChangePercent(quote.changePercent)}
 				</span>
 			</div>
-			<span className="text-txt-100 mt-1 block font-mono text-lg font-semibold tabular-nums">
+			<span className="text-txt-100 mt-1 block text-lg font-semibold">
 				{formatPrice(quote.price)}
 			</span>
 		</div>

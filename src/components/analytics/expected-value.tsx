@@ -143,7 +143,7 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 					<Info className="mt-s-100 h-4 w-4 shrink-0 text-txt-300" />
 					<div className="text-tiny text-txt-300">
 						<p className="font-medium text-txt-200">{t("formulaTitle")}</p>
-						<p className="mt-s-100 font-mono">
+						<p className="mt-s-100">
 							{t("formula")}
 						</p>
 						<p className="mt-s-200">

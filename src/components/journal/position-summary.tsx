@@ -134,14 +134,14 @@ export const PositionSummary = ({
 				<div className="text-small flex items-center justify-between">
 					<div>
 						<span className="text-txt-300">{t("avgEntry")}:</span>
-						<span className="ml-s-200 text-txt-100 font-mono font-semibold">
+						<span className="ml-s-200 text-txt-100 font-semibold">
 							{formatPrice(avgEntryPrice)}
 						</span>
 					</div>
 					{hasExits && (
 						<div>
 							<span className="text-txt-300">{t("avgExit")}:</span>
-							<span className="ml-s-200 text-txt-100 font-mono font-semibold">
+							<span className="ml-s-200 text-txt-100 font-semibold">
 								{formatPrice(avgExitPrice)}
 							</span>
 						</div>
@@ -150,16 +150,12 @@ export const PositionSummary = ({
 
 				{hasExits && (
 					<div className="gap-s-200 bg-bg-200 p-s-300 flex items-center rounded-md">
-						<span className="text-txt-200 font-mono">
-							{formatPrice(avgEntryPrice)}
-						</span>
+						<span className="text-txt-200">{formatPrice(avgEntryPrice)}</span>
 						<ArrowRight className="text-txt-300 h-4 w-4" />
-						<span className="text-txt-200 font-mono">
-							{formatPrice(avgExitPrice)}
-						</span>
+						<span className="text-txt-200">{formatPrice(avgExitPrice)}</span>
 						<span
 							className={cn(
-								"ml-auto font-mono font-semibold",
+								"ml-auto font-semibold",
 								totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 							)}
 						>
@@ -195,13 +191,13 @@ export const PositionSummary = ({
 			<div className="gap-s-300 border-stroke-100 pt-s-300 grid grid-cols-3 border-t">
 				<div className="text-center">
 					<div className="text-caption text-txt-300">{t("totalIn")}</div>
-					<div className="text-body text-txt-100 font-mono font-semibold">
+					<div className="text-body text-txt-100 font-semibold">
 						{formatQuantity(totalEntryQuantity)}
 					</div>
 				</div>
 				<div className="text-center">
 					<div className="text-caption text-txt-300">{t("totalOut")}</div>
-					<div className="text-body text-txt-100 font-mono font-semibold">
+					<div className="text-body text-txt-100 font-semibold">
 						{formatQuantity(totalExitQuantity)}
 					</div>
 				</div>
@@ -209,7 +205,7 @@ export const PositionSummary = ({
 					<div className="text-caption text-txt-300">{t("remaining")}</div>
 					<div
 						className={cn(
-							"text-body font-mono font-semibold",
+							"text-body font-semibold",
 							remainingQuantity > 0 ? "text-fb-warning" : "text-trade-buy"
 						)}
 					>

@@ -239,7 +239,7 @@ export const SimulationParamsForm = ({
 				</span>
 				<span
 					className={cn(
-						"font-mono tabular-nums",
+						"",
 						isOverBudget
 							? "text-fb-error font-semibold"
 							: budgetUsage > 0.8

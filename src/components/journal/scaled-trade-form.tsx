@@ -451,10 +451,7 @@ export const ScaledTradeForm = ({
 						{positionSummary.totalEntryQty > 0 && (
 							<p className="text-small text-txt-200">
 								Total: {positionSummary.totalEntryQty} contracts @{" "}
-								<span className="font-mono">
-									{positionSummary.avgEntryPrice.toFixed(2)}
-								</span>{" "}
-								average
+								<span>{positionSummary.avgEntryPrice.toFixed(2)}</span> average
 							</p>
 						)}
 					</div>
@@ -511,10 +508,7 @@ export const ScaledTradeForm = ({
 						{positionSummary.totalExitQty > 0 && (
 							<p className="text-small text-txt-200">
 								Total: {positionSummary.totalExitQty} contracts @{" "}
-								<span className="font-mono">
-									{positionSummary.avgExitPrice.toFixed(2)}
-								</span>{" "}
-								average
+								<span>{positionSummary.avgExitPrice.toFixed(2)}</span> average
 							</p>
 						)}
 					</div>
@@ -571,7 +565,7 @@ export const ScaledTradeForm = ({
 											<p className="text-tiny text-txt-300">Net P&L</p>
 											<p
 												className={cn(
-													"text-h3 font-mono font-bold",
+													"text-h3 font-bold",
 													positionSummary.netPnl >= 0
 														? "text-trade-buy"
 														: "text-trade-sell"
@@ -590,7 +584,7 @@ export const ScaledTradeForm = ({
 										</div>
 										<div className="text-right">
 											<p className="text-tiny text-txt-300">Gross P&L</p>
-											<p className="text-txt-100 font-mono">
+											<p className="text-txt-100">
 												{selectedAsset?.currency ?? "$"}
 												{positionSummary.grossPnl.toFixed(2)}
 											</p>

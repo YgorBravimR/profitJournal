@@ -47,7 +47,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 			<div className="mt-m-500 grid grid-cols-2 gap-m-400">
 				<div className="rounded bg-trade-sell-muted px-s-300 py-s-200">
 					<p className="text-tiny text-txt-300">{t("totalCost")}</p>
-					<p className="font-mono text-h3 font-bold text-trade-sell">
+					<p className="text-h3 font-bold text-trade-sell">
 						-{totalMistakeCost.toFixed(2)}
 					</p>
 				</div>
@@ -89,7 +89,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 									<span className="text-tiny text-txt-300">
 										{t("avg")}: -{mistake.avgLoss.toFixed(2)}
 									</span>
-									<span className="font-mono text-small font-medium text-trade-sell">
+									<span className="text-small font-medium text-trade-sell">
 										-{mistake.totalLoss.toFixed(2)}
 									</span>
 								</div>

@@ -52,24 +52,24 @@ export const QuoteCard = ({ quote }: QuoteCardProps) => {
 			</div>
 
 			{/* Col 2: Price */}
-			<span className="text-small text-txt-100 text-right font-mono tabular-nums">
+			<span className="text-small text-txt-100 text-right">
 				{formatPrice(quote.price)}
 			</span>
 
 			{/* Col 3: Session High */}
-			<span className="text-tiny text-txt-300 text-right font-mono tabular-nums">
+			<span className="text-tiny text-txt-300 text-right">
 				{hasRange ? `H ${formatPrice(quote.sessionHigh!)}` : ""}
 			</span>
 
 			{/* Col 4: Session Low */}
-			<span className="text-tiny text-txt-300 text-right font-mono tabular-nums">
+			<span className="text-tiny text-txt-300 text-right">
 				{hasRange ? `L ${formatPrice(quote.sessionLow!)}` : ""}
 			</span>
 
 			{/* Col 5: Change badge */}
 			<span
 				className={cn(
-					"text-tiny inline-flex items-center justify-end gap-1 rounded-md px-2 py-0.5 font-mono tabular-nums",
+					"text-tiny inline-flex items-center justify-end gap-1 rounded-md px-2 py-0.5",
 					isZero && "bg-bg-300/50 text-txt-300",
 					!isZero && isPositive && "bg-trade-buy-muted text-trade-buy",
 					!isZero && !isPositive && "bg-trade-sell-muted text-trade-sell"

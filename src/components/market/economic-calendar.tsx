@@ -79,7 +79,7 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									key={event.id}
 									className="border-bg-300/50 hover:bg-bg-300/30 border-b transition-colors last:border-b-0"
 								>
-									<td className="text-small text-txt-100 whitespace-nowrap px-4 py-2.5 font-mono tabular-nums">
+									<td className="text-small text-txt-100 whitespace-nowrap px-4 py-2.5">
 										{formatEventTime(event.time)}
 									</td>
 									<td className="px-3 py-2.5">
@@ -95,16 +95,16 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									</td>
 									<td
 										className={cn(
-											"text-small whitespace-nowrap px-3 py-2.5 text-right font-mono tabular-nums",
+											"text-small whitespace-nowrap px-3 py-2.5 text-right",
 											event.actual ? "text-txt-100" : "text-txt-300"
 										)}
 									>
 										{event.actual || "—"}
 									</td>
-									<td className="text-small text-txt-200 whitespace-nowrap px-3 py-2.5 text-right font-mono tabular-nums">
+									<td className="text-small text-txt-200 whitespace-nowrap px-3 py-2.5 text-right">
 										{event.forecast || "—"}
 									</td>
-									<td className="text-small text-txt-300 whitespace-nowrap px-4 py-2.5 text-right font-mono tabular-nums">
+									<td className="text-small text-txt-300 whitespace-nowrap px-4 py-2.5 text-right">
 										{event.previous || "—"}
 									</td>
 								</tr>

@@ -99,7 +99,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							<p className="text-tiny text-txt-300">{tStats("netPnl")}</p>
 							<p
 								className={cn(
-									"font-mono text-h3 font-bold",
+									"text-h3 font-bold",
 									summary.netPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 								)}
 							>
@@ -138,7 +138,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 							<p className="text-tiny text-txt-300">{t("avgR")}</p>
 							<p
 								className={cn(
-									"font-mono text-h3 font-bold",
+									"text-h3 font-bold",
 									summary.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"
 								)}
 							>
@@ -159,7 +159,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 										<span className="text-txt-200">
 											{format(parseISO(summary.bestDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
-										<span className="font-mono font-medium text-trade-buy">
+										<span className="font-medium text-trade-buy">
 											+{summary.bestDay.pnl.toFixed(2)}
 										</span>
 									</p>
@@ -175,7 +175,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 										<span className="text-txt-200">
 											{format(parseISO(summary.worstDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
-										<span className="font-mono font-medium text-trade-sell">
+										<span className="font-medium text-trade-sell">
 											{summary.worstDay.pnl.toFixed(2)}
 										</span>
 									</p>
@@ -222,7 +222,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 													</span>
 													<span
 														className={cn(
-															"font-mono text-small",
+															"text-small",
 															week.pnl >= 0
 																? "text-trade-buy"
 																: "text-trade-sell"
@@ -264,7 +264,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 													</span>
 													<span
 														className={cn(
-															"font-mono text-small",
+															"text-small",
 															asset.pnl >= 0
 																? "text-trade-buy"
 																: "text-trade-sell"

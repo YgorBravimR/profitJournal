@@ -3,6 +3,9 @@
 @import "tw-animate-css";
 
 @theme {
+  --font-sans: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   /* Dark Theme (Default) */
   --color-bg-100: rgb(11 14 17);
   --color-bg-200: rgb(21 25 33);
@@ -569,6 +572,16 @@
   --color-brand-400: #DD44DD;
   --color-brand-500: #CC00CC;
   --color-brand-600: #990099;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GLOBAL TYPOGRAPHY
+   Plus Jakarta Sans with tabular numbers enabled globally so numeric
+   data aligns in columns without requiring font-mono overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

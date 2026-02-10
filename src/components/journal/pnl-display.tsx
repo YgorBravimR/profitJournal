@@ -35,7 +35,7 @@ export const PnLDisplay = ({
 	return (
 		<span
 			className={cn(
-				"font-mono tabular-nums font-semibold",
+				"font-semibold",
 				sizeClasses[size],
 				isPositive && "text-trade-buy",
 				isNegative && "text-trade-sell",

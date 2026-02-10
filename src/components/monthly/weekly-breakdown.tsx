@@ -74,7 +74,7 @@ export const WeeklyBreakdown = ({ weeks }: WeeklyBreakdownProps) => {
 									</span>
 									<span
 										className={cn(
-											"font-mono text-small font-medium",
+											"text-small font-medium",
 											isPositive && "text-trade-buy",
 											!isPositive && week.pnl < 0 && "text-trade-sell",
 											week.pnl === 0 && "text-txt-100"

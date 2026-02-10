@@ -52,7 +52,7 @@ export const PropProfitSummary = ({
 					</div>
 					<p
 						className={cn(
-							"mt-s-200 font-mono text-h2 font-bold",
+							"mt-s-200 text-h2 font-bold",
 							isPositive && "text-trade-buy",
 							isNegative && "text-trade-sell",
 							!isPositive && !isNegative && "text-txt-100"
@@ -70,7 +70,7 @@ export const PropProfitSummary = ({
 					</div>
 					<p
 						className={cn(
-							"mt-s-200 font-mono text-h2 font-bold",
+							"mt-s-200 text-h2 font-bold",
 							data.traderShare > 0 && "text-trade-buy",
 							data.traderShare < 0 && "text-trade-sell",
 							data.traderShare === 0 && "text-txt-100"
@@ -93,7 +93,7 @@ export const PropProfitSummary = ({
 					</div>
 					<p
 						className={cn(
-							"mt-s-200 font-mono text-h2 font-bold",
+							"mt-s-200 text-h2 font-bold",
 							data.netProfit > 0 && "text-trade-buy",
 							data.netProfit < 0 && "text-trade-sell",
 							data.netProfit === 0 && "text-txt-100"
@@ -120,7 +120,7 @@ export const PropProfitSummary = ({
 						{/* Gross Profit Row */}
 						<div className="flex items-center justify-between text-small">
 							<span className="text-txt-200">{t("grossProfit")}</span>
-							<span className="font-mono text-txt-100">
+							<span className="text-txt-100">
 								{formatCurrency(data.grossProfit)}
 							</span>
 						</div>
@@ -132,7 +132,7 @@ export const PropProfitSummary = ({
 									- {propFirmName || t("propShare")} (
 									{100 - profitSharePercentage}%)
 								</span>
-								<span className="font-mono text-trade-sell">
+								<span className="text-trade-sell">
 									-{formatCurrency(data.propFirmShare)}
 								</span>
 							</div>
@@ -142,7 +142,7 @@ export const PropProfitSummary = ({
 						{isPropAccount && (
 							<div className="flex items-center justify-between border-t border-bg-300 pt-s-300 text-small">
 								<span className="text-txt-200">{t("traderShare")}</span>
-								<span className="font-mono text-txt-100">
+								<span className="text-txt-100">
 									{formatCurrency(data.traderShare)}
 								</span>
 							</div>
@@ -154,7 +154,7 @@ export const PropProfitSummary = ({
 								<span className="text-txt-300">
 									- {t("estimatedTax")} ({taxRate}%)
 								</span>
-								<span className="font-mono text-trade-sell">
+								<span className="text-trade-sell">
 									-{formatCurrency(data.estimatedTax)}
 								</span>
 							</div>
@@ -163,7 +163,7 @@ export const PropProfitSummary = ({
 						{/* Net Profit */}
 						<div className="flex items-center justify-between border-t border-bg-300 pt-s-300 text-small font-medium">
 							<span className="text-txt-100">{t("netProfit")}</span>
-							<span className="font-mono text-trade-buy">
+							<span className="text-trade-buy">
 								{formatCurrency(data.netProfit)}
 							</span>
 						</div>

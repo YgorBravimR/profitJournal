@@ -149,25 +149,25 @@ export const ExecutionList = ({
 						<div className="gap-s-300 text-small grid grid-cols-2">
 							<div>
 								<span className="text-txt-300">{t("totalIn")}:</span>
-								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
+								<span className="ml-s-200 text-txt-100">
 									{formatQuantity(totalEntryQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("totalOut")}:</span>
-								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
+								<span className="ml-s-200 text-txt-100">
 									{formatQuantity(totalExitQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgEntry")}:</span>
-								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
+								<span className="ml-s-200 text-txt-100">
 									{formatPrice(avgEntryPrice)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgExit")}:</span>
-								<span className="ml-s-200 text-txt-100 font-mono tabular-nums">
+								<span className="ml-s-200 text-txt-100">
 									{totalExitQty > 0 ? formatPrice(avgExitPrice) : "-"}
 								</span>
 							</div>
@@ -175,7 +175,7 @@ export const ExecutionList = ({
 								<span className="text-txt-300">{t("remaining")}:</span>
 								<span
 									className={cn(
-										"ml-s-200 font-mono font-semibold tabular-nums",
+										"ml-s-200 font-semibold",
 										totalEntryQty - totalExitQty > 0
 											? "text-fb-warning"
 											: "text-trade-buy"
@@ -237,17 +237,17 @@ const ExecutionRow = ({
 						aria-label={t("exit")}
 					/>
 				)}
-				<div className="text-small tabular-nums">
+				<div className="text-small">
 					<span className="text-txt-300">
 						{format(new Date(execution.executionDate), "dd/MM HH:mm:ss")}
 					</span>
 				</div>
-				<div className="text-small tabular-nums">
-					<span className="text-txt-100 font-mono font-semibold">
+				<div className="text-small">
+					<span className="text-txt-100 font-semibold">
 						{formatQuantity(execution.quantity)}
 					</span>
 					<span className="mx-s-100 text-txt-300">@</span>
-					<span className="text-txt-100 font-mono">
+					<span className="text-txt-100">
 						{formatPrice(execution.price)}
 					</span>
 				</div>

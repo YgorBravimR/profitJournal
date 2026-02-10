@@ -64,7 +64,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 				title={`${trade.asset} Trade`}
 				description={formatDateTime(trade.entryDate)}
 				action={
-					<div className="flex items-center gap-s-200">
+					<div className="gap-s-200 flex items-center">
 						<Link href={`/journal/${id}/edit`}>
 							<Button variant="outline">
 								<Edit className="mr-2 h-4 w-4" />
@@ -82,12 +82,12 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 				}
 			/>
 
-			<div className="flex-1 overflow-auto p-m-600">
-				<div className="mx-auto max-w-4xl space-y-m-600">
+			<div className="p-m-600 flex-1 overflow-auto">
+				<div className="space-y-m-600 mx-auto max-w-4xl">
 					{/* Header Card */}
 					<Card className="p-m-600">
 						<div className="flex items-start justify-between">
-							<div className="flex items-center gap-m-500">
+							<div className="gap-m-500 flex items-center">
 								<div
 									className={cn(
 										"flex h-14 w-14 items-center justify-center rounded-xl",
@@ -95,14 +95,14 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 									)}
 								>
 									{isLong ? (
-										<ArrowUpRight className="h-7 w-7 text-action-buy" />
+										<ArrowUpRight className="text-action-buy h-7 w-7" />
 									) : (
-										<ArrowDownRight className="h-7 w-7 text-action-sell" />
+										<ArrowDownRight className="text-action-sell h-7 w-7" />
 									)}
 								</div>
 								<div>
-									<div className="flex items-center gap-s-300">
-										<h2 className="text-h2 font-bold text-txt-100">
+									<div className="gap-s-300 flex items-center">
+										<h2 className="text-h2 text-txt-100 font-bold">
 											{trade.asset}
 										</h2>
 										<Badge
@@ -119,8 +119,8 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 											<Badge variant="secondary">{trade.timeframe.name}</Badge>
 										)}
 									</div>
-									<div className="mt-s-200 flex items-center gap-m-400 text-small text-txt-300">
-										<div className="flex items-center gap-s-200">
+									<div className="mt-s-200 gap-m-400 text-small text-txt-300 flex items-center">
+										<div className="gap-s-200 flex items-center">
 											<Calendar className="h-4 w-4" />
 											<span>{formatDateTime(trade.entryDate)}</span>
 										</div>
@@ -139,7 +139,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 								{realizedR !== 0 && (
 									<p
 										className={cn(
-											"mt-s-200 font-mono text-body",
+											"mt-s-200 text-body",
 											realizedR > 0 ? "text-trade-buy" : "text-trade-sell"
 										)}
 									>
@@ -150,7 +150,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 						</div>
 
 						{/* Outcome Badge */}
-						<div className="mt-m-500 flex items-center gap-s-300">
+						<div className="mt-m-500 gap-s-300 flex items-center">
 							{isWin && (
 								<Badge className="bg-trade-buy/20 text-trade-buy">
 									<CheckCircle className="mr-1 h-3 w-3" />
@@ -182,7 +182,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 					</Card>
 
 					{/* Metrics Grid */}
-					<div className="grid grid-cols-2 gap-m-500 md:grid-cols-4">
+					<div className="gap-m-500 grid grid-cols-2 md:grid-cols-4">
 						<Card className="p-m-500">
 							<TradeMetric
 								label="Entry Price"
@@ -234,35 +234,38 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 					{/* R-Multiple Visualization */}
 					{(plannedR > 0 || realizedR !== 0) && (
 						<Card className="p-m-600">
-							<h3 className="mb-m-500 flex items-center gap-s-200 text-body font-semibold text-txt-100">
-								<Target className="h-5 w-5 text-acc-100" />
+							<h3 className="mb-m-500 gap-s-200 text-body text-txt-100 flex items-center font-semibold">
+								<Target className="text-acc-100 h-5 w-5" />
 								Risk/Reward Analysis
 							</h3>
-							<RMultipleBar planned={plannedR || undefined} actual={realizedR} />
+							<RMultipleBar
+								planned={plannedR || undefined}
+								actual={realizedR}
+							/>
 						</Card>
 					)}
 
 					{/* MFE/MAE */}
 					{(trade.mfe || trade.mae) && (
 						<Card className="p-m-600">
-							<h3 className="mb-m-500 text-body font-semibold text-txt-100">
+							<h3 className="mb-m-500 text-body text-txt-100 font-semibold">
 								Trade Excursion
 							</h3>
-							<div className="grid grid-cols-2 gap-m-500">
+							<div className="gap-m-500 grid grid-cols-2">
 								{trade.mfe && (
-									<div className="rounded-lg bg-trade-buy/10 p-m-400">
+									<div className="bg-trade-buy/10 p-m-400 rounded-lg">
 										<p className="text-tiny text-txt-300">
 											MFE (Max Favorable)
 										</p>
-										<p className="mt-s-100 font-mono text-body font-semibold text-trade-buy">
+										<p className="mt-s-100 text-body text-trade-buy font-semibold">
 											${Number(trade.mfe).toFixed(2)}
 										</p>
 									</div>
 								)}
 								{trade.mae && (
-									<div className="rounded-lg bg-trade-sell/10 p-m-400">
+									<div className="bg-trade-sell/10 p-m-400 rounded-lg">
 										<p className="text-tiny text-txt-300">MAE (Max Adverse)</p>
-										<p className="mt-s-100 font-mono text-body font-semibold text-trade-sell">
+										<p className="mt-s-100 text-body text-trade-sell font-semibold">
 											${Number(trade.mae).toFixed(2)}
 										</p>
 									</div>
@@ -274,8 +277,8 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 					{/* Strategy & Tags */}
 					{(trade.strategy || tags.length > 0) && (
 						<Card className="p-m-600">
-							<h3 className="mb-m-500 flex items-center gap-s-200 text-body font-semibold text-txt-100">
-								<TrendingUp className="h-5 w-5 text-acc-100" />
+							<h3 className="mb-m-500 gap-s-200 text-body text-txt-100 flex items-center font-semibold">
+								<TrendingUp className="text-acc-100 h-5 w-5" />
 								Classification
 							</h3>
 
@@ -289,7 +292,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 							)}
 
 							{tags.length > 0 && (
-								<div className="flex flex-wrap gap-s-200">
+								<div className="gap-s-200 flex flex-wrap">
 									{setupTags.map((tag) => (
 										<Badge
 											key={tag.id}
@@ -314,14 +317,14 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 						trade.lessonLearned ||
 						trade.disciplineNotes) && (
 						<Card className="p-m-600">
-							<h3 className="mb-m-500 text-body font-semibold text-txt-100">
+							<h3 className="mb-m-500 text-body text-txt-100 font-semibold">
 								Journal Notes
 							</h3>
 
 							<div className="space-y-m-500">
 								{trade.preTradeThoughts && (
 									<div>
-										<p className="text-tiny font-medium text-txt-300">
+										<p className="text-tiny text-txt-300 font-medium">
 											Pre-Trade Thoughts
 										</p>
 										<p className="mt-s-200 text-small text-txt-100">
@@ -334,7 +337,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 									<>
 										{trade.preTradeThoughts && <Separator />}
 										<div>
-											<p className="text-tiny font-medium text-txt-300">
+											<p className="text-tiny text-txt-300 font-medium">
 												Post-Trade Reflection
 											</p>
 											<p className="mt-s-200 text-small text-txt-100">
@@ -348,7 +351,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 									<>
 										<Separator />
 										<div>
-											<p className="text-tiny font-medium text-txt-300">
+											<p className="text-tiny text-txt-300 font-medium">
 												Lesson Learned
 											</p>
 											<p className="mt-s-200 text-small text-txt-100">
@@ -361,8 +364,8 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 								{trade.disciplineNotes && (
 									<>
 										<Separator />
-										<div className="rounded-lg bg-warning/10 p-m-400">
-											<p className="text-tiny font-medium text-warning">
+										<div className="bg-warning/10 p-m-400 rounded-lg">
+											<p className="text-tiny text-warning font-medium">
 												Discipline Notes
 											</p>
 											<p className="mt-s-200 text-small text-txt-100">
@@ -374,7 +377,6 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 							</div>
 						</Card>
 					)}
-
 				</div>
 			</div>
 		</div>

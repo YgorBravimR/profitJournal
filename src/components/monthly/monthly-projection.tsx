@@ -46,7 +46,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 								})}
 							</span>
 						</div>
-						<span className="font-mono text-acc-100">
+						<span className="text-acc-100">
 							{progressPercent.toFixed(0)}%
 						</span>
 					</div>
@@ -65,7 +65,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 						<p className="text-tiny text-txt-300">{t("dailyAverage")}</p>
 						<p
 							className={cn(
-								"font-mono text-body font-medium",
+								"text-body font-medium",
 								data.dailyAverage > 0 && "text-trade-buy",
 								data.dailyAverage < 0 && "text-trade-sell",
 								data.dailyAverage === 0 && "text-txt-100"
@@ -78,7 +78,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 					{/* Days Remaining */}
 					<div className="rounded bg-bg-100 p-s-300">
 						<p className="text-tiny text-txt-300">{t("daysRemaining")}</p>
-						<p className="font-mono text-body font-medium text-txt-100">
+						<p className="text-body font-medium text-txt-100">
 							{data.tradingDaysRemaining}
 						</p>
 					</div>
@@ -88,7 +88,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 						<p className="text-tiny text-txt-300">{t("projectedMonthly")}</p>
 						<p
 							className={cn(
-								"font-mono text-body font-medium",
+								"text-body font-medium",
 								data.projectedMonthlyProfit > 0 && "text-trade-buy",
 								data.projectedMonthlyProfit < 0 && "text-trade-sell",
 								data.projectedMonthlyProfit === 0 && "text-txt-100"
@@ -103,7 +103,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 						<p className="text-tiny text-txt-300">{t("projectedNet")}</p>
 						<p
 							className={cn(
-								"font-mono text-body font-medium",
+								"text-body font-medium",
 								data.projectedNetProfit > 0 && "text-trade-buy",
 								data.projectedNetProfit < 0 && "text-trade-sell",
 								data.projectedNetProfit === 0 && "text-txt-100"

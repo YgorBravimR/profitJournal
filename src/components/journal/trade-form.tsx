@@ -950,7 +950,7 @@ export const TradeForm = ({
 								<p className="text-small text-txt-300">{t("calculatedPnl")}</p>
 								<p
 									className={cn(
-										"text-h3 font-mono font-bold",
+										"text-h3 font-bold",
 										calculatedPnLResult.netPnl >= 0
 											? "text-trade-buy"
 											: "text-trade-sell"

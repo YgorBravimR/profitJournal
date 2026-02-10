@@ -76,7 +76,7 @@ export const ColoredValue = ({
 	return (
 		<span
 			className={cn(
-				"font-mono tabular-nums font-medium",
+				"font-medium",
 				sizeClasses[size],
 				isPositive && "text-trade-buy",
 				isNegative && "text-trade-sell",

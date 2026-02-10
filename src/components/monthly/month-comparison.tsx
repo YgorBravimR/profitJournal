@@ -130,7 +130,7 @@ export const MonthComparison = ({
 						<div className="flex items-center gap-m-400">
 							<span className="text-tiny text-txt-300">{row.previous}</span>
 							<span className="text-small text-txt-100">→</span>
-							<span className="font-mono text-small font-medium text-txt-100">
+							<span className="text-small font-medium text-txt-100">
 								{row.current}
 							</span>
 							<div

@@ -40,13 +40,13 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 		<Link href={`/journal/${trade.id}`}>
 			<Card
 				className={cn(
-					"p-m-500 transition-colors hover:border-acc-100/50 hover:bg-bg-200/80",
+					"p-m-500 hover:border-acc-100/50 hover:bg-bg-200/80 transition-colors",
 					className
 				)}
 			>
-				<div className="flex items-start justify-between gap-m-400">
+				<div className="gap-m-400 flex items-start justify-between">
 					{/* Left: Asset and Direction */}
-					<div className="flex items-center gap-m-400">
+					<div className="gap-m-400 flex items-center">
 						<div
 							className={cn(
 								"flex h-10 w-10 items-center justify-center rounded-lg",
@@ -54,14 +54,14 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 							)}
 						>
 							{isLong ? (
-								<ArrowUpRight className="h-5 w-5 text-action-buy" />
+								<ArrowUpRight className="text-action-buy h-5 w-5" />
 							) : (
-								<ArrowDownRight className="h-5 w-5 text-action-sell" />
+								<ArrowDownRight className="text-action-sell h-5 w-5" />
 							)}
 						</div>
 						<div>
-							<div className="flex items-center gap-s-200">
-								<span className="text-body font-semibold text-txt-100">
+							<div className="gap-s-200 flex items-center">
+								<span className="text-body text-txt-100 font-semibold">
 									{trade.asset}
 								</span>
 								<Badge
@@ -73,7 +73,9 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 											: "border-trade-sell/30 text-trade-sell"
 									)}
 								>
-									{isLong ? t("direction.long").toUpperCase() : t("direction.short").toUpperCase()}
+									{isLong
+										? t("direction.long").toUpperCase()
+										: t("direction.short").toUpperCase()}
 								</Badge>
 								{trade.timeframe && (
 									<Badge variant="secondary" className="text-tiny">
@@ -81,7 +83,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 									</Badge>
 								)}
 							</div>
-							<div className="mt-s-100 flex items-center gap-s-200 text-tiny text-txt-300">
+							<div className="mt-s-100 gap-s-200 text-tiny text-txt-300 flex items-center">
 								<Calendar className="h-3 w-3" />
 								<span>{formatDateTime(trade.entryDate)}</span>
 							</div>
@@ -110,7 +112,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 
 				{/* Tags */}
 				{(setupTags.length > 0 || mistakeTags.length > 0) && (
-					<div className="mt-m-400 flex flex-wrap gap-s-200">
+					<div className="mt-m-400 gap-s-200 flex flex-wrap">
 						{setupTags.map((tag) => (
 							<Badge
 								key={tag.id}
@@ -134,23 +136,23 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 
 				{/* Strategy */}
 				{trade.strategy && (
-					<div className="mt-m-400 flex items-center gap-s-200 text-tiny text-txt-300">
+					<div className="mt-m-400 gap-s-200 text-tiny text-txt-300 flex items-center">
 						<TrendingUp className="h-3 w-3" />
 						<span>{trade.strategy.name}</span>
 					</div>
 				)}
 
 				{/* Quick metrics */}
-				<div className="mt-m-400 grid grid-cols-3 gap-m-400 border-t border-bg-300 pt-m-400">
+				<div className="mt-m-400 gap-m-400 border-bg-300 pt-m-400 grid grid-cols-3 border-t">
 					<div>
 						<span className="text-tiny text-txt-300">{t("entry")}</span>
-						<p className="font-mono text-small text-txt-100">
+						<p className="text-small text-txt-100">
 							${Number(trade.entryPrice).toFixed(2)}
 						</p>
 					</div>
 					<div>
 						<span className="text-tiny text-txt-300">{t("exit")}</span>
-						<p className="font-mono text-small text-txt-100">
+						<p className="text-small text-txt-100">
 							{trade.exitPrice
 								? `$${Number(trade.exitPrice).toFixed(2)}`
 								: t("openPosition")}
@@ -158,7 +160,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 					</div>
 					<div>
 						<span className="text-tiny text-txt-300">{t("size")}</span>
-						<p className="font-mono text-small text-txt-100">
+						<p className="text-small text-txt-100">
 							{Number(trade.positionSize).toLocaleString()}
 						</p>
 					</div>

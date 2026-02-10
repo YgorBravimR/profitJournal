@@ -30,11 +30,11 @@ export const RMultipleBar = ({
 	return (
 		<div className={cn("space-y-s-200", className)}>
 			{/* Labels */}
-			<div className="flex items-center justify-between text-tiny">
+			<div className="text-tiny flex items-center justify-between">
 				<span className="text-txt-300">Realized R</span>
 				<span
 					className={cn(
-						"font-mono font-semibold",
+						"font-semibold",
 						isPositive ? "text-trade-buy" : "text-trade-sell"
 					)}
 				>
@@ -43,10 +43,10 @@ export const RMultipleBar = ({
 			</div>
 
 			{/* Bar */}
-			<div className="relative h-3 rounded-full bg-bg-300">
+			<div className="bg-bg-300 relative h-3 rounded-full">
 				{/* Zero line */}
 				<div
-					className="absolute top-0 h-full w-px bg-txt-300"
+					className="bg-txt-300 absolute top-0 h-full w-px"
 					style={{ left: "50%" }}
 				/>
 
@@ -78,7 +78,7 @@ export const RMultipleBar = ({
 			</div>
 
 			{/* Scale */}
-			<div className="flex justify-between text-tiny text-txt-300">
+			<div className="text-tiny text-txt-300 flex justify-between">
 				<span>-{maxR}R</span>
 				<span>0</span>
 				<span>+{maxR}R</span>
@@ -86,9 +86,9 @@ export const RMultipleBar = ({
 
 			{/* Planned vs Actual comparison */}
 			{planned !== undefined && (
-				<div className="flex items-center justify-between text-tiny">
+				<div className="text-tiny flex items-center justify-between">
 					<span className="text-txt-300">
-						Planned: <span className="font-mono">{formatRMultiple(planned)}</span>
+						Planned: <span>{formatRMultiple(planned)}</span>
 					</span>
 					<span
 						className={cn(
