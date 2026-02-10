@@ -73,6 +73,9 @@ export const fetchCoinGeckoQuotes = async (yahooSymbols: string[]): Promise<Mark
 				change,
 				changePercent,
 				previousClose,
+				sessionHigh: null,
+				sessionLow: null,
+				flag: yahooSymbol === "BTC-USD" ? "₿" : "⟠",
 				updatedAt: new Date().toISOString(),
 			}
 		})

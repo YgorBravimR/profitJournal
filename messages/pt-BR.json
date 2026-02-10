@@ -65,12 +65,11 @@
 		"autoRefresh": "Atualização automática",
 		"refreshNow": "Atualizar agora",
 		"groups": {
+			"trader": "Trader",
 			"indices": "Índices Globais",
 			"b3": "B3 / Brasil",
 			"commodities": "Commodities",
-			"forex": "Forex",
-			"crypto": "Cripto",
-			"cme": "Futuros BRL na CME"
+			"fxcrypto": "Forex & Cripto"
 		},
 		"calendar": {
 			"title": "Calendário Econômico",
@@ -86,12 +85,37 @@
 			"medium": "Médio",
 			"low": "Baixo"
 		},
+		"assets": "Ativos",
 		"quote": {
 			"name": "Ativo",
 			"price": "Preço",
 			"change": "Variação",
 			"loading": "Carregando dados do mercado...",
-			"error": "Erro ao carregar dados do mercado"
+			"error": "Erro ao carregar dados do mercado",
+			"emptyGroup": "Nenhuma cotação disponível"
+		},
+		"status": {
+			"title": "Status dos Mercados",
+			"open": "Aberto",
+			"closed": "Fechado",
+			"opening": "Abrindo",
+			"opensIn": "Abre em {hours}h",
+			"b3futures": "B3 Futuros",
+			"b3cash": "B3 À Vista",
+			"nyse": "NYSE",
+			"cme": "CME Globex",
+			"london": "Londres",
+			"tokyo": "Tóquio",
+			"forex": "Forex",
+			"crypto": "Cripto"
+		},
+		"tradingCalendar": {
+			"title": "Calendário B3",
+			"prevMonth": "Mês anterior",
+			"nextMonth": "Próximo mês",
+			"today": "Hoje",
+			"b3Closed": "B3 fechada",
+			"usClosed": "EUA fechado"
 		}
 	},
 	"monteCarlo": {

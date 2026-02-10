@@ -3,7 +3,7 @@
  *
  * Tries providers in order of preference until data is resolved:
  *   Quotes: Yahoo Finance → Brapi (B3 fallback) → CoinGecko (crypto fallback)
- *   Calendar: FairEconomy → empty fallback
+ *   Calendar: FairEconomy (global) + BCB (BR) → merged & sorted
  *
  * Follows the same cascade pattern as src/lib/vision/cascade.ts
  */
@@ -13,6 +13,7 @@ import { fetchYahooQuotes, getMissingSymbols } from "./providers/yahoo"
 import { fetchBrapiQuotes } from "./providers/brapi"
 import { fetchCoinGeckoQuotes } from "./providers/coingecko"
 import { fetchEconomicCalendar } from "./providers/calendar"
+import { fetchBcbCalendar } from "./providers/bcb"
 
 /**
  * Fetch market quotes with cascade fallback.
@@ -28,10 +29,8 @@ export const fetchMarketQuotes = async (): Promise<QuoteGroup[]> => {
 	// Step 1: Try Yahoo Finance for everything
 	try {
 		groups = await fetchYahooQuotes()
-		console.log("[MARKET:Cascade] Yahoo Finance succeeded")
 	} catch (error) {
 		console.error("[MARKET:Cascade] Yahoo Finance failed:", error)
-		// Return empty groups structure if Yahoo completely fails
 		return []
 	}
 
@@ -39,14 +38,12 @@ export const fetchMarketQuotes = async (): Promise<QuoteGroup[]> => {
 	const missing = getMissingSymbols(groups)
 
 	if (missing.b3.length > 0) {
-		console.log(`[MARKET:Cascade] Missing B3 symbols: ${missing.b3.join(", ")}. Trying Brapi...`)
 		try {
 			const brapiQuotes = await fetchBrapiQuotes(missing.b3)
 			const b3Group = groups.find((g) => g.id === "b3")
 			if (b3Group) {
 				b3Group.quotes = [...b3Group.quotes, ...brapiQuotes]
 			}
-			console.log("[MARKET:Cascade] Brapi fallback succeeded")
 		} catch (error) {
 			console.error("[MARKET:Cascade] Brapi fallback failed:", error)
 		}
@@ -54,14 +51,12 @@ export const fetchMarketQuotes = async (): Promise<QuoteGroup[]> => {
 
 	// Step 3: Check for missing crypto → try CoinGecko
 	if (missing.crypto.length > 0) {
-		console.log(`[MARKET:Cascade] Missing crypto symbols: ${missing.crypto.join(", ")}. Trying CoinGecko...`)
 		try {
 			const geckoQuotes = await fetchCoinGeckoQuotes(missing.crypto)
-			const cryptoGroup = groups.find((g) => g.id === "crypto")
-			if (cryptoGroup) {
-				cryptoGroup.quotes = [...cryptoGroup.quotes, ...geckoQuotes]
+			const fxcryptoGroup = groups.find((g) => g.id === "fxcrypto")
+			if (fxcryptoGroup) {
+				fxcryptoGroup.quotes = [...fxcryptoGroup.quotes, ...geckoQuotes]
 			}
-			console.log("[MARKET:Cascade] CoinGecko fallback succeeded")
 		} catch (error) {
 			console.error("[MARKET:Cascade] CoinGecko fallback failed:", error)
 		}
@@ -71,15 +66,30 @@ export const fetchMarketQuotes = async (): Promise<QuoteGroup[]> => {
 }
 
 /**
- * Fetch economic calendar with fallback to empty array
+ * Fetch economic calendar -- merges FairEconomy (global) + BCB (BR) events.
+ *
+ * Both providers run in parallel with Promise.allSettled so one failing
+ * doesn't block the other. Results are merged and sorted by time.
  */
 export const fetchCalendar = async (): Promise<EconomicEvent[]> => {
-	try {
-		const events = await fetchEconomicCalendar()
-		console.log(`[MARKET:Cascade] Calendar fetched: ${events.length} events`)
-		return events
-	} catch (error) {
-		console.error("[MARKET:Cascade] Calendar fetch failed:", error)
-		return []
+	const [fairEconomy, bcb] = await Promise.allSettled([
+		fetchEconomicCalendar(),
+		fetchBcbCalendar(),
+	])
+
+	const events: EconomicEvent[] = []
+
+	if (fairEconomy.status === "fulfilled") {
+		events.push(...fairEconomy.value)
+	} else {
+		console.error("[MARKET:Cascade] Fair Economy failed:", fairEconomy.reason)
 	}
+
+	if (bcb.status === "fulfilled") {
+		events.push(...bcb.value)
+	} else {
+		console.error("[MARKET:Cascade] BCB failed:", bcb.reason)
+	}
+
+	return events.sort((a, b) => a.time.localeCompare(b.time))
 }

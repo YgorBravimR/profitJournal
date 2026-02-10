@@ -50,7 +50,13 @@
       "Bash(lsof:*)",
       "Bash(npx drizzle-kit generate:*)",
       "Bash(npx next build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git diff-tree:*)",
+      "Bash(git filter-branch:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:brapi.dev)"
     ],
     "deny": [],
     "ask": []

@@ -123,7 +123,7 @@ export const TimeHeatmap = ({ data }: TimeHeatmapProps) => {
 								<div className="text-small text-txt-200 w-14 shrink-0 pr-s-200 text-right font-medium">
 									{dayLabels[dayIndex]}
 								</div>
-								{hours.map((hour) => {
+								{TRADING_HOURS.map((hour) => {
 									const cell = cellMap.get(`${dayOfWeek}-${hour}`)
 									const hasData = cell && cell.totalTrades > 0
 									const isHovered = hoveredCell === cell

@@ -7,6 +7,9 @@ export interface MarketQuote {
 	change: number
 	changePercent: number
 	previousClose: number
+	sessionHigh: number | null
+	sessionLow: number | null
+	flag: string
 	updatedAt: string
 }
 
@@ -27,12 +30,6 @@ export interface EconomicEvent {
 	actual?: string
 	forecast?: string
 	previous?: string
-}
-
-export interface MarketData {
-	groups: QuoteGroup[]
-	calendar: EconomicEvent[]
-	lastUpdated: string
 }
 
 export interface QuotesResponse {

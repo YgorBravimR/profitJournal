@@ -65,12 +65,11 @@
 		"autoRefresh": "Auto-refresh",
 		"refreshNow": "Refresh now",
 		"groups": {
+			"trader": "Trader",
 			"indices": "Global Indices",
 			"b3": "B3 / Brazil",
 			"commodities": "Commodities",
-			"forex": "Forex",
-			"crypto": "Crypto",
-			"cme": "CME BRL Futures"
+			"fxcrypto": "Forex & Crypto"
 		},
 		"calendar": {
 			"title": "Economic Calendar",
@@ -86,12 +85,37 @@
 			"medium": "Medium",
 			"low": "Low"
 		},
+		"assets": "Assets",
 		"quote": {
 			"name": "Asset",
 			"price": "Price",
 			"change": "Change",
 			"loading": "Loading market data...",
-			"error": "Failed to load market data"
+			"error": "Failed to load market data",
+			"emptyGroup": "No quotes available"
+		},
+		"status": {
+			"title": "Market Status",
+			"open": "Open",
+			"closed": "Closed",
+			"opening": "Opening",
+			"opensIn": "Opens in {hours}h",
+			"b3futures": "B3 Futuros",
+			"b3cash": "B3 A Vista",
+			"nyse": "NYSE",
+			"cme": "CME Globex",
+			"london": "London",
+			"tokyo": "Tokyo",
+			"forex": "Forex",
+			"crypto": "Crypto"
+		},
+		"tradingCalendar": {
+			"title": "B3 Calendar",
+			"prevMonth": "Previous month",
+			"nextMonth": "Next month",
+			"today": "Today",
+			"b3Closed": "B3 closed",
+			"usClosed": "US closed"
 		}
 	},
 	"monteCarlo": {

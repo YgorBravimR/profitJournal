@@ -13,8 +13,17 @@ const COUNTRY_FLAGS: Record<string, string> = {
 	BR: "🇧🇷",
 	EU: "🇪🇺",
 	CN: "🇨🇳",
-	JP: "🇯🇵",
-	GB: "🇬🇧",
+}
+
+/**
+ * Formats an ISO date string to a local time string (HH:MM).
+ * Runs on the client so it uses the user's browser timezone.
+ */
+const formatEventTime = (isoDate: string): string => {
+	const date = new Date(isoDate)
+	if (Number.isNaN(date.getTime())) return isoDate
+
+	return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
 const ImpactDot = ({ impact }: { impact: EventImpact }) => {
@@ -40,19 +49,20 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 	const t = useTranslations("market.calendar")
 
 	return (
-		<div className="border-bg-300 bg-bg-200 rounded-lg border">
-			{/* Header */}
-			<div className="border-bg-300 border-b px-4 py-3">
+		<div className="border-bg-300 bg-bg-200 flex h-full flex-col overflow-hidden rounded-lg border">
+			{/* Fixed header */}
+			<div className="border-bg-300 shrink-0 border-b px-4 py-3">
 				<h3 className="text-small text-txt-100 font-semibold">{t("title")}</h3>
 			</div>
 
-			{/* Events table */}
 			{events.length === 0 ? (
-				<div className="text-small text-txt-300 px-4 py-8 text-center">{t("noEvents")}</div>
+				<div className="text-small text-txt-300 flex flex-1 items-center justify-center px-4 py-8 text-center">
+					{t("noEvents")}
+				</div>
 			) : (
-				<div className="overflow-x-auto">
+				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto">
 					<table className="w-full" role="table" aria-label={t("title")}>
-						<thead>
+						<thead className="bg-bg-200 sticky top-0 z-10">
 							<tr className="text-tiny text-txt-300 border-bg-300/50 border-b">
 								<th className="px-4 py-2 text-left font-medium">{t("time")}</th>
 								<th className="px-3 py-2 text-left font-medium">{t("country")}</th>
@@ -69,8 +79,8 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									key={event.id}
 									className="border-bg-300/50 hover:bg-bg-300/30 border-b transition-colors last:border-b-0"
 								>
-									<td className="text-small text-txt-100 px-4 py-2.5 font-mono tabular-nums">
-										{event.time}
+									<td className="text-small text-txt-100 whitespace-nowrap px-4 py-2.5 font-mono tabular-nums">
+										{formatEventTime(event.time)}
 									</td>
 									<td className="px-3 py-2.5">
 										<span className="text-body" aria-label={event.country}>
@@ -85,16 +95,16 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									</td>
 									<td
 										className={cn(
-											"text-small px-3 py-2.5 text-right font-mono tabular-nums",
+											"text-small whitespace-nowrap px-3 py-2.5 text-right font-mono tabular-nums",
 											event.actual ? "text-txt-100" : "text-txt-300"
 										)}
 									>
 										{event.actual || "—"}
 									</td>
-									<td className="text-small text-txt-200 px-3 py-2.5 text-right font-mono tabular-nums">
+									<td className="text-small text-txt-200 whitespace-nowrap px-3 py-2.5 text-right font-mono tabular-nums">
 										{event.forecast || "—"}
 									</td>
-									<td className="text-small text-txt-300 px-4 py-2.5 text-right font-mono tabular-nums">
+									<td className="text-small text-txt-300 whitespace-nowrap px-4 py-2.5 text-right font-mono tabular-nums">
 										{event.previous || "—"}
 									</td>
 								</tr>
