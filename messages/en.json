@@ -99,7 +99,9 @@
 			"numberOfTrades": "Number of Trades",
 			"commissionPerTrade": "Commission per Trade (%)",
 			"simulationCount": "Monte Carlo Simulations",
-			"calculate": "Calculate Results"
+			"calculate": "Calculate Results",
+			"totalIterations": "Total iterations",
+			"budgetExceeded": "Budget exceeded. Reduce trades to {maxTrades} or simulations to {maxSimulations}."
 		},
 		"results": {
 			"title": "Expected Results",
@@ -417,6 +419,15 @@
 		"tickSize": "Tick Size",
 		"tickValue": "Tick Value",
 		"type": "Type",
+		"tradeCreatedSuccess": "Trade created successfully",
+		"tradeUpdatedSuccess": "Trade updated successfully",
+		"tradeSaveError": "Failed to save trade",
+		"tradeUnexpectedError": "An unexpected error occurred",
+		"contractsExecuted": "Contracts Executed",
+		"contractsExecutedDesc": "Total contract executions including entry, exit, and any scaling.",
+		"contractsExecutedDefault": "Default: Position Size x 2 (1 entry + 1 exit per contract)",
+		"contractsExecutedScaling": "Increase if you scaled in/out during the trade.",
+		"inlineCreateTag": "Create new tag",
 		"mode": {
 			"label": "Trade Mode",
 			"simple": "Simple Trade",
@@ -569,6 +580,7 @@
 			"day": "Day",
 			"week": "Week",
 			"month": "Month",
+			"all": "All",
 			"custom": "Custom",
 			"from": "From",
 			"to": "To",
@@ -958,6 +970,7 @@
 		"tabs": {
 			"profile": "Profile",
 			"account": "Account",
+			"tags": "Tags",
 			"assets": "Assets",
 			"timeframes": "Timeframes",
 			"general": "General"
@@ -1075,6 +1088,27 @@
 			"inactive": "Inactive",
 			"recalculating": "Recalculating...",
 			"recalculateRValues": "Recalculate R Values"
+		},
+		"tags": {
+			"addTag": "Add Tag",
+			"editTag": "Edit Tag",
+			"addTagDescription": "Create a new tag for categorizing trades",
+			"editTagDescription": "Update the tag details",
+			"createTag": "Create Tag",
+			"name": "Name",
+			"namePlaceholder": "e.g. Breakout, FOMO, Reversal",
+			"type": "Type",
+			"typeSetup": "Setup",
+			"typeMistake": "Mistake",
+			"typeGeneral": "General",
+			"color": "Color",
+			"description": "Description",
+			"descriptionPlaceholder": "Optional description for this tag",
+			"noTags": "No tags yet. Create your first tag to start categorizing trades.",
+			"noTagsInFilter": "No tags match the selected filter",
+			"deleteTitle": "Delete Tag",
+			"deleteDescription": "Are you sure you want to delete \"{name}\"? This will remove the tag from all trades.",
+			"inlineCreate": "Create new tag"
 		},
 		"general": {
 			"title": "General Settings",
@@ -1261,6 +1295,7 @@
 		"addFirst": "Add your first execution",
 		"addExecution": "Add Execution",
 		"type": "Type",
+		"delete": "Delete",
 		"deleteTitle": "Delete Execution",
 		"deleteDescription": "Are you sure you want to delete this execution? This action cannot be undone.",
 		"positionSummary": "Position Summary",

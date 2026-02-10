@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
 	Select,
 	SelectContent,
@@ -10,6 +11,8 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import type { SimulationParams } from "@/types/monte-carlo"
+import { SIMULATION_BUDGET_CAP } from "@/lib/validations/monte-carlo"
+import { cn } from "@/lib/utils"
 
 interface SimulationParamsFormProps {
 	params: SimulationParams
@@ -34,6 +37,10 @@ export const SimulationParamsForm = ({
 		})
 	}
 
+	const totalIterations = params.numberOfTrades * params.simulationCount
+	const budgetUsage = totalIterations / SIMULATION_BUDGET_CAP
+	const isOverBudget = totalIterations > SIMULATION_BUDGET_CAP
+
 	return (
 		<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
 			<h3 className="mb-m-400 text-body text-txt-100 font-semibold">
@@ -43,9 +50,9 @@ export const SimulationParamsForm = ({
 			<div className="gap-m-400 grid md:grid-cols-3">
 				{/* Initial Balance */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("initialBalance")}
-					</label>
+					</Label>
 					<div className="relative">
 						<span className="text-tiny text-txt-300 absolute top-1/2 left-3 -translate-y-1/2">
 							$
@@ -66,9 +73,9 @@ export const SimulationParamsForm = ({
 
 				{/* Risk Type */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("riskType")}
-					</label>
+					</Label>
 					<Select
 						value={params.riskType}
 						onValueChange={(value) =>
@@ -90,9 +97,9 @@ export const SimulationParamsForm = ({
 
 				{/* Risk Per Trade */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("riskPerTrade")}
-					</label>
+					</Label>
 					<div className="relative">
 						<Input
 							type="number"
@@ -109,9 +116,10 @@ export const SimulationParamsForm = ({
 							disabled={disabled}
 						/>
 						<span
-							className={`text-tiny text-txt-300 absolute top-1/2 -translate-y-1/2 ${
+							className={cn(
+								"text-tiny text-txt-300 absolute top-1/2 -translate-y-1/2",
 								params.riskType === "percentage" ? "right-3" : "left-3"
-							}`}
+							)}
 						>
 							{params.riskType === "percentage" ? "%" : "$"}
 						</span>
@@ -120,9 +128,9 @@ export const SimulationParamsForm = ({
 
 				{/* Win Rate */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("winRate")}
-					</label>
+					</Label>
 					<div className="relative">
 						<Input
 							type="number"
@@ -144,9 +152,9 @@ export const SimulationParamsForm = ({
 
 				{/* Reward/Risk Ratio */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("rewardRiskRatio")}
-					</label>
+					</Label>
 					<Input
 						type="number"
 						step="0.1"
@@ -162,9 +170,9 @@ export const SimulationParamsForm = ({
 
 				{/* Number of Trades */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("numberOfTrades")}
-					</label>
+					</Label>
 					<Input
 						type="number"
 						step="10"
@@ -180,9 +188,9 @@ export const SimulationParamsForm = ({
 
 				{/* Commission */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("commissionPerTrade")}
-					</label>
+					</Label>
 					<div className="relative">
 						<Input
 							type="number"
@@ -207,9 +215,9 @@ export const SimulationParamsForm = ({
 
 				{/* Simulation Count */}
 				<div>
-					<label className="mb-s-200 text-small text-txt-200 block">
+					<Label className="mb-s-200 text-small text-txt-200 block">
 						{t("simulationCount")}
-					</label>
+					</Label>
 					<Input
 						type="number"
 						step="1000"
@@ -223,6 +231,33 @@ export const SimulationParamsForm = ({
 					/>
 				</div>
 			</div>
+
+			{/* Budget Indicator */}
+			<div className="mt-m-400 flex items-center justify-between text-small">
+				<span className="text-txt-300">
+					{t("totalIterations")}: {totalIterations.toLocaleString()} / {SIMULATION_BUDGET_CAP.toLocaleString()}
+				</span>
+				<span
+					className={cn(
+						"font-mono tabular-nums",
+						isOverBudget
+							? "text-fb-error font-semibold"
+							: budgetUsage > 0.8
+								? "text-fb-warning"
+								: "text-txt-300"
+					)}
+				>
+					{(budgetUsage * 100).toFixed(0)}%
+				</span>
+			</div>
+			{isOverBudget && (
+				<p className="mt-s-200 text-caption text-fb-error">
+					{t("budgetExceeded", {
+						maxTrades: Math.floor(SIMULATION_BUDGET_CAP / params.simulationCount).toLocaleString(),
+						maxSimulations: Math.floor(SIMULATION_BUDGET_CAP / params.numberOfTrades).toLocaleString(),
+					})}
+				</p>
+			)}
 		</div>
 	)
 }

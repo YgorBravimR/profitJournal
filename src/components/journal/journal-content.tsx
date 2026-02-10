@@ -50,6 +50,13 @@ const getDateRange = (
 			const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 			return { from, to }
 		}
+		case "all": {
+			// Far past to now — fetch all trades
+			const from = new Date(2000, 0, 1)
+			const to = new Date(now)
+			to.setHours(23, 59, 59, 999)
+			return { from, to }
+		}
 		case "custom": {
 			if (customRange) {
 				return customRange

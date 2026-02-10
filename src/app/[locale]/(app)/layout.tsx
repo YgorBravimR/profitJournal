@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Sidebar } from "@/components/layout/sidebar"
+import { ThemeSynchronizer } from "@/components/providers/theme-synchronizer"
 import { cn } from "@/lib/utils"
 
 interface AppLayoutProps {
@@ -13,6 +14,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
 
 	return (
 		<>
+			<ThemeSynchronizer />
 			<Sidebar
 				isCollapsed={isSidebarCollapsed}
 				onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}

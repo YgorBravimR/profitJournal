@@ -30,7 +30,7 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 			getDisciplineScore(),
 			getEquityCurve(), // Fetch all time data by default
 			getStreakData(),
-			getDailyPnL(now),
+			getDailyPnL(now.getFullYear(), now.getMonth()),
 			getRadarChartData(),
 		])
 

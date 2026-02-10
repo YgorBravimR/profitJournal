@@ -14,6 +14,8 @@ import {
 import { eq, asc, and } from "drizzle-orm"
 import { toCents, fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { calculateAssetPnL, determineOutcome } from "@/lib/calculations"
+import { assets } from "@/db/schema"
 
 /**
  * Calculate execution value (price * quantity) in cents
@@ -99,7 +101,8 @@ const calculateExecutionSummary = (
 }
 
 /**
- * Update trade aggregates from executions
+ * Update trade aggregates from executions, including P&L recalculation.
+ * Called after every create/update/delete on executions to keep trade in sync.
  */
 const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 	const executions = await db.query.tradeExecutions.findMany({
@@ -117,6 +120,9 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 				avgEntryPrice: null,
 				avgExitPrice: null,
 				remainingQuantity: "0",
+				pnl: null,
+				outcome: null,
+				realizedRMultiple: null,
 				updatedAt: new Date(),
 			})
 			.where(eq(trades.id, tradeId))
@@ -125,7 +131,90 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 
 	const summary = calculateExecutionSummary(executions)
 
-	// Update trade with aggregated data
+	// Get the trade for direction, asset, stop loss info
+	const trade = await db.query.trades.findFirst({
+		where: eq(trades.id, tradeId),
+	})
+
+	if (!trade) return
+
+	// Sort executions by date for entry/exit date extraction
+	const entries = executions.filter((e) => e.executionType === "entry")
+	const exits = executions.filter((e) => e.executionType === "exit")
+
+	const earliestEntryDate = entries.length > 0
+		? entries.reduce((earliest, e) =>
+			new Date(e.executionDate) < new Date(earliest.executionDate) ? e : earliest
+		).executionDate
+		: trade.entryDate
+
+	const latestExitDate = exits.length > 0
+		? exits.reduce((latest, e) =>
+			new Date(e.executionDate) > new Date(latest.executionDate) ? e : latest
+		).executionDate
+		: null
+
+	// Aggregate commission and fees from all executions
+	const totalCommission = executions.reduce(
+		(sum, e) => sum + (e.commission ?? 0), 0
+	)
+	const totalFees = executions.reduce(
+		(sum, e) => sum + (e.fees ?? 0), 0
+	)
+
+	// Calculate P&L when we have exits
+	let pnl: number | null = null
+	let outcome: "win" | "loss" | "breakeven" | null = null
+	let realizedRMultiple: string | null = null
+
+	if (summary.totalExitQuantity > 0 && summary.avgExitPrice > 0) {
+		// Try to get asset config for tick-based calculation
+		const assetConfig = await db.query.assets.findFirst({
+			where: eq(assets.symbol, trade.asset),
+		})
+
+		const contractsExecuted = summary.totalEntryQuantity + summary.totalExitQuantity
+
+		if (assetConfig) {
+			// Use asset-aware calculation (tick-based)
+			const result = calculateAssetPnL({
+				entryPrice: summary.avgEntryPrice,
+				exitPrice: summary.avgExitPrice,
+				positionSize: summary.totalEntryQuantity,
+				direction: trade.direction,
+				tickSize: Number(assetConfig.tickSize),
+				tickValue: fromCents(assetConfig.tickValue),
+				commission: fromCents(totalCommission),
+				fees: fromCents(totalFees),
+				contractsExecuted,
+			})
+			pnl = toCents(result.netPnl)
+		} else {
+			// Fallback: simple P&L calculation
+			const priceDiff = trade.direction === "long"
+				? summary.avgExitPrice - summary.avgEntryPrice
+				: summary.avgEntryPrice - summary.avgExitPrice
+			const grossPnl = priceDiff * summary.totalEntryQuantity
+			pnl = toCents(grossPnl) - totalCommission - totalFees
+		}
+
+		outcome = determineOutcome(pnl)
+
+		// Calculate realized R-multiple if stop loss is set
+		if (trade.stopLoss && summary.avgEntryPrice > 0) {
+			const riskPerUnit = Math.abs(summary.avgEntryPrice - Number(trade.stopLoss))
+			const riskAmount = riskPerUnit * summary.totalEntryQuantity
+			if (riskAmount > 0) {
+				const rMultiple = fromCents(pnl) / riskAmount
+				realizedRMultiple = rMultiple.toFixed(2)
+			}
+		}
+	}
+
+	// Determine position status string for the positionStatus field
+	const positionStatus = summary.positionStatus
+
+	// Update trade with all aggregated data
 	await db
 		.update(trades)
 		.set({
@@ -134,12 +223,21 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 			avgEntryPrice: summary.avgEntryPrice.toString(),
 			avgExitPrice: summary.avgExitPrice > 0 ? summary.avgExitPrice.toString() : null,
 			remainingQuantity: summary.remainingQuantity.toString(),
-			// Also update the main entry/exit fields for backwards compatibility
+			// Backwards-compatible fields
 			entryPrice: summary.avgEntryPrice.toString(),
 			exitPrice: summary.avgExitPrice > 0 ? summary.avgExitPrice.toString() : null,
 			positionSize: summary.totalEntryQuantity.toString(),
-			// Update contracts executed (total entry + exit count * quantity)
 			contractsExecuted: (summary.totalEntryQuantity + summary.totalExitQuantity).toString(),
+			// P&L and outcome recalculation
+			pnl,
+			outcome,
+			realizedRMultiple,
+			// Aggregated costs from executions
+			commission: totalCommission,
+			fees: totalFees,
+			// Dates from executions
+			entryDate: earliestEntryDate,
+			exitDate: latestExitDate,
 			updatedAt: new Date(),
 		})
 		.where(eq(trades.id, tradeId))
@@ -168,6 +266,33 @@ export const createExecution = async (
 				status: "error",
 				message: "Trade not found",
 				errors: [{ code: "NOT_FOUND", detail: "Trade does not exist" }],
+			}
+		}
+
+		// Validate exit quantity: total exits cannot exceed total entries
+		if (validated.executionType === "exit") {
+			const existingExecutions = await db.query.tradeExecutions.findMany({
+				where: eq(tradeExecutions.tradeId, validated.tradeId),
+			})
+
+			const totalEntryQty = existingExecutions
+				.filter((e) => e.executionType === "entry")
+				.reduce((sum, e) => sum + Number(e.quantity), 0)
+
+			const totalExitQty = existingExecutions
+				.filter((e) => e.executionType === "exit")
+				.reduce((sum, e) => sum + Number(e.quantity), 0)
+
+			if (totalExitQty + validated.quantity > totalEntryQty) {
+				const remainingQty = totalEntryQty - totalExitQty
+				return {
+					status: "error",
+					message: `Exit quantity exceeds available position. Remaining: ${remainingQty}`,
+					errors: [{
+						code: "EXIT_EXCEEDS_ENTRIES",
+						detail: `Total exit quantity (${totalExitQty + validated.quantity}) would exceed total entry quantity (${totalEntryQty})`,
+					}],
+				}
 			}
 		}
 
@@ -255,6 +380,37 @@ export const updateExecution = async (
 				status: "error",
 				message: "Execution not found",
 				errors: [{ code: "NOT_FOUND", detail: "Execution does not exist" }],
+			}
+		}
+
+		// Validate exit quantity if the result would be an exit execution
+		const resultType = validated.executionType ?? existing.executionType
+		const resultQuantity = validated.quantity ?? Number(existing.quantity)
+
+		if (resultType === "exit") {
+			const allExecutions = await db.query.tradeExecutions.findMany({
+				where: eq(tradeExecutions.tradeId, existing.tradeId),
+			})
+
+			const totalEntryQty = allExecutions
+				.filter((e) => e.executionType === "entry")
+				.reduce((sum, e) => sum + Number(e.quantity), 0)
+
+			// Calculate exit total excluding the current execution being updated
+			const otherExitQty = allExecutions
+				.filter((e) => e.executionType === "exit" && e.id !== id)
+				.reduce((sum, e) => sum + Number(e.quantity), 0)
+
+			if (otherExitQty + resultQuantity > totalEntryQty) {
+				const remainingQty = totalEntryQty - otherExitQty
+				return {
+					status: "error",
+					message: `Exit quantity exceeds available position. Remaining: ${remainingQty}`,
+					errors: [{
+						code: "EXIT_EXCEEDS_ENTRIES",
+						detail: `Total exit quantity (${otherExitQty + resultQuantity}) would exceed total entry quantity (${totalEntryQty})`,
+					}],
+				}
 			}
 		}
 

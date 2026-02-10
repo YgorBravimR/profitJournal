@@ -4,11 +4,12 @@ import { useTranslations } from "next-intl"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { AssetList } from "./asset-list"
 import { TimeframeList } from "./timeframe-list"
+import { TagList } from "./tag-list"
 import { UserProfileSettings } from "./user-profile-settings"
 import { AccountSettings } from "./account-settings"
 import type { AssetWithType } from "@/app/actions/assets"
 import type { AssetType, Timeframe } from "@/db/schema"
-import { User, Briefcase, Coins, Clock } from "lucide-react"
+import { User, Briefcase, Coins, Clock, Tag } from "lucide-react"
 
 interface SettingsContentProps {
 	assets: AssetWithType[]
@@ -36,6 +37,10 @@ export const SettingsContent = ({
 					<Briefcase className="h-4 w-4" />
 					{t("account")}
 				</TabsTrigger>
+				<TabsTrigger value="tags" className="gap-s-200">
+					<Tag className="h-4 w-4" />
+					{t("tags")}
+				</TabsTrigger>
 				{isAdmin && (
 					<>
 						<TabsTrigger value="assets" className="gap-s-200">
@@ -56,6 +61,10 @@ export const SettingsContent = ({
 
 			<TabsContent value="account">
 				<AccountSettings assets={assets} />
+			</TabsContent>
+
+			<TabsContent value="tags">
+				<TagList />
 			</TabsContent>
 
 			{isAdmin && (

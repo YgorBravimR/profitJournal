@@ -292,13 +292,17 @@ export const timeframes = pgTable("timeframes", {
 		.notNull(),
 })
 
-// Strategies Table
+// Strategies Table (user-level: shared across all accounts)
 export const strategies = pgTable(
 	"strategies",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+		userId: uuid("user_id").references(() => users.id, {
 			onDelete: "cascade",
+		}),
+		// @deprecated - kept for migration compatibility, use userId instead
+		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+			onDelete: "set null",
 		}),
 		code: varchar("code").notNull(),
 		name: varchar("name", { length: 100 }).notNull(),
@@ -319,8 +323,9 @@ export const strategies = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("strategies_user_idx").on(table.userId),
 		index("strategies_account_idx").on(table.accountId),
-		uniqueIndex("strategies_account_code_idx").on(table.accountId, table.code),
+		uniqueIndex("strategies_user_code_idx").on(table.userId, table.code),
 	]
 )
 
@@ -467,13 +472,17 @@ export const tradeExecutions = pgTable(
 	]
 )
 
-// Tags Table
+// Tags Table (user-level: shared across all accounts)
 export const tags = pgTable(
 	"tags",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+		userId: uuid("user_id").references(() => users.id, {
 			onDelete: "cascade",
+		}),
+		// @deprecated - kept for migration compatibility, use userId instead
+		accountId: uuid("account_id").references(() => tradingAccounts.id, {
+			onDelete: "set null",
 		}),
 		name: varchar("name", { length: 50 }).notNull(),
 		type: tagTypeEnum("type").notNull(),
@@ -484,8 +493,9 @@ export const tags = pgTable(
 			.notNull(),
 	},
 	(table) => [
+		index("tags_user_idx").on(table.userId),
 		index("tags_account_idx").on(table.accountId),
-		uniqueIndex("tags_account_name_idx").on(table.accountId, table.name),
+		uniqueIndex("tags_user_name_idx").on(table.userId, table.name),
 	]
 )
 
@@ -754,6 +764,8 @@ export const usersRelations = relations(users, ({ many }) => ({
 	tradingAccounts: many(tradingAccounts),
 	sessions: many(sessions),
 	oauthAccounts: many(oauthAccounts),
+	strategies: many(strategies),
+	tags: many(tags),
 }))
 
 // Trading Account Relations
@@ -848,6 +860,10 @@ export const timeframesRelations = relations(timeframes, ({ many }) => ({
 }))
 
 export const strategiesRelations = relations(strategies, ({ one, many }) => ({
+	user: one(users, {
+		fields: [strategies.userId],
+		references: [users.id],
+	}),
 	account: one(tradingAccounts, {
 		fields: [strategies.accountId],
 		references: [tradingAccounts.id],
@@ -856,6 +872,10 @@ export const strategiesRelations = relations(strategies, ({ one, many }) => ({
 }))
 
 export const tagsRelations = relations(tags, ({ one, many }) => ({
+	user: one(users, {
+		fields: [tags.userId],
+		references: [users.id],
+	}),
 	account: one(tradingAccounts, {
 		fields: [tags.accountId],
 		references: [tradingAccounts.id],

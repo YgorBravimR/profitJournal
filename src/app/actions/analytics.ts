@@ -413,7 +413,8 @@ export const getEquityCurve = async (
  * Get daily P&L for calendar
  */
 export const getDailyPnL = async (
-	month: Date
+	year: number,
+	monthIndex: number
 ): Promise<ActionResponse<DailyPnL[]>> => {
 	try {
 		const authContext = await requireAuth()
@@ -422,8 +423,9 @@ export const getDailyPnL = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const startOfMonth = getStartOfMonth(month)
-		const endOfMonth = getEndOfMonth(month)
+		// Construct dates on the server to avoid client/server timezone serialization issues
+		const startOfMonth = new Date(year, monthIndex, 1)
+		const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999)
 
 		const result = await db.query.trades.findMany({
 			where: and(

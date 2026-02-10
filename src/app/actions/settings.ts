@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { settings, userSettings, tradingAccounts, type UserSettings } from "@/db/schema"
+import { settings, userSettings, tradingAccounts, users, type UserSettings } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import type { ActionResponse } from "@/types"
@@ -338,6 +338,69 @@ export const updateRiskSettings = async (
 		return {
 			status: "error",
 			message: "Failed to update settings",
+		}
+	}
+}
+
+/**
+ * Get the user's persisted theme preference from the database.
+ */
+export const getUserTheme = async (): Promise<ActionResponse<string>> => {
+	try {
+		const { userId } = await requireAuth()
+
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: { theme: true },
+		})
+
+		return {
+			status: "success",
+			message: "Theme retrieved",
+			data: user?.theme ?? "dark",
+		}
+	} catch (error) {
+		console.error("Failed to get user theme:", error)
+		return {
+			status: "error",
+			message: "Failed to retrieve theme",
+		}
+	}
+}
+
+/**
+ * Persist the user's theme preference to the database.
+ */
+export const updateTheme = async (
+	theme: string
+): Promise<ActionResponse<string>> => {
+	try {
+		const { userId } = await requireAuth()
+
+		const validThemes = ["dark", "light"]
+		if (!validThemes.includes(theme)) {
+			return {
+				status: "error",
+				message: "Invalid theme value",
+				errors: [{ code: "INVALID_THEME", detail: `Theme must be one of: ${validThemes.join(", ")}` }],
+			}
+		}
+
+		await db
+			.update(users)
+			.set({ theme, updatedAt: new Date() })
+			.where(eq(users.id, userId))
+
+		return {
+			status: "success",
+			message: "Theme updated",
+			data: theme,
+		}
+	} catch (error) {
+		console.error("Failed to update theme:", error)
+		return {
+			status: "error",
+			message: "Failed to update theme",
 		}
 	}
 }

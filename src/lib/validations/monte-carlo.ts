@@ -1,5 +1,8 @@
 import { z } from "zod"
 
+/** Maximum allowed total iterations (trades × simulations) */
+export const SIMULATION_BUDGET_CAP = 3_000_000
+
 export const simulationParamsSchema = z
 	.object({
 		initialBalance: z
@@ -44,6 +47,17 @@ export const simulationParamsSchema = z
 				code: z.ZodIssueCode.custom,
 				message: `Risk per trade cannot exceed initial balance ($${data.initialBalance.toLocaleString()})`,
 				path: ["riskPerTrade"],
+			})
+		}
+		// Budget cap: trades × simulations must not exceed 3,000,000 total iterations
+		const totalIterations = data.numberOfTrades * data.simulationCount
+		if (totalIterations > SIMULATION_BUDGET_CAP) {
+			const maxTrades = Math.floor(SIMULATION_BUDGET_CAP / data.simulationCount)
+			const maxSimulations = Math.floor(SIMULATION_BUDGET_CAP / data.numberOfTrades)
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: `Total iterations (${totalIterations.toLocaleString()}) exceeds the maximum of ${SIMULATION_BUDGET_CAP.toLocaleString()}. Reduce trades to ${maxTrades.toLocaleString()} or simulations to ${maxSimulations.toLocaleString()}.`,
+				path: ["simulationCount"],
 			})
 		}
 	})

@@ -79,7 +79,7 @@ export const DashboardContent = ({
 	const handleMonthChange = useCallback((newMonth: Date) => {
 		setCurrentMonth(newMonth)
 		startTransition(async () => {
-			const result = await getDailyPnL(newMonth)
+			const result = await getDailyPnL(newMonth.getFullYear(), newMonth.getMonth())
 			if (result.status === "success" && result.data) {
 				setDailyPnL(result.data)
 			}

@@ -198,6 +198,7 @@ export const TradeExecutionsSection = ({
 			<ExecutionForm
 				tradeId={tradeId}
 				execution={editingExecution}
+				existingExecutions={executions}
 				open={isFormOpen}
 				onOpenChange={setIsFormOpen}
 				onSuccess={handleFormSuccess}

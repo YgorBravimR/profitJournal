@@ -15,6 +15,13 @@
       "when": 1769956890813,
       "tag": "0001_true_the_renegades",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1770710662247,
+      "tag": "0002_wild_ozymandias",
+      "breakpoints": true
     }
   ]
 }

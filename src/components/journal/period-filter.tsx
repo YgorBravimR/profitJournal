@@ -38,6 +38,7 @@ export const PeriodFilter = ({
 		{ key: "day", label: t("period.day") },
 		{ key: "week", label: t("period.week") },
 		{ key: "month", label: t("period.month") },
+		{ key: "all", label: t("period.all") },
 		{ key: "custom", label: t("period.custom") },
 	]
 

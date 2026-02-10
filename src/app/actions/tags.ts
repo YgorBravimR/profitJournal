@@ -28,19 +28,19 @@ const createTagSchema = z.object({
 type CreateTagInput = z.infer<typeof createTagSchema>
 
 /**
- * Create a new tag
+ * Create a new tag (user-level, shared across all accounts)
  */
 export const createTag = async (
 	input: CreateTagInput
 ): Promise<ActionResponse<Tag>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId } = await requireAuth()
 		const validated = createTagSchema.parse(input)
 
 		const [tag] = await db
 			.insert(tags)
 			.values({
-				accountId,
+				userId,
 				name: validated.name,
 				type: validated.type,
 				color: validated.color,
@@ -50,6 +50,7 @@ export const createTag = async (
 
 		revalidatePath("/analytics")
 		revalidatePath("/journal")
+		revalidatePath("/settings")
 
 		return {
 			status: "success",
@@ -91,10 +92,10 @@ export const updateTag = async (
 	input: Partial<CreateTagInput>
 ): Promise<ActionResponse<Tag>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId } = await requireAuth()
 
 		const existing = await db.query.tags.findFirst({
-			where: and(eq(tags.id, id), eq(tags.accountId, accountId)),
+			where: and(eq(tags.id, id), eq(tags.userId, userId)),
 		})
 
 		if (!existing) {
@@ -113,11 +114,12 @@ export const updateTag = async (
 				...(input.color !== undefined && { color: input.color }),
 				...(input.description !== undefined && { description: input.description }),
 			})
-			.where(and(eq(tags.id, id), eq(tags.accountId, accountId)))
+			.where(and(eq(tags.id, id), eq(tags.userId, userId)))
 			.returning()
 
 		revalidatePath("/analytics")
 		revalidatePath("/journal")
+		revalidatePath("/settings")
 
 		return {
 			status: "success",
@@ -135,20 +137,18 @@ export const updateTag = async (
 }
 
 /**
- * Get all tags, optionally filtered by type
+ * Get all tags for the current user, optionally filtered by type.
+ * Tags are user-level (shared across all accounts).
  */
 export const getTags = async (
 	type?: TagType
 ): Promise<ActionResponse<Tag[]>> => {
 	try {
-		const authContext = await requireAuth()
-		const accountCondition = authContext.showAllAccounts
-			? inArray(tags.accountId, authContext.allAccountIds)
-			: eq(tags.accountId, authContext.accountId)
+		const { userId } = await requireAuth()
 
 		const conditions = type
-			? and(accountCondition, eq(tags.type, type))
-			: accountCondition
+			? and(eq(tags.userId, userId), eq(tags.type, type))
+			: eq(tags.userId, userId)
 
 		const result = await db.query.tags.findMany({
 			where: conditions,
@@ -171,20 +171,18 @@ export const getTags = async (
 }
 
 /**
- * Get tag statistics (usage and performance)
+ * Get tag statistics (usage and performance).
+ * Stats are calculated from trades in the current account (or all accounts).
  */
 export const getTagStats = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<TagStats[]>> => {
 	try {
 		const authContext = await requireAuth()
-		const accountCondition = authContext.showAllAccounts
-			? inArray(tags.accountId, authContext.allAccountIds)
-			: eq(tags.accountId, authContext.accountId)
 
-		// Get all tags for this account first
+		// Tags are user-level — get all tags for this user
 		const allTags = await db.query.tags.findMany({
-			where: accountCondition,
+			where: eq(tags.userId, authContext.userId),
 			orderBy: [asc(tags.name)],
 		})
 
@@ -207,7 +205,7 @@ export const getTagStats = async (
 				},
 			})
 
-			// Filter by all filter criteria - support all accounts mode
+			// Filter by account ownership and other filter criteria
 			const filteredTrades = tradeTagsResult
 				.map((tt) => tt.trade)
 				.filter((trade) => {
@@ -293,10 +291,10 @@ export const getTagStats = async (
  */
 export const deleteTag = async (id: string): Promise<ActionResponse<void>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId } = await requireAuth()
 
 		const existing = await db.query.tags.findFirst({
-			where: and(eq(tags.id, id), eq(tags.accountId, accountId)),
+			where: and(eq(tags.id, id), eq(tags.userId, userId)),
 		})
 
 		if (!existing) {
@@ -308,10 +306,11 @@ export const deleteTag = async (id: string): Promise<ActionResponse<void>> => {
 		}
 
 		// Delete will cascade to trade_tags due to onDelete: "cascade"
-		await db.delete(tags).where(and(eq(tags.id, id), eq(tags.accountId, accountId)))
+		await db.delete(tags).where(and(eq(tags.id, id), eq(tags.userId, userId)))
 
 		revalidatePath("/analytics")
 		revalidatePath("/journal")
+		revalidatePath("/settings")
 
 		return {
 			status: "success",

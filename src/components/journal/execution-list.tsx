@@ -5,7 +5,6 @@ import { useTranslations } from "next-intl"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { PnLDisplay } from "./pnl-display"
 import { deleteExecution } from "@/app/actions/executions"
 import type { TradeExecution } from "@/db/schema"
 import { Plus, ArrowUp, ArrowDown, Trash2, Pencil, Loader2 } from "lucide-react"
@@ -43,11 +42,14 @@ export const ExecutionList = ({
 	const [isPending, startTransition] = useTransition()
 	const [deletingId, setDeletingId] = useState<string | null>(null)
 
-	// Separate entries and exits
-	const entries = executions.filter((e) => e.executionType === "entry")
-	const exits = executions.filter((e) => e.executionType === "exit")
+	// Sort all executions chronologically (no entry/exit grouping)
+	const sortedExecutions = executions.toSorted(
+		(a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+	)
 
 	// Calculate totals
+	const entries = executions.filter((e) => e.executionType === "entry")
+	const exits = executions.filter((e) => e.executionType === "exit")
 	const totalEntryQty = entries.reduce((sum, e) => sum + Number(e.quantity), 0)
 	const totalExitQty = exits.reduce((sum, e) => sum + Number(e.quantity), 0)
 
@@ -64,7 +66,7 @@ export const ExecutionList = ({
 			  totalExitQty
 			: 0
 
-	const handleDelete = async (id: string) => {
+	const handleDelete = (id: string) => {
 		setDeletingId(id)
 		startTransition(async () => {
 			const result = await deleteExecution(id)
@@ -116,86 +118,52 @@ export const ExecutionList = ({
 				</div>
 			) : (
 				<div className="space-y-m-300">
-					{/* Entries Section */}
-					{entries.length > 0 && (
-						<div className="space-y-s-200">
-							<div className="flex items-center gap-s-200">
-								<ArrowUp className="h-4 w-4 text-action-buy" />
-								<span className="text-small font-medium text-txt-200">
-									{t("entries")} ({entries.length})
-								</span>
-							</div>
-							<div className="space-y-s-100">
-								{entries.map((execution) => (
-									<ExecutionRow
-										key={execution.id}
-										execution={execution}
-										type="entry"
-										onEdit={() => onEditExecution(execution)}
-										onDelete={() => handleDelete(execution.id)}
-										isDeleting={deletingId === execution.id}
-										formatPrice={formatPrice}
-										formatQuantity={formatQuantity}
-										t={t}
-										tCommon={tCommon}
-									/>
-								))}
-							</div>
-						</div>
-					)}
-
-					{/* Exits Section */}
-					{exits.length > 0 && (
-						<div className="space-y-s-200">
-							<div className="flex items-center gap-s-200">
-								<ArrowDown className="h-4 w-4 text-action-sell" />
-								<span className="text-small font-medium text-txt-200">
-									{t("exits")} ({exits.length})
-								</span>
-							</div>
-							<div className="space-y-s-100">
-								{exits.map((execution) => (
-									<ExecutionRow
-										key={execution.id}
-										execution={execution}
-										type="exit"
-										onEdit={() => onEditExecution(execution)}
-										onDelete={() => handleDelete(execution.id)}
-										isDeleting={deletingId === execution.id}
-										formatPrice={formatPrice}
-										formatQuantity={formatQuantity}
-										t={t}
-										tCommon={tCommon}
-									/>
-								))}
-							</div>
-						</div>
-					)}
+					{/* Chronological Execution List */}
+					<div className="flex items-center gap-m-300 text-small text-txt-300">
+						<span>{t("entries")}: {entries.length}</span>
+						<span>{t("exits")}: {exits.length}</span>
+					</div>
+					<div className="space-y-s-200">
+						{sortedExecutions.map((execution) => (
+							<ExecutionRow
+								key={execution.id}
+								execution={execution}
+								type={execution.executionType as "entry" | "exit"}
+								onEdit={() => onEditExecution(execution)}
+								onDelete={() => handleDelete(execution.id)}
+								isDeleting={deletingId === execution.id}
+								formatPrice={formatPrice}
+								formatQuantity={formatQuantity}
+								t={t}
+								tCommon={tCommon}
+							/>
+						))}
+					</div>
 
 					{/* Summary */}
 					<div className="rounded-lg border border-stroke-100 bg-bg-200 p-m-300">
 						<div className="grid grid-cols-2 gap-m-300 text-small">
 							<div>
 								<span className="text-txt-300">{t("totalIn")}:</span>
-								<span className="ml-s-200 font-mono text-txt-100">
+								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
 									{formatQuantity(totalEntryQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("totalOut")}:</span>
-								<span className="ml-s-200 font-mono text-txt-100">
+								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
 									{formatQuantity(totalExitQty)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgEntry")}:</span>
-								<span className="ml-s-200 font-mono text-txt-100">
+								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
 									{formatPrice(avgEntryPrice)}
 								</span>
 							</div>
 							<div>
 								<span className="text-txt-300">{t("avgExit")}:</span>
-								<span className="ml-s-200 font-mono text-txt-100">
+								<span className="ml-s-200 font-mono tabular-nums text-txt-100">
 									{totalExitQty > 0 ? formatPrice(avgExitPrice) : "-"}
 								</span>
 							</div>
@@ -203,7 +171,7 @@ export const ExecutionList = ({
 								<span className="text-txt-300">{t("remaining")}:</span>
 								<span
 									className={cn(
-										"ml-s-200 font-mono font-semibold",
+										"ml-s-200 font-mono tabular-nums font-semibold",
 										totalEntryQty - totalExitQty > 0
 											? "text-fb-warning"
 											: "text-trade-buy"
@@ -252,13 +220,19 @@ const ExecutionRow = ({
 					: "border-action-sell/20 bg-action-sell/5"
 			)}
 		>
-			<div className="flex items-center gap-m-300">
-				<div className="text-small">
+			<div className="flex items-center gap-m-400">
+				{/* Type indicator */}
+				{type === "entry" ? (
+					<ArrowUp className="h-3.5 w-3.5 shrink-0 text-action-buy" aria-label={t("entry")} />
+				) : (
+					<ArrowDown className="h-3.5 w-3.5 shrink-0 text-action-sell" aria-label={t("exit")} />
+				)}
+				<div className="text-small tabular-nums">
 					<span className="text-txt-300">
-						{format(new Date(execution.executionDate), "dd/MM HH:mm")}
+						{format(new Date(execution.executionDate), "dd/MM HH:mm:ss")}
 					</span>
 				</div>
-				<div className="text-small">
+				<div className="text-small tabular-nums">
 					<span className="font-mono font-semibold text-txt-100">
 						{formatQuantity(execution.quantity)}
 					</span>

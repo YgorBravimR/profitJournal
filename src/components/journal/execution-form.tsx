@@ -30,14 +30,71 @@ import { format } from "date-fns"
 interface ExecutionFormProps {
 	tradeId: string
 	execution?: TradeExecution | null
+	existingExecutions?: TradeExecution[]
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	onSuccess?: () => void
 }
 
+/**
+ * Derive smart default date/time from the most recent execution.
+ * Falls back to current date/time if no executions exist.
+ */
+const getSmartDefaults = (existingExecutions: TradeExecution[]) => {
+	if (existingExecutions.length === 0) {
+		return {
+			date: format(new Date(), "yyyy-MM-dd"),
+			time: format(new Date(), "HH:mm:ss"),
+		}
+	}
+
+	// Find the most recent execution by date
+	const mostRecent = existingExecutions.reduce((latest, e) =>
+		new Date(e.executionDate) > new Date(latest.executionDate) ? e : latest
+	)
+
+	const recentDate = new Date(mostRecent.executionDate)
+	return {
+		date: format(recentDate, "yyyy-MM-dd"),
+		time: format(recentDate, "HH:mm:ss"),
+	}
+}
+
+/** Build the blank form state for a new execution */
+const buildNewExecutionState = (existingExecutions: TradeExecution[]) => {
+	const defaults = getSmartDefaults(existingExecutions)
+	return {
+		executionType: "entry",
+		executionDate: defaults.date,
+		executionTime: defaults.time,
+		price: "",
+		quantity: "",
+		orderType: "market",
+		commission: "0",
+		fees: "0",
+		slippage: "0",
+		notes: "",
+	}
+}
+
+/** Build form state from an existing execution for editing */
+const buildEditExecutionState = (execution: TradeExecution) => ({
+	executionType: execution.executionType ?? "entry",
+	executionDate: format(new Date(execution.executionDate), "yyyy-MM-dd"),
+	executionTime: format(new Date(execution.executionDate), "HH:mm:ss"),
+	price: execution.price ?? "",
+	quantity: execution.quantity ?? "",
+	orderType: execution.orderType ?? "market",
+	commission: execution.commission?.toString() ?? "0",
+	fees: execution.fees?.toString() ?? "0",
+	slippage: execution.slippage?.toString() ?? "0",
+	notes: execution.notes ?? "",
+})
+
 export const ExecutionForm = ({
 	tradeId,
 	execution,
+	existingExecutions = [],
 	open,
 	onOpenChange,
 	onSuccess,
@@ -49,63 +106,32 @@ export const ExecutionForm = ({
 
 	const isEdit = !!execution
 
-	const [formData, setFormData] = useState({
-		executionType: execution?.executionType ?? "entry",
-		executionDate: execution
-			? format(new Date(execution.executionDate), "yyyy-MM-dd")
-			: format(new Date(), "yyyy-MM-dd"),
-		executionTime: execution
-			? format(new Date(execution.executionDate), "HH:mm")
-			: format(new Date(), "HH:mm"),
-		price: execution?.price ?? "",
-		quantity: execution?.quantity ?? "",
-		orderType: execution?.orderType ?? "market",
-		commission: execution?.commission?.toString() ?? "0",
-		fees: execution?.fees?.toString() ?? "0",
-		slippage: execution?.slippage?.toString() ?? "0",
-		notes: execution?.notes ?? "",
-	})
+	const [formData, setFormData] = useState(
+		execution
+			? buildEditExecutionState(execution)
+			: buildNewExecutionState(existingExecutions)
+	)
 
 	// Update form data when execution prop changes (for edit mode)
 	useEffect(() => {
-		if (execution) {
-			setFormData({
-				executionType: execution.executionType ?? "entry",
-				executionDate: format(new Date(execution.executionDate), "yyyy-MM-dd"),
-				executionTime: format(new Date(execution.executionDate), "HH:mm"),
-				price: execution.price ?? "",
-				quantity: execution.quantity ?? "",
-				orderType: execution.orderType ?? "market",
-				commission: execution.commission?.toString() ?? "0",
-				fees: execution.fees?.toString() ?? "0",
-				slippage: execution.slippage?.toString() ?? "0",
-				notes: execution.notes ?? "",
-			})
-		} else {
-			setFormData({
-				executionType: "entry",
-				executionDate: format(new Date(), "yyyy-MM-dd"),
-				executionTime: format(new Date(), "HH:mm"),
-				price: "",
-				quantity: "",
-				orderType: "market",
-				commission: "0",
-				fees: "0",
-				slippage: "0",
-				notes: "",
-			})
-		}
-	}, [execution])
+		setFormData(
+			execution
+				? buildEditExecutionState(execution)
+				: buildNewExecutionState(existingExecutions)
+		)
+	}, [execution, existingExecutions])
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
 		setError(null)
 
 		startTransition(async () => {
-			// Combine date and time
-			const executionDate = new Date(
-				`${formData.executionDate}T${formData.executionTime}`
-			)
+			// Combine date and time (supports HH:mm:ss format)
+			const timeValue =
+				formData.executionTime.length === 5
+					? `${formData.executionTime}:00`
+					: formData.executionTime
+			const executionDate = new Date(`${formData.executionDate}T${timeValue}`)
 
 			const data = {
 				tradeId,
@@ -132,26 +158,14 @@ export const ExecutionForm = ({
 			if (result.status === "success") {
 				onOpenChange(false)
 				onSuccess?.()
-				// Reset form
-				setFormData({
-					executionType: "entry",
-					executionDate: format(new Date(), "yyyy-MM-dd"),
-					executionTime: format(new Date(), "HH:mm"),
-					price: "",
-					quantity: "",
-					orderType: "market",
-					commission: "0",
-					fees: "0",
-					slippage: "0",
-					notes: "",
-				})
+				setFormData(buildNewExecutionState(existingExecutions))
 			} else {
-				setError(result.message ?? "An error occurred")
+				setError(result.message ?? tCommon("error"))
 			}
 		})
 	}
 
-	const handleChange = (field: string, value: string) => {
+	const handleChange = (field: keyof typeof formData, value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 	}
 
@@ -167,7 +181,7 @@ export const ExecutionForm = ({
 
 				<form onSubmit={handleSubmit} className="space-y-m-400">
 					{error && (
-						<div className="rounded-md bg-fb-error/10 p-s-300 text-small text-fb-error">
+						<div className="bg-fb-error/10 p-s-300 text-small text-fb-error rounded-md">
 							{error}
 						</div>
 					)}
@@ -178,13 +192,13 @@ export const ExecutionForm = ({
 						<RadioGroup
 							value={formData.executionType}
 							onValueChange={(value) => handleChange("executionType", value)}
-							className="flex gap-m-400"
+							className="gap-m-400 flex"
 						>
 							<div className="flex items-center space-x-2">
 								<RadioGroupItem value="entry" id="entry" />
 								<Label
 									htmlFor="entry"
-									className="cursor-pointer font-normal text-trade-buy"
+									className="text-trade-buy cursor-pointer font-normal"
 								>
 									{t("entry")}
 								</Label>
@@ -193,7 +207,7 @@ export const ExecutionForm = ({
 								<RadioGroupItem value="exit" id="exit" />
 								<Label
 									htmlFor="exit"
-									className="cursor-pointer font-normal text-trade-sell"
+									className="text-trade-sell cursor-pointer font-normal"
 								>
 									{t("exit")}
 								</Label>
@@ -202,7 +216,7 @@ export const ExecutionForm = ({
 					</div>
 
 					{/* Date and Time */}
-					<div className="grid grid-cols-2 gap-m-400">
+					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
 							<Label htmlFor="executionDate">{t("date")}</Label>
 							<Input
@@ -218,6 +232,7 @@ export const ExecutionForm = ({
 							<Input
 								id="executionTime"
 								type="time"
+								step="1"
 								value={formData.executionTime}
 								onChange={(e) => handleChange("executionTime", e.target.value)}
 								required
@@ -226,7 +241,7 @@ export const ExecutionForm = ({
 					</div>
 
 					{/* Price and Quantity */}
-					<div className="grid grid-cols-2 gap-m-400">
+					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
 							<Label htmlFor="price">{t("price")}</Label>
 							<Input
@@ -272,8 +287,8 @@ export const ExecutionForm = ({
 						</Select>
 					</div>
 
-					{/* Costs (collapsible section could be added later) */}
-					<div className="grid grid-cols-3 gap-m-300">
+					{/* Costs */}
+					<div className="gap-m-300 grid grid-cols-3">
 						<div className="space-y-s-200">
 							<Label htmlFor="commission" className="text-small">
 								{t("commission")}
@@ -285,7 +300,7 @@ export const ExecutionForm = ({
 								placeholder="0"
 								value={formData.commission}
 								onChange={(e) => handleChange("commission", e.target.value)}
-								className="h-8 text-small"
+								className="text-small h-8"
 							/>
 						</div>
 						<div className="space-y-s-200">
@@ -299,7 +314,7 @@ export const ExecutionForm = ({
 								placeholder="0"
 								value={formData.fees}
 								onChange={(e) => handleChange("fees", e.target.value)}
-								className="h-8 text-small"
+								className="text-small h-8"
 							/>
 						</div>
 						<div className="space-y-s-200">
@@ -313,7 +328,7 @@ export const ExecutionForm = ({
 								placeholder="0"
 								value={formData.slippage}
 								onChange={(e) => handleChange("slippage", e.target.value)}
-								className="h-8 text-small"
+								className="text-small h-8"
 							/>
 						</div>
 					</div>

@@ -19,6 +19,12 @@ A personal trading performance analysis platform with deep journaling, analytics
 | 7 | i18n & Brazilian Market | ✅ Complete | Jan 2025 |
 | 8 | Monthly Results & Prop Trading | ✅ Complete | Jan 2025 |
 | 9 | Position Scaling & Execution Management | ✅ Complete | Jan 2025 |
+| 10 | User Authentication & Multi-Account | ✅ Complete | Jan 2025 |
+| 10.5 | Scaled Position UX Improvements | ✅ Complete | Jan 2025 |
+| 11 | Advanced Reports & Dashboard Visualizations | ✅ Complete | Jan 2025 |
+| 12 | Daily Trading Command Center | ✅ Complete | Jan 2025 |
+| 13 | Monte Carlo Strategy Simulator | ✅ Complete | Jan 2025 |
+| 14 | UX Polish, Bug Fixes & Cross-Account Sharing | ⏳ In Progress | - |
 
 ---
 - Functional trade CRUD operations
@@ -7712,4 +7718,680 @@ Navigation order suggestion:
 - [ ] Help tooltips for all parameters
 - [ ] Loading states during simulation
 - [ ] Responsive design for all components
+
+---
+
+## Phase 14: UX Polish, Bug Fixes & Cross-Account Sharing ⏳ IN PROGRESS
+
+**Goal:** Fix critical bugs in scaled position P&L calculation and dashboard calendar, improve the trade journal UX with new filters and better execution management, enable cross-account tag/strategy sharing, add inline tag creation, and make the default theme selectable.
+
+---
+
+### 14.1 Problem Statement
+
+Several usability issues and bugs have been identified after Phase 9-13 work:
+
+1. **Tag Creation UX Gap** - Users can only create tags in settings, not while recording a trade. This breaks the flow when a new tag is needed mid-entry.
+
+2. **Theme Not Selectable** - The `users.theme` column exists with a `"dark"` default, but there's no UI to select a default theme on first login or in settings (the ThemeToggle only toggles client-side, doesn't persist to DB as default).
+
+3. **Tags & Strategies Account-Locked** - Tags and strategies are scoped to `accountId`, so creating "Support Bounce" on Account A doesn't make it available on Account B. Traders reuse the same strategies across accounts (personal + prop firm).
+
+4. **No "All" Period in Journal** - The journal only offers Day, Week, Month, and Custom. There's no quick "All" button to see every trade ever recorded.
+
+5. **Scaled Position UX Issues** - Multiple layout and logic problems:
+   - Numbers overlap due to tight spacing in execution rows
+   - Entries and exits are grouped separately instead of sorted chronologically
+   - No seconds precision in execution times (only HH:mm)
+   - Default date/time is always "now" instead of the most recent execution's time
+   - Users can add more exit quantity than entry quantity (no validation)
+
+6. **Scaled Position P&L Not Recalculated (BUG)** - `updateTradeAggregates()` in `executions.ts` (line 104-146) updates position aggregates (avgEntryPrice, avgExitPrice, positionSize, etc.) but **never recalculates `pnl`, `outcome`, `realizedR`, `commission`, or `fees`**. This means the trade detail page shows stale P&L after execution changes, and the Position Summary contradicts the trade result header.
+
+7. **Dashboard Calendar Empty for Past Months (BUG)** - Timezone serialization issue: when the client (BRT, UTC-3) creates `new Date(2026, 0, 1)` for January, it serializes as `2025-12-31T03:00:00Z`. The server action's `getStartOfMonth()` uses `.getMonth()` on the UTC-interpreted date, returning December instead of January. This causes `getDailyPnL()` to query the wrong month.
+
+---
+
+### 14.2 Feature Breakdown
+
+#### 14.2.1 Tag Management (Settings + Inline Creation)
+
+**Current State:**
+- **NO tag management UI exists anywhere in the app**
+- Server actions (`createTag`, `updateTag`, `deleteTag`) exist in `src/app/actions/tags.ts` but are never called from any component
+- Settings page has 4 tabs (Profile, Account, Assets, Timeframes) — no Tags tab
+- Analytics `TagCloud` is read-only (display stats only, no CRUD)
+- Trade form shows `"No tags available yet"` → `"Create tags in the Analytics section"` — but Analytics has no creation UI
+- Tags can literally not be created by users today
+
+**Changes Required:**
+
+##### A. Settings: Tag Management Tab (Full CRUD)
+
+**New Component: `src/components/settings/tag-list.tsx`**
+- Follow the same pattern as `asset-list.tsx` and `timeframe-list.tsx`
+- Display all tags in a table grouped by type (Setup, Mistake, General)
+- Each row shows: color swatch, name, type badge, trade count, edit/delete actions
+- "Add Tag" button opens inline form or modal
+
+**New Component: `src/components/settings/tag-form.tsx`**
+- Follow the same pattern as `asset-form.tsx` and `timeframe-form.tsx`
+- Fields: name (text), type (select: setup/mistake/general), color (color picker from preset palette)
+- Calls `createTag()` / `updateTag()` server actions
+- Delete confirmation dialog calls `deleteTag()`
+
+**Settings Content Integration:**
+- File: `src/components/settings/settings-content.tsx`
+- Add a new "Tags" tab (visible to all users, not admin-only like Assets/Timeframes)
+- Add `Tag` icon from lucide-react
+- Pass tags data from settings page
+
+**Settings Page:**
+- File: `src/app/[locale]/(app)/settings/page.tsx`
+- Fetch tags via `getTags()` and pass to `SettingsContent`
+
+**Tag Management UI:**
+```
+┌──────────────────────────────────────────────────────────────────┐
+│  Settings                                                        │
+│  Profile | Account | Tags | Assets* | Timeframes*                │
+│  ─────────────────────────────────────────────────               │
+│                                                                   │
+│  Tags                                              [+ Add Tag]   │
+│                                                                   │
+│  Setup Tags                                                       │
+│  ┌──────────────────────────────────────────────────────────┐    │
+│  │ 🟢 Support Bounce        setup     12 trades   ✏️  🗑️  │    │
+│  │ 🔵 Breakout              setup      8 trades   ✏️  🗑️  │    │
+│  │ 🟡 Mean Reversion        setup      5 trades   ✏️  🗑️  │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                   │
+│  Mistake Tags                                                     │
+│  ┌──────────────────────────────────────────────────────────┐    │
+│  │ 🔴 FOMO                  mistake    3 trades   ✏️  🗑️  │    │
+│  │ 🔴 Revenge Trade         mistake    1 trade    ✏️  🗑️  │    │
+│  └──────────────────────────────────────────────────────────┘    │
+│                                                                   │
+│  General Tags                                                     │
+│  ┌──────────────────────────────────────────────────────────┐    │
+│  │ 🟠 Followed Plan         general   10 trades   ✏️  🗑️  │    │
+│  └──────────────────────────────────────────────────────────┘    │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+##### B. Trade Form: Inline Tag Creation
+
+**File: `src/components/journal/trade-form.tsx`**
+- In the Tags tab, add a "Create new tag" option at the bottom of the tag selection
+- When clicked, show an inline mini-form (name, type, color) below the tag list
+- On submit, call `createTag()` server action, add new tag to local state, and auto-select it
+- Fix the fallback message from `"Create tags in the Analytics section"` to `"Create tags in Settings or use the button below"`
+
+**Inline Creation UI (within trade form):**
+```
+┌───────────────────────────────────────────┐
+│ Tags                                      │
+│ ┌─────────────────────────────────────┐   │
+│ │ ☑ Support Bounce                    │   │
+│ │ ☑ Followed Plan                     │   │
+│ │ ☐ FOMO                              │   │
+│ │ ──────────────────────────────────  │   │
+│ │ + Create new tag...                 │   │
+│ │   ┌──────────┐ ┌──────────┐        │   │
+│ │   │ Tag name │ │ Type ▼   │        │   │
+│ │   └──────────┘ └──────────┘        │   │
+│ │   ● ● ● ● ● (color picker)        │   │
+│ │   [Cancel] [Create]                │   │
+│ └─────────────────────────────────────┘   │
+└───────────────────────────────────────────┘
+```
+
+**Server Action:** Reuse existing `createTag()` from `src/app/actions/tags.ts`. After Phase 14.2.3 (cross-account sharing), this will create tags at the user level instead of account level.
+
+**i18n Keys:**
+```json
+{
+  "settings": {
+    "tags": {
+      "title": "Tags",
+      "description": "Manage your trade tags for categorization",
+      "addTag": "Add Tag",
+      "editTag": "Edit Tag",
+      "deleteTag": "Delete Tag",
+      "deleteConfirm": "This will remove the tag from all trades. Are you sure?",
+      "name": "Name",
+      "type": "Type",
+      "color": "Color",
+      "noTags": "No tags created yet",
+      "tradeCount": "{count} trades"
+    }
+  },
+  "trade": {
+    "createNewTag": "Create new tag",
+    "tagName": "Tag name",
+    "tagCreated": "Tag created successfully",
+    "noTagsHint": "Create tags in Settings or use the button below"
+  }
+}
+```
+
+---
+
+#### 14.2.2 Default Theme Selection
+
+**Current State:**
+- `users.theme` column stores `"dark"` by default
+- `ThemeToggle` component toggles client-side only (next-themes provider)
+- No server-side persistence of theme preference
+
+**Changes Required:**
+
+**Schema:** No changes needed - `users.theme` already exists.
+
+**Server Action: `updateTheme()`**
+- File: `src/app/actions/settings.ts`
+- Add action to persist selected theme to `users.theme`
+- On login/session start, read `users.theme` and apply it
+
+**Component: Theme Settings**
+- File: `src/components/settings/general-settings.tsx` or `user-profile-settings.tsx`
+- Replace simple toggle with a selectable theme picker
+- Options: "Dark" (current), "Light" (future), "System" (follows OS)
+- Show a visual preview card for each theme
+- Persist selection to DB via `updateTheme()` action
+
+**Theme Provider Integration:**
+- File: `src/components/providers/` (theme provider)
+- On mount, read user's persisted theme from session/DB and set as default
+- Ensure `next-themes` `defaultTheme` matches DB value
+
+**i18n Keys:**
+```json
+{
+  "settings": {
+    "theme": "Theme",
+    "themeDescription": "Choose your default theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeSystem": "System"
+  }
+}
+```
+
+---
+
+#### 14.2.3 Cross-Account Tags & Strategies (User-Level Sharing)
+
+**Current State:**
+- `tags.accountId` → scoped per account
+- `strategies.accountId` → scoped per account
+- All queries filter by `accountId`
+
+**Changes Required:**
+
+**Schema Migration:**
+- Add `userId` column to `tags` table (non-nullable, FK to `users.id`)
+- Add `userId` column to `strategies` table (non-nullable, FK to `users.id`)
+- Keep `accountId` column temporarily for backwards compatibility during migration
+- Populate `userId` from the account owner for all existing records
+
+**Migration Steps:**
+1. Add `userId` column (nullable initially)
+2. Run data migration: `UPDATE tags SET userId = (SELECT userId FROM tradingAccounts WHERE id = tags.accountId)`
+3. Make `userId` non-nullable
+4. Update all queries to filter by `userId` instead of `accountId`
+5. Drop `accountId` foreign key constraint from tags and strategies (or keep for optional account-specific override)
+
+**Server Actions Updates:**
+- `src/app/actions/tags.ts`: Change `createTag()`, `getTags()`, `updateTag()`, `deleteTag()` to use `userId`
+- `src/app/actions/strategies.ts`: Change all CRUD to use `userId`
+- The `tradeTags` junction table stays the same (links trades to tags, trades already have `accountId`)
+
+**Query Logic:**
+```
+BEFORE: WHERE tags.accountId = :currentAccountId
+AFTER:  WHERE tags.userId = :currentUserId
+```
+
+**UI Impact:**
+- Tags created on any account appear on all accounts
+- Strategies created on any account appear on all accounts
+- Trade-tag associations remain account/trade-specific
+- "Show all accounts" mode no longer needed for tag/strategy visibility (they're always user-wide)
+
+**i18n Keys:**
+```json
+{
+  "settings": {
+    "tagsShared": "Tags are shared across all your accounts",
+    "strategiesShared": "Strategies are shared across all your accounts"
+  }
+}
+```
+
+---
+
+#### 14.2.4 Journal "All" Period Filter
+
+**Current State:**
+- `JournalPeriod = "day" | "week" | "month" | "custom"`
+- Period filter shows 4 buttons: Day, Week, Month, Custom
+
+**Changes Required:**
+
+**Type Update:**
+- File: `src/types/index.ts`
+- Change: `type JournalPeriod = "all" | "day" | "week" | "month" | "custom"`
+
+**Component: PeriodFilter**
+- File: `src/components/journal/period-filter.tsx`
+- Add "All" button as the first option in the periods array
+- When "All" is selected, pass no date range (or a very wide range like 2020-01-01 to now)
+
+**Server Action: `getTradesGroupedByDay()`**
+- File: `src/app/actions/trades.ts`
+- Handle `from: undefined, to: undefined` case by omitting date filters
+- Or accept a flag `allTime: boolean`
+
+**Journal Content:**
+- File: `src/components/journal/journal-content.tsx`
+- Update `getDateRange()` to handle "all" period (return null or very wide range)
+
+**i18n Keys:**
+```json
+{
+  "journal": {
+    "period": {
+      "all": "All"
+    }
+  }
+}
+```
+
+---
+
+#### 14.2.5 Scaled Position Layout & UX Improvements
+
+**Current State (Issues):**
+- `ExecutionList` in `execution-list.tsx` separates entries and exits into two groups
+- `ExecutionRow` shows `dd/MM HH:mm` (no seconds)
+- `ExecutionForm` defaults date/time to `new Date()` (current time)
+- No validation preventing exits > entries
+- Spacing between numbers is too tight (font-mono elements with `gap-m-300`)
+
+**Changes Required:**
+
+##### A. Chronological Sort (No Grouping)
+
+**File: `src/components/journal/execution-list.tsx`**
+- Remove the separate entries/exits sections
+- Sort all executions by `executionDate` ascending
+- Each row shows an entry/exit indicator icon (ArrowUp/ArrowDown) inline
+- Color-code the row based on type (entry = buy color, exit = sell color)
+
+```
+┌───────────────────────────────────────────────────────────┐
+│ Executions                                + Add Execution │
+│                                                           │
+│ ↑ 05/01 10:01:23  15 @ 160.000,00  market    ✏️ 🗑️     │
+│ ↓ 05/01 10:08:45   7 @ 161.000,00  market    ✏️ 🗑️     │
+│ ↓ 05/01 10:10:12   8 @ 159.500,00  market    ✏️ 🗑️     │
+│                                                           │
+│ Total In: 15  │  Total Out: 15                            │
+│ Avg Entry: 160.000,00  │  Avg Exit: 160.200,00           │
+│ Remaining: 0                                              │
+└───────────────────────────────────────────────────────────┘
+```
+
+##### B. Seconds Precision
+
+**File: `src/components/journal/execution-form.tsx`**
+- Change time input from `type="time"` (HH:mm) to a custom input that includes seconds
+- Use `step="1"` on the HTML time input: `<input type="time" step="1" />` which enables seconds natively
+- Update date-fns format from `"HH:mm"` to `"HH:mm:ss"` throughout the form
+
+**File: `src/components/journal/execution-list.tsx`**
+- Change display format from `"dd/MM HH:mm"` to `"dd/MM HH:mm:ss"`
+
+##### C. Smart Default Date/Time
+
+**File: `src/components/journal/execution-form.tsx`**
+- Accept `existingExecutions: TradeExecution[]` as a new prop
+- When creating a new execution (not editing):
+  - Get the most recent execution matching the current `executionType`
+  - If creating an "entry", find the latest entry execution's date/time
+  - If creating an "exit", find the latest exit execution's date/time
+  - If no matching type exists, use the most recent execution of any type
+  - Set as the default date and time in the form
+- When changing execution type in the form, recalculate the default from the matching type
+
+**File: `src/components/journal/trade-executions-section.tsx`**
+- Pass `executions` array to `ExecutionForm` component
+
+##### D. Exit Quantity Validation
+
+**File: `src/app/actions/executions.ts` - `createExecution()`**
+- Before inserting an exit execution, check:
+  ```
+  totalEntryQuantity = sum of all entry execution quantities
+  totalExitQuantity = sum of all exit execution quantities + new exit quantity
+  if (totalExitQuantity > totalEntryQuantity) → return error
+  ```
+- Return descriptive error: "Cannot exit more contracts than entered. Remaining: X"
+
+**File: `src/components/journal/execution-form.tsx`**
+- When type is "exit", show the maximum available quantity as a hint
+- Validate on client side before submitting
+
+##### E. Spacing Fix
+
+**File: `src/components/journal/execution-list.tsx`**
+- Increase gap between date, quantity, price, and order type in `ExecutionRow`
+- Change from `gap-m-300` to `gap-m-400` or `gap-m-500`
+- Add minimum widths to key columns to prevent overlap
+- Use tabular-nums font feature for consistent number alignment: `font-variant-numeric: tabular-nums` via Tailwind `tabular-nums` class
+
+**i18n Keys:**
+```json
+{
+  "execution": {
+    "maxExitQuantity": "Max exit: {quantity}",
+    "exitExceedsEntry": "Cannot exit more than entered. Remaining: {remaining}",
+    "seconds": "Seconds"
+  }
+}
+```
+
+---
+
+#### 14.2.6 Scaled Position P&L Auto-Recalculation (BUG FIX)
+
+**Root Cause:**
+`updateTradeAggregates()` in `src/app/actions/executions.ts` (line 104-146) updates position aggregates (avgEntryPrice, avgExitPrice, positionSize, etc.) but **never recalculates**:
+- `pnl` (trade P&L in cents)
+- `outcome` (win/loss/breakeven)
+- `realizedR` (R-multiple)
+- `commission` / `fees` (aggregated from executions)
+- `entryDate` / `exitDate` (should reflect first entry / last exit)
+
+**Fix: Extend `updateTradeAggregates()`**
+
+After calculating the execution summary, also:
+
+1. **Recalculate P&L:**
+   - Fetch the trade's asset config (tickSize, tickValue) from `accountAssets` or `assets`
+   - If asset config available: use `calculateAssetPnL(avgEntry, avgExit, totalEntryQty, direction, tickSize, tickValue)`
+   - Else: use simple `(avgExit - avgEntry) * totalEntryQty` adjusted for direction
+   - Only calculate when position is "closed" or "partial" (has exits)
+
+2. **Recalculate Fees:**
+   - Sum `commission` and `fees` from all executions
+   - Update `trades.commission` and `trades.fees`
+   - Subtract from gross P&L to get net P&L
+
+3. **Determine Outcome:**
+   - Use `determineOutcome(netPnl)` from `calculations.ts`
+   - Update `trades.outcome`
+
+4. **Recalculate Realized R:**
+   - If `stopLoss` and `entryPrice` are set, calculate R = pnl / riskAmount
+   - Update `trades.realizedR`
+
+5. **Update Dates:**
+   - `trades.entryDate` = earliest entry execution date
+   - `trades.exitDate` = latest exit execution date (or null if still open)
+
+**Files Modified:**
+- `src/app/actions/executions.ts` - Extend `updateTradeAggregates()` with P&L, outcome, fees, dates
+- Import `calculateAssetPnL`, `determineOutcome` from `src/lib/calculations.ts`
+- Import asset config lookup from `src/app/actions/accounts.ts` or query directly
+
+**Edge Cases:**
+- Position still open (no exits): P&L = 0, outcome = null
+- Partial close: Calculate P&L only on closed portion
+- Direction matters: LONG P&L = (exit - entry), SHORT P&L = (entry - exit)
+
+---
+
+#### 14.2.7 Dashboard Calendar Timezone Fix (BUG FIX)
+
+**Root Cause:**
+`handleMonthChange()` in `dashboard-content.tsx` creates a `Date` object on the client:
+```typescript
+onMonthChange(new Date(year, monthIndex - 1, 1))
+```
+This Date is serialized as UTC ISO string when passed to the server action `getDailyPnL(month)`. On the server, `getStartOfMonth(month)` calls `month.getMonth()` which returns the UTC month, not the client's local month.
+
+Example: Client in BRT (UTC-3) creates January 1 at 00:00 BRT → serialized as `2025-12-31T03:00:00Z` → server sees December 31 → `getMonth() = 11` (December) → queries December instead of January.
+
+**Fix: Pass year/month numbers instead of Date objects**
+
+**Refactor `getDailyPnL` to accept year and monthIndex:**
+
+1. **Server Action:**
+   ```typescript
+   // BEFORE
+   export const getDailyPnL = async (month: Date): Promise<...>
+
+   // AFTER
+   export const getDailyPnL = async (year: number, monthIndex: number): Promise<...>
+   ```
+   - Construct dates on the server: `new Date(year, monthIndex, 1)` for start, `new Date(year, monthIndex + 1, 0, 23, 59, 59)` for end
+   - Numbers serialize without timezone ambiguity
+
+2. **Dashboard Page:**
+   ```typescript
+   // BEFORE
+   getDailyPnL(now)
+
+   // AFTER
+   getDailyPnL(now.getFullYear(), now.getMonth())
+   ```
+
+3. **Dashboard Content:**
+   ```typescript
+   // BEFORE
+   const result = await getDailyPnL(newMonth)
+
+   // AFTER
+   const result = await getDailyPnL(newMonth.getFullYear(), newMonth.getMonth())
+   ```
+
+**Files Modified:**
+- `src/app/actions/analytics.ts` - Change `getDailyPnL()` signature
+- `src/app/[locale]/(app)/page.tsx` - Update call site
+- `src/components/dashboard/dashboard-content.tsx` - Update `handleMonthChange`
+
+**Validation:**
+- Verify trades on January 5, 2026 appear in the January calendar
+- Test month navigation forward and backward
+- Test with BRT timezone explicitly
+
+---
+
+#### 14.2.8 Monte Carlo Simulation Budget Cap
+
+**Current State:**
+- `numberOfTrades` validated independently: min 10, max 10,000
+- `simulationCount` validated independently: min 100, max 50,000
+- No combined limit: a user could request `10,000 trades × 50,000 simulations = 500,000,000 iterations`
+- This can freeze the browser tab or cause server timeouts
+
+**Changes Required:**
+
+**Constraint:** `numberOfTrades × simulationCount ≤ 3,000,000`
+
+Examples of valid combinations:
+| Simulations | Max Trades |
+|-------------|------------|
+| 1,000       | 3,000      |
+| 5,000       | 600        |
+| 10,000      | 300        |
+| 30,000      | 100        |
+| 50,000      | 60         |
+
+**Validation Schema:**
+- File: `src/lib/validations/monte-carlo.ts`
+- Add a `.superRefine()` check on the combined product:
+  ```typescript
+  .superRefine((data, ctx) => {
+    const totalIterations = data.numberOfTrades * data.simulationCount
+    if (totalIterations > 3_000_000) {
+      const maxTrades = Math.floor(3_000_000 / data.simulationCount)
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Too many iterations (${totalIterations.toLocaleString()}). With ${data.simulationCount.toLocaleString()} simulations, max trades is ${maxTrades.toLocaleString()}.`,
+        path: ["numberOfTrades"],
+      })
+    }
+  })
+  ```
+
+**UI Feedback:**
+- File: `src/components/monte-carlo/simulation-params-form.tsx`
+- Show a dynamic hint below the trades/simulations inputs:
+  - Display current iteration count: `"1,000 × 100 = 100,000 iterations"`
+  - When approaching or exceeding limit, show warning in `text-fb-warning`
+  - Dynamically update the `max` attribute on the trades input based on current simulation count: `max={Math.floor(3_000_000 / params.simulationCount)}`
+  - Same for simulation count input: `max={Math.floor(3_000_000 / params.numberOfTrades)}`
+
+**i18n Keys:**
+```json
+{
+  "monteCarlo": {
+    "iterationBudget": "{count} iterations",
+    "iterationLimit": "Max {limit} iterations",
+    "tooManyIterations": "Too many iterations. With {simulations} simulations, max trades is {maxTrades}."
+  }
+}
+```
+
+---
+
+### 14.3 Implementation Order
+
+The tasks should be implemented in this dependency order:
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    PHASE 14 EXECUTION ORDER                   │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  PRIORITY 1 - Bug Fixes (Critical)                           │
+│  ─────────────────────────────────                           │
+│  14.2.7  Dashboard Calendar Timezone Fix                     │
+│  14.2.6  Scaled Position P&L Recalculation                   │
+│                                                               │
+│  PRIORITY 2 - Schema Migration                               │
+│  ─────────────────────────────────                           │
+│  14.2.3  Cross-Account Tags & Strategies                     │
+│          (DB migration must happen before UI changes)         │
+│                                                               │
+│  PRIORITY 3 - UX Improvements                                │
+│  ─────────────────────────────────                           │
+│  14.2.5  Scaled Position Layout & UX                         │
+│          (A) Chronological sort                              │
+│          (B) Seconds precision                               │
+│          (C) Smart default date/time                         │
+│          (D) Exit quantity validation                        │
+│          (E) Spacing fix                                     │
+│                                                               │
+│  PRIORITY 4 - Feature Additions & Guardrails                 │
+│  ─────────────────────────────────                           │
+│  14.2.4  Journal "All" Period Filter                         │
+│  14.2.1  Inline Tag Creation                                 │
+│  14.2.2  Default Theme Selection                             │
+│  14.2.8  Monte Carlo Simulation Budget Cap                   │
+│                                                               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 14.4 Files to Modify
+
+```
+src/
+├── app/
+│   ├── [locale]/(app)/
+│   │   ├── page.tsx                          # 14.2.7 - Fix getDailyPnL call
+│   │   └── settings/page.tsx                 # 14.2.1A - Fetch & pass tags to SettingsContent
+│   └── actions/
+│       ├── analytics.ts                      # 14.2.7 - Refactor getDailyPnL signature
+│       ├── executions.ts                     # 14.2.5D, 14.2.6 - P&L recalc + exit validation
+│       ├── tags.ts                           # 14.2.3 - userId scoping
+│       ├── strategies.ts                     # 14.2.3 - userId scoping
+│       └── settings.ts                       # 14.2.2 - updateTheme action
+├── lib/
+│   └── validations/
+│       └── monte-carlo.ts                    # 14.2.8 - Combined iteration budget cap
+├── components/
+│   ├── dashboard/
+│   │   └── dashboard-content.tsx             # 14.2.7 - Pass year/month numbers
+│   ├── journal/
+│   │   ├── execution-form.tsx                # 14.2.5B,C - Seconds + smart defaults
+│   │   ├── execution-list.tsx                # 14.2.5A,B,E - Chrono sort + spacing
+│   │   ├── trade-executions-section.tsx      # 14.2.5C - Pass executions to form
+│   │   ├── trade-form.tsx                    # 14.2.1B - Inline tag creation in trade form
+│   │   ├── period-filter.tsx                 # 14.2.4 - Add "All" button
+│   ├── monte-carlo/
+│   │   └── simulation-params-form.tsx        # 14.2.8 - Dynamic max + iteration hint
+│   │   └── journal-content.tsx               # 14.2.4 - Handle "all" period
+│   └── settings/
+│       ├── general-settings.tsx              # 14.2.2 - Theme picker
+│       ├── settings-content.tsx              # 14.2.1A - Add Tags tab
+│       ├── tag-list.tsx                      # 14.2.1A - NEW: Tag CRUD table
+│       └── tag-form.tsx                      # 14.2.1A - NEW: Tag create/edit form
+├── db/
+│   ├── schema.ts                             # 14.2.3 - Add userId to tags/strategies
+│   └── migrations/                           # 14.2.3 - New migration
+├── types/
+│   └── index.ts                              # 14.2.4 - Add "all" to JournalPeriod
+└── messages/
+    ├── pt-BR.json                            # All - New i18n keys
+    └── en.json                               # All - New i18n keys
+```
+
+---
+
+### 14.5 Deliverables
+
+#### Bug Fixes
+- [ ] Dashboard calendar correctly displays trades for any month regardless of client timezone
+- [ ] Scaled position P&L, outcome, and R-multiple auto-recalculate when executions are added/edited/deleted
+- [ ] Trade result header matches Position Summary after execution changes
+- [ ] Commission and fees aggregate correctly from individual executions
+
+#### UX Improvements
+- [ ] Executions displayed chronologically (entries and exits interleaved by time)
+- [ ] Execution times include seconds precision (HH:mm:ss)
+- [ ] New execution form defaults to the most recent matching execution's date/time
+- [ ] Spacing between execution row numbers is visually clear (no overlapping)
+- [ ] Exit quantity validated: cannot exceed total entry quantity
+- [ ] Helpful error message when exit exceeds entries ("Remaining: X")
+
+#### New Features
+- [ ] "All" period filter button in Trade Journal (shows all-time trades)
+- [ ] Full tag management UI in Settings (create, edit, delete, grouped by type)
+- [ ] Inline tag creation from trade form (name, type, color picker)
+- [ ] Default theme selectable and persisted to database
+- [ ] Tags shared across all user accounts (not account-specific)
+- [ ] Strategies shared across all user accounts (not account-specific)
+- [ ] Monte Carlo simulation capped at 3,000,000 total iterations (trades × simulations)
+- [ ] Dynamic max hints on trades/simulations inputs adjust based on the other field's value
+
+#### Data Migration
+- [ ] `userId` column added to `tags` table with data backfill
+- [ ] `userId` column added to `strategies` table with data backfill
+- [ ] All tag/strategy queries updated to filter by `userId`
+- [ ] Existing tags/strategies deduplicated if identical across accounts
+
+#### i18n
+- [ ] All new UI elements translated (pt-BR primary, en fallback)
+- [ ] Error messages translated for exit validation
+
+#### Polish
+- [ ] `tabular-nums` applied to all numeric displays in execution rows
+- [ ] entryDate/exitDate on trade auto-updated from first entry / last exit execution
+- [ ] Execution form recalculates default time when switching between entry/exit type
 - [ ] Navigation sidebar integration

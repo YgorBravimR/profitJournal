@@ -325,4 +325,4 @@ export interface DayTradeCompact {
 	outcome: TradeOutcome | null
 }
 
-export type JournalPeriod = "day" | "week" | "month" | "custom"
+export type JournalPeriod = "day" | "week" | "month" | "all" | "custom"
