@@ -4,8 +4,15 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { Activity, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { QuoteGroup, EconomicEvent, MarketQuote } from "@/types/market"
+import type {
+	QuoteGroup,
+	EconomicEvent,
+	MarketQuote,
+	QuotesResponse,
+	CalendarResponse,
+} from "@/types/market"
 import type { ActionResponse } from "@/types"
+import { HERO_SYMBOLS, getCompanionSymbols } from "@/lib/market/registry"
 import { QuoteCard } from "./quote-row"
 import { HeroQuoteCard } from "./hero-quote-card"
 import { EconomicCalendar } from "./economic-calendar"
@@ -18,19 +25,6 @@ import {
 
 const REFRESH_INTERVAL_MS = 60_000
 
-// Key symbols for the hero row — most important for Brazilian futures traders
-const HERO_SYMBOLS = ["^BVSP", "^GSPC", "BRL=X", "EWZ", "^VIX", "BTC-USD"]
-
-interface QuotesApiData {
-	groups: QuoteGroup[]
-	lastUpdated: string
-}
-
-interface CalendarApiData {
-	events: EconomicEvent[]
-	lastUpdated: string
-}
-
 const formatTime = (isoString: string): string => {
 	const date = new Date(isoString)
 	return date.toLocaleTimeString([], {
@@ -40,20 +34,12 @@ const formatTime = (isoString: string): string => {
 	})
 }
 
-const resolveStatusLabel = (
-	state: MarketStatus["state"],
-	t: ReturnType<typeof useTranslations>
-): string => {
-	if (state === "open") return t("status.open")
-	if (state === "opening") return t("status.opening")
-	return t("status.closed")
-}
-
 export const MarketMonitorContent = () => {
 	const t = useTranslations("market")
 
 	// ── Data state ───────────────────────────────────────────────────────────
 	const [groups, setGroups] = useState<QuoteGroup[]>([])
+	const [companions, setCompanions] = useState<Record<string, MarketQuote>>({})
 	const [events, setEvents] = useState<EconomicEvent[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [error, setError] = useState<string | null>(null)
@@ -63,6 +49,9 @@ export const MarketMonitorContent = () => {
 	// ── UI state ─────────────────────────────────────────────────────────────
 	const [activeTab, setActiveTab] = useState("trader")
 	const [marketStatuses, setMarketStatuses] = useState<MarketStatus[]>([])
+
+	// ── B3 → ADR symbol mapping ──────────────────────────────────────────────
+	const companionSymbols = useMemo(() => getCompanionSymbols(), [])
 
 	// ── Derived data ─────────────────────────────────────────────────────────
 	const heroQuotes = useMemo(() => {
@@ -87,9 +76,10 @@ export const MarketMonitorContent = () => {
 
 			if (quotesRes.status === "fulfilled" && quotesRes.value.ok) {
 				const quotesJson =
-					(await quotesRes.value.json()) as ActionResponse<QuotesApiData>
+					(await quotesRes.value.json()) as ActionResponse<QuotesResponse>
 				if (quotesJson.status === "success" && quotesJson.data) {
 					setGroups(quotesJson.data.groups)
+					setCompanions(quotesJson.data.companions ?? {})
 					setLastUpdated(quotesJson.data.lastUpdated)
 					quotesSucceeded = true
 				}
@@ -97,7 +87,7 @@ export const MarketMonitorContent = () => {
 
 			if (calendarRes.status === "fulfilled" && calendarRes.value.ok) {
 				const calendarJson =
-					(await calendarRes.value.json()) as ActionResponse<CalendarApiData>
+					(await calendarRes.value.json()) as ActionResponse<CalendarResponse>
 				if (calendarJson.status === "success" && calendarJson.data) {
 					setEvents(calendarJson.data.events)
 					calendarSucceeded = true
@@ -191,7 +181,6 @@ export const MarketMonitorContent = () => {
 								{HEADER_MARKET_IDS.map((id) => {
 									const status = marketStatuses.find((s) => s.id === id)
 									if (!status) return null
-									const stateLabel = resolveStatusLabel(status.state, t)
 									return (
 										<span
 											key={id}
@@ -217,7 +206,7 @@ export const MarketMonitorContent = () => {
 														status.state === "closed" && "text-txt-300"
 													)}
 												>
-													{stateLabel}
+													{t(`status.${status.state}`)}
 												</span>
 											</span>
 										</span>
@@ -237,7 +226,6 @@ export const MarketMonitorContent = () => {
 									onClick={handleRefresh}
 									className="text-txt-300 hover:text-acc-100 transition-colors"
 									aria-label={t("refreshNow")}
-									tabIndex={0}
 								>
 									<RefreshCw className="h-3.5 w-3.5" />
 								</button>
@@ -262,7 +250,7 @@ export const MarketMonitorContent = () => {
 			) : null}
 
 			{/* ── Info panels — Calendar + Market Status, same height ──────────── */}
-			<div className="grid h-79 grid-cols-1 items-stretch gap-4 lg:grid-cols-[1fr_340px]">
+			<div className="grid h-89 grid-cols-1 grid-rows-[1fr] items-stretch gap-4 lg:grid-cols-[1fr_340px]">
 				<EconomicCalendar events={events} />
 				<MarketStatusPanel statuses={marketStatuses} />
 			</div>
@@ -287,7 +275,6 @@ export const MarketMonitorContent = () => {
 							)}
 							aria-selected={activeTab === group.id}
 							role="tab"
-							tabIndex={0}
 						>
 							{t(group.labelKey)}
 						</button>
@@ -302,9 +289,22 @@ export const MarketMonitorContent = () => {
 							role="list"
 							aria-label={t(activeGroup.labelKey)}
 						>
-							{activeGroup.quotes.map((quote) => (
-								<QuoteCard key={quote.symbol} quote={quote} />
-							))}
+							{activeGroup.quotes.map((quote) => {
+								const isB3Tab = activeTab === "b3"
+								const adrSymbol = isB3Tab
+									? companionSymbols.get(quote.symbol)
+									: undefined
+								const adrQuote = adrSymbol ? companions[adrSymbol] : undefined
+
+								return (
+									<QuoteCard
+										key={quote.symbol}
+										quote={quote}
+										showAdr={isB3Tab}
+										adrQuote={adrQuote}
+									/>
+								)
+							})}
 						</div>
 					) : (
 						<div className="flex flex-col items-center justify-center py-10">

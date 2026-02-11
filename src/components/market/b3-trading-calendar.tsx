@@ -42,47 +42,72 @@ export const B3TradingCalendar = () => {
 	const [monthOffset, setMonthOffset] = useState(0)
 
 	const today = new Date()
-	const todayStr = toDateStr(today.getFullYear(), today.getMonth(), today.getDate())
+	const todayStr = toDateStr(
+		today.getFullYear(),
+		today.getMonth(),
+		today.getDate()
+	)
 
-	const { year, month, firstDayOffset, days } = useMemo(() => {
-		const target = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1)
-		const yr = target.getFullYear()
-		const mo = target.getMonth()
-		const daysInMonth = new Date(yr, mo + 1, 0).getDate()
-		const fdo = getMondayBasedDay(target)
+	const { year, month, firstDayOffset, days, trailingEmpty } = useMemo(
+		// prettier-ignore
+		() => {
+			const target = new Date(
+				today.getFullYear(),
+				today.getMonth() + monthOffset,
+				1
+			)
+			const yr = target.getFullYear()
+			const mo = target.getMonth()
+			const daysInMonth = new Date(yr, mo + 1, 0).getDate()
+			const fdo = getMondayBasedDay(target)
 
-		const dayInfos: DayInfo[] = []
-		for (let d = 1; d <= daysInMonth; d++) {
-			const dateStr = toDateStr(yr, mo, d)
-			const dayOfWeek = getMondayBasedDay(new Date(yr, mo, d))
-			const isWeekend = dayOfWeek >= 5
+			const dayInfos: DayInfo[] = []
+			for (let d = 1; d <= daysInMonth; d++) {
+				const dateStr = toDateStr(yr, mo, d)
+				const dayOfWeek = getMondayBasedDay(new Date(yr, mo, d))
+				const isWeekend = dayOfWeek >= 5
 
-			dayInfos.push({
-				day: d,
-				dateStr,
-				isWeekend,
-				isToday: dateStr === todayStr,
-				isB3Closed: isWeekend || isB3Holiday(dateStr),
-				isNyseClosed: isWeekend || isNyseHoliday(dateStr),
-				b3HolidayName: getB3HolidayName(dateStr, locale),
-				nyseHolidayName: getNyseHolidayName(dateStr, locale),
-			})
-		}
+				dayInfos.push({
+					day: d,
+					dateStr,
+					isWeekend,
+					isToday: dateStr === todayStr,
+					isB3Closed: isWeekend || isB3Holiday(dateStr),
+					isNyseClosed: isWeekend || isNyseHoliday(dateStr),
+					b3HolidayName: getB3HolidayName(dateStr, locale),
+					nyseHolidayName: getNyseHolidayName(dateStr, locale),
+				})
+			}
 
-		return { year: yr, month: mo, firstDayOffset: fdo, days: dayInfos }
-	}, [monthOffset, todayStr, locale])
+			// Always 42 cells (6 rows) to prevent layout shift between months
+			const totalCells = 42
+			const trailingEmpty = totalCells - fdo - daysInMonth
+
+			return {
+				year: yr,
+				month: mo,
+				firstDayOffset: fdo,
+				days: dayInfos,
+				trailingEmpty,
+			}
+		},
+		[monthOffset, todayStr, locale]
+	)
 
 	const weekdays = locale === "pt-BR" ? WEEKDAYS_PT : WEEKDAYS_EN
 
-	const monthName = new Intl.DateTimeFormat(locale === "pt-BR" ? "pt-BR" : "en-US", {
-		month: "long",
-	}).format(new Date(year, month, 1))
+	const monthName = new Intl.DateTimeFormat(
+		locale === "pt-BR" ? "pt-BR" : "en-US",
+		{
+			month: "long",
+		}
+	).format(new Date(year, month, 1))
 
 	const handlePrevMonth = () => setMonthOffset((prev) => prev - 1)
 	const handleNextMonth = () => setMonthOffset((prev) => prev + 1)
 
 	return (
-		<div className="flex flex-col gap-3 p-4">
+		<div className="flex flex-col gap-2 px-3 py-2">
 			{/* Month navigation */}
 			<div className="flex items-center justify-between">
 				<button
@@ -90,7 +115,6 @@ export const B3TradingCalendar = () => {
 					onClick={handlePrevMonth}
 					className="text-txt-300 hover:text-txt-100 rounded p-0.5 transition-colors"
 					aria-label={t("prevMonth")}
-					tabIndex={0}
 				>
 					<ChevronLeft className="h-4 w-4" />
 				</button>
@@ -102,32 +126,43 @@ export const B3TradingCalendar = () => {
 					onClick={handleNextMonth}
 					className="text-txt-300 hover:text-txt-100 rounded p-0.5 transition-colors"
 					aria-label={t("nextMonth")}
-					tabIndex={0}
 				>
 					<ChevronRight className="h-4 w-4" />
 				</button>
 			</div>
 
 			{/* Day-of-week headers */}
-			<div className="grid grid-cols-7 gap-0.5 text-center">
+			<div className="grid grid-cols-7 gap-0.5 text-center text-sm">
 				{weekdays.map((wd) => (
-					<span key={wd} className="text-tiny text-txt-300 py-1 font-medium">
+					<span key={wd} className="text-tiny text-txt-300 pt-0.5 font-medium">
 						{wd}
 					</span>
 				))}
 			</div>
 
 			{/* Day grid */}
-			<div className="grid grid-cols-7 gap-0.5" role="grid" aria-label={`${monthName} ${year}`}>
+			<div
+				className="grid grid-cols-7 gap-0.5"
+				role="grid"
+				aria-label={`${monthName} ${year}`}
+			>
 				{/* Empty cells for first-week offset */}
 				{Array.from({ length: firstDayOffset }).map((_, i) => (
-					<div key={`empty-${i}`} className="aspect-square" />
+					<div
+						key={`empty-${i}`}
+						className="flex items-center justify-center rounded-sm border-2 border-transparent py-0.75 text-center text-sm text-transparent transition-colors"
+					>
+						-
+					</div>
 				))}
-
 				{/* Day cells */}
 				{days.map((day) => {
-					const b3ClosedNotWeekend = !day.isWeekend && day.isB3Closed
-					const nyseClosedB3Open = !day.isWeekend && !day.isB3Closed && day.isNyseClosed
+					const bothClosedNotWeekend =
+						!day.isWeekend && day.isB3Closed && day.isNyseClosed
+					const b3OnlyClosedNotWeekend =
+						!day.isWeekend && day.isB3Closed && !day.isNyseClosed
+					const nyseOnlyClosedNotWeekend =
+						!day.isWeekend && !day.isB3Closed && day.isNyseClosed
 
 					const tooltipParts = [
 						day.b3HolidayName ? `🇧🇷 ${day.b3HolidayName}` : null,
@@ -135,23 +170,36 @@ export const B3TradingCalendar = () => {
 					].filter(Boolean)
 
 					const tooltip = tooltipParts.join("\n")
+					const specialDay =
+						b3OnlyClosedNotWeekend ||
+						nyseOnlyClosedNotWeekend ||
+						bothClosedNotWeekend
 
 					return (
 						<div
 							key={day.day}
 							className={cn(
-								"flex aspect-square items-center justify-center rounded-sm text-center transition-colors",
-								"text-tiny",
+								"flex items-center justify-center rounded-sm border-2 border-transparent py-0.75 text-center text-sm transition-colors",
 								// Default: weekend
 								day.isWeekend && "text-txt-300/30",
 								// Default: regular trading day
-								!day.isWeekend && !day.isB3Closed && "text-txt-100",
-								// B3 holiday (not weekend) — red tint
-								b3ClosedNotWeekend && "bg-fb-error/15 text-fb-error",
-								// NYSE closed but B3 open — warning ring
-								nyseClosedB3Open && "ring-warning/60 ring-1 ring-inset",
-								// Today — always highlighted with accent
-								day.isToday && "bg-acc-100/20 font-bold text-acc-100"
+								!day.isWeekend &&
+									!day.isB3Closed &&
+									!day.isNyseClosed &&
+									"text-txt-100",
+								// B3 only closed — red filled
+								b3OnlyClosedNotWeekend && "bg-fb-error/25",
+								// NYSE only closed — warning filled
+								nyseOnlyClosedNotWeekend && "bg-warning/25",
+								// Both closed — diagonal gradient via globals.css utility class
+								bothClosedNotWeekend && !day.isToday && "bg-both-closed text-txt-100",
+								bothClosedNotWeekend && day.isToday && "text-txt-100",
+								// Today — highlighted with font-color opacity bg
+								day.isToday
+									? specialDay
+										? "border-txt-100"
+										: "bg-txt-100/25 text-txt-100 border-txt-100/80 font-bold"
+									: ""
 							)}
 							title={tooltip || undefined}
 							aria-label={`${day.day}${tooltip ? ` — ${tooltip}` : ""}`}
@@ -160,21 +208,37 @@ export const B3TradingCalendar = () => {
 						</div>
 					)
 				})}
+
+				{/* Trailing empty cells — always 6 rows to prevent layout shift */}
+				{Array.from({ length: trailingEmpty }).map((_, i) => (
+					<div
+						key={`trail-${i}`}
+						className="flex items-center justify-center rounded-sm border-2 border-transparent py-0.75 text-center text-sm text-transparent transition-colors"
+					>
+						-
+					</div>
+				))}
 			</div>
 
 			{/* Legend */}
-			<div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
+			<div className="flex flex-wrap justify-between gap-x-3 gap-y-1 pt-1 align-middle">
 				<span className="text-tiny flex items-center gap-1.5">
-					<span className="bg-acc-100/20 h-2.5 w-2.5 rounded-sm" aria-hidden="true" />
+					<span
+						className="bg-txt-100/25 border-txt-100/80 h-3 w-3 rounded-sm border"
+						aria-hidden="true"
+					/>
 					<span className="text-txt-300">{t("today")}</span>
 				</span>
 				<span className="text-tiny flex items-center gap-1.5">
-					<span className="bg-fb-error/15 h-2.5 w-2.5 rounded-sm" aria-hidden="true" />
+					<span
+						className="bg-fb-error/25 h-3 w-3 rounded-sm border border-transparent"
+						aria-hidden="true"
+					/>
 					<span className="text-txt-300">{t("b3Closed")}</span>
 				</span>
 				<span className="text-tiny flex items-center gap-1.5">
 					<span
-						className="ring-warning/60 h-2.5 w-2.5 rounded-sm ring-1 ring-inset"
+						className="bg-warning/25 h-3 w-3 rounded-sm border border-transparent"
 						aria-hidden="true"
 					/>
 					<span className="text-txt-300">{t("usClosed")}</span>

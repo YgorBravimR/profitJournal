@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
+import { ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { B3TradingCalendar } from "./b3-trading-calendar"
 
@@ -19,7 +20,34 @@ interface MarketStatusPanelProps {
 	statuses: MarketStatus[]
 }
 
-type PanelTab = "status" | "calendar"
+type PanelTab = "status" | "calendar" | "links"
+
+interface PanelTabConfig {
+	id: PanelTab
+	labelKey: string
+}
+
+const PANEL_TABS: PanelTabConfig[] = [
+	{ id: "status", labelKey: "status.title" },
+	{ id: "calendar", labelKey: "tradingCalendar.title" },
+	{ id: "links", labelKey: "links.title" },
+]
+
+// ── Important links for Brazilian futures traders ────────────────────────────
+
+interface QuickLink {
+	emoji: string
+	labelKey: string
+	url: string
+}
+
+const QUICK_LINKS: QuickLink[] = [
+	{ emoji: "📅", labelKey: "economicCalendar", url: "https://br.investing.com/economic-calendar" },
+	{ emoji: "💱", labelKey: "brlFutures", url: "https://www.cmegroup.com/markets/fx/emerging-market/brazilian-real.quotes.html" },
+	{ emoji: "📊", labelKey: "bcbStats", url: "https://www.bcb.gov.br/estatisticas" },
+	{ emoji: "🏛️", labelKey: "bcbPortal", url: "https://www.bcb.gov.br/" },
+	{ emoji: "📰", labelKey: "infomoney", url: "https://www.infomoney.com.br/mercados/" },
+]
 
 // Header-inline status IDs — shown as dots in the page header
 export const HEADER_MARKET_IDS = ["b3futures", "b3cash"] as const
@@ -57,40 +85,27 @@ export const MarketStatusPanel = ({ statuses }: MarketStatusPanelProps) => {
 				className="border-bg-300 flex shrink-0 items-center gap-1 border-b px-3 py-2"
 				role="tablist"
 			>
-				<button
-					type="button"
-					onClick={() => handleTabChange("status")}
-					className={cn(
-						"text-tiny shrink-0 rounded-md px-3 py-1.5 font-medium transition-colors",
-						activeTab === "status"
-							? "bg-acc-100 text-bg-100"
-							: "text-txt-300 hover:text-txt-100 hover:bg-bg-300/50"
-					)}
-					aria-selected={activeTab === "status"}
-					role="tab"
-					tabIndex={0}
-				>
-					{t("status.title")}
-				</button>
-				<button
-					type="button"
-					onClick={() => handleTabChange("calendar")}
-					className={cn(
-						"text-tiny shrink-0 rounded-md px-3 py-1.5 font-medium transition-colors",
-						activeTab === "calendar"
-							? "bg-acc-100 text-bg-100"
-							: "text-txt-300 hover:text-txt-100 hover:bg-bg-300/50"
-					)}
-					aria-selected={activeTab === "calendar"}
-					role="tab"
-					tabIndex={0}
-				>
-					{t("tradingCalendar.title")}
-				</button>
+				{PANEL_TABS.map((tab) => (
+					<button
+						key={tab.id}
+						type="button"
+						onClick={() => handleTabChange(tab.id)}
+						className={cn(
+							"text-tiny shrink-0 rounded-md px-3 py-1.5 font-medium transition-colors",
+							activeTab === tab.id
+								? "bg-acc-100 text-bg-100"
+								: "text-txt-300 hover:text-txt-100 hover:bg-bg-300/50"
+						)}
+						aria-selected={activeTab === tab.id}
+						role="tab"
+					>
+						{t(tab.labelKey)}
+					</button>
+				))}
 			</div>
 
 			{/* Tab content */}
-			<div role="tabpanel">
+			<div className="min-h-0 flex-1 overflow-y-auto" role="tabpanel">
 				{activeTab === "status" ? (
 					<div className="space-y-2.5 p-4">
 						{statuses.map((market) => {
@@ -141,9 +156,32 @@ export const MarketStatusPanel = ({ statuses }: MarketStatusPanelProps) => {
 							)
 						})}
 					</div>
-				) : (
-					<B3TradingCalendar />
-				)}
+				) : null}
+
+				{activeTab === "calendar" ? <B3TradingCalendar /> : null}
+
+				{activeTab === "links" ? (
+					<div className="flex flex-col gap-1 p-3">
+						{QUICK_LINKS.map((link) => (
+							<a
+								key={link.url}
+								href={link.url}
+								target="_blank"
+								rel="noopener noreferrer"
+								className="text-txt-200 hover:bg-bg-300/50 hover:text-txt-100 flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors"
+								aria-label={t(`links.${link.labelKey}`)}
+							>
+								<span className="shrink-0 text-base" aria-hidden="true">
+									{link.emoji}
+								</span>
+								<span className="text-small flex-1">
+									{t(`links.${link.labelKey}`)}
+								</span>
+								<ExternalLink className="text-txt-300 h-3 w-3 shrink-0" aria-hidden="true" />
+							</a>
+						))}
+					</div>
+				) : null}
 			</div>
 		</div>
 	)
@@ -192,13 +230,13 @@ const toMinutes = (h: number, m: number): number => h * 60 + m
 const isInRange = (
 	hour: number,
 	minute: number,
-	oh: number,
-	om: number,
-	ch: number,
-	cm: number
+	openHour: number,
+	openMinute: number,
+	closeHour: number,
+	closeMinute: number
 ): boolean => {
 	const current = toMinutes(hour, minute)
-	return current >= toMinutes(oh, om) && current < toMinutes(ch, cm)
+	return current >= toMinutes(openHour, openMinute) && current < toMinutes(closeHour, closeMinute)
 }
 
 /**

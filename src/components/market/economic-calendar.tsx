@@ -16,14 +16,18 @@ const COUNTRY_FLAGS: Record<string, string> = {
 }
 
 /**
- * Formats an ISO date string to a local time string (HH:MM).
- * Runs on the client so it uses the user's browser timezone.
+ * Formats an ISO date string to Brazil time (HH:MM).
+ * Always uses America/Sao_Paulo regardless of the user's browser timezone.
  */
 const formatEventTime = (isoDate: string): string => {
 	const date = new Date(isoDate)
 	if (Number.isNaN(date.getTime())) return isoDate
 
-	return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+	return date.toLocaleTimeString([], {
+		hour: "2-digit",
+		minute: "2-digit",
+		timeZone: "America/Sao_Paulo",
+	})
 }
 
 const ImpactDot = ({ impact }: { impact: EventImpact }) => {
@@ -51,8 +55,9 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 	return (
 		<div className="border-bg-300 bg-bg-200 flex h-full flex-col overflow-hidden rounded-lg border">
 			{/* Fixed header */}
-			<div className="border-bg-300 shrink-0 border-b px-4 py-3">
+			<div className="border-bg-300 flex shrink-0 justify-between border-b px-4 py-3">
 				<h3 className="text-small text-txt-100 font-semibold">{t("title")}</h3>
+				<span className="text-txt-300 text-sm">{t("timezone")}</span>
 			</div>
 
 			{events.length === 0 ? (
@@ -60,17 +65,29 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 					{t("noEvents")}
 				</div>
 			) : (
-				<div className="min-h-0 flex-1 overflow-y-auto overflow-x-auto">
+				<div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
 					<table className="w-full" role="table" aria-label={t("title")}>
 						<thead className="bg-bg-200 sticky top-0 z-10">
 							<tr className="text-tiny text-txt-300 border-bg-300/50 border-b">
 								<th className="px-4 py-2 text-left font-medium">{t("time")}</th>
-								<th className="px-3 py-2 text-left font-medium">{t("country")}</th>
-								<th className="px-3 py-2 text-left font-medium">{t("event")}</th>
-								<th className="px-3 py-2 text-left font-medium">{t("impact")}</th>
-								<th className="px-3 py-2 text-right font-medium">{t("actual")}</th>
-								<th className="px-3 py-2 text-right font-medium">{t("forecast")}</th>
-								<th className="px-4 py-2 text-right font-medium">{t("previous")}</th>
+								<th className="px-3 py-2 text-left font-medium">
+									{t("country")}
+								</th>
+								<th className="px-3 py-2 text-left font-medium">
+									{t("event")}
+								</th>
+								<th className="px-3 py-2 text-left font-medium">
+									{t("impact")}
+								</th>
+								<th className="px-3 py-2 text-right font-medium">
+									{t("actual")}
+								</th>
+								<th className="px-3 py-2 text-right font-medium">
+									{t("forecast")}
+								</th>
+								<th className="px-4 py-2 text-right font-medium">
+									{t("previous")}
+								</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -79,7 +96,7 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									key={event.id}
 									className="border-bg-300/50 hover:bg-bg-300/30 border-b transition-colors last:border-b-0"
 								>
-									<td className="text-small text-txt-100 whitespace-nowrap px-4 py-2.5">
+									<td className="text-small text-txt-100 px-4 py-2.5 whitespace-nowrap">
 										{formatEventTime(event.time)}
 									</td>
 									<td className="px-3 py-2.5">
@@ -95,16 +112,16 @@ export const EconomicCalendar = ({ events }: EconomicCalendarProps) => {
 									</td>
 									<td
 										className={cn(
-											"text-small whitespace-nowrap px-3 py-2.5 text-right",
+											"text-small px-3 py-2.5 text-right whitespace-nowrap",
 											event.actual ? "text-txt-100" : "text-txt-300"
 										)}
 									>
 										{event.actual || "—"}
 									</td>
-									<td className="text-small text-txt-200 whitespace-nowrap px-3 py-2.5 text-right">
+									<td className="text-small text-txt-200 px-3 py-2.5 text-right whitespace-nowrap">
 										{event.forecast || "—"}
 									</td>
-									<td className="text-small text-txt-300 whitespace-nowrap px-4 py-2.5 text-right">
+									<td className="text-small text-txt-300 px-4 py-2.5 text-right whitespace-nowrap">
 										{event.previous || "—"}
 									</td>
 								</tr>

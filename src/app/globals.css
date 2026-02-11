@@ -575,6 +575,19 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   CALENDAR UTILITIES
+   Gradient for days where both B3 and NYSE are closed (holidays)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.bg-both-closed {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-fb-error) 25%, transparent) 50%,
+    color-mix(in srgb, var(--color-warning) 25%, transparent) 50%
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    GLOBAL TYPOGRAPHY
    Plus Jakarta Sans with tabular numbers enabled globally so numeric
    data aligns in columns without requiring font-mono overrides

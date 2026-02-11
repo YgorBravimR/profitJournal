@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server"
-import { fetchCalendar } from "@/lib/market/cascade"
+import { fetchCalendar } from "@/lib/market/orchestrator"
 import { cacheGet, cacheSet, CACHE_KEYS, CACHE_TTL } from "@/lib/market/cache"
 import type { CalendarResponse } from "@/types/market"
 

@@ -1,5 +1,31 @@
 // Market Monitor Types
 
+// ── Provider Architecture ────────────────────────────────────────────────────
+
+export type ProviderId = "yahoo" | "brapi" | "coingecko"
+
+export interface QuoteProvider {
+	id: ProviderId
+	fetchQuotes: (symbols: string[]) => Promise<Map<string, MarketQuote>>
+}
+
+export interface SymbolDefinition {
+	symbol: string
+	name: string
+	flag: string
+	provider: ProviderId
+	fallback?: ProviderId
+	adrSymbol?: string
+}
+
+export interface GroupDefinition {
+	id: string
+	labelKey: string
+	symbols: string[]
+}
+
+// ── Quote Types ──────────────────────────────────────────────────────────────
+
 export interface MarketQuote {
 	symbol: string
 	name: string
@@ -34,6 +60,7 @@ export interface EconomicEvent {
 
 export interface QuotesResponse {
 	groups: QuoteGroup[]
+	companions: Record<string, MarketQuote>
 	lastUpdated: string
 }
 

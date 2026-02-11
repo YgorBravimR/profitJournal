@@ -74,6 +74,7 @@
 		"calendar": {
 			"title": "Calendário Econômico",
 			"noEvents": "Nenhum evento agendado para hoje",
+			"timezone": "Horário de Brasília",
 			"time": "Hora",
 			"country": "País",
 			"event": "Evento",
@@ -116,6 +117,14 @@
 			"today": "Hoje",
 			"b3Closed": "B3 fechada",
 			"usClosed": "EUA fechado"
+		},
+		"links": {
+			"title": "Links",
+			"economicCalendar": "Calendário Econômico",
+			"brlFutures": "Futuro do Real (CME)",
+			"bcbStats": "Estatísticas BCB",
+			"bcbPortal": "Banco Central do Brasil",
+			"infomoney": "InfoMoney Mercados"
 		}
 	},
 	"monteCarlo": {

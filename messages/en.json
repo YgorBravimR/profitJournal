@@ -74,6 +74,7 @@
 		"calendar": {
 			"title": "Economic Calendar",
 			"noEvents": "No events scheduled for today",
+			"timezone": "Brazilian timezone",
 			"time": "Time",
 			"country": "Country",
 			"event": "Event",
@@ -116,6 +117,14 @@
 			"today": "Today",
 			"b3Closed": "B3 closed",
 			"usClosed": "US closed"
+		},
+		"links": {
+			"title": "Links",
+			"economicCalendar": "Economic Calendar",
+			"brlFutures": "BRL Futures (CME)",
+			"bcbStats": "BCB Statistics",
+			"bcbPortal": "Central Bank of Brazil",
+			"infomoney": "InfoMoney Markets"
 		}
 	},
 	"monteCarlo": {

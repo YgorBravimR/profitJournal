@@ -6,7 +6,7 @@
  */
 
 import { NextResponse } from "next/server"
-import { fetchMarketQuotes } from "@/lib/market/cascade"
+import { fetchMarketQuotes } from "@/lib/market/orchestrator"
 import { cacheGet, cacheSet, CACHE_KEYS, CACHE_TTL } from "@/lib/market/cache"
 import type { QuotesResponse } from "@/types/market"
 
@@ -23,10 +23,10 @@ export const GET = async () => {
 		}
 
 		// Cache miss — fetch from providers
-		const groups = await fetchMarketQuotes()
+		const { groups, companions } = await fetchMarketQuotes()
 		const lastUpdated = new Date().toISOString()
 
-		const responseData: QuotesResponse = { groups, lastUpdated }
+		const responseData: QuotesResponse = { groups, companions, lastUpdated }
 
 		// Cache the result
 		cacheSet(CACHE_KEYS.QUOTES, responseData, CACHE_TTL.QUOTES)
