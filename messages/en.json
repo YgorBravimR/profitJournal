@@ -574,6 +574,8 @@
 		"contractsExecutedDesc": "Total contract executions including entry, exit, and any scaling.",
 		"contractsExecutedDefault": "Default: Position Size x 2 (1 entry + 1 exit per contract)",
 		"contractsExecutedScaling": "Increase if you scaled in/out during the trade.",
+		"contractsExecutedPlaceholder": "{count} (default)",
+		"contractsAutoCalculated": "Auto-calculated",
 		"inlineCreateTag": "Create new tag",
 		"validation": {
 			"stopLossMustBeBelowEntry": "Stop loss must be below entry price for long trades",

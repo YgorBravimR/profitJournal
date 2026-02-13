@@ -1000,8 +1000,8 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 											step="1"
 											placeholder={
 												positionSize
-													? `${Number(positionSize) * 2} (default)`
-													: "Auto-calculated"
+													? t("contractsExecutedPlaceholder", { count: Number(positionSize) * 2 })
+													: t("contractsAutoCalculated")
 											}
 											{...field}
 											value={field.value ?? ""}
