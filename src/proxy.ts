@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server"
 import NextAuth from "next-auth"
-import createIntlMiddleware from "next-intl/middleware"
+import createMiddleware from "next-intl/middleware"
 import { routing } from "@/i18n/routing"
 import { authConfig } from "@/auth.config"
 
-// Create the i18n middleware
-const intlMiddleware = createIntlMiddleware(routing)
+// Create the i18n proxy handler
+const intlProxy = createMiddleware(routing)
 
-// Create auth middleware with edge-compatible config (no database)
+// Create auth proxy with edge-compatible config (no database)
 const { auth } = NextAuth(authConfig)
 
 // Public paths that don't require authentication
@@ -44,8 +44,8 @@ export default auth((req) => {
 		return NextResponse.redirect(new URL("/login", req.url))
 	}
 
-	// Apply i18n middleware
-	return intlMiddleware(req)
+	// Apply i18n proxy
+	return intlProxy(req)
 })
 
 export const config = {

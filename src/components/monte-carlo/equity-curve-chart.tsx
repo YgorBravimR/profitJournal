@@ -8,9 +8,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	ReferenceLine,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
 import type { SimulatedTrade } from "@/types/monte-carlo"
@@ -105,8 +105,7 @@ export const EquityCurveChart = ({
 				</span>
 			</div>
 
-			<div className="h-72">
-				<ResponsiveContainer width="100%" height="100%">
+			<ChartContainer className="h-72">
 					<AreaChart
 						data={chartData}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -197,8 +196,7 @@ export const EquityCurveChart = ({
 							}
 						/>
 					</AreaChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 
 			<p className="mt-s-300 text-tiny text-txt-300 text-center">
 				{t("tradeNumber")}

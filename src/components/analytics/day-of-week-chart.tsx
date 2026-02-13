@@ -8,9 +8,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	Cell,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DayOfWeekPerformance } from "@/types"
 
@@ -132,8 +132,7 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("time.dayOfWeekTitle")}
 			</h3>
-			<div className="h-[250px] w-full">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="h-[250px] w-full">
 					<BarChart data={tradingDays} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
 						<CartesianGrid
 							strokeDasharray="3 3"
@@ -167,8 +166,7 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 							))}
 						</Bar>
 					</BarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 			{/* Summary */}
 			<div className="mt-m-400 grid grid-cols-2 gap-m-400 border-t border-bg-300 pt-m-400">
 				<div>

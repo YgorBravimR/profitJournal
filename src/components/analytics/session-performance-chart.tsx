@@ -8,9 +8,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	Cell,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { cn } from "@/lib/utils"
 import { InsightCard, InsightCardPlaceholder } from "@/components/analytics/insight-card"
@@ -223,13 +223,7 @@ export const SessionPerformanceChart = ({
 			</div>
 
 			{/* Bar Chart */}
-			<div className="h-60 w-full">
-				<ResponsiveContainer
-					width="100%"
-					height="100%"
-					minWidth={0}
-					minHeight={0}
-				>
+			<ChartContainer className="h-60 w-full">
 					<BarChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -287,8 +281,7 @@ export const SessionPerformanceChart = ({
 							))}
 						</Bar>
 					</BarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 
 			{/* Session Stats Cards */}
 			<div className="mt-m-400 grid grid-cols-2 gap-s-300 sm:grid-cols-4">

@@ -7,9 +7,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	ReferenceLine,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { formatCompactCurrency } from "@/lib/formatting"
 import type { EquityPoint } from "@/types"
@@ -76,8 +76,7 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			<h2 className="text-body font-semibold text-txt-100">{t("cumulative")}</h2>
-			<div className="mt-m-400 h-64">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="mt-m-400 h-64">
 					<AreaChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -127,8 +126,7 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 							}}
 						/>
 					</AreaChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 		</div>
 	)
 }

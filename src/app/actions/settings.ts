@@ -405,9 +405,7 @@ export const updateTheme = async (
 	}
 }
 
-// Valid brand values (must match Brand type in brand-provider)
-const VALID_BRANDS = ["bravo", "retro", "luxury", "tsr", "neon", "default"] as const
-type BrandValue = (typeof VALID_BRANDS)[number]
+import { BRANDS as VALID_BRANDS, type Brand as BrandValue } from "@/lib/brands"
 
 /**
  * Get the current account's brand (color scheme) from the database.

@@ -83,7 +83,7 @@ export const TradeDayGroup = memo(({
 				</span>
 
 				{/* Summary Stats */}
-				<div className="gap-s-400 flex items-center">
+				<div className="gap-m-400 flex items-center">
 					{/* P&L */}
 					<ColoredValue
 						value={summary.netPnl}

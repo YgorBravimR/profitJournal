@@ -8,9 +8,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	ReferenceLine,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DayEquityPoint } from "@/types"
 
@@ -81,8 +81,7 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 	}
 
 	return (
-		<div className="h-[150px] w-full">
-			<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+		<ChartContainer className="h-[150px] w-full">
 				<LineChart
 					data={data}
 					margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
@@ -137,7 +136,6 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 						}}
 					/>
 				</LineChart>
-			</ResponsiveContainer>
-		</div>
+		</ChartContainer>
 	)
 }

@@ -8,8 +8,8 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { formatCompactCurrency } from "@/lib/formatting"
@@ -253,8 +253,7 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 					<PeriodToggle period={period} onChange={handlePeriodChange} disabled={isPending} labels={periodLabels} />
 				</div>
 			</div>
-			<div className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
 					<AreaChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -303,8 +302,7 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 							}}
 						/>
 					</AreaChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 		</div>
 	)
 }

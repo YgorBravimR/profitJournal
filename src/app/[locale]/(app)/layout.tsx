@@ -1,6 +1,7 @@
 import { getCurrentAccount } from "@/app/actions/auth"
 import { getEffectiveDate } from "@/lib/effective-date"
 import { formatDateKey } from "@/lib/dates"
+import { getAccountTypeBrand } from "@/lib/account-brand"
 import { EffectiveDateProvider } from "@/components/providers/effective-date-provider"
 import { AppShell } from "@/components/layout/app-shell"
 
@@ -13,10 +14,17 @@ const AppLayout = async ({ children }: AppLayoutProps) => {
 	const effectiveDate = getEffectiveDate(account)
 	const isReplayAccount = account?.accountType === "replay"
 	const replayDate = isReplayAccount ? formatDateKey(effectiveDate) : undefined
+	const serverBrand = account
+		? getAccountTypeBrand(account.accountType)
+		: undefined
 
 	return (
 		<EffectiveDateProvider date={effectiveDate.toISOString()}>
-			<AppShell isReplayAccount={isReplayAccount} replayDate={replayDate}>
+			<AppShell
+				isReplayAccount={isReplayAccount}
+				replayDate={replayDate}
+				serverBrand={serverBrand}
+			>
 				{children}
 			</AppShell>
 		</EffectiveDateProvider>
@@ -24,3 +32,4 @@ const AppLayout = async ({ children }: AppLayoutProps) => {
 }
 
 export default AppLayout
+

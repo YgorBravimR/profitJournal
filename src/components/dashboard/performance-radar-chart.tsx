@@ -7,9 +7,9 @@ import {
 	PolarGrid,
 	PolarAngleAxis,
 	PolarRadiusAxis,
-	ResponsiveContainer,
 	Tooltip,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import type { RadarChartData } from "@/types"
 
 interface PerformanceRadarChartProps {
@@ -91,8 +91,7 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("radar.title")}
 			</h3>
-			<div className="h-[250px] w-full">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="h-[250px] w-full">
 					<RadarChart data={chartData} cx="50%" cy="50%" outerRadius="70%">
 						<PolarGrid stroke="var(--color-bg-300)" />
 						<PolarAngleAxis
@@ -115,8 +114,7 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 							strokeWidth={2}
 						/>
 					</RadarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 		</div>
 	)
 }

@@ -1,8 +1,7 @@
 "use client"
 
-import { createContext, useContext, useEffect, useState, useCallback } from "react"
-
-type Brand = "bravo" | "retro" | "luxury" | "tsr" | "neon" | "default"
+import { createContext, useContext, useState, useCallback } from "react"
+import { BRANDS, DEFAULT_BRAND, isValidBrand, type Brand } from "@/lib/brands"
 
 interface BrandContextType {
 	brand: Brand
@@ -15,56 +14,51 @@ interface BrandProviderProps {
 	defaultBrand?: Brand
 }
 
-const DEFAULT_BRAND: Brand = "bravo"
-const BRANDS: readonly Brand[] = [
-	"bravo",
-	"retro",
-	"luxury",
-	"tsr",
-	"neon",
-	"default",
-] as const
-
 const BrandContext = createContext<BrandContextType | undefined>(undefined)
 
 /**
- * Validates if a string is a valid Brand value.
- *
- * @param value - The value to validate
- * @returns True if the value is a valid Brand
+ * Reads the persisted brand from localStorage.
+ * Returns the stored brand if valid, otherwise falls back to defaultBrand.
+ * Safe to call during SSR (returns fallback).
  */
-const isValidBrand = (value: string | null): value is Brand => {
-	return value !== null && BRANDS.includes(value as Brand)
+const getStoredBrand = (fallback: Brand): Brand => {
+	if (typeof window === "undefined") return fallback
+	try {
+		const stored = localStorage.getItem("brand")
+		return isValidBrand(stored) ? stored : fallback
+	} catch {
+		return fallback
+	}
 }
 
 /**
  * Provider component for brand theming context.
  * Manages brand selection state and applies it to the DOM.
- * Brand persistence is handled by BrandSynchronizer + server actions (DB-backed).
+ *
+ * The blocking <BrandScript /> in <head> applies the persisted brand before first paint.
+ * This provider's useState initializer reads the same localStorage value, so React state
+ * matches the DOM from the start — no flash, no extra useEffect needed.
  *
  * @param props - The provider props
  * @param props.children - Child components to wrap
- * @param props.defaultBrand - Default brand to use before DB sync completes
+ * @param props.defaultBrand - Default brand to use when no localStorage value exists
  */
 const BrandProvider = ({ children, defaultBrand = DEFAULT_BRAND }: BrandProviderProps) => {
-	const [brand, setBrandState] = useState<Brand>(defaultBrand)
-	const [mounted, setMounted] = useState(false)
-
-	// Set default data-brand attribute on mount
-	useEffect(() => {
-		document.documentElement.setAttribute("data-brand", defaultBrand)
-		setMounted(true)
-	}, [defaultBrand])
+	const [brand, setBrandState] = useState<Brand>(() => getStoredBrand(defaultBrand))
 
 	const setBrand = useCallback((newBrand: Brand) => {
 		if (!isValidBrand(newBrand)) return
 		setBrandState(newBrand)
 		document.documentElement.setAttribute("data-brand", newBrand)
+		try {
+			localStorage.setItem("brand", newBrand)
+		} catch {
+			// localStorage unavailable (e.g. private browsing quota exceeded)
+		}
 	}, [])
 
-	// Prevent hydration mismatch by only rendering children after mount
 	const value: BrandContextType = {
-		brand: mounted ? brand : defaultBrand,
+		brand,
 		setBrand,
 		brands: BRANDS,
 	}
@@ -92,4 +86,5 @@ const useBrand = (): BrandContextType => {
 }
 
 export { BrandProvider, useBrand, BRANDS, DEFAULT_BRAND }
-export type { Brand }
+export { isValidBrand } from "@/lib/brands"
+export type { Brand } from "@/lib/brands"

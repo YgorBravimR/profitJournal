@@ -69,7 +69,10 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:refine.dev)",
       "WebFetch(domain:llms.motion.dev)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "WebFetch(domain:next-intl.dev)",
+      "Bash(git mv:*)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []

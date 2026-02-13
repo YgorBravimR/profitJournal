@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Plus_Jakarta_Sans, Geist_Mono, Aboreto } from "next/font/google"
+import { BrandScript } from "@/components/providers/brand-script"
 import "./globals.css"
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -30,6 +31,9 @@ interface RootLayoutProps {
 const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
 		<html suppressHydrationWarning data-brand="bravo">
+			<head>
+				<BrandScript />
+			</head>
 			<body
 				className={`${plusJakartaSans.variable} ${geistMono.variable} font-sans antialiased`}
 			>

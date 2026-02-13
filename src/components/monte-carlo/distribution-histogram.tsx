@@ -8,11 +8,11 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	ReferenceLine,
 	Cell,
 	Rectangle,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
 import type { DistributionBucket } from "@/types/monte-carlo"
@@ -249,8 +249,7 @@ export const DistributionHistogram = ({
 				</div>
 			</div>
 
-			<div className="h-72">
-				<ResponsiveContainer width="100%" height="100%">
+			<ChartContainer className="h-72">
 					<BarChart
 						data={chartData}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -312,8 +311,7 @@ export const DistributionHistogram = ({
 							))}
 						</Bar>
 					</BarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 
 			<p className="mt-s-300 text-tiny text-txt-300 text-center">
 				{t("finalBalance")}

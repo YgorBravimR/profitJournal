@@ -15,6 +15,7 @@ import {
 	Target,
 	Dices,
 	Plus,
+	RotateCcw,
 	type LucideIcon,
 } from "lucide-react"
 import Image from "next/image"
@@ -23,8 +24,26 @@ import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/settings"
+	labelKey:
+		| "dashboard"
+		| "journal"
+		| "analytics"
+		| "playbook"
+		| "reports"
+		| "monthly"
+		| "commandCenter"
+		| "monteCarlo"
+		| "settings"
+	href:
+		| "/"
+		| "/journal"
+		| "/analytics"
+		| "/playbook"
+		| "/reports"
+		| "/monthly"
+		| "/command-center"
+		| "/monte-carlo"
+		| "/settings"
 	icon: LucideIcon
 }
 
@@ -43,10 +62,18 @@ const navItems: NavItem[] = [
 interface SidebarProps {
 	isCollapsed: boolean
 	onToggleCollapse: () => void
+	isReplayAccount?: boolean
+	replayDate?: string
 }
 
-export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
+export const Sidebar = ({
+	isCollapsed,
+	onToggleCollapse,
+	isReplayAccount = false,
+	replayDate,
+}: SidebarProps) => {
 	const t = useTranslations("nav")
+	const tReplay = useTranslations("commandCenter.dateNavigator")
 	const tCommon = useTranslations("common")
 	const pathname = usePathname()
 
@@ -82,7 +109,9 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 					type="button"
 					onClick={onToggleCollapse}
 					className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
-					aria-label={isCollapsed ? tCommon("expandSidebar") : tCommon("collapseSidebar")}
+					aria-label={
+						isCollapsed ? tCommon("expandSidebar") : tCommon("collapseSidebar")
+					}
 				>
 					{isCollapsed ? (
 						<ChevronRight className="h-5 w-5" />
@@ -102,7 +131,7 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 						)}
 						aria-current="page"
 					>
-						<Plus className="h-5 w-5 flex-shrink-0" />
+						<Plus className="h-5 w-5 shrink-0" />
 						{!isCollapsed && <span>{t("newTrade")}</span>}
 					</span>
 				) : (
@@ -114,7 +143,7 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 						)}
 						aria-label={t("newTrade")}
 					>
-						<Plus className="h-5 w-5 flex-shrink-0" />
+						<Plus className="h-5 w-5 shrink-0" />
 						{!isCollapsed && <span>{t("newTrade")}</span>}
 					</Link>
 				)}
@@ -141,12 +170,45 @@ export const Sidebar = ({ isCollapsed, onToggleCollapse }: SidebarProps) => {
 							)}
 							aria-current={isActive ? "page" : undefined}
 						>
-							<item.icon className="h-5 w-5 flex-shrink-0" />
+							<item.icon className="h-5 w-5 shrink-0" />
 							{!isCollapsed && <span>{t(item.labelKey)}</span>}
 						</Link>
 					)
 				})}
 			</nav>
+
+			{/* Replay Mode Badge */}
+			{isReplayAccount && replayDate && (
+				<div
+					className={cn(
+						"border-bg-300 border-t px-3 py-2",
+						isCollapsed && "flex justify-center px-0"
+					)}
+				>
+					{isCollapsed ? (
+						<div
+							className="bg-acc-100/10 flex h-8 w-8 items-center justify-center rounded-md"
+							aria-label={tReplay("replayMode")}
+							title={`${tReplay("replayMode")} — ${replayDate}`}
+						>
+							<RotateCcw className="text-acc-100 h-4 w-4" />
+						</div>
+					) : (
+						<div className="gap-s-200 bg-acc-100/10 px-s-300 py-s-200 flex flex-col rounded-md">
+							<div className="flex items-center gap-2">
+								<RotateCcw
+									className="text-acc-100 h-3.5 w-3.5 shrink-0"
+									aria-hidden="true"
+								/>
+								<span className="text-tiny text-acc-100 font-medium">
+									{tReplay("replayMode")}
+								</span>
+							</div>
+							<span className="text-tiny text-txt-300">{replayDate}</span>
+						</div>
+					)}
+				</div>
+			)}
 
 			{/* Account Switcher */}
 			<div

@@ -119,6 +119,7 @@
   --animate-transition-ring-pulse: transition-ring-pulse 2s ease-in-out infinite;
   --animate-transition-video-expand: transition-video-expand 500ms ease-in forwards;
   --animate-transition-content-fade: transition-content-fade 300ms ease-in forwards;
+  --animate-overlay-fade-out: overlay-fade-out 500ms ease-in 300ms forwards;
 }
 
 /* Light Theme Overrides */
@@ -693,6 +694,16 @@ body {
   }
 }
 
+@keyframes overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
 
 /* Staggered animation delay utilities */
 .animation-delay-100 {
@@ -713,7 +724,8 @@ body {
   .animate-transition-text-up,
   .animate-transition-ring-pulse,
   .animate-transition-video-expand,
-  .animate-overlay-pulse-line {
+  .animate-overlay-pulse-line,
+  .animate-overlay-fade-out {
     animation: none !important;
   }
 }

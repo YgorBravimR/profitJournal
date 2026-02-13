@@ -8,9 +8,9 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 	Cell,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { DailyPnL } from "@/types"
 
@@ -99,8 +99,7 @@ export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) =>
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("dailyPnL.title")}
 			</h3>
-			<div className="h-[200px] w-full">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="h-[200px] w-full">
 					<BarChart
 						data={sortedData}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
@@ -147,8 +146,7 @@ export const DailyPnLBarChart = ({ data, onDayClick }: DailyPnLBarChartProps) =>
 							))}
 						</Bar>
 					</BarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 		</div>
 	)
 }

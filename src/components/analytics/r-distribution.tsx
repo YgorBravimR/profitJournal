@@ -7,10 +7,10 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip as RechartsTooltip,
-	ResponsiveContainer,
 	Cell,
 	ReferenceLine,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { BarChart3, Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 import {
@@ -157,8 +157,7 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 			</div>
 
 			{/* Chart */}
-			<div className="mt-m-500 h-64">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="mt-m-500 h-64">
 					<BarChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 10, bottom: 20 }}
@@ -201,8 +200,7 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 							))}
 						</Bar>
 					</BarChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 
 			{/* Insight */}
 			<div className="mt-m-400 rounded-lg bg-bg-100 p-m-400">

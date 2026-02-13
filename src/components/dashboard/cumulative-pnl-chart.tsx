@@ -8,8 +8,8 @@ import {
 	YAxis,
 	CartesianGrid,
 	Tooltip,
-	ResponsiveContainer,
 } from "recharts"
+import { ChartContainer } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import type { EquityPoint } from "@/types"
 
@@ -103,8 +103,7 @@ export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnL
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("cumulativePnL.title")}
 			</h3>
-			<div className="h-[200px] w-full">
-				<ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+			<ChartContainer className="h-[200px] w-full">
 					<LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
 						<CartesianGrid
 							strokeDasharray="3 3"
@@ -143,8 +142,7 @@ export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnL
 							}}
 						/>
 					</LineChart>
-				</ResponsiveContainer>
-			</div>
+			</ChartContainer>
 		</div>
 	)
 }

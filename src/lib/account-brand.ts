@@ -1,4 +1,4 @@
-import type { Brand } from "@/components/providers/brand-provider"
+import type { Brand } from "@/lib/brands"
 
 /**
  * Maps account type to the corresponding brand theme.
