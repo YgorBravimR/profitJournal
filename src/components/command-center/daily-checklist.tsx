@@ -13,12 +13,14 @@ interface DailyChecklistProps {
 	checklists: ChecklistWithCompletion[]
 	onManageClick: () => void
 	onRefresh: () => void
+	isReadOnly?: boolean
 }
 
 export const DailyChecklist = ({
 	checklists,
 	onManageClick,
 	onRefresh,
+	isReadOnly = false,
 }: DailyChecklistProps) => {
 	const t = useTranslations("commandCenter.checklist")
 	const [loading, setLoading] = useState<string | null>(null)
@@ -28,6 +30,7 @@ export const DailyChecklist = ({
 	 * Uses optimistic UI by calling onRefresh after successful toggle.
 	 */
 	const handleToggle = async (checklistId: string, itemId: string, completed: boolean) => {
+		if (isReadOnly) return
 		setLoading(`${checklistId}-${itemId}`)
 		try {
 			await toggleChecklistItem(checklistId, itemId, completed)
@@ -44,10 +47,12 @@ export const DailyChecklist = ({
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<div className="mb-m-400 flex items-center justify-between">
 					<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
-					<Button variant="ghost" size="sm" onClick={onManageClick}>
-						<Settings className="mr-s-100 h-4 w-4" />
-						{t("editChecklist")}
-					</Button>
+					{!isReadOnly && (
+						<Button variant="ghost" size="sm" onClick={onManageClick}>
+							<Settings className="mr-s-100 h-4 w-4" />
+							{t("editChecklist")}
+						</Button>
+					)}
 				</div>
 				<p className="text-small text-txt-300">{t("noItems")}</p>
 			</div>
@@ -83,9 +88,11 @@ export const DailyChecklist = ({
 									</span>
 								)}
 							</div>
-							<Button variant="ghost" size="sm" onClick={onManageClick}>
-								<Settings className="h-4 w-4" />
-							</Button>
+							{!isReadOnly && (
+								<Button variant="ghost" size="sm" onClick={onManageClick}>
+									<Settings className="h-4 w-4" />
+								</Button>
+							)}
 						</div>
 
 						{/* Progress bar */}
@@ -121,8 +128,8 @@ export const DailyChecklist = ({
 										<label
 											key={item.id}
 											className={cn(
-												"flex cursor-pointer items-center gap-s-300 rounded-md p-s-200 transition-colors",
-												"hover:bg-bg-300",
+												"flex items-center gap-s-300 rounded-md p-s-200 transition-colors",
+												isReadOnly ? "cursor-default" : "cursor-pointer hover:bg-bg-300",
 												isLoading && "opacity-50"
 											)}
 										>
@@ -131,7 +138,7 @@ export const DailyChecklist = ({
 												onCheckedChange={(checked) =>
 													handleToggle(checklist.id, item.id, !!checked)
 												}
-												disabled={isLoading}
+												disabled={isReadOnly || isLoading}
 												aria-label={item.label}
 											/>
 											<span

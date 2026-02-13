@@ -4,6 +4,7 @@ import { useMemo, useCallback, memo } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { Button } from "@/components/ui/button"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { DailyPnL } from "@/types"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 
@@ -29,6 +30,7 @@ export const TradingCalendar = memo(({ data, month, onMonthChange, onDayClick }:
 	const t = useTranslations("dashboard.calendar")
 	const tDays = useTranslations("dayOfWeek")
 	const locale = useLocale()
+	const effectiveDate = useEffectiveDate()
 
 	const year = month.getFullYear()
 	const monthIndex = month.getMonth()
@@ -136,7 +138,7 @@ export const TradingCalendar = memo(({ data, month, onMonthChange, onDayClick }:
 						const dateKey = formatDateKey(dayData.date)
 						const dailyData = dailyPnLMap.get(dateKey)
 						const isToday =
-							dayData.date.toDateString() === new Date().toDateString()
+							dayData.date.toDateString() === effectiveDate.toDateString()
 
 						const bgClass = dailyData
 							? dailyData.pnl > 0

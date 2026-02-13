@@ -6,15 +6,18 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { upsertDailyNotes } from "@/app/actions/command-center"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { DailyAccountNote } from "@/db/schema"
 
 interface PostMarketNotesProps {
 	notes: DailyAccountNote | null
 	onRefresh: () => void
+	isReadOnly?: boolean
 }
 
-export const PostMarketNotes = ({ notes, onRefresh }: PostMarketNotesProps) => {
+export const PostMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PostMarketNotesProps) => {
 	const t = useTranslations("commandCenter.notes")
+	const effectiveDate = useEffectiveDate()
 
 	const [postMarketNotes, setPostMarketNotes] = useState("")
 	const [saving, setSaving] = useState(false)
@@ -37,7 +40,7 @@ export const PostMarketNotes = ({ notes, onRefresh }: PostMarketNotesProps) => {
 		setSaving(true)
 		try {
 			await upsertDailyNotes({
-				date: new Date().toISOString(),
+				date: effectiveDate.toISOString(),
 				preMarketNotes: notes?.preMarketNotes || null,
 				postMarketNotes: postMarketNotes || null,
 				mood: (notes?.mood as "great" | "good" | "neutral" | "bad" | "terrible" | null) || null,
@@ -58,7 +61,7 @@ export const PostMarketNotes = ({ notes, onRefresh }: PostMarketNotesProps) => {
 					<Moon className="h-5 w-5 text-accent-primary" />
 					<h3 className="text-body font-semibold text-txt-100">{t("postMarket")}</h3>
 				</div>
-				{hasChanges && (
+				{hasChanges && !isReadOnly && (
 					<Button size="sm" onClick={handleSave} disabled={saving}>
 						{saving ? (
 							<Loader2 className="mr-s-100 h-4 w-4 animate-spin" />
@@ -78,6 +81,7 @@ export const PostMarketNotes = ({ notes, onRefresh }: PostMarketNotesProps) => {
 					onChange={(e) => setPostMarketNotes(e.target.value)}
 					placeholder={t("postMarketPlaceholder")}
 					className="min-h-[120px] resize-none"
+					disabled={isReadOnly}
 				/>
 			</div>
 		</div>

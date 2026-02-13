@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
 import { format } from "date-fns"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 
 export interface ExecutionRowData {
 	id: string
@@ -24,8 +25,6 @@ interface InlineExecutionRowProps {
 	currency?: string
 }
 
-const todayDateString = format(new Date(), "yyyy-MM-dd")
-
 export const InlineExecutionRow = ({
 	data,
 	onChange,
@@ -34,6 +33,8 @@ export const InlineExecutionRow = ({
 	currency = "$",
 }: InlineExecutionRowProps) => {
 	const t = useTranslations("execution")
+	const effectiveDate = useEffectiveDate()
+	const todayDateString = format(effectiveDate, "yyyy-MM-dd")
 
 	return (
 		<div className="gap-s-200 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr] items-center">

@@ -15,7 +15,6 @@ import {
 	Target,
 	Dices,
 	Plus,
-	Activity,
 	type LucideIcon,
 } from "lucide-react"
 import Image from "next/image"
@@ -24,15 +23,14 @@ import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
 
 interface NavItem {
-	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "monitor" | "settings"
-	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/monitor" | "/settings"
+	labelKey: "dashboard" | "journal" | "analytics" | "playbook" | "reports" | "monthly" | "commandCenter" | "monteCarlo" | "settings"
+	href: "/" | "/journal" | "/analytics" | "/playbook" | "/reports" | "/monthly" | "/command-center" | "/monte-carlo" | "/settings"
 	icon: LucideIcon
 }
 
 const navItems: NavItem[] = [
 	{ labelKey: "dashboard", href: "/", icon: LayoutDashboard },
 	{ labelKey: "commandCenter", href: "/command-center", icon: Target },
-	{ labelKey: "monitor", href: "/monitor", icon: Activity },
 	{ labelKey: "journal", href: "/journal", icon: BookOpen },
 	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
 	{ labelKey: "monteCarlo", href: "/monte-carlo", icon: Dices },

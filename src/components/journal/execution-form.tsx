@@ -26,6 +26,7 @@ import { createExecution, updateExecution } from "@/app/actions/executions"
 import type { TradeExecution } from "@/db/schema"
 import { Loader2 } from "lucide-react"
 import { format } from "date-fns"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 
 interface ExecutionFormProps {
 	tradeId: string
@@ -38,13 +39,13 @@ interface ExecutionFormProps {
 
 /**
  * Derive smart default date/time from the most recent execution.
- * Falls back to current date/time if no executions exist.
+ * Falls back to effective date if no executions exist.
  */
-const getSmartDefaults = (existingExecutions: TradeExecution[]) => {
+const getSmartDefaults = (existingExecutions: TradeExecution[], now: Date) => {
 	if (existingExecutions.length === 0) {
 		return {
-			date: format(new Date(), "yyyy-MM-dd"),
-			time: format(new Date(), "HH:mm:ss"),
+			date: format(now, "yyyy-MM-dd"),
+			time: format(now, "HH:mm:ss"),
 		}
 	}
 
@@ -61,8 +62,8 @@ const getSmartDefaults = (existingExecutions: TradeExecution[]) => {
 }
 
 /** Build the blank form state for a new execution */
-const buildNewExecutionState = (existingExecutions: TradeExecution[]) => {
-	const defaults = getSmartDefaults(existingExecutions)
+const buildNewExecutionState = (existingExecutions: TradeExecution[], now: Date) => {
+	const defaults = getSmartDefaults(existingExecutions, now)
 	return {
 		executionType: "entry",
 		executionDate: defaults.date,
@@ -101,6 +102,7 @@ export const ExecutionForm = ({
 }: ExecutionFormProps) => {
 	const t = useTranslations("execution")
 	const tCommon = useTranslations("common")
+	const effectiveDate = useEffectiveDate()
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
 
@@ -109,7 +111,7 @@ export const ExecutionForm = ({
 	const [formData, setFormData] = useState(
 		execution
 			? buildEditExecutionState(execution)
-			: buildNewExecutionState(existingExecutions)
+			: buildNewExecutionState(existingExecutions, effectiveDate)
 	)
 
 	// Update form data when execution prop changes (for edit mode)
@@ -117,9 +119,9 @@ export const ExecutionForm = ({
 		setFormData(
 			execution
 				? buildEditExecutionState(execution)
-				: buildNewExecutionState(existingExecutions)
+				: buildNewExecutionState(existingExecutions, effectiveDate)
 		)
-	}, [execution, existingExecutions])
+	}, [execution, existingExecutions, effectiveDate])
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
@@ -158,7 +160,7 @@ export const ExecutionForm = ({
 			if (result.status === "success") {
 				onOpenChange(false)
 				onSuccess?.()
-				setFormData(buildNewExecutionState(existingExecutions))
+				setFormData(buildNewExecutionState(existingExecutions, effectiveDate))
 			} else {
 				setError(result.message ?? tCommon("error"))
 			}
@@ -222,7 +224,7 @@ export const ExecutionForm = ({
 							<Input
 								id="executionDate"
 								type="date"
-								max={format(new Date(), "yyyy-MM-dd")}
+								max={format(effectiveDate, "yyyy-MM-dd")}
 								value={formData.executionDate}
 								onChange={(e) => handleChange("executionDate", e.target.value)}
 								required

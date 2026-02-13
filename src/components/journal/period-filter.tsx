@@ -5,6 +5,7 @@ import { Calendar } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { JournalPeriod } from "@/types"
 import { Button } from "@/components/ui/button"
+import { formatDateKey } from "@/lib/dates"
 
 interface PeriodFilterProps {
 	value: JournalPeriod
@@ -28,10 +29,10 @@ export const PeriodFilter = ({
 	const t = useTranslations("journal")
 	const [showCustomPicker, setShowCustomPicker] = useState(false)
 	const [tempFrom, setTempFrom] = useState<string>(
-		customDateRange?.from.toISOString().split("T")[0] || ""
+		customDateRange?.from ? formatDateKey(customDateRange.from) : ""
 	)
 	const [tempTo, setTempTo] = useState<string>(
-		customDateRange?.to.toISOString().split("T")[0] || ""
+		customDateRange?.to ? formatDateKey(customDateRange.to) : ""
 	)
 
 	const periods: { key: JournalPeriod; label: string }[] = [

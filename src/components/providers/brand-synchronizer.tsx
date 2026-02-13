@@ -1,25 +1,23 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { useBrand } from "@/components/providers/brand-provider"
-import { getAccountBrand } from "@/app/actions/settings"
+import { getCurrentAccount } from "@/app/actions/auth"
+import { getAccountTypeBrand } from "@/lib/account-brand"
 
 /**
- * Synchronizes the current account's brand preference (from DB) with the BrandProvider.
- * Runs once on mount in authenticated layouts to apply the account's saved brand.
+ * Synchronizes the brand theme based on the current account's type.
+ * personal → "bravo", prop → "tsr", replay → "retro"
+ * Re-runs whenever the component mounts (e.g. after account switch).
  */
 export const BrandSynchronizer = () => {
 	const { setBrand } = useBrand()
-	const hasSynced = useRef(false)
 
 	useEffect(() => {
-		if (hasSynced.current) return
-		hasSynced.current = true
-
 		const syncBrand = async () => {
-			const result = await getAccountBrand()
-			if (result.status === "success" && result.data) {
-				setBrand(result.data as Parameters<typeof setBrand>[0])
+			const account = await getCurrentAccount()
+			if (account) {
+				setBrand(getAccountTypeBrand(account.accountType))
 			}
 		}
 

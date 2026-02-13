@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger, AnimatedTabsContent } from "@/components/ui/tabs"
 import { AssetList } from "./asset-list"
 import { TimeframeList } from "./timeframe-list"
 import { TagList } from "./tag-list"
@@ -55,27 +55,27 @@ export const SettingsContent = ({
 				)}
 			</TabsList>
 
-			<TabsContent value="profile">
+			<AnimatedTabsContent value="profile">
 				<UserProfileSettings />
-			</TabsContent>
+			</AnimatedTabsContent>
 
-			<TabsContent value="account">
+			<AnimatedTabsContent value="account">
 				<AccountSettings assets={assets} />
-			</TabsContent>
+			</AnimatedTabsContent>
 
-			<TabsContent value="tags">
+			<AnimatedTabsContent value="tags">
 				<TagList />
-			</TabsContent>
+			</AnimatedTabsContent>
 
 			{isAdmin && (
 				<>
-					<TabsContent value="assets">
+					<AnimatedTabsContent value="assets">
 						<AssetList assets={assets} assetTypes={assetTypes} />
-					</TabsContent>
+					</AnimatedTabsContent>
 
-					<TabsContent value="timeframes">
+					<AnimatedTabsContent value="timeframes">
 						<TimeframeList timeframes={timeframes} />
-					</TabsContent>
+					</AnimatedTabsContent>
 				</>
 			)}
 		</Tabs>

@@ -29,6 +29,20 @@
       "when": 1770717066709,
       "tag": "0003_lying_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1770920812696,
+      "tag": "0004_true_winter_soldier",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770930206962,
+      "tag": "0005_hard_lucky_pierre",
+      "breakpoints": true
     }
   ]
 }

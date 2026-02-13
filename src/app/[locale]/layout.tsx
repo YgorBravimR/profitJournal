@@ -4,6 +4,7 @@ import { getMessages, setRequestLocale } from "next-intl/server"
 import { ThemeProvider } from "next-themes"
 import { ToastProvider } from "@/components/ui/toast"
 import { LoadingOverlayProvider } from "@/components/ui/loading-overlay"
+import { AccountTransitionOverlayProvider } from "@/components/ui/account-transition-overlay"
 import { AuthProvider } from "@/components/auth"
 import { BrandProvider } from "@/components/providers/brand-provider"
 import { routing } from "@/i18n/routing"
@@ -56,9 +57,11 @@ const LocaleLayout = async ({ children, params }: LocaleLayoutProps) => {
 					<ToastProvider>
 						<LoadingOverlayProvider>
 							<AuthProvider>
-								<div className="min-h-screen bg-bg-100">
-									{children}
-								</div>
+								<AccountTransitionOverlayProvider>
+									<div className="min-h-screen bg-bg-100">
+										{children}
+									</div>
+								</AccountTransitionOverlayProvider>
 							</AuthProvider>
 						</LoadingOverlayProvider>
 					</ToastProvider>

@@ -20,6 +20,7 @@ import {
 import { fromCents } from "@/lib/money"
 import { getUserSettings, type UserSettingsData } from "./settings"
 import { requireAuth } from "@/app/actions/auth"
+import { getServerEffectiveNow } from "@/lib/effective-date"
 
 // ============================================================================
 // TYPES
@@ -132,7 +133,8 @@ export const getWeeklyReport = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const referenceDate = subWeeks(new Date(), weekOffset)
+		const effectiveNow = await getServerEffectiveNow()
+		const referenceDate = subWeeks(effectiveNow, weekOffset)
 		const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 })
 		const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 })
 
@@ -310,7 +312,8 @@ export const getMonthlyReport = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const referenceDate = subMonths(new Date(), monthOffset)
+		const effectiveNow = await getServerEffectiveNow()
+		const referenceDate = subMonths(effectiveNow, monthOffset)
 		const monthStart = startOfMonth(referenceDate)
 		const monthEnd = endOfMonth(referenceDate)
 
@@ -809,7 +812,7 @@ export const getMonthlyProjection = async (): Promise<{
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const now = new Date()
+		const now = await getServerEffectiveNow()
 		const monthStart = startOfMonth(now)
 		const monthEnd = endOfMonth(now)
 
@@ -968,7 +971,8 @@ export const getYearlyOverview = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const targetYear = year || new Date().getFullYear()
+		const effectiveNow = await getServerEffectiveNow()
+		const targetYear = year || effectiveNow.getFullYear()
 		const yearStart = new Date(targetYear, 0, 1)
 		const yearEnd = new Date(targetYear, 11, 31, 23, 59, 59)
 

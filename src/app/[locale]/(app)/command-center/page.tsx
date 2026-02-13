@@ -1,29 +1,53 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
 import { PageHeader } from "@/components/layout"
-import { CommandCenterContent } from "./command-center-content"
+import { CommandCenterTabs } from "./command-center-tabs"
 import {
 	getChecklists,
 	getTodayCompletions,
 	getDailyTargets,
 	getTodayNotes,
-	getAssetSettings,
+	getAccountAssetSettings,
 	getCircuitBreakerStatus,
 	getDailySummary,
 } from "@/app/actions/command-center"
 import { getActiveAssets } from "@/app/actions/assets"
+import { getCurrentAccount } from "@/app/actions/auth"
+import { getStrategies } from "@/app/actions/strategies"
+import { getEffectiveDateWithOverride } from "@/lib/effective-date"
+import { formatDateKey } from "@/lib/dates"
 
 // Force dynamic rendering to ensure account-specific data
 export const dynamic = "force-dynamic"
 
 interface CommandCenterPageProps {
 	params: Promise<{ locale: string }>
+	searchParams: Promise<{ date?: string }>
 }
 
-const CommandCenterPage = async ({ params }: CommandCenterPageProps) => {
+const isSameDay = (a: Date, b: Date): boolean =>
+	a.getFullYear() === b.getFullYear() &&
+	a.getMonth() === b.getMonth() &&
+	a.getDate() === b.getDate()
+
+const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProps) => {
 	const { locale } = await params
+	const { date: dateParam } = await searchParams
 	setRequestLocale(locale)
 
 	const t = await getTranslations("commandCenter")
+
+	// Fetch account first so we can resolve effective date for replay accounts
+	const account = await getCurrentAccount()
+
+	// Resolve view date: URL param → replay date → real now
+	const urlDate = dateParam ? new Date(dateParam + "T12:00:00") : undefined
+	const effectiveDate = getEffectiveDateWithOverride(account, urlDate)
+	const now = new Date()
+	const isToday = !dateParam || isSameDay(effectiveDate, account?.accountType === "replay" && account.replayCurrentDate ? new Date(account.replayCurrentDate) : now)
+	const viewDateStr = formatDateKey(effectiveDate)
+
+	// Pass date to date-sensitive actions (undefined = today's effective date)
+	const dateArg = isToday ? (account?.accountType === "replay" ? effectiveDate : undefined) : effectiveDate
 
 	// Fetch all initial data server-side in parallel
 	const [
@@ -35,15 +59,17 @@ const CommandCenterPage = async ({ params }: CommandCenterPageProps) => {
 		circuitBreakerResult,
 		summaryResult,
 		assetsResult,
+		strategiesResult,
 	] = await Promise.all([
 		getChecklists(),
-		getTodayCompletions(),
+		getTodayCompletions(dateArg),
 		getDailyTargets(),
-		getTodayNotes(),
-		getAssetSettings(),
-		getCircuitBreakerStatus(),
-		getDailySummary(),
+		getTodayNotes(dateArg),
+		getAccountAssetSettings(),
+		getCircuitBreakerStatus(dateArg),
+		getDailySummary(dateArg),
 		getActiveAssets().catch(() => []),
+		getStrategies(),
 	])
 
 	const initialChecklists =
@@ -67,22 +93,37 @@ const CommandCenterPage = async ({ params }: CommandCenterPageProps) => {
 	const initialSummary =
 		summaryResult.status === "success" ? (summaryResult.data ?? null) : null
 	const availableAssets = assetsResult || []
+	const initialStrategies =
+		strategiesResult.status === "success" && strategiesResult.data
+			? strategiesResult.data
+			: []
+
+	const accountSettings = {
+		defaultRiskPerTrade: account?.defaultRiskPerTrade ?? null,
+		maxDailyLoss: account?.maxDailyLoss ?? null,
+	}
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title={t("title")} description={t("description")} />
-			<div className="flex-1 overflow-auto p-m-600">
-				<CommandCenterContent
-					initialChecklists={initialChecklists}
-					initialCompletions={initialCompletions}
-					initialTargets={initialTargets}
-					initialNotes={initialNotes}
-					initialAssetSettings={initialAssetSettings}
-					initialCircuitBreaker={initialCircuitBreaker}
-					initialSummary={initialSummary}
-					availableAssets={availableAssets}
-				/>
-			</div>
+			<PageHeader title={t("title")} />
+			<CommandCenterTabs
+				initialChecklists={initialChecklists}
+				initialCompletions={initialCompletions}
+				initialTargets={initialTargets}
+				initialNotes={initialNotes}
+				initialAssetSettings={initialAssetSettings}
+				initialCircuitBreaker={initialCircuitBreaker}
+				initialSummary={initialSummary}
+				availableAssets={availableAssets}
+				account={account}
+				calculatorAssets={availableAssets}
+				accountSettings={accountSettings}
+				strategies={initialStrategies}
+				assetSettings={initialAssetSettings}
+				viewDate={viewDateStr}
+				isToday={isToday}
+				isReplayAccount={account?.accountType === "replay"}
+			/>
 		</div>
 	)
 }

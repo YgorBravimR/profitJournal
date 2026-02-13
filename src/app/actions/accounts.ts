@@ -23,7 +23,7 @@ import { auth } from "@/auth"
 interface AccountInput {
 	name: string
 	description?: string
-	accountType: "personal" | "prop"
+	accountType: "personal" | "prop" | "replay"
 	propFirmName?: string
 	profitSharePercentage?: number
 	dayTradeTaxRate?: number
@@ -31,11 +31,16 @@ interface AccountInput {
 	defaultRiskPerTrade?: number
 	maxDailyLoss?: number
 	maxDailyTrades?: number
+	maxMonthlyLoss?: number
+	allowSecondOpAfterLoss?: boolean
+	reduceRiskAfterLoss?: boolean
+	riskReductionFactor?: number
 	defaultCurrency?: string
 	defaultCommission?: number
 	defaultFees?: number
 	showTaxEstimates?: boolean
 	showPropCalculations?: boolean
+	replayStartDate?: string
 }
 
 interface AccountAssetInput {
@@ -93,6 +98,11 @@ export const createAccount = async (
 			return { status: "error", error: "An account with this name already exists" }
 		}
 
+		const replayCurrentDate =
+			input.accountType === "replay" && input.replayStartDate
+				? new Date(input.replayStartDate)
+				: null
+
 		const [newAccount] = await db
 			.insert(tradingAccounts)
 			.values({
@@ -112,6 +122,7 @@ export const createAccount = async (
 				defaultFees: input.defaultFees ?? 0,
 				showTaxEstimates: input.showTaxEstimates ?? true,
 				showPropCalculations: input.showPropCalculations ?? true,
+				...(replayCurrentDate && { replayCurrentDate }),
 			})
 			.returning()
 
@@ -184,6 +195,16 @@ export const updateAccount = async (
 		if (input.showTaxEstimates !== undefined) updateData.showTaxEstimates = input.showTaxEstimates
 		if (input.showPropCalculations !== undefined)
 			updateData.showPropCalculations = input.showPropCalculations
+		if (input.maxMonthlyLoss !== undefined) updateData.maxMonthlyLoss = input.maxMonthlyLoss
+		if (input.allowSecondOpAfterLoss !== undefined)
+			updateData.allowSecondOpAfterLoss = input.allowSecondOpAfterLoss
+		if (input.reduceRiskAfterLoss !== undefined)
+			updateData.reduceRiskAfterLoss = input.reduceRiskAfterLoss
+		if (input.riskReductionFactor !== undefined)
+			updateData.riskReductionFactor = input.riskReductionFactor?.toString()
+		if (input.replayStartDate !== undefined && input.accountType === "replay") {
+			updateData.replayCurrentDate = new Date(input.replayStartDate)
+		}
 
 		const [updated] = await db
 			.update(tradingAccounts)
@@ -280,6 +301,62 @@ export const setDefaultAccount = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Set default account error:", error)
+		return { status: "error", error: "An error occurred" }
+	}
+}
+
+// ==========================================
+// REPLAY DATE
+// ==========================================
+
+/**
+ * Advances the replay account's current date by one day.
+ * Only valid for accounts with accountType === "replay".
+ */
+export const advanceReplayDate = async (): Promise<{
+	status: "success" | "error"
+	data?: TradingAccount
+	error?: string
+}> => {
+	try {
+		const session = await auth()
+		if (!session?.user?.id || !session?.user?.accountId) {
+			return { status: "error", error: "Not authenticated" }
+		}
+
+		const account = await db.query.tradingAccounts.findFirst({
+			where: and(
+				eq(tradingAccounts.id, session.user.accountId),
+				eq(tradingAccounts.userId, session.user.id)
+			),
+		})
+
+		if (!account) {
+			return { status: "error", error: "Account not found" }
+		}
+
+		if (account.accountType !== "replay") {
+			return { status: "error", error: "Only replay accounts can advance date" }
+		}
+
+		if (!account.replayCurrentDate) {
+			return { status: "error", error: "Replay account has no start date" }
+		}
+
+		const currentDate = new Date(account.replayCurrentDate)
+		currentDate.setDate(currentDate.getDate() + 1)
+
+		const [updated] = await db
+			.update(tradingAccounts)
+			.set({ replayCurrentDate: currentDate, updatedAt: new Date() })
+			.where(eq(tradingAccounts.id, account.id))
+			.returning()
+
+		revalidatePath("/command-center")
+
+		return { status: "success", data: updated }
+	} catch (error) {
+		console.error("Advance replay date error:", error)
 		return { status: "error", error: "An error occurred" }
 	}
 }

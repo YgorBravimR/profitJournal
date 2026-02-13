@@ -57,6 +57,12 @@ export const dailyTargetsSchema = z.object({
 		.max(100, "Max consecutive losses must be 100 or less")
 		.optional()
 		.nullable(),
+	accountBalance: z.coerce
+		.number()
+		.positive("Account balance must be positive")
+		.max(100000000, "Account balance too large")
+		.optional()
+		.nullable(),
 	isActive: z.boolean().default(true),
 })
 
@@ -121,6 +127,7 @@ export type AssetSettingsInput = z.infer<typeof assetSettingsSchema>
 
 // Circuit breaker status type (not a zod schema, just a type)
 export interface CircuitBreakerStatus {
+	// Existing fields
 	dailyPnL: number
 	tradesCount: number
 	consecutiveLosses: number
@@ -130,4 +137,14 @@ export interface CircuitBreakerStatus {
 	maxConsecutiveLossesHit: boolean
 	shouldStopTrading: boolean
 	alerts: string[]
+
+	// Risk dashboard fields
+	riskUsedTodayCents: number
+	remainingDailyRiskCents: number
+	recommendedRiskCents: number
+	monthlyPnL: number
+	monthlyLossLimitCents: number
+	remainingMonthlyCents: number
+	isMonthlyLimitHit: boolean
+	isSecondOpBlocked: boolean
 }

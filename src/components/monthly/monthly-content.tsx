@@ -3,6 +3,7 @@
 import { useState, useEffect, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { startOfMonth, subMonths } from "date-fns"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import { MonthNavigator } from "./month-navigator"
 import { LoadingSpinner } from "@/components/shared"
 import { PropProfitSummary } from "./prop-profit-summary"
@@ -30,8 +31,9 @@ export const MonthlyContent = ({
 	initialComparisonData,
 }: MonthlyContentProps) => {
 	const t = useTranslations("monthly")
+	const effectiveDate = useEffectiveDate()
 	const [isPending, startTransition] = useTransition()
-	const [currentDate, setCurrentDate] = useState(() => startOfMonth(new Date()))
+	const [currentDate, setCurrentDate] = useState(() => startOfMonth(effectiveDate))
 	const [monthOffset, setMonthOffset] = useState(0)
 
 	const [monthlyData, setMonthlyData] = useState<MonthlyResultsWithProp | null>(
@@ -49,8 +51,8 @@ export const MonthlyContent = ({
 		setProjectionData(initialProjectionData)
 		setComparisonData(initialComparisonData)
 		setMonthOffset(0)
-		setCurrentDate(startOfMonth(new Date()))
-	}, [initialMonthlyData, initialProjectionData, initialComparisonData])
+		setCurrentDate(startOfMonth(effectiveDate))
+	}, [initialMonthlyData, initialProjectionData, initialComparisonData, effectiveDate])
 
 	// Determine if we're viewing the current month
 	const isCurrentMonth = monthOffset === 0
@@ -95,8 +97,7 @@ export const MonthlyContent = ({
 	}, [monthOffset])
 
 	const handleMonthChange = (newDate: Date) => {
-		const now = new Date()
-		const currentMonthStart = startOfMonth(now)
+		const currentMonthStart = startOfMonth(effectiveDate)
 		const newMonthStart = startOfMonth(newDate)
 
 		// Calculate offset from current month
@@ -126,7 +127,7 @@ export const MonthlyContent = ({
 			<MonthNavigator
 				currentDate={currentDate}
 				onMonthChange={handleMonthChange}
-				maxDate={startOfMonth(new Date())}
+				maxDate={startOfMonth(effectiveDate)}
 			/>
 
 			{isPending && <LoadingSpinner size="sm" className="py-m-400" />}

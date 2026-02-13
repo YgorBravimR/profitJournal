@@ -46,7 +46,7 @@ export const orderTypeEnum = pgEnum("order_type", [
 ])
 
 // Account Type Enum
-export const accountTypeEnum = pgEnum("account_type", ["personal", "prop"])
+export const accountTypeEnum = pgEnum("account_type", ["personal", "prop", "replay"])
 
 // ==========================================
 // AUTH TABLES (Phase 10)
@@ -109,6 +109,10 @@ export const tradingAccounts = pgTable(
 		defaultRiskPerTrade: decimal("default_risk_per_trade", { precision: 5, scale: 2 }),
 		maxDailyLoss: integer("max_daily_loss"), // cents
 		maxDailyTrades: integer("max_daily_trades"),
+		maxMonthlyLoss: integer("max_monthly_loss"), // cents
+		allowSecondOpAfterLoss: boolean("allow_second_op_after_loss").default(true),
+		reduceRiskAfterLoss: boolean("reduce_risk_after_loss").default(false),
+		riskReductionFactor: decimal("risk_reduction_factor", { precision: 5, scale: 2 }),
 		defaultCurrency: varchar("default_currency", { length: 3 }).default("BRL").notNull(),
 
 		// Global default fees for this account (user-managed)
@@ -119,6 +123,9 @@ export const tradingAccounts = pgTable(
 		showTaxEstimates: boolean("show_tax_estimates").default(true).notNull(),
 		showPropCalculations: boolean("show_prop_calculations").default(true).notNull(),
 		brand: varchar("brand", { length: 20 }).default("bravo").notNull(),
+
+		// Replay mode: the effective "today" for this account
+		replayCurrentDate: timestamp("replay_current_date", { withTimezone: true }),
 
 		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -625,6 +632,7 @@ export const dailyTargets = pgTable(
 		lossLimit: integer("loss_limit"), // cents (stored as positive)
 		maxTrades: integer("max_trades"),
 		maxConsecutiveLosses: integer("max_consecutive_losses"),
+		accountBalance: integer("account_balance"), // cents
 		isActive: boolean("is_active").default(true).notNull(),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
@@ -699,6 +707,38 @@ export const dailyAssetSettings = pgTable(
 		index("daily_asset_settings_asset_idx").on(table.assetId),
 		index("daily_asset_settings_date_idx").on(table.date),
 		uniqueIndex("daily_asset_settings_unique_idx").on(table.accountId, table.assetId, table.date),
+	]
+)
+
+// Account Asset Settings (permanent, account-level — replaces daily_asset_settings)
+export const accountAssetSettings = pgTable(
+	"account_asset_settings",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		userId: text("user_id").notNull(),
+		accountId: uuid("account_id")
+			.notNull()
+			.references(() => tradingAccounts.id, { onDelete: "cascade" }),
+		assetId: uuid("asset_id")
+			.notNull()
+			.references(() => assets.id, { onDelete: "cascade" }),
+		bias: varchar("bias", { length: 10 }), // 'long' | 'short' | 'neutral' | null
+		maxDailyTrades: integer("max_daily_trades"),
+		maxPositionSize: integer("max_position_size"),
+		notes: text("notes"),
+		isActive: boolean("is_active").default(true).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("account_asset_settings_user_idx").on(table.userId),
+		index("account_asset_settings_account_idx").on(table.accountId),
+		index("account_asset_settings_asset_idx").on(table.assetId),
+		uniqueIndex("account_asset_settings_unique_idx").on(table.accountId, table.assetId),
 	]
 )
 
@@ -784,6 +824,7 @@ export const tradingAccountsRelations = relations(tradingAccounts, ({ one, many 
 	dailyTargets: many(dailyTargets),
 	dailyAccountNotes: many(dailyAccountNotes),
 	dailyAssetSettings: many(dailyAssetSettings),
+	accountAssetSettings: many(accountAssetSettings),
 }))
 
 // Session Relations
@@ -906,6 +947,7 @@ export const assetsRelations = relations(assets, ({ one, many }) => ({
 	}),
 	accountAssets: many(accountAssets),
 	dailyAssetSettings: many(dailyAssetSettings),
+	accountAssetSettings: many(accountAssetSettings),
 }))
 
 // Command Center Relations
@@ -935,6 +977,17 @@ export const dailyAccountNotesRelations = relations(dailyAccountNotes, ({ one })
 	account: one(tradingAccounts, {
 		fields: [dailyAccountNotes.accountId],
 		references: [tradingAccounts.id],
+	}),
+}))
+
+export const accountAssetSettingsRelations = relations(accountAssetSettings, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [accountAssetSettings.accountId],
+		references: [tradingAccounts.id],
+	}),
+	asset: one(assets, {
+		fields: [accountAssetSettings.assetId],
+		references: [assets.id],
 	}),
 }))
 
@@ -1024,3 +1077,6 @@ export type NewDailyAccountNote = typeof dailyAccountNotes.$inferInsert
 
 export type DailyAssetSetting = typeof dailyAssetSettings.$inferSelect
 export type NewDailyAssetSetting = typeof dailyAssetSettings.$inferInsert
+
+export type AccountAssetSetting = typeof accountAssetSettings.$inferSelect
+export type NewAccountAssetSetting = typeof accountAssetSettings.$inferInsert

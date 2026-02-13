@@ -3,7 +3,7 @@ import type { NextAuthConfig } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
 // Public paths that don't require authentication
-const publicPaths = ["/login", "/register", "/api/auth"]
+const publicPaths = ["/login", "/register", "/api/auth", "/monitor"]
 
 // Supported locales
 const locales = ["pt-BR", "en"]
@@ -103,9 +103,10 @@ export const authConfig: NextAuthConfig = {
 				const locale = getLocaleFromPathname(pathname)
 				const loginPath = locale === defaultLocale ? "/login" : `/${locale}/login`
 
-				// Return a redirect response with the locale-aware login URL
+				// Store callbackUrl WITHOUT locale prefix — the routing layer (next-intl's
+				// router.push or intlMiddleware) will re-add the locale on redirect
 				const loginUrl = new URL(loginPath, request.nextUrl.origin)
-				loginUrl.searchParams.set("callbackUrl", pathname)
+				loginUrl.searchParams.set("callbackUrl", removeLocalePrefix(pathname))
 
 				return NextResponse.redirect(loginUrl)
 			}

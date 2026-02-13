@@ -9,6 +9,7 @@ import {
 	getDailyPnL,
 	getRadarChartData,
 } from "@/app/actions/analytics"
+import { getServerEffectiveNow } from "@/lib/effective-date"
 
 // Force dynamic rendering to ensure account-specific data
 export const dynamic = "force-dynamic"
@@ -22,7 +23,7 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	setRequestLocale(locale)
 
 	const t = await getTranslations("dashboard")
-	const now = new Date()
+	const now = await getServerEffectiveNow()
 
 	const [statsResult, disciplineResult, equityCurveResult, streakResult, dailyPnLResult, radarResult] =
 		await Promise.all([

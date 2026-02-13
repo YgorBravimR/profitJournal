@@ -301,6 +301,19 @@
 	"commandCenter": {
 		"title": "Command Center",
 		"description": "Prepare for your trading day",
+		"tabs": {
+			"commandCenter": "Command Center",
+			"monitor": "Monitor",
+			"calculator": "Calculator"
+		},
+		"dateNavigator": {
+			"today": "Today",
+			"previousDay": "Previous day",
+			"nextDay": "Next day",
+			"readOnlyNotice": "Viewing historical data (read-only)",
+			"nextReplayDay": "Advance Day",
+			"replayMode": "Replay Mode"
+		},
 		"circuitBreaker": {
 			"title": "Circuit Breaker",
 			"loading": "Loading status...",
@@ -315,7 +328,19 @@
 			"target": "Target",
 			"limit": "Limit",
 			"maxTrades": "Max",
-			"maxConsecutive": "Max"
+			"maxConsecutive": "Max",
+			"monthlyPnL": "Monthly P&L",
+			"monthlyLimit": "Monthly Limit",
+			"remainingMonthly": "Remaining Monthly",
+			"riskUsedToday": "Risk Used Today",
+			"remainingDailyRisk": "Remaining Daily Risk",
+			"recommendedRisk": "Recommended Risk",
+			"secondOpBlocked": "2nd operation blocked after loss",
+			"riskReduced": "Risk reduced ({factor}x) after {losses} consecutive loss(es)",
+			"monthlyLimitHit": "Monthly loss limit reached!",
+			"approachingProfitTarget": "Approaching profit target",
+			"approachingLossLimit": "Approaching daily loss limit",
+			"targetReached": "TARGET REACHED"
 		},
 		"checklist": {
 			"title": "Daily Checklist",
@@ -349,6 +374,8 @@
 			"maxTradesHelp": "Maximum number of trades per day",
 			"maxConsecutiveLosses": "Max Consecutive Losses",
 			"maxConsecutiveLossesHelp": "Stop after this many losses in a row",
+			"accountBalance": "Account Balance",
+			"accountBalanceHelp": "Today's account balance for position sizing",
 			"save": "Save",
 			"saving": "Saving..."
 		},
@@ -402,6 +429,52 @@
 			"bestTrade": "Best Trade",
 			"worstTrade": "Worst Trade",
 			"maxConsecutiveLosses": "Max Consecutive Losses"
+		},
+		"calculator": {
+			"title": "Position Size Calculator",
+			"subtitle": "Calculate optimal position size based on your risk settings",
+			"asset": "Asset",
+			"selectAsset": "Select asset",
+			"selectAssetToStart": "Select an asset to start calculating",
+			"enterPricesToCalculate": "Enter entry and stop prices to see results",
+			"direction": "Direction",
+			"long": "Long",
+			"short": "Short",
+			"entryPrice": "Entry Price",
+			"stopPrice": "Stop Price",
+			"targetPrice": "Target Price",
+			"optional": "Optional",
+			"manualContracts": "Manual Contracts",
+			"manualContractsHelp": "Override suggested quantity (leave empty for auto)",
+			"riskAnalysis": "Risk Analysis",
+			"stopPoints": "Stop Distance",
+			"riskPerContract": "Risk / Contract",
+			"maxAllowedRisk": "Max Allowed Risk",
+			"suggestedContracts": "Suggested Contracts",
+			"actualContracts": "Actual Contracts",
+			"totalRisk": "Total Risk",
+			"positionSizing": "Position Sizing",
+			"targetAnalysis": "Target Analysis",
+			"targetPoints": "Target Distance",
+			"returnPerContract": "Return / Contract",
+			"riskRewardRatio": "Risk : Reward",
+			"fromSettings": "from settings",
+			"contracts": "contracts",
+			"points": "pts",
+			"noRiskConfigured": "No risk per trade configured. Set it in account settings.",
+			"exceedsMaxRisk": "Exceeds maximum allowed risk!",
+			"strategy": "Strategy",
+			"selectStrategy": "Select strategy",
+			"strategyHint": "Target auto-calculated from {r}R multiple",
+			"prefilled": "pre-filled",
+			"fromAssetSettings": "from asset settings",
+			"noStrategiesWithTarget": "No strategies with R target configured",
+			"validation": {
+				"stopAboveEntry": "Stop must be below entry for long trades",
+				"stopBelowEntry": "Stop must be above entry for short trades",
+				"targetBelowEntry": "Target must be above entry for long trades",
+				"targetAboveEntry": "Target must be below entry for short trades"
+			}
 		}
 	},
 	"trade": {
@@ -502,6 +575,12 @@
 		"contractsExecutedDefault": "Default: Position Size x 2 (1 entry + 1 exit per contract)",
 		"contractsExecutedScaling": "Increase if you scaled in/out during the trade.",
 		"inlineCreateTag": "Create new tag",
+		"validation": {
+			"stopLossMustBeBelowEntry": "Stop loss must be below entry price for long trades",
+			"stopLossMustBeAboveEntry": "Stop loss must be above entry price for short trades",
+			"takeProfitMustBeAboveEntry": "Take profit must be above entry price for long trades",
+			"takeProfitMustBeBelowEntry": "Take profit must be below entry price for short trades"
+		},
 		"mode": {
 			"label": "Trade Mode",
 			"simple": "Simple Trade",
@@ -528,8 +607,15 @@
 			"grossPnl": "Gross P&L",
 			"netPnl": "Net P&L",
 			"createScaledTrade": "Create Scaled Trade",
+			"creating": "Creating...",
 			"riskManagement": "Risk Management",
-			"needSimple": "Need a simple single entry/exit trade?"
+			"needSimple": "Need a simple single entry/exit trade?",
+			"selectAssetError": "Please select an asset",
+			"addEntryError": "Please add at least one entry execution",
+			"createdSuccess": "Scaled trade created successfully",
+			"createError": "Failed to create trade",
+			"enterStopAndEntries": "Enter stop loss & entries",
+			"contractsSummary": "Total: {count} contracts @ {price} average"
 		}
 	},
 	"dashboard": {
@@ -1109,6 +1195,9 @@
 			"accountType": "Account Type",
 			"personal": "Personal",
 			"propFirm": "Prop Firm",
+			"replay": "Replay",
+			"replayStartDate": "Start Date",
+			"replayStartDateHelp": "The date where your replay session begins",
 			"propFirmName": "Prop Firm Name",
 			"propFirmNamePlaceholder": "e.g., FTMO, MyForexFunds",
 			"profitShare": "Profit Share",
@@ -1123,7 +1212,17 @@
 			"assetFeeOverridesDesc": "Set custom commission and fees for specific assets",
 			"assetFeesUpdated": "Asset fees updated successfully",
 			"assetFeesUpdateError": "Failed to update asset fees",
-			"override": "Custom"
+			"override": "Custom",
+			"riskManagement": "Risk Management",
+			"riskManagementDesc": "Configure risk rules and loss limits",
+			"maxMonthlyLoss": "Max Monthly Loss",
+			"maxMonthlyLossHelp": "Stop trading for the month if losses exceed this amount",
+			"allowSecondOpAfterLoss": "Allow 2nd Operation After Loss",
+			"allowSecondOpAfterLossHelp": "Whether to allow a second trade after a losing trade",
+			"reduceRiskAfterLoss": "Reduce Risk After Loss",
+			"reduceRiskAfterLossHelp": "Automatically reduce position size after consecutive losses",
+			"riskReductionFactor": "Risk Reduction Factor",
+			"riskReductionFactorHelp": "Multiply risk by this factor after each consecutive loss (e.g., 0.50 = halve risk)"
 		},
 		"assets": {
 			"title": "Manage Assets",
@@ -1467,6 +1566,9 @@
 			"accountType": "Account Type",
 			"personal": "Personal",
 			"propFirm": "Prop Firm",
+			"replay": "Replay",
+			"replayStartDate": "Start Date",
+			"replayStartDateHelp": "The date where your replay session begins",
 			"propFirmName": "Prop Firm Name",
 			"propFirmNamePlaceholder": "e.g., Atom, FTMO",
 			"profitShare": "Profit Share",
@@ -1476,7 +1578,9 @@
 			"deleteAccountDesc": "Are you sure you want to delete this account? All trades and data will be permanently deleted.",
 			"cannotDeleteOnly": "Cannot delete your only account",
 			"setAsDefault": "Set as Default",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"switchingTo": "Switching to",
+			"transitionLabel": "Switching to account {name}"
 		},
 		"logout": "Sign Out",
 		"profile": "Profile",

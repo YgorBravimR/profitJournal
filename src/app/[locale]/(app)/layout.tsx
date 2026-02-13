@@ -1,35 +1,25 @@
-"use client"
-
-import { useState } from "react"
-import { Sidebar } from "@/components/layout/sidebar"
-import { ThemeSynchronizer } from "@/components/providers/theme-synchronizer"
-import { BrandSynchronizer } from "@/components/providers/brand-synchronizer"
-import { cn } from "@/lib/utils"
+import { getCurrentAccount } from "@/app/actions/auth"
+import { getEffectiveDate } from "@/lib/effective-date"
+import { formatDateKey } from "@/lib/dates"
+import { EffectiveDateProvider } from "@/components/providers/effective-date-provider"
+import { AppShell } from "@/components/layout/app-shell"
 
 interface AppLayoutProps {
 	children: React.ReactNode
 }
 
-const AppLayout = ({ children }: AppLayoutProps) => {
-	const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+const AppLayout = async ({ children }: AppLayoutProps) => {
+	const account = await getCurrentAccount()
+	const effectiveDate = getEffectiveDate(account)
+	const isReplayAccount = account?.accountType === "replay"
+	const replayDate = isReplayAccount ? formatDateKey(effectiveDate) : undefined
 
 	return (
-		<>
-			<ThemeSynchronizer />
-			<BrandSynchronizer />
-			<Sidebar
-				isCollapsed={isSidebarCollapsed}
-				onToggleCollapse={() => setIsSidebarCollapsed((prev) => !prev)}
-			/>
-			<main
-				className={cn(
-					"min-h-screen transition-[margin-left] duration-300",
-					isSidebarCollapsed ? "ml-16" : "ml-64"
-				)}
-			>
+		<EffectiveDateProvider date={effectiveDate.toISOString()}>
+			<AppShell isReplayAccount={isReplayAccount} replayDate={replayDate}>
 				{children}
-			</main>
-		</>
+			</AppShell>
+		</EffectiveDateProvider>
 	)
 }
 

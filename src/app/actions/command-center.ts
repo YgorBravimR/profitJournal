@@ -7,16 +7,18 @@ import {
 	checklistCompletions,
 	dailyTargets,
 	dailyAccountNotes,
-	dailyAssetSettings,
+	accountAssetSettings,
+	accountAssets,
 	trades,
 	assets,
+	tradingAccounts,
 } from "@/db/schema"
 import type {
 	DailyChecklist,
 	ChecklistCompletion,
 	DailyTarget,
 	DailyAccountNote,
-	DailyAssetSetting,
+	AccountAssetSetting,
 	Asset,
 } from "@/db/schema"
 import type { ActionResponse } from "@/types"
@@ -40,6 +42,7 @@ import {
 } from "@/lib/validations/command-center"
 import { fromCents, toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { getServerEffectiveNow } from "@/lib/effective-date"
 
 // ==========================================
 // CHECKLIST ACTIONS
@@ -247,14 +250,13 @@ export interface ChecklistWithCompletion extends DailyChecklist {
 }
 
 /**
- * Get today's checklist completions
+ * Get checklist completions for a given date (defaults to today)
  */
-export const getTodayCompletions = async (): Promise<ActionResponse<ChecklistWithCompletion[]>> => {
+export const getTodayCompletions = async (date?: Date): Promise<ActionResponse<ChecklistWithCompletion[]>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
+		const today = date ? new Date(date) : await getServerEffectiveNow()
 		today.setHours(0, 0, 0, 0)
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)
@@ -325,8 +327,8 @@ export const toggleChecklistItem = async (
 		// Validate input
 		const validated = updateCompletionSchema.parse({ checklistId, itemId, completed })
 
-		// Get start and end of today
-		const today = new Date()
+		// Get start and end of today (effective date for replay accounts)
+		const today = await getServerEffectiveNow()
 		today.setHours(0, 0, 0, 0)
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)
@@ -366,7 +368,7 @@ export const toggleChecklistItem = async (
 				.update(checklistCompletions)
 				.set({
 					completedItems: JSON.stringify(newItems),
-					completedAt: allCompleted ? new Date() : null,
+					completedAt: allCompleted ? today : null,
 					updatedAt: new Date(),
 				})
 				.where(eq(checklistCompletions.id, existing.id))
@@ -484,6 +486,7 @@ export const upsertDailyTargets = async (
 					lossLimit: validated.lossLimit ? toCents(validated.lossLimit) : null,
 					maxTrades: validated.maxTrades || null,
 					maxConsecutiveLosses: validated.maxConsecutiveLosses || null,
+					accountBalance: validated.accountBalance ? toCents(validated.accountBalance) : null,
 					isActive: validated.isActive ?? true,
 					updatedAt: new Date(),
 				})
@@ -508,6 +511,7 @@ export const upsertDailyTargets = async (
 					lossLimit: validated.lossLimit ? toCents(validated.lossLimit) : null,
 					maxTrades: validated.maxTrades || null,
 					maxConsecutiveLosses: validated.maxConsecutiveLosses || null,
+					accountBalance: validated.accountBalance ? toCents(validated.accountBalance) : null,
 					isActive: validated.isActive ?? true,
 				})
 				.returning()
@@ -546,14 +550,13 @@ export const upsertDailyTargets = async (
 // ==========================================
 
 /**
- * Get today's notes
+ * Get notes for a given date (defaults to today)
  */
-export const getTodayNotes = async (): Promise<ActionResponse<DailyAccountNote | null>> => {
+export const getTodayNotes = async (date?: Date): Promise<ActionResponse<DailyAccountNote | null>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
+		const today = date ? new Date(date) : await getServerEffectiveNow()
 		today.setHours(0, 0, 0, 0)
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)
@@ -672,108 +675,84 @@ export const upsertDailyNotes = async (
 }
 
 // ==========================================
-// ASSET SETTINGS ACTIONS (Per-Day with Copy-from-Previous)
+// ASSET SETTINGS ACTIONS (Account-Level, Permanent)
 // ==========================================
 
-export interface AssetSettingWithAsset extends DailyAssetSetting {
+export interface AssetSettingWithAsset extends AccountAssetSetting {
 	asset: Asset
 }
 
 /**
- * Get today's asset settings for the current account.
- * If no settings exist for today, copies from the most recent previous day.
+ * Get account-level asset settings.
+ * Auto-populates blank rows for enabled assets that don't have settings yet.
  */
-export const getTodayAssetSettings = async (): Promise<ActionResponse<AssetSettingWithAsset[]>> => {
+export const getAccountAssetSettings = async (): Promise<ActionResponse<AssetSettingWithAsset[]>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
-		today.setHours(0, 0, 0, 0)
-		const tomorrow = new Date(today)
-		tomorrow.setDate(tomorrow.getDate() + 1)
-
-		// Get today's active settings
-		let settings = await db.query.dailyAssetSettings.findMany({
+		// Get enabled assets for this account
+		const enabledAccountAssets = await db.query.accountAssets.findMany({
 			where: and(
-				eq(dailyAssetSettings.userId, userId),
-				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.isActive, true),
-				gte(dailyAssetSettings.date, today),
-				lte(dailyAssetSettings.date, tomorrow)
+				eq(accountAssets.accountId, accountId),
+				eq(accountAssets.isEnabled, true)
+			),
+		})
+
+		// Get existing account asset settings
+		const existingSettings = await db.query.accountAssetSettings.findMany({
+			where: and(
+				eq(accountAssetSettings.userId, userId),
+				eq(accountAssetSettings.accountId, accountId),
+				eq(accountAssetSettings.isActive, true)
 			),
 			with: {
 				asset: true,
 			},
 		})
 
-		// If no settings for today, copy from previous day
-		if (settings.length === 0) {
-			// Find the most recent day with settings
-			const previousSettings = await db.query.dailyAssetSettings.findMany({
+		// Find enabled assets missing settings rows
+		const existingAssetIds = new Set(existingSettings.map((s) => s.assetId))
+		const missingAssets = enabledAccountAssets.filter(
+			(aa) => !existingAssetIds.has(aa.assetId)
+		)
+
+		// Auto-populate blank rows for missing assets
+		if (missingAssets.length > 0) {
+			await db.insert(accountAssetSettings).values(
+				missingAssets.map((aa) => ({
+					userId,
+					accountId,
+					assetId: aa.assetId,
+					isActive: true,
+				}))
+			)
+
+			// Re-fetch with asset relation
+			const allSettings = await db.query.accountAssetSettings.findMany({
 				where: and(
-					eq(dailyAssetSettings.userId, userId),
-					eq(dailyAssetSettings.accountId, accountId),
-					eq(dailyAssetSettings.isActive, true),
-					lte(dailyAssetSettings.date, today)
+					eq(accountAssetSettings.userId, userId),
+					eq(accountAssetSettings.accountId, accountId),
+					eq(accountAssetSettings.isActive, true)
 				),
-				orderBy: [desc(dailyAssetSettings.date)],
 				with: {
 					asset: true,
 				},
 			})
 
-			if (previousSettings.length > 0) {
-				// Get the most recent date
-				const mostRecentDate = previousSettings[0].date
-				const mostRecentSettings = previousSettings.filter(
-					(s) => s.date.toDateString() === mostRecentDate.toDateString()
-				)
-
-				// Copy each setting to today
-				const newSettings = await Promise.all(
-					mostRecentSettings.map(async (setting) => {
-						const [newSetting] = await db
-							.insert(dailyAssetSettings)
-							.values({
-								userId,
-								accountId,
-								assetId: setting.assetId,
-								date: today,
-								bias: setting.bias,
-								maxDailyTrades: setting.maxDailyTrades,
-								maxPositionSize: setting.maxPositionSize,
-								notes: setting.notes,
-								isActive: true,
-							})
-							.returning()
-						return newSetting
-					})
-				)
-
-				// Fetch with asset relation
-				settings = await db.query.dailyAssetSettings.findMany({
-					where: and(
-						eq(dailyAssetSettings.userId, userId),
-						eq(dailyAssetSettings.accountId, accountId),
-						eq(dailyAssetSettings.isActive, true),
-						gte(dailyAssetSettings.date, today),
-						lte(dailyAssetSettings.date, tomorrow)
-					),
-					with: {
-						asset: true,
-					},
-				})
+			return {
+				status: "success",
+				message: "Asset settings retrieved successfully",
+				data: allSettings as AssetSettingWithAsset[],
 			}
 		}
 
 		return {
 			status: "success",
 			message: "Asset settings retrieved successfully",
-			data: settings as AssetSettingWithAsset[],
+			data: existingSettings as AssetSettingWithAsset[],
 		}
 	} catch (error) {
-		console.error("Get today asset settings error:", error)
+		console.error("Get account asset settings error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve asset settings",
@@ -783,42 +762,33 @@ export const getTodayAssetSettings = async (): Promise<ActionResponse<AssetSetti
 }
 
 /**
- * Legacy function for backwards compatibility
- * @deprecated Use getTodayAssetSettings instead
+ * Legacy aliases for backwards compatibility
  */
-export const getAssetSettings = getTodayAssetSettings
+export const getTodayAssetSettings = getAccountAssetSettings
+export const getAssetSettings = getAccountAssetSettings
 
 /**
- * Upsert asset settings for today
+ * Upsert account-level asset settings
  */
 export const upsertAssetSettings = async (
 	input: AssetSettingsInput
-): Promise<ActionResponse<DailyAssetSetting>> => {
+): Promise<ActionResponse<AccountAssetSetting>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 		const validated = assetSettingsSchema.parse(input)
 
-		// Get start and end of today
-		const today = new Date()
-		today.setHours(0, 0, 0, 0)
-		const tomorrow = new Date(today)
-		tomorrow.setDate(tomorrow.getDate() + 1)
-
-		// Check if settings exist for this asset TODAY
-		const existing = await db.query.dailyAssetSettings.findFirst({
+		// Check if settings exist for this asset
+		const existing = await db.query.accountAssetSettings.findFirst({
 			where: and(
-				eq(dailyAssetSettings.userId, userId),
-				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.assetId, validated.assetId),
-				gte(dailyAssetSettings.date, today),
-				lte(dailyAssetSettings.date, tomorrow)
+				eq(accountAssetSettings.userId, userId),
+				eq(accountAssetSettings.accountId, accountId),
+				eq(accountAssetSettings.assetId, validated.assetId)
 			),
 		})
 
 		if (existing) {
-			// Update existing for today
 			const [settings] = await db
-				.update(dailyAssetSettings)
+				.update(accountAssetSettings)
 				.set({
 					bias: validated.bias || null,
 					maxDailyTrades: validated.maxDailyTrades || null,
@@ -827,7 +797,7 @@ export const upsertAssetSettings = async (
 					isActive: validated.isActive ?? true,
 					updatedAt: new Date(),
 				})
-				.where(eq(dailyAssetSettings.id, existing.id))
+				.where(eq(accountAssetSettings.id, existing.id))
 				.returning()
 
 			revalidatePath("/command-center")
@@ -838,14 +808,12 @@ export const upsertAssetSettings = async (
 				data: settings,
 			}
 		} else {
-			// Create new for today
 			const [settings] = await db
-				.insert(dailyAssetSettings)
+				.insert(accountAssetSettings)
 				.values({
 					userId,
 					accountId,
 					assetId: validated.assetId,
-					date: today,
 					bias: validated.bias || null,
 					maxDailyTrades: validated.maxDailyTrades || null,
 					maxPositionSize: validated.maxPositionSize || null,
@@ -884,41 +852,32 @@ export const upsertAssetSettings = async (
 }
 
 /**
- * Delete asset settings for today (soft delete)
+ * Delete account-level asset settings (soft delete)
  */
 export const deleteAssetSettings = async (assetId: string): Promise<ActionResponse<void>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
-		today.setHours(0, 0, 0, 0)
-		const tomorrow = new Date(today)
-		tomorrow.setDate(tomorrow.getDate() + 1)
-
-		// Find today's setting for this asset
-		const existing = await db.query.dailyAssetSettings.findFirst({
+		const existing = await db.query.accountAssetSettings.findFirst({
 			where: and(
-				eq(dailyAssetSettings.userId, userId),
-				eq(dailyAssetSettings.accountId, accountId),
-				eq(dailyAssetSettings.assetId, assetId),
-				gte(dailyAssetSettings.date, today),
-				lte(dailyAssetSettings.date, tomorrow)
+				eq(accountAssetSettings.userId, userId),
+				eq(accountAssetSettings.accountId, accountId),
+				eq(accountAssetSettings.assetId, assetId)
 			),
 		})
 
 		if (!existing) {
 			return {
 				status: "error",
-				message: "Asset settings not found for today",
-				errors: [{ code: "NOT_FOUND", detail: "Asset settings do not exist for today" }],
+				message: "Asset settings not found",
+				errors: [{ code: "NOT_FOUND", detail: "Asset settings do not exist" }],
 			}
 		}
 
 		await db
-			.update(dailyAssetSettings)
+			.update(accountAssetSettings)
 			.set({ isActive: false, updatedAt: new Date() })
-			.where(eq(dailyAssetSettings.id, existing.id))
+			.where(eq(accountAssetSettings.id, existing.id))
 
 		revalidatePath("/command-center")
 
@@ -952,14 +911,13 @@ export interface DailySummary {
 }
 
 /**
- * Get circuit breaker status for today
+ * Get circuit breaker status for a given date (defaults to today)
  */
-export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitBreakerStatus>> => {
+export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionResponse<CircuitBreakerStatus>> => {
 	try {
 		const { userId, accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
+		const today = date ? new Date(date) : await getServerEffectiveNow()
 		today.setHours(0, 0, 0, 0)
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)
@@ -982,6 +940,11 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 				eq(dailyTargets.accountId, accountId),
 				eq(dailyTargets.isActive, true)
 			),
+		})
+
+		// Get trading account settings for risk rules
+		const account = await db.query.tradingAccounts.findFirst({
+			where: eq(tradingAccounts.id, accountId),
 		})
 
 		// Calculate metrics
@@ -1015,6 +978,73 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 			}
 		}
 
+		// Calculate risk used today (sum of plannedRiskAmount from today's trades)
+		const riskUsedTodayCents = todaysTrades.reduce(
+			(sum, trade) => sum + (trade.plannedRiskAmount || 0),
+			0
+		)
+
+		// Calculate remaining daily risk
+		const dailyLossLimitCents = targets?.lossLimit || account?.maxDailyLoss || 0
+		const remainingDailyRiskCents = Math.max(
+			0,
+			dailyLossLimitCents - Math.abs(Math.min(0, toCents(dailyPnL)))
+		)
+
+		// Get monthly P&L (using the target date's month)
+		const monthStart = new Date(today)
+		monthStart.setDate(1)
+
+		const monthlyTrades = await db.query.trades.findMany({
+			where: and(
+				eq(trades.accountId, accountId),
+				gte(trades.entryDate, monthStart),
+				eq(trades.isArchived, false)
+			),
+		})
+		const monthlyPnL = monthlyTrades.reduce(
+			(sum, trade) => sum + fromCents(trade.pnl),
+			0
+		)
+
+		// Monthly loss limit
+		const monthlyLossLimitCents = account?.maxMonthlyLoss || 0
+		const remainingMonthlyCents =
+			monthlyLossLimitCents > 0
+				? Math.max(0, monthlyLossLimitCents - Math.abs(Math.min(0, toCents(monthlyPnL))))
+				: Infinity
+		const isMonthlyLimitHit =
+			monthlyLossLimitCents > 0 && monthlyPnL <= -fromCents(monthlyLossLimitCents)
+
+		// Calculate recommended risk
+		let recommendedRiskCents = account?.defaultRiskPerTrade
+			? toCents(parseFloat(account.defaultRiskPerTrade))
+			: 0
+
+		if (
+			account?.reduceRiskAfterLoss &&
+			currentConsecutiveLosses > 0 &&
+			account.riskReductionFactor
+		) {
+			const factor = parseFloat(account.riskReductionFactor)
+			recommendedRiskCents = Math.round(
+				recommendedRiskCents * Math.pow(factor, currentConsecutiveLosses)
+			)
+		}
+
+		// Cap at remaining budgets
+		recommendedRiskCents = Math.min(
+			recommendedRiskCents,
+			remainingDailyRiskCents > 0 ? remainingDailyRiskCents : recommendedRiskCents,
+			remainingMonthlyCents !== Infinity ? remainingMonthlyCents : recommendedRiskCents
+		)
+
+		// Check second op block
+		const isSecondOpBlocked =
+			account?.allowSecondOpAfterLoss === false &&
+			currentConsecutiveLosses > 0 &&
+			todaysTrades.length > 0
+
 		// Calculate circuit breaker triggers
 		const profitTargetHit = targets?.profitTarget
 			? dailyPnL >= fromCents(targets.profitTarget)
@@ -1029,7 +1059,13 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 			? currentConsecutiveLosses >= targets.maxConsecutiveLosses
 			: false
 
-		const shouldStopTrading = profitTargetHit || lossLimitHit || maxTradesHit || maxConsecutiveLossesHit
+		const shouldStopTrading =
+			profitTargetHit ||
+			lossLimitHit ||
+			maxTradesHit ||
+			maxConsecutiveLossesHit ||
+			isMonthlyLimitHit ||
+			isSecondOpBlocked
 
 		// Build alerts
 		const alerts: string[] = []
@@ -1037,6 +1073,8 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 		if (lossLimitHit) alerts.push("lossLimitHit")
 		if (maxTradesHit) alerts.push("maxTradesHit")
 		if (maxConsecutiveLossesHit) alerts.push("maxConsecutiveLossesHit")
+		if (isMonthlyLimitHit) alerts.push("monthlyLimitHit")
+		if (isSecondOpBlocked) alerts.push("secondOpBlocked")
 
 		return {
 			status: "success",
@@ -1051,6 +1089,14 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 				maxConsecutiveLossesHit,
 				shouldStopTrading,
 				alerts,
+				riskUsedTodayCents,
+				remainingDailyRiskCents,
+				recommendedRiskCents,
+				monthlyPnL,
+				monthlyLossLimitCents,
+				remainingMonthlyCents: remainingMonthlyCents === Infinity ? 0 : remainingMonthlyCents,
+				isMonthlyLimitHit,
+				isSecondOpBlocked,
 			},
 		}
 	} catch (error) {
@@ -1064,14 +1110,13 @@ export const getCircuitBreakerStatus = async (): Promise<ActionResponse<CircuitB
 }
 
 /**
- * Get daily summary
+ * Get daily summary for a given date (defaults to today)
  */
-export const getDailySummary = async (): Promise<ActionResponse<DailySummary>> => {
+export const getDailySummary = async (date?: Date): Promise<ActionResponse<DailySummary>> => {
 	try {
 		const { accountId } = await requireAuth()
 
-		// Get start and end of today
-		const today = new Date()
+		const today = date ? new Date(date) : await getServerEffectiveNow()
 		today.setHours(0, 0, 0, 0)
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)

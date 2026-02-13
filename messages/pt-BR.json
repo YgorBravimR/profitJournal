@@ -301,6 +301,19 @@
 	"commandCenter": {
 		"title": "Central de Comando",
 		"description": "Prepare-se para o seu dia de operações",
+		"tabs": {
+			"commandCenter": "Centro de Comando",
+			"monitor": "Monitor",
+			"calculator": "Calculadora"
+		},
+		"dateNavigator": {
+			"today": "Hoje",
+			"previousDay": "Dia anterior",
+			"nextDay": "Próximo dia",
+			"readOnlyNotice": "Visualizando dados históricos (somente leitura)",
+			"nextReplayDay": "Avançar Dia",
+			"replayMode": "Modo Replay"
+		},
 		"circuitBreaker": {
 			"title": "Circuit Breaker",
 			"loading": "Carregando status...",
@@ -315,7 +328,19 @@
 			"target": "Meta",
 			"limit": "Limite",
 			"maxTrades": "Máx",
-			"maxConsecutive": "Máx"
+			"maxConsecutive": "Máx",
+			"monthlyPnL": "P&L Mensal",
+			"monthlyLimit": "Limite Mensal",
+			"remainingMonthly": "Restante Mensal",
+			"riskUsedToday": "Risco Usado Hoje",
+			"remainingDailyRisk": "Risco Diário Restante",
+			"recommendedRisk": "Risco Recomendado",
+			"secondOpBlocked": "2ª operação bloqueada após loss",
+			"riskReduced": "Risco reduzido ({factor}x) após {losses} loss(es) consecutivo(s)",
+			"monthlyLimitHit": "Limite de perda mensal atingido!",
+			"approachingProfitTarget": "Aproximando do alvo de lucro",
+			"approachingLossLimit": "Aproximando do limite de perda diário",
+			"targetReached": "ALVO ATINGIDO"
 		},
 		"checklist": {
 			"title": "Checklist Diário",
@@ -349,6 +374,8 @@
 			"maxTradesHelp": "Número máximo de operações por dia",
 			"maxConsecutiveLosses": "Máx. Perdas Consecutivas",
 			"maxConsecutiveLossesHelp": "Pare após tantas perdas seguidas",
+			"accountBalance": "Saldo da Conta",
+			"accountBalanceHelp": "Saldo da conta hoje para dimensionamento de posição",
 			"save": "Salvar",
 			"saving": "Salvando..."
 		},
@@ -402,6 +429,52 @@
 			"bestTrade": "Melhor Operação",
 			"worstTrade": "Pior Operação",
 			"maxConsecutiveLosses": "Máx. Perdas Consecutivas"
+		},
+		"calculator": {
+			"title": "Calculadora de Posição",
+			"subtitle": "Calcule o tamanho ideal da posição baseado nas suas configurações de risco",
+			"asset": "Ativo",
+			"selectAsset": "Selecione o ativo",
+			"selectAssetToStart": "Selecione um ativo para começar a calcular",
+			"enterPricesToCalculate": "Insira preços de entrada e stop para ver os resultados",
+			"direction": "Direção",
+			"long": "Compra",
+			"short": "Venda",
+			"entryPrice": "Preço de Entrada",
+			"stopPrice": "Preço de Stop",
+			"targetPrice": "Preço Alvo",
+			"optional": "Opcional",
+			"manualContracts": "Contratos Manual",
+			"manualContractsHelp": "Substituir quantidade sugerida (vazio para automático)",
+			"riskAnalysis": "Análise de Risco",
+			"stopPoints": "Distância do Stop",
+			"riskPerContract": "Risco / Contrato",
+			"maxAllowedRisk": "Risco Máximo Permitido",
+			"suggestedContracts": "Contratos Sugeridos",
+			"actualContracts": "Contratos Reais",
+			"totalRisk": "Risco Total",
+			"positionSizing": "Dimensionamento de Posição",
+			"targetAnalysis": "Análise de Alvo",
+			"targetPoints": "Distância do Alvo",
+			"returnPerContract": "Retorno / Contrato",
+			"riskRewardRatio": "Risco : Retorno",
+			"fromSettings": "das config.",
+			"contracts": "contratos",
+			"points": "pts",
+			"noRiskConfigured": "Risco por operação não configurado. Configure nas configurações da conta.",
+			"exceedsMaxRisk": "Excede o risco máximo permitido!",
+			"strategy": "Estratégia",
+			"selectStrategy": "Selecionar estratégia",
+			"strategyHint": "Alvo calculado automaticamente pelo múltiplo de {r}R",
+			"prefilled": "pré-preenchido",
+			"fromAssetSettings": "das configurações do ativo",
+			"noStrategiesWithTarget": "Nenhuma estratégia com R alvo configurado",
+			"validation": {
+				"stopAboveEntry": "Stop deve estar abaixo da entrada para operações de compra",
+				"stopBelowEntry": "Stop deve estar acima da entrada para operações de venda",
+				"targetBelowEntry": "Alvo deve estar acima da entrada para operações de compra",
+				"targetAboveEntry": "Alvo deve estar abaixo da entrada para operações de venda"
+			}
 		}
 	},
 	"trade": {
@@ -502,6 +575,12 @@
 		"contractsExecutedDefault": "Padrão: Tamanho da Posição x 2 (1 entrada + 1 saída por contrato)",
 		"contractsExecutedScaling": "Aumente se você escalonou durante o trade.",
 		"inlineCreateTag": "Criar nova tag",
+		"validation": {
+			"stopLossMustBeBelowEntry": "Stop loss deve estar abaixo do preço de entrada para trades de compra",
+			"stopLossMustBeAboveEntry": "Stop loss deve estar acima do preço de entrada para trades de venda",
+			"takeProfitMustBeAboveEntry": "Take profit deve estar acima do preço de entrada para trades de compra",
+			"takeProfitMustBeBelowEntry": "Take profit deve estar abaixo do preço de entrada para trades de venda"
+		},
 		"mode": {
 			"label": "Modo do Trade",
 			"simple": "Trade Simples",
@@ -528,8 +607,15 @@
 			"grossPnl": "P&L Bruto",
 			"netPnl": "P&L Líquido",
 			"createScaledTrade": "Criar Trade Escalonado",
+			"creating": "Criando...",
 			"riskManagement": "Gerenciamento de Risco",
-			"needSimple": "Precisa de um trade simples com entrada/saída única?"
+			"needSimple": "Precisa de um trade simples com entrada/saída única?",
+			"selectAssetError": "Por favor, selecione um ativo",
+			"addEntryError": "Por favor, adicione pelo menos uma execução de entrada",
+			"createdSuccess": "Trade escalonado criado com sucesso",
+			"createError": "Falha ao criar trade",
+			"enterStopAndEntries": "Insira stop loss e entradas",
+			"contractsSummary": "Total: {count} contratos @ {price} médio"
 		}
 	},
 	"dashboard": {
@@ -1109,6 +1195,9 @@
 			"accountType": "Tipo de Conta",
 			"personal": "Pessoal",
 			"propFirm": "Mesa Prop",
+			"replay": "Replay",
+			"replayStartDate": "Data Inicial",
+			"replayStartDateHelp": "A data onde sua sessão de replay começa",
 			"propFirmName": "Nome da Mesa Prop",
 			"propFirmNamePlaceholder": "ex: FTMO, MyForexFunds",
 			"profitShare": "Divisão de Lucro",
@@ -1123,7 +1212,17 @@
 			"assetFeeOverridesDesc": "Defina comissão e taxas personalizadas para ativos específicos",
 			"assetFeesUpdated": "Taxas do ativo atualizadas com sucesso",
 			"assetFeesUpdateError": "Falha ao atualizar taxas do ativo",
-			"override": "Personalizado"
+			"override": "Personalizado",
+			"riskManagement": "Gestão de Risco",
+			"riskManagementDesc": "Configure regras de risco e limites de perda",
+			"maxMonthlyLoss": "Perda Máxima Mensal",
+			"maxMonthlyLossHelp": "Pare de operar no mês se as perdas excederem este valor",
+			"allowSecondOpAfterLoss": "Permitir 2ª Operação Após Loss",
+			"allowSecondOpAfterLossHelp": "Se deve permitir uma segunda operação após um loss",
+			"reduceRiskAfterLoss": "Reduzir Risco Após Loss",
+			"reduceRiskAfterLossHelp": "Reduzir automaticamente o tamanho da posição após losses consecutivos",
+			"riskReductionFactor": "Fator de Redução de Risco",
+			"riskReductionFactorHelp": "Multiplique o risco por este fator após cada loss consecutivo (ex: 0.50 = metade do risco)"
 		},
 		"assets": {
 			"title": "Gerenciar Ativos",
@@ -1467,6 +1566,9 @@
 			"accountType": "Tipo de Conta",
 			"personal": "Pessoal",
 			"propFirm": "Mesa Proprietária",
+			"replay": "Replay",
+			"replayStartDate": "Data Inicial",
+			"replayStartDateHelp": "A data onde sua sessão de replay começa",
 			"propFirmName": "Nome da Mesa",
 			"propFirmNamePlaceholder": "ex: Atom, FTMO",
 			"profitShare": "Participação nos Lucros",
@@ -1476,7 +1578,9 @@
 			"deleteAccountDesc": "Tem certeza que deseja excluir esta conta? Todos os trades e dados serão permanentemente excluídos.",
 			"cannotDeleteOnly": "Não é possível excluir sua única conta",
 			"setAsDefault": "Definir como Padrão",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"switchingTo": "Alternando para",
+			"transitionLabel": "Alternando para a conta {name}"
 		},
 		"logout": "Sair",
 		"profile": "Perfil",

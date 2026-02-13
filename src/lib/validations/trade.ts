@@ -5,8 +5,8 @@ export const tradeDirectionSchema = z.enum(["long", "short"])
 export const tradeOutcomeSchema = z.enum(["win", "loss", "breakeven"])
 
 
-// Create trade input schema
-export const createTradeSchema = z.object({
+// Base trade fields (used by both createTradeSchema and cross-field validation)
+const tradeBaseFields = {
 	// Basic Info
 	asset: z
 		.string()
@@ -69,6 +69,50 @@ export const createTradeSchema = z.object({
 
 	// Tags
 	tagIds: z.array(z.string().uuid()).optional(),
+}
+
+// Base object schema (no refinements) — used for .partial() and server actions
+const tradeBaseSchema = z.object(tradeBaseFields)
+
+// Create trade input schema with cross-field SL/TP validation
+export const createTradeSchema = tradeBaseSchema.superRefine((data, ctx) => {
+	if (!data.entryPrice || !data.direction) return
+
+	// Validate stop loss is on the correct side of entry price
+	if (data.stopLoss) {
+		if (data.direction === "long" && data.stopLoss >= data.entryPrice) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "stopLossMustBeBelowEntry",
+				path: ["stopLoss"],
+			})
+		}
+		if (data.direction === "short" && data.stopLoss <= data.entryPrice) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "stopLossMustBeAboveEntry",
+				path: ["stopLoss"],
+			})
+		}
+	}
+
+	// Validate take profit is on the correct side of entry price
+	if (data.takeProfit) {
+		if (data.direction === "long" && data.takeProfit <= data.entryPrice) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "takeProfitMustBeAboveEntry",
+				path: ["takeProfit"],
+			})
+		}
+		if (data.direction === "short" && data.takeProfit >= data.entryPrice) {
+			ctx.addIssue({
+				code: z.ZodIssueCode.custom,
+				message: "takeProfitMustBeBelowEntry",
+				path: ["takeProfit"],
+			})
+		}
+	}
 })
 
 // Validated/transformed output type
@@ -104,8 +148,28 @@ export interface CreateTradeInput {
 // Form input type alias
 export type TradeFormInput = CreateTradeInput
 
-// Update trade schema (all fields optional)
-export const updateTradeSchema = createTradeSchema.partial()
+// Shared state between Simple and Scaled forms during mode switch
+export interface SharedTradeFormState {
+	asset?: string
+	direction: "long" | "short"
+	timeframeId?: string | null
+	strategyId?: string | null
+	stopLoss?: string
+	takeProfit?: string
+	preTradeThoughts?: string
+	postTradeReflection?: string
+	lessonLearned?: string
+	followedPlan?: boolean
+	disciplineNotes?: string
+	tagIds?: string[]
+}
+
+export interface TradeFormRef {
+	getSharedState: () => SharedTradeFormState
+}
+
+// Update trade schema (all fields optional, uses base schema without refinements)
+export const updateTradeSchema = tradeBaseSchema.partial()
 
 // Update input type (all fields optional)
 export type UpdateTradeInput = Partial<CreateTradeInput>

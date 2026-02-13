@@ -11,6 +11,7 @@ import {
 	AssetRulesPanel,
 	DailySummaryCard,
 } from "@/components/command-center"
+import { DateNavigator } from "@/components/command-center/date-navigator"
 import {
 	getTodayCompletions,
 	getDailyTargets,
@@ -25,9 +26,9 @@ import type {
 	DailySummary,
 } from "@/app/actions/command-center"
 import type { CircuitBreakerStatus } from "@/lib/validations/command-center"
-import type { DailyChecklist as DailyChecklistType, DailyTarget, DailyAccountNote, Asset } from "@/db/schema"
+import type { DailyChecklist as DailyChecklistType, DailyTarget, DailyAccountNote, Asset, TradingAccount } from "@/db/schema"
 
-interface CommandCenterContentProps {
+export interface CommandCenterContentProps {
 	initialChecklists: DailyChecklistType[]
 	initialCompletions: ChecklistWithCompletion[]
 	initialTargets: DailyTarget | null
@@ -36,6 +37,9 @@ interface CommandCenterContentProps {
 	initialCircuitBreaker: CircuitBreakerStatus | null
 	initialSummary: DailySummary | null
 	availableAssets: Asset[]
+	account: TradingAccount | null
+	viewDate: string
+	isToday: boolean
 }
 
 export const CommandCenterContent = ({
@@ -47,7 +51,12 @@ export const CommandCenterContent = ({
 	initialCircuitBreaker,
 	initialSummary,
 	availableAssets,
+	account,
+	viewDate,
+	isToday,
 }: CommandCenterContentProps) => {
+	const isReadOnly = !isToday
+
 	// State
 	const [completions, setCompletions] = useState(initialCompletions)
 	const [targets, setTargets] = useState(initialTargets)
@@ -124,10 +133,14 @@ export const CommandCenterContent = ({
 
 	return (
 		<div className="mx-auto max-w-7xl space-y-m-600">
+			{/* Date Navigator */}
+			<DateNavigator currentDate={viewDate} isToday={isToday} isReplayAccount={account?.accountType === "replay"} />
+
 			{/* Circuit Breaker Panel - Full Width */}
 			<CircuitBreakerPanel
 				status={circuitBreaker}
 				targets={targets}
+				account={account}
 			/>
 
 			{/* Main Grid */}
@@ -139,10 +152,11 @@ export const CommandCenterContent = ({
 						checklists={completions}
 						onManageClick={handleManageChecklist}
 						onRefresh={refreshCompletions}
+						isReadOnly={isReadOnly}
 					/>
 
 					{/* Pre-Market Notes */}
-					<PreMarketNotes notes={notes} onRefresh={refreshNotes} />
+					<PreMarketNotes notes={notes} onRefresh={refreshNotes} isReadOnly={isReadOnly} />
 				</div>
 
 				{/* Right Column */}
@@ -151,14 +165,15 @@ export const CommandCenterContent = ({
 					<DailyTargetsForm
 						targets={targets}
 						onRefresh={refreshTargets}
+						isReadOnly={isReadOnly}
 					/>
 
 					{/* Post-Market Notes */}
-					<PostMarketNotes notes={notes} onRefresh={refreshNotes} />
+					<PostMarketNotes notes={notes} onRefresh={refreshNotes} isReadOnly={isReadOnly} />
 				</div>
 			</div>
 
-			{/* Asset Rules - Full Width */}
+			{/* Asset Rules - Full Width (not affected by read-only, account-level) */}
 			<AssetRulesPanel
 				settings={assetSettings}
 				availableAssets={availableAssets}
@@ -169,12 +184,14 @@ export const CommandCenterContent = ({
 			<DailySummaryCard summary={summary} />
 
 			{/* Checklist Manager Dialog */}
-			<ChecklistManager
-				open={checklistManagerOpen}
-				onClose={handleChecklistManagerClose}
-				checklist={editingChecklist}
-				onSuccess={handleChecklistManagerSuccess}
-			/>
+			{!isReadOnly && (
+				<ChecklistManager
+					open={checklistManagerOpen}
+					onClose={handleChecklistManagerClose}
+					checklist={editingChecklist}
+					onSuccess={handleChecklistManagerSuccess}
+				/>
+			)}
 		</div>
 	)
 }

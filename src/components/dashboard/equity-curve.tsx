@@ -14,6 +14,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { getEquityCurve, type EquityCurveMode } from "@/app/actions/analytics"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { EquityPoint } from "@/types"
 
 type Period = "month" | "year" | "all"
@@ -158,6 +159,7 @@ const createCustomTooltip = ({ viewMode, locale, drawdownLabel }: TooltipContext
 export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurveProps) => {
 	const t = useTranslations("dashboard.equity")
 	const locale = useLocale()
+	const effectiveDate = useEffectiveDate()
 	const [period, setPeriod] = useState<Period>("all")
 	const [viewMode, setViewMode] = useState<ViewMode>("days")
 	const [data, setData] = useState<EquityPoint[]>(initialData)
@@ -188,7 +190,6 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 
 	const fetchData = (newPeriod: Period, newMode: ViewMode) => {
 		startTransition(async () => {
-			const now = new Date()
 			let dateFrom: Date | undefined
 			let dateTo: Date | undefined
 
@@ -197,8 +198,8 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 				dateFrom = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1)
 				dateTo = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0)
 			} else if (newPeriod === "year") {
-				dateFrom = new Date(now.getFullYear(), 0, 1)
-				dateTo = new Date(now.getFullYear(), 11, 31)
+				dateFrom = new Date(effectiveDate.getFullYear(), 0, 1)
+				dateTo = new Date(effectiveDate.getFullYear(), 11, 31)
 			}
 			// "all" leaves both undefined
 

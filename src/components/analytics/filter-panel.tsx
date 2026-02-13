@@ -5,6 +5,8 @@ import { Calendar, Filter, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { FilterPill } from "@/components/shared"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { formatDateKey } from "@/lib/dates"
 
 export interface FilterState {
 	dateFrom: Date | null
@@ -29,52 +31,47 @@ interface FilterPanelProps {
 
 interface DatePreset {
 	key: string
-	getDates: () => { from: Date | null; to: Date | null }
+	getDates: (now: Date) => { from: Date | null; to: Date | null }
 }
 
 const DATE_PRESET_CONFIGS: DatePreset[] = [
-	{ key: "today", getDates: () => ({ from: new Date(), to: new Date() }) },
+	{ key: "today", getDates: (now) => ({ from: new Date(now), to: new Date(now) }) },
 	{
 		key: "thisWeek",
-		getDates: () => {
-			const now = new Date()
+		getDates: (now) => {
 			const start = new Date(now)
 			start.setDate(now.getDate() - now.getDay())
-			return { from: start, to: now }
+			return { from: start, to: new Date(now) }
 		},
 	},
 	{
 		key: "thisMonth",
-		getDates: () => {
-			const now = new Date()
+		getDates: (now) => {
 			const start = new Date(now.getFullYear(), now.getMonth(), 1)
-			return { from: start, to: now }
+			return { from: start, to: new Date(now) }
 		},
 	},
 	{
 		key: "last30Days",
-		getDates: () => {
-			const now = new Date()
+		getDates: (now) => {
 			const start = new Date(now)
 			start.setDate(now.getDate() - 30)
-			return { from: start, to: now }
+			return { from: start, to: new Date(now) }
 		},
 	},
 	{
 		key: "last90Days",
-		getDates: () => {
-			const now = new Date()
+		getDates: (now) => {
 			const start = new Date(now)
 			start.setDate(now.getDate() - 90)
-			return { from: start, to: now }
+			return { from: start, to: new Date(now) }
 		},
 	},
 	{
 		key: "thisYear",
-		getDates: () => {
-			const now = new Date()
+		getDates: (now) => {
 			const start = new Date(now.getFullYear(), 0, 1)
-			return { from: start, to: now }
+			return { from: start, to: new Date(now) }
 		},
 	},
 	{ key: "allTime", getDates: () => ({ from: null, to: null }) },
@@ -82,7 +79,7 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 
 const formatDateForInput = (date: Date | null): string => {
 	if (!date) return ""
-	return date.toISOString().split("T")[0]
+	return formatDateKey(date)
 }
 
 export const FilterPanel = ({
@@ -94,6 +91,7 @@ export const FilterPanel = ({
 	const t = useTranslations("analytics.filters")
 	const tTrade = useTranslations("trade")
 	const tCommon = useTranslations("common")
+	const effectiveDate = useEffectiveDate()
 	const [isExpanded, setIsExpanded] = useState(false)
 
 	const directions = [
@@ -113,7 +111,7 @@ export const FilterPanel = ({
 	}))
 
 	const handleDatePreset = (preset: DatePreset) => {
-		const { from, to } = preset.getDates()
+		const { from, to } = preset.getDates(effectiveDate)
 		onFiltersChange({
 			...filters,
 			dateFrom: from,

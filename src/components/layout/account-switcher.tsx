@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useTranslations } from "next-intl"
-import { ChevronDown, Check, Building2, User, Loader2, Plus } from "lucide-react"
+import { ChevronDown, Check, Building2, User, Loader2, Plus, RotateCcw } from "lucide-react"
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/components/ui/toast"
 import { getUserAccounts, getCurrentAccount, revalidateAfterAccountSwitch } from "@/app/actions/auth"
 import { createAccount } from "@/app/actions/accounts"
+import { useAccountTransition } from "@/components/ui/account-transition-overlay"
 import { cn } from "@/lib/utils"
 import type { TradingAccount } from "@/db/schema"
 
@@ -43,6 +44,7 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 	const t = useTranslations("auth.accountSwitcher")
 	const { update } = useSession()
 	const { showToast } = useToast()
+	const { showAccountTransition } = useAccountTransition()
 	const [isPending, startTransition] = useTransition()
 	const [isOpen, setIsOpen] = useState(false)
 	const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -53,9 +55,10 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 	// Create account form
 	const [createForm, setCreateForm] = useState({
 		name: "",
-		accountType: "personal" as "personal" | "prop",
+		accountType: "personal" as "personal" | "prop" | "replay",
 		propFirmName: "",
 		profitSharePercentage: "100",
+		replayStartDate: "",
 	})
 
 	useEffect(() => {
@@ -75,18 +78,20 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 	}, [])
 
 	const handleSwitchAccount = (accountId: string) => {
-		if (accountId === currentAccount?.id) {
+		const targetAccount = accounts.find((account) => account.id === accountId)
+		if (!targetAccount || accountId === currentAccount?.id) {
 			setIsOpen(false)
 			return
 		}
 
-		startTransition(async () => {
-			// Update the session with the new account ID
-			await update({ accountId })
-			// Revalidate all app paths to ensure fresh data
-			await revalidateAfterAccountSwitch()
-			// Full page reload to clear all stale client-side state
-			window.location.reload()
+		setIsOpen(false)
+		showAccountTransition({
+			accountName: targetAccount.name,
+			accountType: targetAccount.accountType,
+			onTransition: async () => {
+				await update({ accountId })
+				await revalidateAfterAccountSwitch()
+			},
 		})
 	}
 
@@ -99,16 +104,21 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 				accountType: createForm.accountType,
 				propFirmName: createForm.accountType === "prop" ? createForm.propFirmName : undefined,
 				profitSharePercentage: parseFloat(createForm.profitSharePercentage) || 100,
+				replayStartDate: createForm.accountType === "replay" ? createForm.replayStartDate : undefined,
 			})
 
 			if (result.status === "success" && result.data) {
+				const newAccountId = result.data.id
 				showToast("success", t("createSuccess"))
-				// Switch to the new account
-				await update({ accountId: result.data.id })
-				// Revalidate all app paths to ensure fresh data
-				await revalidateAfterAccountSwitch()
-				// Full page reload to clear all stale client-side state
-				window.location.reload()
+				setIsCreateOpen(false)
+				showAccountTransition({
+					accountName: createForm.name.trim(),
+					accountType: createForm.accountType,
+					onTransition: async () => {
+						await update({ accountId: newAccountId })
+						await revalidateAfterAccountSwitch()
+					},
+				})
 			} else {
 				showToast("error", result.error || t("createError"))
 			}
@@ -119,6 +129,8 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 		switch (accountType) {
 			case "prop":
 				return Building2
+			case "replay":
+				return RotateCcw
 			default:
 				return User
 		}
@@ -277,15 +289,17 @@ interface CreateAccountDialogProps {
 	onOpenChange: (open: boolean) => void
 	form: {
 		name: string
-		accountType: "personal" | "prop"
+		accountType: "personal" | "prop" | "replay"
 		propFirmName: string
 		profitSharePercentage: string
+		replayStartDate: string
 	}
 	setForm: React.Dispatch<React.SetStateAction<{
 		name: string
-		accountType: "personal" | "prop"
+		accountType: "personal" | "prop" | "replay"
 		propFirmName: string
 		profitSharePercentage: string
+		replayStartDate: string
 	}>>
 	onSubmit: () => void
 	isPending: boolean
@@ -325,7 +339,7 @@ const CreateAccountDialog = ({
 						<Label htmlFor="accountType">{t("accountType")}</Label>
 						<Select
 							value={form.accountType}
-							onValueChange={(value: "personal" | "prop") =>
+							onValueChange={(value: "personal" | "prop" | "replay") =>
 								setForm((prev) => ({ ...prev, accountType: value }))
 							}
 							disabled={isPending}
@@ -346,9 +360,31 @@ const CreateAccountDialog = ({
 										{t("propFirm")}
 									</div>
 								</SelectItem>
+								<SelectItem value="replay">
+									<div className="flex items-center gap-2">
+										<RotateCcw className="h-4 w-4" />
+										{t("replay")}
+									</div>
+								</SelectItem>
 							</SelectContent>
 						</Select>
 					</div>
+
+					{form.accountType === "replay" && (
+						<div className="space-y-s-200">
+							<Label htmlFor="replayStartDate">{t("replayStartDate")}</Label>
+							<Input
+								id="replayStartDate"
+								type="date"
+								value={form.replayStartDate}
+								onChange={(e) =>
+									setForm((prev) => ({ ...prev, replayStartDate: e.target.value }))
+								}
+								disabled={isPending}
+							/>
+							<p className="text-tiny text-txt-300">{t("replayStartDateHelp")}</p>
+						</div>
+					)}
 
 					{form.accountType === "prop" && (
 						<>

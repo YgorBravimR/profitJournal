@@ -7,6 +7,7 @@ import { getStrategies } from "@/app/actions/strategies"
 import { getTags } from "@/app/actions/tags"
 import { getActiveAssets } from "@/app/actions/assets"
 import { getActiveTimeframes } from "@/app/actions/timeframes"
+import { getServerEffectiveNow } from "@/lib/effective-date"
 
 interface NewTradePageProps {
 	searchParams: Promise<{ returnTo?: string; asset?: string }>
@@ -15,11 +16,12 @@ interface NewTradePageProps {
 const NewTradePage = async ({ searchParams }: NewTradePageProps) => {
 	const { returnTo, asset } = await searchParams
 
-	const [strategiesResult, tagsResult, assets, timeframes] = await Promise.all([
+	const [strategiesResult, tagsResult, assets, timeframes, effectiveDate] = await Promise.all([
 		getStrategies(),
 		getTags(),
 		getActiveAssets().catch(() => []),
 		getActiveTimeframes().catch(() => []),
+		getServerEffectiveNow(),
 	])
 
 	const strategies =
@@ -53,6 +55,7 @@ const NewTradePage = async ({ searchParams }: NewTradePageProps) => {
 							timeframes={timeframes}
 							redirectTo={returnTo}
 							defaultAssetId={asset}
+							defaultDate={effectiveDate.toISOString()}
 						/>
 					</div>
 				</div>

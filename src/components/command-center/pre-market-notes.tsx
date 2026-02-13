@@ -7,16 +7,19 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { MoodSelector } from "./mood-selector"
 import { upsertDailyNotes } from "@/app/actions/command-center"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { DailyAccountNote } from "@/db/schema"
 import type { MoodType } from "@/lib/validations/command-center"
 
 interface PreMarketNotesProps {
 	notes: DailyAccountNote | null
 	onRefresh: () => void
+	isReadOnly?: boolean
 }
 
-export const PreMarketNotes = ({ notes, onRefresh }: PreMarketNotesProps) => {
+export const PreMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PreMarketNotesProps) => {
 	const t = useTranslations("commandCenter.notes")
+	const effectiveDate = useEffectiveDate()
 
 	const [preMarketNotes, setPreMarketNotes] = useState("")
 	const [mood, setMood] = useState<MoodType | null>(null)
@@ -44,7 +47,7 @@ export const PreMarketNotes = ({ notes, onRefresh }: PreMarketNotesProps) => {
 		setSaving(true)
 		try {
 			await upsertDailyNotes({
-				date: new Date().toISOString(),
+				date: effectiveDate.toISOString(),
 				preMarketNotes: preMarketNotes || null,
 				postMarketNotes: notes?.postMarketNotes || null,
 				mood: mood || null,
@@ -65,7 +68,7 @@ export const PreMarketNotes = ({ notes, onRefresh }: PreMarketNotesProps) => {
 					<Sun className="h-5 w-5 text-trade-buy" />
 					<h3 className="text-body font-semibold text-txt-100">{t("preMarket")}</h3>
 				</div>
-				{hasChanges && (
+				{hasChanges && !isReadOnly && (
 					<Button size="sm" onClick={handleSave} disabled={saving}>
 						{saving ? (
 							<Loader2 className="mr-s-100 h-4 w-4 animate-spin" />
@@ -80,7 +83,7 @@ export const PreMarketNotes = ({ notes, onRefresh }: PreMarketNotesProps) => {
 			{/* Mood Selector */}
 			<div className="mb-m-400">
 				<label className="mb-s-200 block text-small text-txt-200">{t("mood")}</label>
-				<MoodSelector value={mood} onChange={setMood} />
+				<MoodSelector value={mood} onChange={setMood} disabled={isReadOnly} />
 			</div>
 
 			{/* Notes */}
@@ -91,6 +94,7 @@ export const PreMarketNotes = ({ notes, onRefresh }: PreMarketNotesProps) => {
 					onChange={(e) => setPreMarketNotes(e.target.value)}
 					placeholder={t("placeholder")}
 					className="min-h-[120px] resize-none"
+					disabled={isReadOnly}
 				/>
 			</div>
 		</div>

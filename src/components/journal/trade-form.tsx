@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, forwardRef, useImperativeHandle } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -14,7 +14,7 @@ import {
 	Info,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { createTradeSchema, type TradeFormInput } from "@/lib/validations/trade"
+import { createTradeSchema, type TradeFormInput, type SharedTradeFormState, type TradeFormRef } from "@/lib/validations/trade"
 import { createTrade, updateTrade } from "@/app/actions/trades"
 import {
 	calculatePnL,
@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, AnimatedTabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
 	Select,
 	SelectContent,
@@ -64,6 +64,8 @@ interface TradeFormProps {
 	onSuccess?: () => void
 	redirectTo?: string
 	defaultAssetId?: string
+	defaultDate?: string
+	initialSharedState?: SharedTradeFormState
 }
 
 // Format Date to datetime-local input value (YYYY-MM-DDTHH:mm)
@@ -76,12 +78,12 @@ const formatDateTimeLocal = (date: Date): string => {
 	return `${year}-${month}-${day}T${hours}:${minutes}`
 }
 
-// End-of-today in datetime-local format — prevents selecting future days
-const getEndOfTodayLocal = (): string => {
-	const now = new Date()
-	const year = now.getFullYear()
-	const month = String(now.getMonth() + 1).padStart(2, "0")
-	const day = String(now.getDate()).padStart(2, "0")
+// End-of-day in datetime-local format — prevents selecting future days
+const getEndOfDayLocal = (referenceDate?: Date): string => {
+	const date = referenceDate ?? new Date()
+	const year = date.getFullYear()
+	const month = String(date.getMonth() + 1).padStart(2, "0")
+	const day = String(date.getDate()).padStart(2, "0")
 	return `${year}-${month}-${day}T23:59`
 }
 
@@ -118,7 +120,7 @@ const buildTradeFormValues = (
 	tagIds: trade.tradeTags?.map((tt) => tt.tag.id) ?? [],
 })
 
-export const TradeForm = ({
+export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 	trade,
 	strategies = [],
 	tags = [],
@@ -127,7 +129,9 @@ export const TradeForm = ({
 	onSuccess,
 	redirectTo,
 	defaultAssetId,
-}: TradeFormProps) => {
+	defaultDate,
+	initialSharedState,
+}, ref) => {
 	const router = useRouter()
 	const { showToast } = useToast()
 	const t = useTranslations("trade")
@@ -138,6 +142,10 @@ export const TradeForm = ({
 		() => {
 			if (trade?.asset && assets.length > 0) {
 				return assets.find((a) => a.symbol === trade.asset) ?? null
+			}
+			// Restore asset from shared state (mode switch)
+			if (initialSharedState?.asset && assets.length > 0) {
+				return assets.find((a) => a.symbol === initialSharedState.asset) ?? null
 			}
 			// Pre-select asset if defaultAssetId is provided
 			if (defaultAssetId && assets.length > 0) {
@@ -163,13 +171,27 @@ export const TradeForm = ({
 		}
 	}
 
+	const effectiveNow = defaultDate ? new Date(defaultDate) : new Date()
+
 	const defaultValues: Partial<TradeFormInput> = trade
 		? buildTradeFormValues(trade)
 		: {
-				direction: "long",
-				entryDate: formatDateTimeLocal(new Date()),
-				exitDate: formatDateTimeLocal(new Date()),
-				tagIds: [],
+				direction: initialSharedState?.direction ?? "long",
+				entryDate: formatDateTimeLocal(effectiveNow),
+				exitDate: formatDateTimeLocal(effectiveNow),
+				tagIds: initialSharedState?.tagIds ?? [],
+				...(initialSharedState && {
+					asset: initialSharedState.asset,
+					timeframeId: initialSharedState.timeframeId,
+					strategyId: initialSharedState.strategyId,
+					stopLoss: initialSharedState.stopLoss ? Number(initialSharedState.stopLoss) : undefined,
+					takeProfit: initialSharedState.takeProfit ? Number(initialSharedState.takeProfit) : undefined,
+					preTradeThoughts: initialSharedState.preTradeThoughts,
+					postTradeReflection: initialSharedState.postTradeReflection,
+					lessonLearned: initialSharedState.lessonLearned,
+					followedPlan: initialSharedState.followedPlan,
+					disciplineNotes: initialSharedState.disciplineNotes,
+				}),
 			}
 
 	const form = useForm<TradeFormInput>({
@@ -195,6 +217,27 @@ export const TradeForm = ({
 		}
 	}, [trade, reset, assets])
 
+	// Expose shared state for parent to capture before mode switch
+	useImperativeHandle(ref, () => ({
+		getSharedState: (): SharedTradeFormState => {
+			const values = form.getValues()
+			return {
+				asset: values.asset,
+				direction: values.direction,
+				timeframeId: values.timeframeId,
+				strategyId: values.strategyId,
+				stopLoss: values.stopLoss ? String(values.stopLoss) : undefined,
+				takeProfit: values.takeProfit ? String(values.takeProfit) : undefined,
+				preTradeThoughts: values.preTradeThoughts,
+				postTradeReflection: values.postTradeReflection,
+				lessonLearned: values.lessonLearned,
+				followedPlan: values.followedPlan,
+				disciplineNotes: values.disciplineNotes,
+				tagIds: values.tagIds,
+			}
+		},
+	}))
+
 	const direction = watch("direction")
 	const entryPrice = watch("entryPrice")
 	const exitPrice = watch("exitPrice")
@@ -202,6 +245,28 @@ export const TradeForm = ({
 	const stopLoss = watch("stopLoss")
 	const takeProfit = watch("takeProfit")
 	const selectedTagIds = watch("tagIds") || []
+	const tValidation = useTranslations("trade.validation")
+
+	// Real-time SL/TP cross-field validation indicators
+	const stopLossWarning = useMemo(() => {
+		if (!entryPrice || !stopLoss || !direction) return null
+		const entry = Number(entryPrice)
+		const sl = Number(stopLoss)
+		if (isNaN(entry) || isNaN(sl)) return null
+		if (direction === "long" && sl >= entry) return tValidation("stopLossMustBeBelowEntry")
+		if (direction === "short" && sl <= entry) return tValidation("stopLossMustBeAboveEntry")
+		return null
+	}, [entryPrice, stopLoss, direction, tValidation])
+
+	const takeProfitWarning = useMemo(() => {
+		if (!entryPrice || !takeProfit || !direction) return null
+		const entry = Number(entryPrice)
+		const tp = Number(takeProfit)
+		if (isNaN(entry) || isNaN(tp)) return null
+		if (direction === "long" && tp <= entry) return tValidation("takeProfitMustBeAboveEntry")
+		if (direction === "short" && tp >= entry) return tValidation("takeProfitMustBeBelowEntry")
+		return null
+	}, [entryPrice, takeProfit, direction, tValidation])
 
 	// Auto-calculate planned risk from stop loss using asset-based calculation when available
 	const calculatedRisk = useMemo(() => {
@@ -425,7 +490,7 @@ export const TradeForm = ({
 					</TabsList>
 
 					{/* Basic Info Tab */}
-					<TabsContent value="basic" className="space-y-m-500 pt-m-500">
+					<AnimatedTabsContent value="basic" className="space-y-m-500 pt-m-500">
 						{/* Direction Toggle */}
 						<div className="space-y-s-200">
 							<Label>{t("direction.label")}</Label>
@@ -593,7 +658,7 @@ export const TradeForm = ({
 										<FormControl>
 											<Input
 												type="datetime-local"
-												max={getEndOfTodayLocal()}
+												max={getEndOfDayLocal(effectiveNow)}
 												value={
 													typeof field.value === "string" ? field.value : ""
 												}
@@ -616,7 +681,7 @@ export const TradeForm = ({
 										<FormControl>
 											<Input
 												type="datetime-local"
-												max={getEndOfTodayLocal()}
+												max={getEndOfDayLocal(effectiveNow)}
 												value={
 													typeof field.value === "string" ? field.value : ""
 												}
@@ -738,10 +803,10 @@ export const TradeForm = ({
 								)}
 							/>
 						)}
-					</TabsContent>
+					</AnimatedTabsContent>
 
 					{/* Risk Management Tab */}
-					<TabsContent value="risk" className="space-y-m-500 pt-m-500">
+					<AnimatedTabsContent value="risk" className="space-y-m-500 pt-m-500">
 						{/* Stop Loss and Take Profit */}
 						<div className="gap-m-400 grid grid-cols-2">
 							<FormField
@@ -755,6 +820,7 @@ export const TradeForm = ({
 												type="number"
 												step="any"
 												placeholder="0.00"
+												className={cn(stopLossWarning && "border-fb-error")}
 												{...field}
 												value={field.value ?? ""}
 												onChange={(e) =>
@@ -764,6 +830,9 @@ export const TradeForm = ({
 												}
 											/>
 										</FormControl>
+										{stopLossWarning && (
+											<span className="text-tiny text-fb-error">{stopLossWarning}</span>
+										)}
 										<FormMessage />
 									</FormItem>
 								)}
@@ -779,6 +848,7 @@ export const TradeForm = ({
 												type="number"
 												step="any"
 												placeholder="0.00"
+												className={cn(takeProfitWarning && "border-fb-error")}
 												{...field}
 												value={field.value ?? ""}
 												onChange={(e) =>
@@ -788,6 +858,9 @@ export const TradeForm = ({
 												}
 											/>
 										</FormControl>
+										{takeProfitWarning && (
+											<span className="text-tiny text-fb-error">{takeProfitWarning}</span>
+										)}
 										<FormMessage />
 									</FormItem>
 								)}
@@ -981,10 +1054,10 @@ export const TradeForm = ({
 								)}
 							</div>
 						)}
-					</TabsContent>
+					</AnimatedTabsContent>
 
 					{/* Journal Tab */}
-					<TabsContent value="journal" className="space-y-m-500 pt-m-500">
+					<AnimatedTabsContent value="journal" className="space-y-m-500 pt-m-500">
 						<FormField
 							control={form.control}
 							name="preTradeThoughts"
@@ -1097,10 +1170,10 @@ export const TradeForm = ({
 								)}
 							/>
 						)}
-					</TabsContent>
+					</AnimatedTabsContent>
 
 					{/* Tags Tab */}
-					<TabsContent value="tags" className="space-y-m-500 pt-m-500">
+					<AnimatedTabsContent value="tags" className="space-y-m-500 pt-m-500">
 						{/* Setup Tags */}
 						{setupTags.length > 0 && (
 							<div className="space-y-s-200">
@@ -1181,7 +1254,7 @@ export const TradeForm = ({
 							onOpenChange={setIsTagFormOpen}
 							onSuccess={handleTagCreated}
 						/>
-					</TabsContent>
+					</AnimatedTabsContent>
 				</Tabs>
 
 				{/* Submit Button */}
@@ -1211,4 +1284,6 @@ export const TradeForm = ({
 			</form>
 		</Form>
 	)
-}
+})
+
+TradeForm.displayName = "TradeForm"

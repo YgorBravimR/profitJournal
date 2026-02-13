@@ -13,12 +13,14 @@ interface DailyTargetsFormProps {
 	targets: DailyTarget | null
 	currency?: string
 	onRefresh: () => void
+	isReadOnly?: boolean
 }
 
 export const DailyTargetsForm = ({
 	targets,
 	currency = "$",
 	onRefresh,
+	isReadOnly = false,
 }: DailyTargetsFormProps) => {
 	const t = useTranslations("commandCenter.targets")
 
@@ -26,6 +28,7 @@ export const DailyTargetsForm = ({
 	const [lossLimit, setLossLimit] = useState("")
 	const [maxTrades, setMaxTrades] = useState("")
 	const [maxConsecutiveLosses, setMaxConsecutiveLosses] = useState("")
+	const [accountBalance, setAccountBalance] = useState("")
 	const [saving, setSaving] = useState(false)
 	const [hasChanges, setHasChanges] = useState(false)
 
@@ -36,6 +39,7 @@ export const DailyTargetsForm = ({
 			setLossLimit(targets.lossLimit ? fromCents(targets.lossLimit).toString() : "")
 			setMaxTrades(targets.maxTrades?.toString() || "")
 			setMaxConsecutiveLosses(targets.maxConsecutiveLosses?.toString() || "")
+			setAccountBalance(targets.accountBalance ? fromCents(targets.accountBalance).toString() : "")
 		}
 	}, [targets])
 
@@ -45,15 +49,17 @@ export const DailyTargetsForm = ({
 		const currentLossLimit = targets?.lossLimit ? fromCents(targets.lossLimit).toString() : ""
 		const currentMaxTrades = targets?.maxTrades?.toString() || ""
 		const currentMaxConsecutiveLosses = targets?.maxConsecutiveLosses?.toString() || ""
+		const currentAccountBalance = targets?.accountBalance ? fromCents(targets.accountBalance).toString() : ""
 
 		const changed =
 			profitTarget !== currentProfitTarget ||
 			lossLimit !== currentLossLimit ||
 			maxTrades !== currentMaxTrades ||
-			maxConsecutiveLosses !== currentMaxConsecutiveLosses
+			maxConsecutiveLosses !== currentMaxConsecutiveLosses ||
+			accountBalance !== currentAccountBalance
 
 		setHasChanges(changed)
-	}, [profitTarget, lossLimit, maxTrades, maxConsecutiveLosses, targets])
+	}, [profitTarget, lossLimit, maxTrades, maxConsecutiveLosses, accountBalance, targets])
 
 	const handleSave = async () => {
 		setSaving(true)
@@ -63,6 +69,7 @@ export const DailyTargetsForm = ({
 				lossLimit: lossLimit ? parseFloat(lossLimit) : null,
 				maxTrades: maxTrades ? parseInt(maxTrades) : null,
 				maxConsecutiveLosses: maxConsecutiveLosses ? parseInt(maxConsecutiveLosses) : null,
+				accountBalance: accountBalance ? parseFloat(accountBalance) : null,
 				isActive: true,
 			})
 			onRefresh()
@@ -81,7 +88,7 @@ export const DailyTargetsForm = ({
 					<Target className="h-5 w-5 text-accent-primary" />
 					<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 				</div>
-				{hasChanges && (
+				{hasChanges && !isReadOnly && (
 					<Button
 						size="sm"
 						onClick={handleSave}
@@ -116,6 +123,7 @@ export const DailyTargetsForm = ({
 							onChange={(e) => setProfitTarget(e.target.value)}
 							placeholder="0.00"
 							className="pl-7"
+							disabled={isReadOnly}
 						/>
 					</div>
 					<p className="mt-s-100 text-tiny text-txt-300">{t("profitTargetHelp")}</p>
@@ -138,6 +146,7 @@ export const DailyTargetsForm = ({
 							onChange={(e) => setLossLimit(e.target.value)}
 							placeholder="0.00"
 							className="pl-7"
+							disabled={isReadOnly}
 						/>
 					</div>
 					<p className="mt-s-100 text-tiny text-txt-300">{t("lossLimitHelp")}</p>
@@ -155,6 +164,7 @@ export const DailyTargetsForm = ({
 						value={maxTrades}
 						onChange={(e) => setMaxTrades(e.target.value)}
 						placeholder="10"
+						disabled={isReadOnly}
 					/>
 					<p className="mt-s-100 text-tiny text-txt-300">{t("maxTradesHelp")}</p>
 				</div>
@@ -171,8 +181,32 @@ export const DailyTargetsForm = ({
 						value={maxConsecutiveLosses}
 						onChange={(e) => setMaxConsecutiveLosses(e.target.value)}
 						placeholder="3"
+						disabled={isReadOnly}
 					/>
 					<p className="mt-s-100 text-tiny text-txt-300">{t("maxConsecutiveLossesHelp")}</p>
+				</div>
+
+				{/* Account Balance */}
+				<div>
+					<label className="mb-s-200 block text-small text-txt-200">
+						{t("accountBalance")}
+					</label>
+					<div className="relative">
+						<span className="text-tiny text-txt-300 absolute left-3 top-1/2 -translate-y-1/2">
+							{currency}
+						</span>
+						<Input
+							type="number"
+							step="0.01"
+							min="0"
+							value={accountBalance}
+							onChange={(e) => setAccountBalance(e.target.value)}
+							placeholder="0.00"
+							className="pl-7"
+							disabled={isReadOnly}
+						/>
+					</div>
+					<p className="mt-s-100 text-tiny text-txt-300">{t("accountBalanceHelp")}</p>
 				</div>
 			</div>
 		</div>

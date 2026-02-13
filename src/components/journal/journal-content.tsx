@@ -4,6 +4,7 @@ import { useState, useEffect, useTransition, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Search } from "lucide-react"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { JournalPeriod, TradesByDay } from "@/types"
 import { getTradesGroupedByDay, deleteTrade } from "@/app/actions/trades"
 import { formatBrlWithSign } from "@/lib/formatting"
@@ -16,15 +17,15 @@ import { TradeDayGroup } from "./trade-day-group"
  * Calculates the date range based on the selected period.
  *
  * @param period - The journal period type (day, week, month, custom)
+ * @param now - The effective "today" date (supports replay accounts)
  * @param customRange - Optional custom date range when period is "custom"
  * @returns Object containing from and to Date objects
  */
 const getDateRange = (
 	period: JournalPeriod,
+	now: Date,
 	customRange?: { from: Date; to: Date }
 ): { from: Date; to: Date } => {
-	const now = new Date()
-
 	switch (period) {
 		case "day": {
 			const from = new Date(now)
@@ -70,7 +71,7 @@ const getDateRange = (
 			return { from, to }
 		}
 		default:
-			return { from: now, to: now }
+			return { from: new Date(now), to: new Date(now) }
 	}
 }
 
@@ -90,6 +91,7 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	const t = useTranslations("journal")
 	const tTrade = useTranslations("trade")
 	const { showToast } = useToast()
+	const effectiveDate = useEffectiveDate()
 	const [isPending, startTransition] = useTransition()
 
 	const [period, setPeriod] = useState<JournalPeriod>(initialPeriod)
@@ -106,7 +108,7 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	useEffect(() => {
 		const fetchTrades = async () => {
 			setIsLoading(true)
-			const { from, to } = getDateRange(period, customDateRange)
+			const { from, to } = getDateRange(period, effectiveDate, customDateRange)
 
 			const result = await getTradesGroupedByDay(from, to)
 
@@ -126,7 +128,7 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 		startTransition(() => {
 			fetchTrades()
 		})
-	}, [period, customDateRange])
+	}, [period, customDateRange, effectiveDate])
 
 	// Memoized handlers to prevent unnecessary re-renders in child components
 	const handlePeriodChange = useCallback((

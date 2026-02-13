@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition, useCallback } from "react"
 import { useTranslations } from "next-intl"
+import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import { KpiCards } from "./kpi-cards"
 import { TradingCalendar } from "./trading-calendar"
 import { EquityCurve } from "./equity-curve"
@@ -43,13 +44,12 @@ interface DashboardContentProps {
 
 /** Compute dateFrom/dateTo for a given dashboard period */
 const getDateRangeForPeriod = (
-	period: DashboardPeriod
+	period: DashboardPeriod,
+	now: Date
 ): { dateFrom?: Date; dateTo?: Date } => {
 	if (period === "allTime") {
 		return {}
 	}
-
-	const now = new Date()
 
 	if (period === "month") {
 		const dateFrom = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -112,6 +112,7 @@ export const DashboardContent = ({
 	initialYear,
 	initialMonthIndex,
 }: DashboardContentProps) => {
+	const effectiveDate = useEffectiveDate()
 	// Calendar month state (independent of the period filter)
 	const [currentMonth, setCurrentMonth] = useState(() => new Date(initialYear, initialMonthIndex, 1))
 	const [dailyPnL, setDailyPnL] = useState<DailyPnL[]>(initialDailyPnL)
@@ -174,7 +175,7 @@ export const DashboardContent = ({
 
 	const handlePeriodChange = useCallback((newPeriod: DashboardPeriod) => {
 		setPeriod(newPeriod)
-		const { dateFrom, dateTo } = getDateRangeForPeriod(newPeriod)
+		const { dateFrom, dateTo } = getDateRangeForPeriod(newPeriod, effectiveDate)
 
 		startPeriodTransition(async () => {
 			const [statsResult, disciplineResult, equityCurveResult, streakResult, radarResult] =
@@ -196,7 +197,7 @@ export const DashboardContent = ({
 			if (streakResult.status === "success") setStreakData(streakResult.data ?? null)
 			if (radarResult.status === "success") setRadarData(radarResult.data ?? [])
 		})
-	}, [])
+	}, [effectiveDate])
 
 	return (
 		<div className="grid grid-cols-1 gap-m-600 lg:grid-cols-3">

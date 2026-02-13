@@ -1,8 +1,9 @@
 "use client"
 
-import { useState, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback, forwardRef, useImperativeHandle } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowUpRight, ArrowDownRight, Save, Loader2, Plus, Info } from "lucide-react"
+import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { createScaledTrade } from "@/app/actions/trades"
 import { fromCents } from "@/lib/money"
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/select"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { InlineExecutionRow, type ExecutionRowData } from "./inline-execution-row"
+import type { SharedTradeFormState, TradeFormRef } from "@/lib/validations/trade"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
 import type { AssetWithType } from "@/app/actions/assets"
 import { format } from "date-fns"
@@ -34,21 +36,23 @@ interface ScaledTradeFormProps {
 	onModeChange?: () => void
 	redirectTo?: string
 	defaultAssetId?: string
+	defaultDate?: string
+	initialSharedState?: SharedTradeFormState
 }
 
 const generateId = () => Math.random().toString(36).substr(2, 9)
 
-const createEmptyExecution = (type: "entry" | "exit"): ExecutionRowData => ({
+const createEmptyExecution = (type: "entry" | "exit", referenceDate?: Date): ExecutionRowData => ({
 	id: generateId(),
 	executionType: type,
-	date: format(new Date(), "yyyy-MM-dd"),
-	time: format(new Date(), "HH:mm"),
+	date: format(referenceDate ?? new Date(), "yyyy-MM-dd"),
+	time: format(referenceDate ?? new Date(), "HH:mm"),
 	price: "",
 	quantity: "",
 	commission: "0",
 })
 
-export const ScaledTradeForm = ({
+export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 	strategies = [],
 	tags = [],
 	assets = [],
@@ -57,40 +61,52 @@ export const ScaledTradeForm = ({
 	onModeChange,
 	redirectTo,
 	defaultAssetId,
-}: ScaledTradeFormProps) => {
+	defaultDate,
+	initialSharedState,
+}, ref) => {
 	const router = useRouter()
 	const { showToast } = useToast()
+	const t = useTranslations("trade")
+	const tScaled = useTranslations("trade.scaled")
+	const tExec = useTranslations("execution")
+	const tJournal = useTranslations("journal.form")
+	const tCommon = useTranslations("common")
 	const [isSubmitting, setIsSubmitting] = useState(false)
 
-	// Basic info - pre-select asset if defaultAssetId is provided
+	// Basic info - restore from shared state, then fallback to defaults
 	const [asset, setAsset] = useState(() => {
+		if (initialSharedState?.asset) return initialSharedState.asset
 		if (defaultAssetId) {
 			const defaultAsset = assets.find((a) => a.id === defaultAssetId)
 			return defaultAsset?.symbol || ""
 		}
 		return ""
 	})
-	const [direction, setDirection] = useState<"long" | "short">("long")
-	const [timeframeId, setTimeframeId] = useState<string | null>(null)
-	const [strategyId, setStrategyId] = useState<string | null>(null)
+	const [direction, setDirection] = useState<"long" | "short">(initialSharedState?.direction ?? "long")
+	const [timeframeId, setTimeframeId] = useState<string | null>(initialSharedState?.timeframeId ?? null)
+	const [strategyId, setStrategyId] = useState<string | null>(initialSharedState?.strategyId ?? null)
 
 	// Risk management
-	const [stopLoss, setStopLoss] = useState("")
-	const [takeProfit, setTakeProfit] = useState("")
+	const [stopLoss, setStopLoss] = useState(initialSharedState?.stopLoss ?? "")
+	const [takeProfit, setTakeProfit] = useState(initialSharedState?.takeProfit ?? "")
 
 	// Journal
-	const [preTradeThoughts, setPreTradeThoughts] = useState("")
-	const [postTradeReflection, setPostTradeReflection] = useState("")
-	const [lessonLearned, setLessonLearned] = useState("")
-	const [followedPlan, setFollowedPlan] = useState<boolean | undefined>()
-	const [disciplineNotes, setDisciplineNotes] = useState("")
+	const [preTradeThoughts, setPreTradeThoughts] = useState(initialSharedState?.preTradeThoughts ?? "")
+	const [postTradeReflection, setPostTradeReflection] = useState(initialSharedState?.postTradeReflection ?? "")
+	const [lessonLearned, setLessonLearned] = useState(initialSharedState?.lessonLearned ?? "")
+	const [followedPlan, setFollowedPlan] = useState<boolean | undefined>(initialSharedState?.followedPlan)
+	const [disciplineNotes, setDisciplineNotes] = useState(initialSharedState?.disciplineNotes ?? "")
 
 	// Tags
-	const [selectedTagIds, setSelectedTagIds] = useState<string[]>([])
+	const [selectedTagIds, setSelectedTagIds] = useState<string[]>(initialSharedState?.tagIds ?? [])
 
-	// Executions
+	// Resolve effective date for replay accounts (memoized to avoid re-creating on each render)
+	const effectiveNow = useMemo(
+		() => (defaultDate ? new Date(defaultDate) : new Date()),
+		[defaultDate]
+	)
 	const [entries, setEntries] = useState<ExecutionRowData[]>([
-		createEmptyExecution("entry"),
+		createEmptyExecution("entry", effectiveNow),
 	])
 	const [exits, setExits] = useState<ExecutionRowData[]>([])
 
@@ -203,6 +219,43 @@ export const ScaledTradeForm = ({
 		return positionSummary.netPnl / calculatedRisk
 	}, [calculatedRisk, positionSummary.netPnl])
 
+	// Real-time SL/TP cross-field validation indicators
+	const stopLossWarning = useMemo(() => {
+		const sl = parseFloat(stopLoss)
+		const entry = positionSummary.avgEntryPrice
+		if (!sl || entry <= 0) return null
+		if (direction === "long" && sl >= entry) return t("validation.stopLossMustBeBelowEntry")
+		if (direction === "short" && sl <= entry) return t("validation.stopLossMustBeAboveEntry")
+		return null
+	}, [stopLoss, positionSummary.avgEntryPrice, direction])
+
+	const takeProfitWarning = useMemo(() => {
+		const tp = parseFloat(takeProfit)
+		const entry = positionSummary.avgEntryPrice
+		if (!tp || entry <= 0) return null
+		if (direction === "long" && tp <= entry) return t("validation.takeProfitMustBeAboveEntry")
+		if (direction === "short" && tp >= entry) return t("validation.takeProfitMustBeBelowEntry")
+		return null
+	}, [takeProfit, positionSummary.avgEntryPrice, direction])
+
+	// Expose shared state for parent to capture before mode switch
+	useImperativeHandle(ref, () => ({
+		getSharedState: (): SharedTradeFormState => ({
+			asset,
+			direction,
+			timeframeId,
+			strategyId,
+			stopLoss: stopLoss || undefined,
+			takeProfit: takeProfit || undefined,
+			preTradeThoughts: preTradeThoughts || undefined,
+			postTradeReflection: postTradeReflection || undefined,
+			lessonLearned: lessonLearned || undefined,
+			followedPlan,
+			disciplineNotes: disciplineNotes || undefined,
+			tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
+		}),
+	}))
+
 	const handleExecutionChange = useCallback(
 		(
 			type: "entry" | "exit",
@@ -220,8 +273,8 @@ export const ScaledTradeForm = ({
 
 	const handleAddExecution = useCallback((type: "entry" | "exit") => {
 		const setter = type === "entry" ? setEntries : setExits
-		setter((prev) => [...prev, createEmptyExecution(type)])
-	}, [])
+		setter((prev) => [...prev, createEmptyExecution(type, effectiveNow)])
+	}, [effectiveNow])
 
 	const handleRemoveExecution = useCallback((type: "entry" | "exit", id: string) => {
 		const setter = type === "entry" ? setEntries : setExits
@@ -241,13 +294,25 @@ export const ScaledTradeForm = ({
 		try {
 			// Validate basic info
 			if (!asset) {
-				showToast("error", "Please select an asset")
+				showToast("error", tScaled("selectAssetError"))
 				setIsSubmitting(false)
 				return
 			}
 
 			if (positionSummary.validEntries === 0) {
-				showToast("error", "Please add at least one entry execution")
+				showToast("error", tScaled("addEntryError"))
+				setIsSubmitting(false)
+				return
+			}
+
+			// Validate SL/TP against average entry price
+			if (stopLossWarning) {
+				showToast("error", stopLossWarning)
+				setIsSubmitting(false)
+				return
+			}
+			if (takeProfitWarning) {
+				showToast("error", takeProfitWarning)
 				setIsSubmitting(false)
 				return
 			}
@@ -292,14 +357,14 @@ export const ScaledTradeForm = ({
 			})
 
 			if (result.status === "success") {
-				showToast("success", "Scaled trade created successfully")
+				showToast("success", tScaled("createdSuccess"))
 				onSuccess?.()
 				router.push(redirectTo || "/journal")
 			} else {
-				showToast("error", result.message || "Failed to create trade")
+				showToast("error", result.message || tScaled("createError"))
 			}
 		} catch {
-			showToast("error", "An unexpected error occurred")
+			showToast("error", t("tradeUnexpectedError"))
 		} finally {
 			setIsSubmitting(false)
 		}
@@ -312,21 +377,23 @@ export const ScaledTradeForm = ({
 		<form onSubmit={handleSubmit} className="space-y-m-600">
 			<Tabs defaultValue="executions" className="w-full">
 				<TabsList className="grid w-full grid-cols-4">
-					<TabsTrigger value="executions">Executions</TabsTrigger>
-					<TabsTrigger value="basic">Basic Info</TabsTrigger>
-					<TabsTrigger value="journal">Journal</TabsTrigger>
-					<TabsTrigger value="tags">Tags</TabsTrigger>
+					<TabsTrigger value="executions">{tExec("title")}</TabsTrigger>
+					<TabsTrigger value="basic">{tJournal("basicInfo")}</TabsTrigger>
+					<TabsTrigger value="journal">{tJournal("journal")}</TabsTrigger>
+					<TabsTrigger value="tags">{tJournal("tagsSection")}</TabsTrigger>
 				</TabsList>
 
 				{/* Executions Tab */}
 				<TabsContent value="executions" className="space-y-m-500 pt-m-500">
 					{/* Direction Toggle */}
 					<div className="space-y-s-200">
-						<Label>Direction</Label>
+						<Label>{t("direction.label")}</Label>
 						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setDirection("long")}
+								aria-label={t("direction.long")}
+								aria-pressed={direction === "long"}
 								className={cn(
 									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "long"
@@ -335,11 +402,13 @@ export const ScaledTradeForm = ({
 								)}
 							>
 								<ArrowUpRight className="h-5 w-5" />
-								<span className="font-medium">Long</span>
+								<span className="font-medium">{t("direction.long")}</span>
 							</button>
 							<button
 								type="button"
 								onClick={() => setDirection("short")}
+								aria-label={t("direction.short")}
+								aria-pressed={direction === "short"}
 								className={cn(
 									"gap-s-200 p-m-400 flex flex-1 items-center justify-center rounded-lg border-2 transition-colors",
 									direction === "short"
@@ -348,7 +417,7 @@ export const ScaledTradeForm = ({
 								)}
 							>
 								<ArrowDownRight className="h-5 w-5" />
-								<span className="font-medium">Short</span>
+								<span className="font-medium">{t("direction.short")}</span>
 							</button>
 						</div>
 					</div>
@@ -356,7 +425,7 @@ export const ScaledTradeForm = ({
 					{/* Asset */}
 					<div className="space-y-s-200">
 						<div className="gap-s-200 flex items-center">
-							<Label>Asset *</Label>
+							<Label>{t("assetRequired")}</Label>
 							{selectedAsset && (
 								<Tooltip>
 									<TooltipTrigger asChild>
@@ -365,15 +434,15 @@ export const ScaledTradeForm = ({
 									<TooltipContent>
 										<div className="text-tiny space-y-1">
 											<p>
-												<span className="text-txt-300">Type:</span>{" "}
+												<span className="text-txt-300">{t("type")}:</span>{" "}
 												{selectedAsset.assetType.name}
 											</p>
 											<p>
-												<span className="text-txt-300">Tick Size:</span>{" "}
+												<span className="text-txt-300">{t("tickSize")}:</span>{" "}
 												{parseFloat(selectedAsset.tickSize)}
 											</p>
 											<p>
-												<span className="text-txt-300">Tick Value:</span>{" "}
+												<span className="text-txt-300">{t("tickValue")}:</span>{" "}
 												{selectedAsset.currency}{" "}
 												{fromCents(selectedAsset.tickValue)}
 											</p>
@@ -391,8 +460,8 @@ export const ScaledTradeForm = ({
 								<SelectValue
 									placeholder={
 										hasConfiguredAssets
-											? "Select asset"
-											: "No assets configured"
+											? t("selectAsset")
+											: t("noAssets")
 									}
 								/>
 							</SelectTrigger>
@@ -410,7 +479,7 @@ export const ScaledTradeForm = ({
 					{/* Entries Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-action-buy">Entries</Label>
+							<Label className="text-action-buy">{tScaled("entries")}</Label>
 							<Button
 								type="button"
 								variant="ghost"
@@ -419,18 +488,18 @@ export const ScaledTradeForm = ({
 								className="text-tiny h-7"
 							>
 								<Plus className="mr-1 h-3 w-3" />
-								Add Entry
+								{tScaled("addEntry")}
 							</Button>
 						</div>
 
 						<div className="space-y-s-200">
 							{/* Header */}
 							<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr]">
-								<span>Date</span>
-								<span>Time</span>
-								<span>Price</span>
-								<span>Quantity</span>
-								<span>Commission</span>
+								<span>{tExec("date")}</span>
+								<span>{tExec("time")}</span>
+								<span>{tExec("price")}</span>
+								<span>{tExec("quantity")}</span>
+								<span>{tExec("commission")}</span>
 								<span></span>
 							</div>
 
@@ -450,8 +519,7 @@ export const ScaledTradeForm = ({
 
 						{positionSummary.totalEntryQty > 0 && (
 							<p className="text-small text-txt-200">
-								Total: {positionSummary.totalEntryQty} contracts @{" "}
-								<span>{positionSummary.avgEntryPrice.toFixed(2)}</span> average
+								{tScaled("contractsSummary", { count: positionSummary.totalEntryQty, price: positionSummary.avgEntryPrice.toFixed(2) })}
 							</p>
 						)}
 					</div>
@@ -459,7 +527,7 @@ export const ScaledTradeForm = ({
 					{/* Exits Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-action-sell">Exits</Label>
+							<Label className="text-action-sell">{tScaled("exits")}</Label>
 							<Button
 								type="button"
 								variant="ghost"
@@ -468,7 +536,7 @@ export const ScaledTradeForm = ({
 								className="text-tiny h-7"
 							>
 								<Plus className="mr-1 h-3 w-3" />
-								Add Exit
+								{tScaled("addExit")}
 							</Button>
 						</div>
 
@@ -476,11 +544,11 @@ export const ScaledTradeForm = ({
 							<div className="space-y-s-200">
 								{/* Header */}
 								<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[1fr_80px_90px_90px_100px_40px]">
-									<span>Date</span>
-									<span>Time</span>
-									<span>Price</span>
-									<span>Quantity</span>
-									<span>Commission</span>
+									<span>{tExec("date")}</span>
+									<span>{tExec("time")}</span>
+									<span>{tExec("price")}</span>
+									<span>{tExec("quantity")}</span>
+									<span>{tExec("commission")}</span>
 									<span></span>
 								</div>
 
@@ -500,15 +568,14 @@ export const ScaledTradeForm = ({
 						) : (
 							<div className="border-bg-300 p-m-400 rounded-lg border border-dashed text-center">
 								<p className="text-small text-txt-300">
-									No exits yet - position is open
+									{tScaled("noExits")}
 								</p>
 							</div>
 						)}
 
 						{positionSummary.totalExitQty > 0 && (
 							<p className="text-small text-txt-200">
-								Total: {positionSummary.totalExitQty} contracts @{" "}
-								<span>{positionSummary.avgExitPrice.toFixed(2)}</span> average
+								{tScaled("contractsSummary", { count: positionSummary.totalExitQty, price: positionSummary.avgExitPrice.toFixed(2) })}
 							</p>
 						)}
 					</div>
@@ -517,11 +584,11 @@ export const ScaledTradeForm = ({
 					{positionSummary.validEntries > 0 && (
 						<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
 							<p className="text-small text-txt-100 font-medium">
-								Position Summary
+								{tScaled("positionSummary")}
 							</p>
 							<div className="mt-s-300 gap-s-300 text-small grid grid-cols-4">
 								<div>
-									<p className="text-tiny text-txt-300">Status</p>
+									<p className="text-tiny text-txt-300">{tScaled("status")}</p>
 									<p
 										className={cn(
 											"font-medium",
@@ -532,25 +599,29 @@ export const ScaledTradeForm = ({
 													: "text-trade-buy"
 										)}
 									>
-										{positionSummary.status.toUpperCase()}
+										{positionSummary.status === "open"
+											? tScaled("statusOpen")
+											: positionSummary.status === "partial"
+												? tScaled("statusPartial")
+												: tScaled("statusClosed")}
 									</p>
 								</div>
 								<div>
-									<p className="text-tiny text-txt-300">Entries</p>
+									<p className="text-tiny text-txt-300">{tScaled("entriesCount")}</p>
 									<p className="text-txt-100 font-medium">
 										{positionSummary.validEntries} (
 										{positionSummary.totalEntryQty})
 									</p>
 								</div>
 								<div>
-									<p className="text-tiny text-txt-300">Exits</p>
+									<p className="text-tiny text-txt-300">{tScaled("exitsCount")}</p>
 									<p className="text-txt-100 font-medium">
 										{positionSummary.validExits} ({positionSummary.totalExitQty}
 										)
 									</p>
 								</div>
 								<div>
-									<p className="text-tiny text-txt-300">Fees</p>
+									<p className="text-tiny text-txt-300">{t("fees")}</p>
 									<p className="text-txt-100 font-medium">
 										{selectedAsset?.currency ?? "$"}
 										{positionSummary.totalCommission.toFixed(2)}
@@ -562,7 +633,7 @@ export const ScaledTradeForm = ({
 								<div className="mt-m-400 border-bg-300 pt-m-400 border-t">
 									<div className="flex items-center justify-between">
 										<div>
-											<p className="text-tiny text-txt-300">Net P&L</p>
+											<p className="text-tiny text-txt-300">{tScaled("netPnl")}</p>
 											<p
 												className={cn(
 													"text-h3 font-bold",
@@ -583,7 +654,7 @@ export const ScaledTradeForm = ({
 											</p>
 										</div>
 										<div className="text-right">
-											<p className="text-tiny text-txt-300">Gross P&L</p>
+											<p className="text-tiny text-txt-300">{tScaled("grossPnl")}</p>
 											<p className="text-txt-100">
 												{selectedAsset?.currency ?? "$"}
 												{positionSummary.grossPnl.toFixed(2)}
@@ -597,37 +668,45 @@ export const ScaledTradeForm = ({
 
 					{/* Risk Management */}
 					<div className="space-y-m-400">
-						<Label>Risk Management</Label>
+						<Label>{tScaled("riskManagement")}</Label>
 						<div className="gap-m-400 grid grid-cols-3">
 							<div className="space-y-s-200">
 								<Label htmlFor="stopLoss" className="text-small text-txt-300">
-									Stop Loss
+									{t("stopLoss")}
 								</Label>
 								<Input
 									id="stopLoss"
 									type="number"
 									step="any"
 									placeholder="0.00"
+									className={cn(stopLossWarning && "border-fb-error")}
 									value={stopLoss}
 									onChange={(e) => setStopLoss(e.target.value)}
 								/>
+								{stopLossWarning && (
+									<span className="text-tiny text-fb-error">{stopLossWarning}</span>
+								)}
 							</div>
 							<div className="space-y-s-200">
 								<Label htmlFor="takeProfit" className="text-small text-txt-300">
-									Take Profit
+									{t("takeProfit")}
 								</Label>
 								<Input
 									id="takeProfit"
 									type="number"
 									step="any"
 									placeholder="0.00"
+									className={cn(takeProfitWarning && "border-fb-error")}
 									value={takeProfit}
 									onChange={(e) => setTakeProfit(e.target.value)}
 								/>
+								{takeProfitWarning && (
+									<span className="text-tiny text-fb-error">{takeProfitWarning}</span>
+								)}
 							</div>
 							<div className="space-y-s-200">
 								<Label className="text-small text-txt-300">
-									Risk Amount ({selectedAsset?.currency ?? "$"})
+									{t("riskAmount")} ({selectedAsset?.currency ?? "$"})
 								</Label>
 								<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
 									{calculatedRisk !== null ? (
@@ -640,7 +719,7 @@ export const ScaledTradeForm = ({
 										</span>
 									) : (
 										<span className="text-small text-txt-300">
-											Enter stop loss & entries
+											{tScaled("enterStopAndEntries")}
 										</span>
 									)}
 								</div>
@@ -653,7 +732,7 @@ export const ScaledTradeForm = ({
 				<TabsContent value="basic" className="space-y-m-500 pt-m-500">
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label>Timeframe</Label>
+							<Label>{t("timeframe")}</Label>
 							<Select
 								value={timeframeId || ""}
 								onValueChange={(value) => setTimeframeId(value || null)}
@@ -663,8 +742,8 @@ export const ScaledTradeForm = ({
 									<SelectValue
 										placeholder={
 											hasConfiguredTimeframes
-												? "Select timeframe"
-												: "No timeframes configured"
+												? t("selectTimeframe")
+												: t("noTimeframes")
 										}
 									/>
 								</SelectTrigger>
@@ -680,13 +759,13 @@ export const ScaledTradeForm = ({
 
 						{strategies.length > 0 && (
 							<div className="space-y-s-200">
-								<Label>Strategy</Label>
+								<Label>{t("strategy")}</Label>
 								<Select
 									value={strategyId || ""}
 									onValueChange={(value) => setStrategyId(value || null)}
 								>
 									<SelectTrigger>
-										<SelectValue placeholder="Select strategy" />
+										<SelectValue placeholder={t("selectStrategy")} />
 									</SelectTrigger>
 									<SelectContent>
 										{strategies.map((strategy) => (
@@ -703,7 +782,7 @@ export const ScaledTradeForm = ({
 					{/* Switch to simple mode */}
 					<div className="border-bg-300 bg-bg-100 p-m-400 rounded-lg border">
 						<p className="text-small text-txt-200">
-							Need a simple single entry/exit trade?
+							{tScaled("needSimple")}
 						</p>
 						<Button
 							type="button"
@@ -711,7 +790,7 @@ export const ScaledTradeForm = ({
 							className="text-brand-500 h-auto p-0"
 							onClick={onModeChange}
 						>
-							Switch to Simple Mode
+							{t("mode.switchToSimple")}
 						</Button>
 					</div>
 				</TabsContent>
@@ -719,10 +798,10 @@ export const ScaledTradeForm = ({
 				{/* Journal Tab */}
 				<TabsContent value="journal" className="space-y-m-500 pt-m-500">
 					<div className="space-y-s-200">
-						<Label htmlFor="preTradeThoughts">Pre-Trade Thoughts</Label>
+						<Label htmlFor="preTradeThoughts">{t("preTradeThoughts")}</Label>
 						<Textarea
 							id="preTradeThoughts"
-							placeholder="Why did I take this trade? What was my thesis?"
+							placeholder={t("preTradeHint")}
 							rows={4}
 							value={preTradeThoughts}
 							onChange={(e) => setPreTradeThoughts(e.target.value)}
@@ -730,10 +809,10 @@ export const ScaledTradeForm = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="postTradeReflection">Post-Trade Reflection</Label>
+						<Label htmlFor="postTradeReflection">{t("postTradeReflection")}</Label>
 						<Textarea
 							id="postTradeReflection"
-							placeholder="How did I feel during the trade? What happened?"
+							placeholder={t("postTradeHint")}
 							rows={4}
 							value={postTradeReflection}
 							onChange={(e) => setPostTradeReflection(e.target.value)}
@@ -741,10 +820,10 @@ export const ScaledTradeForm = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="lessonLearned">Lesson Learned</Label>
+						<Label htmlFor="lessonLearned">{t("lessonLearned")}</Label>
 						<Textarea
 							id="lessonLearned"
-							placeholder="What can I learn from this trade?"
+							placeholder={t("lessonHint")}
 							rows={3}
 							value={lessonLearned}
 							onChange={(e) => setLessonLearned(e.target.value)}
@@ -753,11 +832,13 @@ export const ScaledTradeForm = ({
 
 					{/* Compliance */}
 					<div className="space-y-s-200">
-						<Label>Did you follow your plan?</Label>
+						<Label>{t("didYouFollowPlan")}</Label>
 						<div className="gap-m-400 flex">
 							<button
 								type="button"
 								onClick={() => setFollowedPlan(true)}
+								aria-label={`${t("followedPlan")}: ${tCommon("yes")}`}
+								aria-pressed={followedPlan === true}
 								className={cn(
 									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									followedPlan === true
@@ -765,11 +846,13 @@ export const ScaledTradeForm = ({
 										: "border-bg-300 text-txt-200 hover:border-trade-buy/50"
 								)}
 							>
-								Yes
+								{tCommon("yes")}
 							</button>
 							<button
 								type="button"
 								onClick={() => setFollowedPlan(false)}
+								aria-label={`${t("followedPlan")}: ${tCommon("no")}`}
+								aria-pressed={followedPlan === false}
 								className={cn(
 									"p-m-400 flex-1 rounded-lg border-2 text-center transition-colors",
 									followedPlan === false
@@ -777,17 +860,17 @@ export const ScaledTradeForm = ({
 										: "border-bg-300 text-txt-200 hover:border-trade-sell/50"
 								)}
 							>
-								No
+								{tCommon("no")}
 							</button>
 						</div>
 					</div>
 
 					{followedPlan === false && (
 						<div className="space-y-s-200">
-							<Label htmlFor="disciplineNotes">What went wrong?</Label>
+							<Label htmlFor="disciplineNotes">{t("whatWentWrong")}</Label>
 							<Textarea
 								id="disciplineNotes"
-								placeholder="Describe the discipline breach..."
+								placeholder={t("describeBreach")}
 								rows={3}
 								value={disciplineNotes}
 								onChange={(e) => setDisciplineNotes(e.target.value)}
@@ -800,13 +883,15 @@ export const ScaledTradeForm = ({
 				<TabsContent value="tags" className="space-y-m-500 pt-m-500">
 					{setupTags.length > 0 && (
 						<div className="space-y-s-200">
-							<Label>Setup Type</Label>
+							<Label>{t("setupType")}</Label>
 							<div className="gap-s-200 flex flex-wrap">
 								{setupTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
+										aria-label={`${t("tags")}: ${tag.name}`}
+										aria-pressed={selectedTagIds.includes(tag.id)}
 										className={cn(
 											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
@@ -823,13 +908,15 @@ export const ScaledTradeForm = ({
 
 					{mistakeTags.length > 0 && (
 						<div className="space-y-s-200">
-							<Label>Mistakes (if any)</Label>
+							<Label>{t("mistakes")}</Label>
 							<div className="gap-s-200 flex flex-wrap">
 								{mistakeTags.map((tag) => (
 									<button
 										key={tag.id}
 										type="button"
 										onClick={() => handleTagToggle(tag.id)}
+										aria-label={`${t("tags")}: ${tag.name}`}
+										aria-pressed={selectedTagIds.includes(tag.id)}
 										className={cn(
 											"px-m-400 py-s-200 text-small rounded-full border transition-colors",
 											selectedTagIds.includes(tag.id)
@@ -846,9 +933,9 @@ export const ScaledTradeForm = ({
 
 					{tags.length === 0 && (
 						<div className="border-bg-300 bg-bg-200 p-m-600 rounded-lg border text-center">
-							<p className="text-txt-200">No tags available yet</p>
+							<p className="text-txt-200">{t("noTagsYet")}</p>
 							<p className="mt-s-200 text-small text-txt-300">
-								Create tags in the Analytics section
+								{t("createTagsHint")}
 							</p>
 						</div>
 					)}
@@ -863,22 +950,24 @@ export const ScaledTradeForm = ({
 					onClick={() => router.back()}
 					disabled={isSubmitting}
 				>
-					Cancel
+					{tCommon("cancel")}
 				</Button>
 				<Button type="submit" disabled={isSubmitting}>
 					{isSubmitting ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-							Creating...
+							{tScaled("creating")}
 						</>
 					) : (
 						<>
 							<Save className="mr-2 h-4 w-4" />
-							Create Scaled Trade
+							{tScaled("createScaledTrade")}
 						</>
 					)}
 				</Button>
 			</div>
 		</form>
 	)
-}
+})
+
+ScaledTradeForm.displayName = "ScaledTradeForm"
