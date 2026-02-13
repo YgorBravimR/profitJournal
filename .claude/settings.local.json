@@ -57,7 +57,19 @@
       "Bash(curl:*)",
       "Bash(python3:*)",
       "WebFetch(domain:brapi.dev)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:motion.dev)",
+      "WebFetch(domain:www.zigpoll.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:blog.logrocket.com)",
+      "WebFetch(domain:blog.maximeheckel.com)",
+      "WebFetch(domain:css-tricks.com)",
+      "WebFetch(domain:www.joshwcomeau.com)",
+      "WebFetch(domain:www.lexo.ch)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:refine.dev)",
+      "WebFetch(domain:llms.motion.dev)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []
