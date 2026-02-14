@@ -5,18 +5,16 @@ import { db } from "@/db/drizzle"
 import {
 	dailyChecklists,
 	checklistCompletions,
-	dailyTargets,
 	dailyAccountNotes,
 	accountAssetSettings,
 	accountAssets,
 	trades,
 	assets,
-	tradingAccounts,
+	monthlyPlans,
 } from "@/db/schema"
 import type {
 	DailyChecklist,
 	ChecklistCompletion,
-	DailyTarget,
 	DailyAccountNote,
 	AccountAssetSetting,
 	Asset,
@@ -28,12 +26,10 @@ import {
 	createChecklistSchema,
 	updateChecklistSchema,
 	updateCompletionSchema,
-	dailyTargetsSchema,
 	dailyNotesSchema,
 	assetSettingsSchema,
 	type CreateChecklistInput,
 	type UpdateChecklistInput,
-	type DailyTargetsInput,
 	type DailyNotesInput,
 	type AssetSettingsInput,
 	type ChecklistItem,
@@ -426,126 +422,6 @@ export const toggleChecklistItem = async (
 }
 
 // ==========================================
-// DAILY TARGETS ACTIONS
-// ==========================================
-
-/**
- * Get daily targets for the current account
- */
-export const getDailyTargets = async (): Promise<ActionResponse<DailyTarget | null>> => {
-	try {
-		const { userId, accountId } = await requireAuth()
-
-		const targets = await db.query.dailyTargets.findFirst({
-			where: and(
-				eq(dailyTargets.userId, userId),
-				eq(dailyTargets.accountId, accountId),
-				eq(dailyTargets.isActive, true)
-			),
-		})
-
-		return {
-			status: "success",
-			message: targets ? "Targets retrieved successfully" : "No targets found",
-			data: targets || null,
-		}
-	} catch (error) {
-		console.error("Get daily targets error:", error)
-		return {
-			status: "error",
-			message: "Failed to retrieve targets",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
-		}
-	}
-}
-
-/**
- * Upsert daily targets
- */
-export const upsertDailyTargets = async (
-	input: DailyTargetsInput
-): Promise<ActionResponse<DailyTarget>> => {
-	try {
-		const { userId, accountId } = await requireAuth()
-		const validated = dailyTargetsSchema.parse(input)
-
-		// Check if targets exist for this account
-		const existing = await db.query.dailyTargets.findFirst({
-			where: and(
-				eq(dailyTargets.userId, userId),
-				eq(dailyTargets.accountId, accountId)
-			),
-		})
-
-		if (existing) {
-			// Update existing
-			const [targets] = await db
-				.update(dailyTargets)
-				.set({
-					profitTarget: validated.profitTarget ? toCents(validated.profitTarget) : null,
-					lossLimit: validated.lossLimit ? toCents(validated.lossLimit) : null,
-					maxTrades: validated.maxTrades || null,
-					maxConsecutiveLosses: validated.maxConsecutiveLosses || null,
-					accountBalance: validated.accountBalance ? toCents(validated.accountBalance) : null,
-					isActive: validated.isActive ?? true,
-					updatedAt: new Date(),
-				})
-				.where(eq(dailyTargets.id, existing.id))
-				.returning()
-
-			revalidatePath("/command-center")
-
-			return {
-				status: "success",
-				message: "Targets updated successfully",
-				data: targets,
-			}
-		} else {
-			// Create new
-			const [targets] = await db
-				.insert(dailyTargets)
-				.values({
-					userId,
-					accountId,
-					profitTarget: validated.profitTarget ? toCents(validated.profitTarget) : null,
-					lossLimit: validated.lossLimit ? toCents(validated.lossLimit) : null,
-					maxTrades: validated.maxTrades || null,
-					maxConsecutiveLosses: validated.maxConsecutiveLosses || null,
-					accountBalance: validated.accountBalance ? toCents(validated.accountBalance) : null,
-					isActive: validated.isActive ?? true,
-				})
-				.returning()
-
-			revalidatePath("/command-center")
-
-			return {
-				status: "success",
-				message: "Targets created successfully",
-				data: targets,
-			}
-		}
-	} catch (error) {
-		if (error instanceof z.ZodError) {
-			return {
-				status: "error",
-				message: "Validation failed",
-				errors: error.issues.map((e) => ({
-					code: "VALIDATION_ERROR",
-					detail: `${e.path.join(".")}: ${e.message}`,
-				})),
-			}
-		}
-
-		console.error("Upsert daily targets error:", error)
-		return {
-			status: "error",
-			message: "Failed to save targets",
-			errors: [{ code: "SAVE_FAILED", detail: String(error) }],
-		}
-	}
-}
-
-// ==========================================
 // DAILY NOTES ACTIONS
 // ==========================================
 
@@ -933,18 +809,17 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			orderBy: [desc(trades.entryDate)],
 		})
 
-		// Get daily targets
-		const targets = await db.query.dailyTargets.findFirst({
-			where: and(
-				eq(dailyTargets.userId, userId),
-				eq(dailyTargets.accountId, accountId),
-				eq(dailyTargets.isActive, true)
-			),
-		})
+		// Get monthly plan for current month
+		const effectiveNow = date ? new Date(date) : await getServerEffectiveNow()
+		const currentYear = effectiveNow.getFullYear()
+		const currentMonth = effectiveNow.getMonth() + 1 // 1-indexed
 
-		// Get trading account settings for risk rules
-		const account = await db.query.tradingAccounts.findFirst({
-			where: eq(tradingAccounts.id, accountId),
+		const monthlyPlan = await db.query.monthlyPlans.findFirst({
+			where: and(
+				eq(monthlyPlans.accountId, accountId),
+				eq(monthlyPlans.year, currentYear),
+				eq(monthlyPlans.month, currentMonth)
+			),
 		})
 
 		// Calculate metrics
@@ -984,8 +859,13 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			0
 		)
 
+		// Resolve limits from monthly plan (single source of truth)
+		const dailyLossLimitCents = monthlyPlan?.dailyLossCents ?? 0
+		const profitTargetCents = monthlyPlan?.dailyProfitTargetCents ?? 0
+		const maxTradesValue = monthlyPlan?.maxDailyTrades ?? monthlyPlan?.derivedMaxDailyTrades ?? null
+		const maxConsecutiveLossesValue = monthlyPlan?.maxConsecutiveLosses ?? null
+
 		// Calculate remaining daily risk
-		const dailyLossLimitCents = targets?.lossLimit || account?.maxDailyLoss || 0
 		const remainingDailyRiskCents = Math.max(
 			0,
 			dailyLossLimitCents - Math.abs(Math.min(0, toCents(dailyPnL)))
@@ -1007,8 +887,8 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			0
 		)
 
-		// Monthly loss limit
-		const monthlyLossLimitCents = account?.maxMonthlyLoss || 0
+		// Monthly loss limit (plan-only)
+		const monthlyLossLimitCents = monthlyPlan?.monthlyLossCents ?? 0
 		const remainingMonthlyCents =
 			monthlyLossLimitCents > 0
 				? Math.max(0, monthlyLossLimitCents - Math.abs(Math.min(0, toCents(monthlyPnL))))
@@ -1016,20 +896,40 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 		const isMonthlyLimitHit =
 			monthlyLossLimitCents > 0 && monthlyPnL <= -fromCents(monthlyLossLimitCents)
 
-		// Calculate recommended risk
-		let recommendedRiskCents = account?.defaultRiskPerTrade
-			? toCents(parseFloat(account.defaultRiskPerTrade))
-			: 0
+		// Calculate recommended risk (plan-only)
+		let recommendedRiskCents = monthlyPlan?.riskPerTradeCents ?? 0
 
-		if (
-			account?.reduceRiskAfterLoss &&
-			currentConsecutiveLosses > 0 &&
-			account.riskReductionFactor
-		) {
-			const factor = parseFloat(account.riskReductionFactor)
+		// Risk reduction after consecutive losses
+		const shouldReduceRisk = monthlyPlan?.reduceRiskAfterLoss ?? false
+		const reductionFactor = monthlyPlan?.riskReductionFactor
+			? parseFloat(monthlyPlan.riskReductionFactor)
+			: null
+
+		if (shouldReduceRisk && currentConsecutiveLosses > 0 && reductionFactor) {
 			recommendedRiskCents = Math.round(
-				recommendedRiskCents * Math.pow(factor, currentConsecutiveLosses)
+				recommendedRiskCents * Math.pow(reductionFactor, currentConsecutiveLosses)
 			)
+		}
+
+		// Win risk adjustment (increase or cap — mutually exclusive)
+		if (monthlyPlan?.profitReinvestmentPercent) {
+			const reinvestmentPercent = parseFloat(monthlyPlan.profitReinvestmentPercent)
+
+			if (monthlyPlan.increaseRiskAfterWin) {
+				// INCREASE: add % of last win's profit to base risk
+				const lastTrade = sortedTrades.at(-1)
+				if (lastTrade?.outcome === "win" && lastTrade.pnl && lastTrade.pnl > 0) {
+					const bonusCents = Math.round(lastTrade.pnl * reinvestmentPercent / 100)
+					recommendedRiskCents = recommendedRiskCents + bonusCents
+				}
+			} else if (monthlyPlan.capRiskAfterWin) {
+				// CAP: find first winning trade of the day, cap risk to min(base, profit * %)
+				const firstWin = sortedTrades.find(t => t.outcome === "win" && t.pnl && t.pnl > 0)
+				if (firstWin?.pnl && sortedTrades.length > 1) {
+					const capCents = Math.round(firstWin.pnl * reinvestmentPercent / 100)
+					recommendedRiskCents = Math.min(recommendedRiskCents, capCents)
+				}
+			}
 		}
 
 		// Cap at remaining budgets
@@ -1039,24 +939,25 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			remainingMonthlyCents !== Infinity ? remainingMonthlyCents : recommendedRiskCents
 		)
 
-		// Check second op block
+		// Check second op block (plan-only)
+		const allowSecondOp = monthlyPlan?.allowSecondOpAfterLoss ?? true
 		const isSecondOpBlocked =
-			account?.allowSecondOpAfterLoss === false &&
+			allowSecondOp === false &&
 			currentConsecutiveLosses > 0 &&
 			todaysTrades.length > 0
 
-		// Calculate circuit breaker triggers
-		const profitTargetHit = targets?.profitTarget
-			? dailyPnL >= fromCents(targets.profitTarget)
+		// Calculate circuit breaker triggers (using plan-first resolved values)
+		const profitTargetHit = profitTargetCents > 0
+			? dailyPnL >= fromCents(profitTargetCents)
 			: false
-		const lossLimitHit = targets?.lossLimit
-			? dailyPnL <= -fromCents(targets.lossLimit)
+		const lossLimitHit = dailyLossLimitCents > 0
+			? dailyPnL <= -fromCents(dailyLossLimitCents)
 			: false
-		const maxTradesHit = targets?.maxTrades
-			? todaysTrades.length >= targets.maxTrades
+		const maxTradesHit = maxTradesValue
+			? todaysTrades.length >= maxTradesValue
 			: false
-		const maxConsecutiveLossesHit = targets?.maxConsecutiveLosses
-			? currentConsecutiveLosses >= targets.maxConsecutiveLosses
+		const maxConsecutiveLossesHit = maxConsecutiveLossesValue
+			? currentConsecutiveLosses >= maxConsecutiveLossesValue
 			: false
 
 		const shouldStopTrading =
@@ -1089,6 +990,12 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 				maxConsecutiveLossesHit,
 				shouldStopTrading,
 				alerts,
+				profitTargetCents,
+				dailyLossLimitCents,
+				maxTrades: maxTradesValue,
+				maxConsecutiveLosses: maxConsecutiveLossesValue,
+				reduceRiskAfterLoss: shouldReduceRisk,
+				riskReductionFactor: monthlyPlan?.riskReductionFactor ?? null,
 				riskUsedTodayCents,
 				remainingDailyRiskCents,
 				recommendedRiskCents,

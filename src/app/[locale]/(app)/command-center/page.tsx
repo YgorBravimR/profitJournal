@@ -1,20 +1,20 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { PageHeader } from "@/components/layout"
 import { CommandCenterTabs } from "./command-center-tabs"
 import {
 	getChecklists,
 	getTodayCompletions,
-	getDailyTargets,
 	getTodayNotes,
 	getAccountAssetSettings,
 	getCircuitBreakerStatus,
 	getDailySummary,
 } from "@/app/actions/command-center"
+import { getActiveMonthlyPlan } from "@/app/actions/monthly-plans"
 import { getActiveAssets } from "@/app/actions/assets"
 import { getCurrentAccount } from "@/app/actions/auth"
 import { getStrategies } from "@/app/actions/strategies"
 import { getEffectiveDateWithOverride } from "@/lib/effective-date"
 import { formatDateKey } from "@/lib/dates"
+import { fromCents } from "@/lib/money"
 
 // Force dynamic rendering to ensure account-specific data
 export const dynamic = "force-dynamic"
@@ -53,23 +53,23 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 	const [
 		checklistsResult,
 		completionsResult,
-		targetsResult,
 		notesResult,
 		assetSettingsResult,
 		circuitBreakerResult,
 		summaryResult,
 		assetsResult,
 		strategiesResult,
+		monthlyPlanResult,
 	] = await Promise.all([
 		getChecklists(),
 		getTodayCompletions(dateArg),
-		getDailyTargets(),
 		getTodayNotes(dateArg),
 		getAccountAssetSettings(),
 		getCircuitBreakerStatus(dateArg),
 		getDailySummary(dateArg),
 		getActiveAssets().catch(() => []),
 		getStrategies(),
+		getActiveMonthlyPlan(),
 	])
 
 	const initialChecklists =
@@ -80,8 +80,6 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 		completionsResult.status === "success" && completionsResult.data
 			? completionsResult.data
 			: []
-	const initialTargets =
-		targetsResult.status === "success" ? (targetsResult.data ?? null) : null
 	const initialNotes =
 		notesResult.status === "success" ? (notesResult.data ?? null) : null
 	const initialAssetSettings =
@@ -97,19 +95,26 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 		strategiesResult.status === "success" && strategiesResult.data
 			? strategiesResult.data
 			: []
+	const initialPlan =
+		monthlyPlanResult.status === "success" ? (monthlyPlanResult.data ?? null) : null
 
+	// Derive current year/month from effective date for the Plan tab
+	const planYear = effectiveDate.getFullYear()
+	const planMonth = effectiveDate.getMonth() + 1
+
+	// Account settings: read exclusively from monthly plan
 	const accountSettings = {
-		defaultRiskPerTrade: account?.defaultRiskPerTrade ?? null,
-		maxDailyLoss: account?.maxDailyLoss ?? null,
+		defaultRiskPerTrade: initialPlan?.riskPerTradeCents
+			? String(fromCents(initialPlan.riskPerTradeCents))
+			: null,
+		maxDailyLoss: initialPlan?.dailyLossCents ?? null,
 	}
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title={t("title")} />
 			<CommandCenterTabs
 				initialChecklists={initialChecklists}
 				initialCompletions={initialCompletions}
-				initialTargets={initialTargets}
 				initialNotes={initialNotes}
 				initialAssetSettings={initialAssetSettings}
 				initialCircuitBreaker={initialCircuitBreaker}
@@ -120,6 +125,9 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 				accountSettings={accountSettings}
 				strategies={initialStrategies}
 				assetSettings={initialAssetSettings}
+				initialPlan={initialPlan}
+				initialYear={planYear}
+				initialMonth={planMonth}
 				viewDate={viewDateStr}
 				isToday={isToday}
 				isReplayAccount={account?.accountType === "replay"}

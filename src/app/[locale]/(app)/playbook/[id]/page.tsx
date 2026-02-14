@@ -10,7 +10,6 @@ import {
 	BarChart3,
 	FileText,
 } from "lucide-react"
-import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { getStrategy } from "@/app/actions/strategies"
 
@@ -53,19 +52,6 @@ const StrategyDetailPage = async ({ params }: StrategyDetailPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title={strategy.name}
-				description={strategy.description || "Trading strategy details"}
-				action={
-					<Link href="/playbook">
-						<Button variant="outline">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back to Playbook
-						</Button>
-					</Link>
-				}
-			/>
-
 			<div className="flex-1 overflow-y-auto p-m-600">
 				<div className="mx-auto max-w-4xl space-y-m-600">
 					{/* Performance Stats */}

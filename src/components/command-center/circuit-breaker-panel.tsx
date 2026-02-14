@@ -11,7 +11,6 @@ import {
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import type { CircuitBreakerStatus } from "@/lib/validations/command-center"
-import type { DailyTarget, TradingAccount } from "@/db/schema"
 import { fromCents } from "@/lib/money"
 
 type CircuitBreakerState =
@@ -106,8 +105,6 @@ const getCircuitBreakerState = (
 
 interface CircuitBreakerPanelProps {
 	status: CircuitBreakerStatus | null
-	targets: DailyTarget | null
-	account: TradingAccount | null
 	currency?: string
 }
 
@@ -142,8 +139,6 @@ const MetricCell = ({
 
 export const CircuitBreakerPanel = ({
 	status,
-	targets,
-	account,
 	currency = "$",
 }: CircuitBreakerPanelProps) => {
 	const t = useTranslations("commandCenter.circuitBreaker")
@@ -161,16 +156,14 @@ export const CircuitBreakerPanel = ({
 
 	const hasWarnings = status.alerts.length > 0
 
-	// Derive target values
-	const profitTarget = targets?.profitTarget
-		? fromCents(targets.profitTarget)
-		: null
-	const lossLimit = targets?.lossLimit ? fromCents(targets.lossLimit) : null
+	// Read limits directly from status (resolved from monthly plan)
+	const profitTarget = status.profitTargetCents > 0 ? fromCents(status.profitTargetCents) : null
+	const lossLimit = status.dailyLossLimitCents > 0 ? fromCents(status.dailyLossLimitCents) : null
 
 	const stateConfig = getCircuitBreakerState(status, profitTarget, lossLimit)
 	const StateIcon = stateConfig.icon
-	const maxTrades = targets?.maxTrades || null
-	const maxConsecutiveLosses = targets?.maxConsecutiveLosses || null
+	const maxTrades = status.maxTrades
+	const maxConsecutiveLosses = status.maxConsecutiveLosses
 	const monthlyLossLimit =
 		status.monthlyLossLimitCents > 0
 			? fromCents(status.monthlyLossLimitCents)
@@ -268,14 +261,14 @@ export const CircuitBreakerPanel = ({
 							<span>{t("secondOpBlocked")}</span>
 						</div>
 					)}
-					{account?.reduceRiskAfterLoss &&
+					{status.reduceRiskAfterLoss &&
 						status.consecutiveLosses > 0 &&
-						account.riskReductionFactor && (
+						status.riskReductionFactor && (
 							<div className="gap-s-200 text-small text-acc-100 flex items-center">
 								<TrendingDown className="h-4 w-4" />
 								<span>
 									{t("riskReduced", {
-										factor: account.riskReductionFactor,
+										factor: status.riskReductionFactor,
 										losses: status.consecutiveLosses,
 									})}
 								</span>

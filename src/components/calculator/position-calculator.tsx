@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { Calculator } from "lucide-react"
 import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/routing"
 import { calculatePositionSize } from "@/lib/calculator"
 import { toCents } from "@/lib/money"
 import { CalculatorForm } from "./calculator-form"
@@ -228,7 +229,14 @@ const PositionCalculator = ({
 			{/* Max risk source indicator */}
 			{maxAllowedRiskCents === 0 && selectedAssetId && (
 				<p className="mt-m-400 text-tiny text-trade-sell">
-					{t("noRiskConfigured")}
+					{t("noRiskConfiguredMessage")}{" "}
+					<Link
+						href="/settings?tab=account"
+						className="underline transition-colors hover:text-acc-100"
+						aria-label={t("setInAccountSettings")}
+					>
+						{t("setInAccountSettings")}
+					</Link>
 				</p>
 			)}
 		</div>

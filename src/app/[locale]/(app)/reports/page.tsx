@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { PageHeader } from "@/components/layout"
 import { ReportsContent } from "@/components/reports"
 import {
 	getWeeklyReport,
@@ -38,7 +37,6 @@ const ReportsPage = async ({ params }: ReportsPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 overflow-auto p-m-600">
 				<ReportsContent
 					weeklyReport={weeklyReport}

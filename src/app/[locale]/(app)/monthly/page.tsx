@@ -1,5 +1,4 @@
 import { setRequestLocale, getTranslations } from "next-intl/server"
-import { PageHeader } from "@/components/layout"
 import { MonthlyContent } from "@/components/monthly"
 import {
 	getMonthlyResultsWithProp,
@@ -33,8 +32,6 @@ const MonthlyPage = async ({ params }: MonthlyPageProps) => {
 
 	return (
 		<div className="min-h-screen bg-bg-100">
-			<PageHeader title={t("title")} description={t("description")} />
-
 			<main className="mx-auto max-w-5xl px-m-500 py-m-600">
 				<MonthlyContent
 					initialMonthlyData={initialMonthlyData}

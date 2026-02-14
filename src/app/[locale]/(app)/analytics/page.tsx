@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { PageHeader } from "@/components/layout"
 import { AnalyticsContent } from "@/components/analytics"
 import {
 	getPerformanceByVariable,
@@ -109,7 +108,6 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 overflow-auto p-m-600">
 				<AnalyticsContent
 					initialPerformance={initialPerformance}

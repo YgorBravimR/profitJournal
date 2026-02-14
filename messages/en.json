@@ -304,7 +304,8 @@
 		"tabs": {
 			"commandCenter": "Command Center",
 			"monitor": "Monitor",
-			"calculator": "Calculator"
+			"calculator": "Calculator",
+			"plan": "Plan"
 		},
 		"dateNavigator": {
 			"today": "Today",
@@ -461,7 +462,8 @@
 			"fromSettings": "from settings",
 			"contracts": "contracts",
 			"points": "pts",
-			"noRiskConfigured": "No risk per trade configured. Set it in account settings.",
+			"noRiskConfiguredMessage": "No risk per trade configured.",
+			"setInAccountSettings": "Set it in account settings.",
 			"exceedsMaxRisk": "Exceeds maximum allowed risk!",
 			"strategy": "Strategy",
 			"selectStrategy": "Select strategy",
@@ -475,6 +477,82 @@
 				"targetBelowEntry": "Target must be above entry for long trades",
 				"targetAboveEntry": "Target must be below entry for short trades"
 			}
+		},
+		"plan": {
+			"tab": "Plan",
+			"title": "Monthly Plan",
+			"description": "Configure your monthly risk parameters",
+			"noPlan": "No plan configured for this month",
+			"noPlanPrompt": "Create a monthly plan to set your risk parameters",
+			"createPlan": "Create Plan",
+			"editPlan": "Edit Plan",
+			"copyFromLastMonth": "Copy from Last Month",
+			"noPreviousPlan": "No previous plan to copy from",
+			"newMonthBanner": "New month! Create your plan for {month} {year}",
+			"rolloverSuggestion": "Suggested balance based on last month: {balance}",
+			"form": {
+				"accountBalance": "Account Balance",
+				"accountBalanceHelp": "Your current account balance for this month",
+				"riskPerTrade": "Risk per Trade (%)",
+				"riskPerTradeHelp": "Percentage of balance to risk on each trade",
+				"dailyLoss": "Daily Loss Limit (%)",
+				"dailyLossHelp": "Maximum daily loss as percentage of balance",
+				"monthlyLoss": "Monthly Loss Limit (%)",
+				"monthlyLossHelp": "Maximum monthly loss as percentage of balance",
+				"advanced": "Advanced Settings",
+				"dailyProfitTarget": "Daily Profit Target (%)",
+				"dailyProfitTargetHelp": "Optional daily profit target percentage",
+				"maxDailyTrades": "Max Daily Trades",
+				"maxDailyTradesHelp": "Override auto-calculated max trades per day",
+				"maxConsecutiveLosses": "Max Consecutive Losses",
+				"maxConsecutiveLossesHelp": "Stop after this many losses in a row",
+				"allowSecondOp": "Allow 2nd op after loss",
+				"reduceRisk": "Reduce risk after loss",
+				"riskReductionFactor": "Risk Reduction Factor",
+				"riskReductionFactorHelp": "Multiplier per consecutive loss (e.g. 0.50 = halve risk)",
+				"winRiskAdjustment": "Risk adjustment after win",
+				"winRiskOff": "Off",
+				"winRiskIncrease": "Increase",
+				"winRiskCap": "Cap",
+				"winRiskIncreaseDesc": "Add % of profit to next trade's risk",
+				"winRiskCapDesc": "Cap risk at % of first win's profit (capital protection)",
+				"profitReinvestment": "Reinvestment / Cap (%)",
+				"profitReinvestmentHelpIncrease": "% of last win's profit to add to next trade's risk",
+				"profitReinvestmentHelpCap": "Cap subsequent trades' risk at this % of first win's profit",
+				"notes": "Notes",
+				"notesPlaceholder": "Optional notes about your plan for this month..."
+			},
+			"preview": {
+				"title": "Live Preview",
+				"riskPerTrade": "Risk / Trade",
+				"dailyLossLimit": "Daily Loss Limit",
+				"monthlyLossLimit": "Monthly Loss Limit",
+				"dailyProfitTarget": "Daily Profit Target",
+				"maxTradesPerDay": "Max Trades / Day",
+				"derived": "auto-calculated"
+			},
+			"summary": {
+				"riskPerTrade": "Risk / Trade",
+				"dailyLossLimit": "Daily Loss Limit",
+				"monthlyLossLimit": "Monthly Loss Limit",
+				"dailyProfitTarget": "Daily Profit Target",
+				"maxTradesPerDay": "Max Trades / Day",
+				"maxLosingDays": "Max Losing Days",
+				"accountBalance": "Account Balance",
+				"notConfigured": "Not set",
+				"derived": "auto-calculated"
+			},
+			"validation": {
+				"balanceRequired": "Account balance is required",
+				"riskRequired": "Risk per trade is required",
+				"dailyLossRequired": "Daily loss limit is required",
+				"monthlyLossRequired": "Monthly loss limit is required",
+				"dailyExceedsMonthly": "Daily loss limit should not exceed monthly loss limit"
+			},
+			"previousMonth": "Previous month",
+			"nextMonth": "Next month",
+			"save": "Save Plan",
+			"saving": "Saving..."
 		}
 	},
 	"trade": {

@@ -2,11 +2,11 @@
 
 import { useState, lazy, Suspense } from "react"
 import { Tabs, TabsList, TabsTrigger, AnimatedTabsContent } from "@/components/ui/tabs"
-import { Target, Activity, Calculator } from "lucide-react"
+import { Target, Activity, Calculator, CalendarDays } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Loader2 } from "lucide-react"
 import { CommandCenterContent, type CommandCenterContentProps } from "./command-center-content"
-import type { Asset } from "@/db/schema"
+import type { Asset, MonthlyPlan } from "@/db/schema"
 import type { StrategyWithStats } from "@/app/actions/strategies"
 import type { AssetSettingWithAsset } from "@/app/actions/command-center"
 
@@ -22,6 +22,12 @@ const PositionCalculator = lazy(() =>
 	}))
 )
 
+const MonthlyPlanTab = lazy(() =>
+	import("@/components/monthly-plan/monthly-plan-tab").then((m) => ({
+		default: m.MonthlyPlanTab,
+	}))
+)
+
 interface CommandCenterTabsProps extends CommandCenterContentProps {
 	calculatorAssets: Asset[]
 	accountSettings: {
@@ -30,6 +36,9 @@ interface CommandCenterTabsProps extends CommandCenterContentProps {
 	}
 	strategies: StrategyWithStats[]
 	assetSettings: AssetSettingWithAsset[]
+	initialPlan: MonthlyPlan | null
+	initialYear: number
+	initialMonth: number
 	isReplayAccount?: boolean
 }
 
@@ -44,6 +53,9 @@ export const CommandCenterTabs = ({
 	accountSettings,
 	strategies,
 	assetSettings,
+	initialPlan,
+	initialYear,
+	initialMonth,
 	isReplayAccount = false,
 	...commandCenterProps
 }: CommandCenterTabsProps) => {
@@ -57,6 +69,14 @@ export const CommandCenterTabs = ({
 			className="flex h-full flex-col"
 		>
 			<TabsList variant="line" className="border-bg-300 border-b px-2">
+				<TabsTrigger
+					value="plan"
+					className="text-txt-200 data-[state=active]:text-acc-100 gap-2"
+					aria-label={t("tabs.plan")}
+				>
+					<CalendarDays className="h-4 w-4" />
+					<span>{t("tabs.plan")}</span>
+				</TabsTrigger>
 				<TabsTrigger
 					value="command-center"
 					className="text-txt-200 data-[state=active]:text-acc-100 gap-2"
@@ -85,8 +105,18 @@ export const CommandCenterTabs = ({
 				</TabsTrigger>
 			</TabsList>
 
+			<AnimatedTabsContent value="plan" className="flex-1 overflow-auto p-m-600">
+				<Suspense fallback={<TabLoadingFallback />}>
+					<MonthlyPlanTab
+						initialPlan={initialPlan}
+						initialYear={initialYear}
+						initialMonth={initialMonth}
+					/>
+				</Suspense>
+			</AnimatedTabsContent>
+
 			<AnimatedTabsContent value="command-center" className="flex-1 overflow-auto p-m-600">
-				<CommandCenterContent key={commandCenterProps.viewDate} {...commandCenterProps} />
+				<CommandCenterContent key={commandCenterProps.viewDate} {...commandCenterProps} initialPlan={initialPlan} />
 			</AnimatedTabsContent>
 
 			{!isReplayAccount && (

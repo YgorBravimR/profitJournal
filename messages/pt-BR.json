@@ -304,7 +304,8 @@
 		"tabs": {
 			"commandCenter": "Centro de Comando",
 			"monitor": "Monitor",
-			"calculator": "Calculadora"
+			"calculator": "Calculadora",
+			"plan": "Plano"
 		},
 		"dateNavigator": {
 			"today": "Hoje",
@@ -461,7 +462,8 @@
 			"fromSettings": "das config.",
 			"contracts": "contratos",
 			"points": "pts",
-			"noRiskConfigured": "Risco por operação não configurado. Configure nas configurações da conta.",
+			"noRiskConfiguredMessage": "Risco por operação não configurado.",
+			"setInAccountSettings": "Configure nas configurações da conta.",
 			"exceedsMaxRisk": "Excede o risco máximo permitido!",
 			"strategy": "Estratégia",
 			"selectStrategy": "Selecionar estratégia",
@@ -475,6 +477,82 @@
 				"targetBelowEntry": "Alvo deve estar acima da entrada para operações de compra",
 				"targetAboveEntry": "Alvo deve estar abaixo da entrada para operações de venda"
 			}
+		},
+		"plan": {
+			"tab": "Plano",
+			"title": "Plano Mensal",
+			"description": "Configure seus parâmetros de risco mensais",
+			"noPlan": "Nenhum plano configurado para este mês",
+			"noPlanPrompt": "Crie um plano mensal para definir seus parâmetros de risco",
+			"createPlan": "Criar Plano",
+			"editPlan": "Editar Plano",
+			"copyFromLastMonth": "Copiar do Mês Anterior",
+			"noPreviousPlan": "Nenhum plano anterior para copiar",
+			"newMonthBanner": "Novo mês! Crie seu plano para {month} {year}",
+			"rolloverSuggestion": "Saldo sugerido com base no mês anterior: {balance}",
+			"form": {
+				"accountBalance": "Saldo da Conta",
+				"accountBalanceHelp": "Seu saldo atual da conta para este mês",
+				"riskPerTrade": "Risco por Operação (%)",
+				"riskPerTradeHelp": "Porcentagem do saldo a arriscar em cada operação",
+				"dailyLoss": "Limite de Perda Diário (%)",
+				"dailyLossHelp": "Perda diária máxima como porcentagem do saldo",
+				"monthlyLoss": "Limite de Perda Mensal (%)",
+				"monthlyLossHelp": "Perda mensal máxima como porcentagem do saldo",
+				"advanced": "Configurações Avançadas",
+				"dailyProfitTarget": "Meta de Lucro Diária (%)",
+				"dailyProfitTargetHelp": "Meta opcional de lucro diário em porcentagem",
+				"maxDailyTrades": "Máx. Operações Diárias",
+				"maxDailyTradesHelp": "Substituir máximo calculado de operações por dia",
+				"maxConsecutiveLosses": "Máx. Perdas Consecutivas",
+				"maxConsecutiveLossesHelp": "Pare após tantas perdas seguidas",
+				"allowSecondOp": "Permitir 2ª op após loss",
+				"reduceRisk": "Reduzir risco após loss",
+				"riskReductionFactor": "Fator de Redução de Risco",
+				"riskReductionFactorHelp": "Multiplicador por loss consecutivo (ex: 0.50 = reduz pela metade)",
+				"winRiskAdjustment": "Ajuste de risco após gain",
+				"winRiskOff": "Off",
+				"winRiskIncrease": "Aumentar",
+				"winRiskCap": "Limitar",
+				"winRiskIncreaseDesc": "Adicionar % do lucro ao risco da próxima operação",
+				"winRiskCapDesc": "Limitar risco ao % do lucro do primeiro gain (proteção de capital)",
+				"profitReinvestment": "Reinvestimento / Limite (%)",
+				"profitReinvestmentHelpIncrease": "% do lucro do último gain a adicionar ao risco da próxima operação",
+				"profitReinvestmentHelpCap": "Limitar risco das operações seguintes a este % do lucro do primeiro gain",
+				"notes": "Notas",
+				"notesPlaceholder": "Notas opcionais sobre seu plano para este mês..."
+			},
+			"preview": {
+				"title": "Prévia em Tempo Real",
+				"riskPerTrade": "Risco / Operação",
+				"dailyLossLimit": "Limite de Perda Diário",
+				"monthlyLossLimit": "Limite de Perda Mensal",
+				"dailyProfitTarget": "Meta de Lucro Diária",
+				"maxTradesPerDay": "Máx. Operações / Dia",
+				"derived": "calculado automaticamente"
+			},
+			"summary": {
+				"riskPerTrade": "Risco / Operação",
+				"dailyLossLimit": "Limite de Perda Diário",
+				"monthlyLossLimit": "Limite de Perda Mensal",
+				"dailyProfitTarget": "Meta de Lucro Diária",
+				"maxTradesPerDay": "Máx. Operações / Dia",
+				"maxLosingDays": "Máx. Dias de Perda",
+				"accountBalance": "Saldo da Conta",
+				"notConfigured": "Não configurado",
+				"derived": "calculado automaticamente"
+			},
+			"validation": {
+				"balanceRequired": "O saldo da conta é obrigatório",
+				"riskRequired": "O risco por operação é obrigatório",
+				"dailyLossRequired": "O limite de perda diário é obrigatório",
+				"monthlyLossRequired": "O limite de perda mensal é obrigatório",
+				"dailyExceedsMonthly": "O limite de perda diário não deve exceder o limite mensal"
+			},
+			"previousMonth": "Mês anterior",
+			"nextMonth": "Próximo mês",
+			"save": "Salvar Plano",
+			"saving": "Salvando..."
 		}
 	},
 	"trade": {

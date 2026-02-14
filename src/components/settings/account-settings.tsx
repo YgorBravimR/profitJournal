@@ -49,15 +49,6 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 		replayStartDate: "",
 	})
 
-	// Risk management editing
-	const [isEditingRisk, setIsEditingRisk] = useState(false)
-	const [riskForm, setRiskForm] = useState({
-		maxMonthlyLoss: "",
-		allowSecondOpAfterLoss: true,
-		reduceRiskAfterLoss: false,
-		riskReductionFactor: "",
-	})
-
 	// Asset fees editing
 	const [editingAssetId, setEditingAssetId] = useState<string | null>(null)
 	const [assetFeesForm, setAssetFeesForm] = useState({
@@ -89,14 +80,6 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							? new Date(accountData.replayCurrentDate).toISOString().split("T")[0]
 							: "",
 					})
-					setRiskForm({
-						maxMonthlyLoss: accountData.maxMonthlyLoss
-							? fromCents(accountData.maxMonthlyLoss).toString()
-							: "",
-						allowSecondOpAfterLoss: accountData.allowSecondOpAfterLoss ?? true,
-						reduceRiskAfterLoss: accountData.reduceRiskAfterLoss ?? false,
-						riskReductionFactor: accountData.riskReductionFactor || "",
-					})
 				}
 			} finally {
 				setIsLoading(false)
@@ -121,30 +104,6 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			if (result.status === "success" && result.data) {
 				setAccount(result.data)
 				setIsEditingAccount(false)
-				showToast("success", t("accountUpdated"))
-			} else {
-				showToast("error", result.error || t("accountUpdateError"))
-			}
-		})
-	}
-
-	const handleSaveRisk = () => {
-		if (!account) return
-
-		startTransition(async () => {
-			const result = await updateAccount(account.id, {
-				maxMonthlyLoss: riskForm.maxMonthlyLoss
-					? toCents(parseFloat(riskForm.maxMonthlyLoss) || 0)
-					: 0,
-				allowSecondOpAfterLoss: riskForm.allowSecondOpAfterLoss,
-				reduceRiskAfterLoss: riskForm.reduceRiskAfterLoss,
-				riskReductionFactor: riskForm.reduceRiskAfterLoss && riskForm.riskReductionFactor
-					? parseFloat(riskForm.riskReductionFactor) || undefined
-					: undefined,
-			})
-			if (result.status === "success" && result.data) {
-				setAccount(result.data)
-				setIsEditingRisk(false)
 				showToast("success", t("accountUpdated"))
 			} else {
 				showToast("error", result.error || t("accountUpdateError"))
@@ -394,212 +353,6 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							{tCommon("cancel")}
 						</Button>
 						<Button size="sm" onClick={handleSaveAccount} disabled={isPending}>
-							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-							{tCommon("save")}
-						</Button>
-					</div>
-				)}
-			</div>
-
-			{/* Risk Management */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<div className="flex items-center justify-between">
-					<h2 className="text-body font-semibold text-txt-100">
-						{t("riskManagement")}
-					</h2>
-					{!isEditingRisk && (
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => setIsEditingRisk(true)}
-						>
-							{tCommon("edit")}
-						</Button>
-					)}
-				</div>
-				<p className="mt-s-200 text-tiny text-txt-300">{t("riskManagementDesc")}</p>
-				<div className="mt-m-400 space-y-m-400">
-					{/* Max Monthly Loss */}
-					<div className="flex items-center justify-between gap-m-400">
-						<div className="flex-1">
-							<p className="text-small text-txt-100">{t("maxMonthlyLoss")}</p>
-							<p className="text-tiny text-txt-300">{t("maxMonthlyLossHelp")}</p>
-						</div>
-						{isEditingRisk ? (
-							<div className="flex items-center gap-s-200">
-								<span className="text-small text-txt-300">$</span>
-								<Input
-									type="number"
-									step="0.01"
-									min="0"
-									value={riskForm.maxMonthlyLoss}
-									onChange={(e) =>
-										setRiskForm((prev) => ({
-											...prev,
-											maxMonthlyLoss: e.target.value,
-										}))
-									}
-									className="w-32 text-right"
-									placeholder="0.00"
-								/>
-							</div>
-						) : (
-							<span className="text-small text-txt-200">
-								{account?.maxMonthlyLoss
-									? `$${fromCents(account.maxMonthlyLoss).toFixed(2)}`
-									: "-"}
-							</span>
-						)}
-					</div>
-
-					{/* Allow Second Op After Loss */}
-					<div className="flex items-center justify-between gap-m-400">
-						<div className="flex-1">
-							<p className="text-small text-txt-100">{t("allowSecondOpAfterLoss")}</p>
-							<p className="text-tiny text-txt-300">{t("allowSecondOpAfterLossHelp")}</p>
-						</div>
-						{isEditingRisk ? (
-							<button
-								type="button"
-								role="switch"
-								aria-checked={riskForm.allowSecondOpAfterLoss}
-								aria-label={t("allowSecondOpAfterLoss")}
-								tabIndex={0}
-								onClick={() =>
-									setRiskForm((prev) => ({
-										...prev,
-										allowSecondOpAfterLoss: !prev.allowSecondOpAfterLoss,
-									}))
-								}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault()
-										setRiskForm((prev) => ({
-											...prev,
-											allowSecondOpAfterLoss: !prev.allowSecondOpAfterLoss,
-										}))
-									}
-								}}
-								className={cn(
-									"relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-									riskForm.allowSecondOpAfterLoss ? "bg-trade-buy" : "bg-bg-400"
-								)}
-							>
-								<span
-									className={cn(
-										"pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform",
-										riskForm.allowSecondOpAfterLoss ? "translate-x-5" : "translate-x-0"
-									)}
-								/>
-							</button>
-						) : (
-							<span className="text-small text-txt-200">
-								{(account?.allowSecondOpAfterLoss ?? true) ? tCommon("yes") : tCommon("no")}
-							</span>
-						)}
-					</div>
-
-					{/* Reduce Risk After Loss */}
-					<div className="flex items-center justify-between gap-m-400">
-						<div className="flex-1">
-							<p className="text-small text-txt-100">{t("reduceRiskAfterLoss")}</p>
-							<p className="text-tiny text-txt-300">{t("reduceRiskAfterLossHelp")}</p>
-						</div>
-						{isEditingRisk ? (
-							<button
-								type="button"
-								role="switch"
-								aria-checked={riskForm.reduceRiskAfterLoss}
-								aria-label={t("reduceRiskAfterLoss")}
-								tabIndex={0}
-								onClick={() =>
-									setRiskForm((prev) => ({
-										...prev,
-										reduceRiskAfterLoss: !prev.reduceRiskAfterLoss,
-									}))
-								}
-								onKeyDown={(e) => {
-									if (e.key === "Enter" || e.key === " ") {
-										e.preventDefault()
-										setRiskForm((prev) => ({
-											...prev,
-											reduceRiskAfterLoss: !prev.reduceRiskAfterLoss,
-										}))
-									}
-								}}
-								className={cn(
-									"relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors",
-									riskForm.reduceRiskAfterLoss ? "bg-trade-buy" : "bg-bg-400"
-								)}
-							>
-								<span
-									className={cn(
-										"pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-lg transition-transform",
-										riskForm.reduceRiskAfterLoss ? "translate-x-5" : "translate-x-0"
-									)}
-								/>
-							</button>
-						) : (
-							<span className="text-small text-txt-200">
-								{account?.reduceRiskAfterLoss ? tCommon("yes") : tCommon("no")}
-							</span>
-						)}
-					</div>
-
-					{/* Risk Reduction Factor (only shown when reduceRiskAfterLoss is active) */}
-					{(isEditingRisk ? riskForm.reduceRiskAfterLoss : account?.reduceRiskAfterLoss) && (
-						<div className="flex items-center justify-between gap-m-400">
-							<div className="flex-1">
-								<p className="text-small text-txt-100">{t("riskReductionFactor")}</p>
-								<p className="text-tiny text-txt-300">{t("riskReductionFactorHelp")}</p>
-							</div>
-							{isEditingRisk ? (
-								<Input
-									type="number"
-									step="0.01"
-									min="0.01"
-									max="1"
-									value={riskForm.riskReductionFactor}
-									onChange={(e) =>
-										setRiskForm((prev) => ({
-											...prev,
-											riskReductionFactor: e.target.value,
-										}))
-									}
-									className="w-24 text-right"
-									placeholder="0.50"
-								/>
-							) : (
-								<span className="text-small text-txt-200">
-									{account?.riskReductionFactor || "-"}
-								</span>
-							)}
-						</div>
-					)}
-				</div>
-				{isEditingRisk && (
-					<div className="mt-m-500 flex justify-end gap-s-300">
-						<Button
-							variant="ghost"
-							size="sm"
-							onClick={() => {
-								setIsEditingRisk(false)
-								if (account) {
-									setRiskForm({
-										maxMonthlyLoss: account.maxMonthlyLoss
-											? fromCents(account.maxMonthlyLoss).toString()
-											: "",
-										allowSecondOpAfterLoss: account.allowSecondOpAfterLoss ?? true,
-										reduceRiskAfterLoss: account.reduceRiskAfterLoss ?? false,
-										riskReductionFactor: account.riskReductionFactor || "",
-									})
-								}
-							}}
-							disabled={isPending}
-						>
-							{tCommon("cancel")}
-						</Button>
-						<Button size="sm" onClick={handleSaveRisk} disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{tCommon("save")}
 						</Button>

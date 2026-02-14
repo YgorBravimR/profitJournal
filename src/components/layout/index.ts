@@ -1,5 +1,4 @@
 export { Sidebar } from "./sidebar"
 export { MainLayout } from "./main-layout"
-export { PageHeader } from "./page-header"
 export { AccountSwitcher } from "./account-switcher"
 export { UserMenu } from "./user-menu"

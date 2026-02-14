@@ -17,7 +17,6 @@ import { cn } from "@/lib/utils"
 import { formatDateTime } from "@/lib/dates"
 import { formatCurrency, formatRMultiple } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
-import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -60,28 +59,6 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title={`${trade.asset} Trade`}
-				description={formatDateTime(trade.entryDate)}
-				action={
-					<div className="gap-s-200 flex items-center">
-						<Link href={`/journal/${id}/edit`}>
-							<Button variant="outline">
-								<Edit className="mr-2 h-4 w-4" />
-								Edit
-							</Button>
-						</Link>
-						<DeleteTradeButton tradeId={id} />
-						<Link href="/journal">
-							<Button variant="ghost">
-								<ArrowLeft className="mr-2 h-4 w-4" />
-								Back
-							</Button>
-						</Link>
-					</div>
-				}
-			/>
-
 			<div className="p-m-600 flex-1 overflow-auto">
 				<div className="space-y-m-600 mx-auto max-w-4xl">
 					{/* Header Card */}

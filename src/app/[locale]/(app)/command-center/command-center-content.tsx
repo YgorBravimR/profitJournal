@@ -5,7 +5,6 @@ import {
 	CircuitBreakerPanel,
 	DailyChecklist,
 	ChecklistManager,
-	DailyTargetsForm,
 	PreMarketNotes,
 	PostMarketNotes,
 	AssetRulesPanel,
@@ -14,7 +13,6 @@ import {
 import { DateNavigator } from "@/components/command-center/date-navigator"
 import {
 	getTodayCompletions,
-	getDailyTargets,
 	getTodayNotes,
 	getAssetSettings,
 	getCircuitBreakerStatus,
@@ -26,12 +24,15 @@ import type {
 	DailySummary,
 } from "@/app/actions/command-center"
 import type { CircuitBreakerStatus } from "@/lib/validations/command-center"
-import type { DailyChecklist as DailyChecklistType, DailyTarget, DailyAccountNote, Asset, TradingAccount } from "@/db/schema"
+import type { DailyChecklist as DailyChecklistType, DailyAccountNote, Asset, TradingAccount, MonthlyPlan } from "@/db/schema"
+import { useTranslations } from "next-intl"
+import { useFormatting } from "@/hooks/use-formatting"
+import { fromCents } from "@/lib/money"
+import { CalendarDays, Target, TrendingDown } from "lucide-react"
 
 export interface CommandCenterContentProps {
 	initialChecklists: DailyChecklistType[]
 	initialCompletions: ChecklistWithCompletion[]
-	initialTargets: DailyTarget | null
 	initialNotes: DailyAccountNote | null
 	initialAssetSettings: AssetSettingWithAsset[]
 	initialCircuitBreaker: CircuitBreakerStatus | null
@@ -40,12 +41,12 @@ export interface CommandCenterContentProps {
 	account: TradingAccount | null
 	viewDate: string
 	isToday: boolean
+	initialPlan?: MonthlyPlan | null
 }
 
 export const CommandCenterContent = ({
 	initialChecklists,
 	initialCompletions,
-	initialTargets,
 	initialNotes,
 	initialAssetSettings,
 	initialCircuitBreaker,
@@ -54,12 +55,14 @@ export const CommandCenterContent = ({
 	account,
 	viewDate,
 	isToday,
+	initialPlan,
 }: CommandCenterContentProps) => {
 	const isReadOnly = !isToday
+	const tPlan = useTranslations("commandCenter.plan")
+	const { formatCurrency } = useFormatting()
 
 	// State
 	const [completions, setCompletions] = useState(initialCompletions)
-	const [targets, setTargets] = useState(initialTargets)
 	const [notes, setNotes] = useState(initialNotes)
 	const [assetSettings, setAssetSettings] = useState(initialAssetSettings)
 	const [circuitBreaker, setCircuitBreaker] = useState(initialCircuitBreaker)
@@ -74,18 +77,6 @@ export const CommandCenterContent = ({
 		const result = await getTodayCompletions()
 		if (result.status === "success" && result.data) {
 			setCompletions(result.data)
-		}
-	}, [])
-
-	const refreshTargets = useCallback(async () => {
-		const result = await getDailyTargets()
-		if (result.status === "success") {
-			setTargets(result.data ?? null)
-		}
-		// Also refresh circuit breaker when targets change
-		const cbResult = await getCircuitBreakerStatus()
-		if (cbResult.status === "success" && cbResult.data) {
-			setCircuitBreaker(cbResult.data)
 		}
 	}, [])
 
@@ -139,8 +130,6 @@ export const CommandCenterContent = ({
 			{/* Circuit Breaker Panel - Full Width */}
 			<CircuitBreakerPanel
 				status={circuitBreaker}
-				targets={targets}
-				account={account}
 			/>
 
 			{/* Main Grid */}
@@ -161,12 +150,44 @@ export const CommandCenterContent = ({
 
 				{/* Right Column */}
 				<div className="space-y-m-600">
-					{/* Daily Targets */}
-					<DailyTargetsForm
-						targets={targets}
-						onRefresh={refreshTargets}
-						isReadOnly={isReadOnly}
-					/>
+					{/* Plan summary or "create plan" prompt */}
+					{initialPlan ? (
+						<div className="rounded-lg border border-bg-300 bg-bg-100 p-m-400">
+							<div className="mb-m-400 flex items-center gap-s-200">
+								<CalendarDays className="h-4 w-4 text-acc-100" />
+								<h3 className="text-small font-semibold text-txt-100">{tPlan("title")}</h3>
+							</div>
+							<div className="grid grid-cols-2 gap-m-300">
+								<div className="rounded-md border border-bg-300 bg-bg-200 p-s-300">
+									<div className="flex items-center gap-s-100">
+										<Target className="h-3 w-3 text-acc-100" />
+										<span className="text-tiny text-txt-300">{tPlan("summary.riskPerTrade")}</span>
+									</div>
+									<p className="mt-s-100 text-small font-medium text-txt-100">
+										{formatCurrency(fromCents(initialPlan.riskPerTradeCents))}
+									</p>
+									<p className="text-tiny text-txt-300">{initialPlan.riskPerTradePercent}%</p>
+								</div>
+								<div className="rounded-md border border-bg-300 bg-bg-200 p-s-300">
+									<div className="flex items-center gap-s-100">
+										<TrendingDown className="h-3 w-3 text-trade-sell" />
+										<span className="text-tiny text-txt-300">{tPlan("summary.dailyLossLimit")}</span>
+									</div>
+									<p className="mt-s-100 text-small font-medium text-txt-100">
+										{formatCurrency(fromCents(initialPlan.dailyLossCents))}
+									</p>
+									<p className="text-tiny text-txt-300">{initialPlan.dailyLossPercent}%</p>
+								</div>
+							</div>
+						</div>
+					) : (
+						<div className="rounded-lg border border-dashed border-bg-300 bg-bg-100 p-m-500">
+							<div className="flex flex-col items-center gap-s-300 text-center">
+								<CalendarDays className="h-8 w-8 text-txt-300" />
+								<p className="text-small text-txt-200">{tPlan("noPlanPrompt")}</p>
+							</div>
+						</div>
+					)}
 
 					{/* Post-Market Notes */}
 					<PostMarketNotes notes={notes} onRefresh={refreshNotes} isReadOnly={isReadOnly} />

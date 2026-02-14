@@ -1,7 +1,6 @@
 export { CircuitBreakerPanel } from "./circuit-breaker-panel"
 export { DailyChecklist } from "./daily-checklist"
 export { ChecklistManager } from "./checklist-manager"
-export { DailyTargetsForm } from "./daily-targets-form"
 export { PreMarketNotes } from "./pre-market-notes"
 export { PostMarketNotes } from "./post-market-notes"
 export { AssetRulesPanel } from "./asset-rules-panel"

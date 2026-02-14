@@ -4,7 +4,6 @@ import { useState, useTransition, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { PageHeader } from "@/components/layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -99,19 +98,6 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader
-				title="Edit Strategy"
-				description={`Editing ${strategy.name}`}
-				action={
-					<Link href="/playbook">
-						<Button variant="outline">
-							<ArrowLeft className="mr-2 h-4 w-4" />
-							Back to Playbook
-						</Button>
-					</Link>
-				}
-			/>
-
 			<div className="flex-1 overflow-y-auto p-m-600">
 				<div className="mx-auto max-w-3xl">
 					<form onSubmit={handleSubmit} className="space-y-m-600">

@@ -1,5 +1,6 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Tabs, TabsList, TabsTrigger, AnimatedTabsContent } from "@/components/ui/tabs"
 import { AssetList } from "./asset-list"
@@ -25,9 +26,14 @@ export const SettingsContent = ({
 	isAdmin = false,
 }: SettingsContentProps) => {
 	const t = useTranslations("settings.tabs")
+	const searchParams = useSearchParams()
+
+	const validTabs = ["profile", "account", "tags", "assets", "timeframes"]
+	const tabFromUrl = searchParams.get("tab") ?? ""
+	const defaultTab = validTabs.includes(tabFromUrl) ? tabFromUrl : "profile"
 
 	return (
-		<Tabs defaultValue="profile" className="h-full">
+		<Tabs defaultValue={defaultTab} className="h-full">
 			<TabsList variant="line" className="mb-m-500">
 				<TabsTrigger value="profile" className="gap-s-200">
 					<User className="h-4 w-4" />

@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/routing"
 import { Calculator, TrendingUp, Shield, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { fromCents } from "@/lib/money"
@@ -113,7 +114,13 @@ const CalculatorResults = ({
 					<div>
 						<p className="text-tiny text-txt-300">
 							{t("maxAllowedRisk")}
-							<span className="ml-s-100 text-acc-100">({t("fromSettings")})</span>
+							<Link
+								href="/settings?tab=account"
+								className="ml-s-100 text-acc-100 underline transition-colors hover:text-acc-200"
+								aria-label={t("fromSettings")}
+							>
+								({t("fromSettings")})
+							</Link>
 						</p>
 						<p className="text-body font-semibold text-txt-100">
 							{formatCurrency(result.maxAllowedRiskCents, currency)}

@@ -105,13 +105,19 @@ export const tradingAccounts = pgTable(
 			.default("15.00")
 			.notNull(),
 
-		// Risk settings (per account)
+		// @deprecated Risk settings — replaced by monthlyPlans. Kept for migration compatibility.
 		defaultRiskPerTrade: decimal("default_risk_per_trade", { precision: 5, scale: 2 }),
+		/** @deprecated Use monthlyPlans.dailyLossCents instead */
 		maxDailyLoss: integer("max_daily_loss"), // cents
+		/** @deprecated Use monthlyPlans.maxDailyTrades instead */
 		maxDailyTrades: integer("max_daily_trades"),
+		/** @deprecated Use monthlyPlans.monthlyLossCents instead */
 		maxMonthlyLoss: integer("max_monthly_loss"), // cents
+		/** @deprecated Use monthlyPlans.allowSecondOpAfterLoss instead */
 		allowSecondOpAfterLoss: boolean("allow_second_op_after_loss").default(true),
+		/** @deprecated Use monthlyPlans.reduceRiskAfterLoss instead */
 		reduceRiskAfterLoss: boolean("reduce_risk_after_loss").default(false),
+		/** @deprecated Use monthlyPlans.riskReductionFactor instead */
 		riskReductionFactor: decimal("risk_reduction_factor", { precision: 5, scale: 2 }),
 		defaultCurrency: varchar("default_currency", { length: 3 }).default("BRL").notNull(),
 
@@ -619,7 +625,9 @@ export const checklistCompletions = pgTable(
 	]
 )
 
-// Daily Targets Table (profit/loss targets per account)
+/**
+ * @deprecated Replaced by monthlyPlans. Kept for migration compatibility and historical data.
+ */
 export const dailyTargets = pgTable(
 	"daily_targets",
 	{
@@ -742,6 +750,51 @@ export const accountAssetSettings = pgTable(
 	]
 )
 
+// Monthly Plans Table (monthly risk configuration per account)
+export const monthlyPlans = pgTable(
+	"monthly_plans",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		accountId: uuid("account_id")
+			.notNull()
+			.references(() => tradingAccounts.id, { onDelete: "cascade" }),
+		year: integer("year").notNull(),
+		month: integer("month").notNull(), // 1-12
+
+		// USER INPUTS (required)
+		accountBalance: integer("account_balance").notNull(), // cents
+		riskPerTradePercent: decimal("risk_per_trade_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "1.00" = 1%
+		dailyLossPercent: decimal("daily_loss_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "3.00" = 3%
+		monthlyLossPercent: decimal("monthly_loss_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "10.00" = 10%
+
+		// USER INPUTS (optional)
+		dailyProfitTargetPercent: decimal("daily_profit_target_percent", { precision: 5, scale: 2 }), // nullable
+		maxDailyTrades: integer("max_daily_trades"), // overrides auto-derived
+		maxConsecutiveLosses: integer("max_consecutive_losses"),
+		allowSecondOpAfterLoss: boolean("allow_second_op_after_loss").default(true),
+		reduceRiskAfterLoss: boolean("reduce_risk_after_loss").default(false),
+		riskReductionFactor: decimal("risk_reduction_factor", { precision: 5, scale: 2 }), // multiplier per consecutive loss e.g. 0.50
+		increaseRiskAfterWin: boolean("increase_risk_after_win").default(false),
+		capRiskAfterWin: boolean("cap_risk_after_win").default(false),
+		profitReinvestmentPercent: decimal("profit_reinvestment_percent", { precision: 5, scale: 2 }), // % of profit to add/cap next trade's risk
+		notes: text("notes"),
+
+		// AUTO-DERIVED (computed on save)
+		riskPerTradeCents: integer("risk_per_trade_cents").notNull(), // round(balance * riskPercent / 100)
+		dailyLossCents: integer("daily_loss_cents").notNull(), // round(balance * dailyLossPercent / 100)
+		monthlyLossCents: integer("monthly_loss_cents").notNull(), // round(balance * monthlyLossPercent / 100)
+		dailyProfitTargetCents: integer("daily_profit_target_cents"), // nullable
+		derivedMaxDailyTrades: integer("derived_max_daily_trades"), // floor(dailyLossCents / riskPerTradeCents)
+
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		index("monthly_plans_account_idx").on(table.accountId),
+		uniqueIndex("monthly_plans_account_year_month_idx").on(table.accountId, table.year, table.month),
+	]
+)
+
 // Settings Table (key-value store for misc settings)
 export const settings = pgTable("settings", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -825,6 +878,7 @@ export const tradingAccountsRelations = relations(tradingAccounts, ({ one, many 
 	dailyAccountNotes: many(dailyAccountNotes),
 	dailyAssetSettings: many(dailyAssetSettings),
 	accountAssetSettings: many(accountAssetSettings),
+	monthlyPlans: many(monthlyPlans),
 }))
 
 // Session Relations
@@ -1002,6 +1056,14 @@ export const dailyAssetSettingsRelations = relations(dailyAssetSettings, ({ one 
 	}),
 }))
 
+// Monthly Plans Relations
+export const monthlyPlansRelations = relations(monthlyPlans, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [monthlyPlans.accountId],
+		references: [tradingAccounts.id],
+	}),
+}))
+
 // ==========================================
 // TYPE EXPORTS
 // ==========================================
@@ -1069,7 +1131,9 @@ export type NewDailyChecklist = typeof dailyChecklists.$inferInsert
 export type ChecklistCompletion = typeof checklistCompletions.$inferSelect
 export type NewChecklistCompletion = typeof checklistCompletions.$inferInsert
 
+/** @deprecated Use MonthlyPlan instead */
 export type DailyTarget = typeof dailyTargets.$inferSelect
+/** @deprecated Use NewMonthlyPlan instead */
 export type NewDailyTarget = typeof dailyTargets.$inferInsert
 
 export type DailyAccountNote = typeof dailyAccountNotes.$inferSelect
@@ -1080,3 +1144,6 @@ export type NewDailyAssetSetting = typeof dailyAssetSettings.$inferInsert
 
 export type AccountAssetSetting = typeof accountAssetSettings.$inferSelect
 export type NewAccountAssetSetting = typeof accountAssetSettings.$inferInsert
+
+export type MonthlyPlan = typeof monthlyPlans.$inferSelect
+export type NewMonthlyPlan = typeof monthlyPlans.$inferInsert

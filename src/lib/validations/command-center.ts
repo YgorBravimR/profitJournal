@@ -29,43 +29,6 @@ export const updateCompletionSchema = z.object({
 	completed: z.boolean(),
 })
 
-// Daily targets schema
-export const dailyTargetsSchema = z.object({
-	profitTarget: z.coerce
-		.number()
-		.positive("Profit target must be positive")
-		.max(10000000, "Profit target too large")
-		.optional()
-		.nullable(),
-	lossLimit: z.coerce
-		.number()
-		.positive("Loss limit must be positive")
-		.max(10000000, "Loss limit too large")
-		.optional()
-		.nullable(),
-	maxTrades: z.coerce
-		.number()
-		.int("Max trades must be a whole number")
-		.positive("Max trades must be positive")
-		.max(1000, "Max trades must be 1000 or less")
-		.optional()
-		.nullable(),
-	maxConsecutiveLosses: z.coerce
-		.number()
-		.int("Max consecutive losses must be a whole number")
-		.positive("Max consecutive losses must be positive")
-		.max(100, "Max consecutive losses must be 100 or less")
-		.optional()
-		.nullable(),
-	accountBalance: z.coerce
-		.number()
-		.positive("Account balance must be positive")
-		.max(100000000, "Account balance too large")
-		.optional()
-		.nullable(),
-	isActive: z.boolean().default(true),
-})
-
 // Mood options
 export const moodOptions = ["great", "good", "neutral", "bad", "terrible"] as const
 export type MoodType = (typeof moodOptions)[number]
@@ -121,7 +84,6 @@ export type ChecklistItem = z.infer<typeof checklistItemSchema>
 export type CreateChecklistInput = z.infer<typeof createChecklistSchema>
 export type UpdateChecklistInput = z.infer<typeof updateChecklistSchema>
 export type UpdateCompletionInput = z.infer<typeof updateCompletionSchema>
-export type DailyTargetsInput = z.infer<typeof dailyTargetsSchema>
 export type DailyNotesInput = z.infer<typeof dailyNotesSchema>
 export type AssetSettingsInput = z.infer<typeof assetSettingsSchema>
 
@@ -137,6 +99,14 @@ export interface CircuitBreakerStatus {
 	maxConsecutiveLossesHit: boolean
 	shouldStopTrading: boolean
 	alerts: string[]
+
+	// Resolved limits from monthly plan
+	profitTargetCents: number
+	dailyLossLimitCents: number
+	maxTrades: number | null
+	maxConsecutiveLosses: number | null
+	reduceRiskAfterLoss: boolean
+	riskReductionFactor: string | null
 
 	// Risk dashboard fields
 	riskUsedTodayCents: number

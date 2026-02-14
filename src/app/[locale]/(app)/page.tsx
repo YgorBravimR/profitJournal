@@ -1,5 +1,4 @@
 import { getTranslations, setRequestLocale } from "next-intl/server"
-import { PageHeader } from "@/components/layout"
 import { DashboardContent } from "@/components/dashboard"
 import {
 	getOverallStats,
@@ -48,7 +47,6 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
-			<PageHeader title={t("title")} description={t("description")} />
 			<div className="flex-1 p-m-600">
 				<DashboardContent
 					initialStats={stats}
