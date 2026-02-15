@@ -194,6 +194,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 					</h2>
 					{!isEditingAccount && (
 						<Button
+							id="account-edit-info"
 							variant="ghost"
 							size="sm"
 							onClick={() => setIsEditingAccount(true)}
@@ -209,6 +210,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 						</div>
 						{isEditingAccount ? (
 							<Input
+								id="account-name"
 								value={accountForm.name}
 								onChange={(e) =>
 									setAccountForm((prev) => ({ ...prev, name: e.target.value }))
@@ -230,7 +232,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 									setAccountForm((prev) => ({ ...prev, accountType: value }))
 								}
 							>
-								<SelectTrigger className="w-48">
+								<SelectTrigger id="account-type" className="w-48">
 									<SelectValue />
 								</SelectTrigger>
 								<SelectContent>
@@ -253,6 +255,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							</div>
 							{isEditingAccount ? (
 								<Input
+									id="account-replay-start-date"
 									type="date"
 									value={accountForm.replayStartDate}
 									onChange={(e) =>
@@ -280,6 +283,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 								</div>
 								{isEditingAccount ? (
 									<Input
+										id="account-prop-firm-name"
 										value={accountForm.propFirmName}
 										onChange={(e) =>
 											setAccountForm((prev) => ({
@@ -303,6 +307,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 								{isEditingAccount ? (
 									<div className="flex items-center gap-s-200">
 										<Input
+											id="account-profit-share-percentage"
 											type="number"
 											min="0"
 											max="100"
@@ -330,6 +335,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 				{isEditingAccount && (
 					<div className="mt-m-500 flex justify-end gap-s-300">
 						<Button
+							id="account-cancel-info"
 							variant="ghost"
 							size="sm"
 							onClick={() => {
@@ -352,7 +358,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button size="sm" onClick={handleSaveAccount} disabled={isPending}>
+						<Button id="account-save-info" size="sm" onClick={handleSaveAccount} disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{tCommon("save")}
 						</Button>
@@ -368,6 +374,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 					</h2>
 					{!isEditingAccount && (
 						<Button
+							id="account-edit-fees"
 							variant="ghost"
 							size="sm"
 							onClick={() => setIsEditingAccount(true)}
@@ -387,6 +394,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							<div className="flex items-center gap-s-200">
 								<span className="text-small text-txt-300">$</span>
 								<Input
+									id="account-default-commission"
 									type="number"
 									step="0.01"
 									min="0"
@@ -415,6 +423,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							<div className="flex items-center gap-s-200">
 								<span className="text-small text-txt-300">$</span>
 								<Input
+									id="account-default-fees"
 									type="number"
 									step="0.01"
 									min="0"
@@ -463,10 +472,11 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 								{isEditing ? (
 									<div className="flex items-center gap-s-300">
 										<div className="flex items-center gap-s-200">
-											<Label className="text-tiny text-txt-300">
+											<Label id="label-asset-commission" className="text-tiny text-txt-300">
 												{t("commission")}
 											</Label>
 											<Input
+												id="account-asset-commission"
 												type="number"
 												step="0.01"
 												min="0"
@@ -481,10 +491,11 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 											/>
 										</div>
 										<div className="flex items-center gap-s-200">
-											<Label className="text-tiny text-txt-300">
+											<Label id="label-asset-fees" className="text-tiny text-txt-300">
 												{t("fees")}
 											</Label>
 											<Input
+												id="account-asset-fees"
 												type="number"
 												step="0.01"
 												min="0"
@@ -499,6 +510,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 											/>
 										</div>
 										<Button
+											id={`account-cancel-asset-${asset.id}`}
 											variant="ghost"
 											size="sm"
 											onClick={() => setEditingAssetId(null)}
@@ -507,6 +519,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 											{tCommon("cancel")}
 										</Button>
 										<Button
+											id={`account-save-asset-${asset.id}`}
 											size="sm"
 											onClick={handleSaveAssetFees}
 											disabled={isPending}
@@ -528,6 +541,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 											)}
 										</div>
 										<Button
+											id={`account-edit-asset-${asset.id}`}
 											variant="ghost"
 											size="sm"
 											onClick={() => handleEditAssetFees(asset.id)}

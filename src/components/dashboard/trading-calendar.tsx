@@ -94,6 +94,7 @@ export const TradingCalendar = memo(({ data, month, onMonthChange, onDayClick }:
 				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
 				<div className="flex items-center gap-s-200">
 					<Button
+					id="calendar-previous-month"
 						variant="ghost"
 						size="icon"
 						onClick={handlePreviousMonth}
@@ -105,6 +106,7 @@ export const TradingCalendar = memo(({ data, month, onMonthChange, onDayClick }:
 						{monthName}
 					</span>
 					<Button
+					id="calendar-next-month"
 						variant="ghost"
 						size="icon"
 						onClick={handleNextMonth}

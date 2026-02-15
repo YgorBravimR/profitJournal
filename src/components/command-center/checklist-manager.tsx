@@ -115,7 +115,7 @@ export const ChecklistManager = ({
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent className="max-w-lg">
+			<DialogContent id="checklist-manager-dialog" className="max-w-lg">
 				<DialogHeader>
 					<DialogTitle>
 						{isEditing ? t("editTitle") : t("createTitle")}
@@ -129,6 +129,7 @@ export const ChecklistManager = ({
 							{t("nameLabel")}
 						</label>
 						<Input
+							id="checklist-name"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder={t("namePlaceholder")}
@@ -158,6 +159,7 @@ export const ChecklistManager = ({
 									</button>
 									<div className="flex gap-s-100">
 										<Button
+											id={`checklist-item-move-up-${item.id}`}
 											type="button"
 											variant="ghost"
 											size="sm"
@@ -168,6 +170,7 @@ export const ChecklistManager = ({
 											&uarr;
 										</Button>
 										<Button
+											id={`checklist-item-move-down-${item.id}`}
 											type="button"
 											variant="ghost"
 											size="sm"
@@ -179,12 +182,14 @@ export const ChecklistManager = ({
 										</Button>
 									</div>
 									<Input
+										id={`checklist-item-${item.id}`}
 										value={item.label}
 										onChange={(e) => handleItemChange(item.id, e.target.value)}
 										placeholder={t("itemPlaceholder")}
 										className="flex-1"
 									/>
 									<Button
+										id={`checklist-item-delete-${item.id}`}
 										type="button"
 										variant="ghost"
 										size="sm"
@@ -202,7 +207,7 @@ export const ChecklistManager = ({
 								</div>
 							))}
 						</div>
-						<Button
+						<Button id="checklist-add-item"
 							type="button"
 							variant="ghost"
 							size="sm"
@@ -218,7 +223,7 @@ export const ChecklistManager = ({
 				<DialogFooter className="flex items-center justify-between">
 					<div>
 						{isEditing && (
-							<Button
+							<Button id="checklist-delete"
 								type="button"
 								variant="ghost"
 								onClick={handleDelete}
@@ -231,10 +236,10 @@ export const ChecklistManager = ({
 						)}
 					</div>
 					<div className="flex gap-s-200">
-						<Button type="button" variant="outline" onClick={onClose} disabled={saving}>
+						<Button id="checklist-cancel" type="button" variant="outline" onClick={onClose} disabled={saving}>
 							{t("cancel")}
 						</Button>
-						<Button type="button" onClick={handleSave} disabled={!canSave || saving}>
+						<Button id="checklist-save" type="button" onClick={handleSave} disabled={!canSave || saving}>
 							{saving ? t("saving") : isEditing ? t("update") : t("create")}
 						</Button>
 					</div>

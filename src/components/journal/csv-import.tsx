@@ -329,13 +329,14 @@ export const CsvImport = () => {
 
 							<div className="mt-m-500 flex items-center justify-center gap-m-400">
 								<Button
+									id="csv-import-select-file"
 									variant="default"
 									onClick={() => fileInputRef.current?.click()}
 								>
 									<FileText className="mr-2 h-4 w-4" />
 									{t("selectFile")}
 								</Button>
-								<Button variant="outline" onClick={handleDownloadTemplate}>
+								<Button id="csv-import-download-template" variant="outline" onClick={handleDownloadTemplate}>
 									<Download className="mr-2 h-4 w-4" />
 									{t("downloadTemplate")}
 								</Button>
@@ -358,6 +359,7 @@ export const CsvImport = () => {
 							</span>
 						</div>
 						<Button
+							id="csv-import-clear-file"
 							variant="ghost"
 							size="icon"
 							onClick={handleClear}
@@ -398,7 +400,7 @@ export const CsvImport = () => {
 
 					{/* Actions */}
 					<div className="flex items-center justify-between rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-						<Button variant="outline" onClick={handleClear}>
+						<Button id="csv-import-cancel" variant="outline" onClick={handleClear}>
 							Cancel
 						</Button>
 
@@ -409,6 +411,7 @@ export const CsvImport = () => {
 								</span>
 							)}
 							<Button
+								id="csv-import-submit"
 								onClick={handleImport}
 								disabled={isImporting || selectedCount === 0}
 								className="min-w-[160px]"

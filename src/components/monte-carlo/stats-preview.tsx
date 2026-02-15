@@ -110,10 +110,10 @@ export const StatsPreview = ({
 
 			{/* Actions */}
 			<div className="gap-s-200 flex">
-				<Button size="sm" onClick={onUseStats} className="flex-1">
+				<Button id="monte-carlo-use-stats" size="sm" onClick={onUseStats} className="flex-1">
 					{t("useStats")}
 				</Button>
-				<Button
+				<Button id="monte-carlo-customize"
 					size="sm"
 					variant="outline"
 					onClick={onCustomize}

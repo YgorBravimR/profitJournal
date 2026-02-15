@@ -43,7 +43,9 @@
 		"hideDetails": "Ocultar Detalhes",
 		"version": "Trading Journal v1.0",
 		"expandSidebar": "Expandir menu",
-		"collapseSidebar": "Recolher menu"
+		"collapseSidebar": "Recolher menu",
+		"openMenu": "Abrir menu",
+		"closeMenu": "Fechar menu"
 	},
 	"nav": {
 		"dashboard": "Painel",
@@ -144,7 +146,9 @@
 			"allStrategiesDesc": "Métricas combinadas de todas as estratégias",
 			"universal": "Todas as Contas + Todas as Estratégias",
 			"universalDesc": "Métricas universais de todas as contas",
-			"trades": "trades"
+			"trades": "trades",
+			"minTrades": "mín. {min}",
+			"minTradesHint": "Mínimo de {min} trades fechados para simulação"
 		},
 		"statsPreview": {
 			"winRate": "Taxa de Acerto",
@@ -1323,7 +1327,8 @@
 			"tickSize": "Tamanho do Tick",
 			"tickSizePlaceholder": "5",
 			"tickValue": "Valor do Tick",
-			"tickValuePlaceholder": "0.20",
+			"tickValuePlaceholder": "1.00",
+			"tickValueHint": "Valor por tick (tamanho do tick x valor do ponto). Ex: WINFUT: 5 x R$0,20 = R$1,00",
 			"currency": "Moeda",
 			"multiplier": "Multiplicador",
 			"commission": "Comissão",

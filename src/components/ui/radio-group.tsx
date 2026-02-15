@@ -6,10 +6,14 @@ import { CircleIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-function RadioGroup({
+interface RadioGroupProps extends React.ComponentProps<typeof RadioGroupPrimitive.Root> {
+  id: string
+}
+
+const RadioGroup = ({
   className,
   ...props
-}: React.ComponentProps<typeof RadioGroupPrimitive.Root>) {
+}: RadioGroupProps) => {
   return (
     <RadioGroupPrimitive.Root
       data-slot="radio-group"
@@ -19,10 +23,14 @@ function RadioGroup({
   )
 }
 
-function RadioGroupItem({
+interface RadioGroupItemProps extends React.ComponentProps<typeof RadioGroupPrimitive.Item> {
+  id: string
+}
+
+const RadioGroupItem = ({
   className,
   ...props
-}: React.ComponentProps<typeof RadioGroupPrimitive.Item>) {
+}: RadioGroupItemProps) => {
   return (
     <RadioGroupPrimitive.Item
       data-slot="radio-group-item"

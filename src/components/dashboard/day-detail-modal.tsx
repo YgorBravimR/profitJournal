@@ -73,7 +73,7 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+			<DialogContent id="day-detail-dialog" className="max-h-[90vh] max-w-3xl overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="capitalize">{dayName}</DialogTitle>
 				</DialogHeader>

@@ -36,6 +36,7 @@ const StatLabel = ({
 			</p>
 		</TooltipTrigger>
 		<TooltipContent
+			id="tooltip-r-distribution-stat"
 			side="top"
 			className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
 		>
@@ -157,7 +158,7 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 			</div>
 
 			{/* Chart */}
-			<ChartContainer className="mt-m-500 h-64">
+			<ChartContainer id="chart-analytics-r-distribution" className="mt-m-500 h-64">
 					<BarChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 10, bottom: 20 }}

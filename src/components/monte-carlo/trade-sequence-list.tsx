@@ -110,7 +110,7 @@ export const TradeSequenceList = ({
 
 			{hasMore && (
 				<div className="mt-s-300 text-center">
-					<Button
+					<Button id="monte-carlo-toggle-trades"
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowAll(!showAll)}

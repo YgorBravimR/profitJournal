@@ -14,9 +14,9 @@ import bcrypt from "bcryptjs"
  *   3. Demo Account - empty (no trades)
  *
  * B3 Trading Hours: 09:00-17:55 (São Paulo, UTC-3)
- * Asset P&L Calculations:
- * - WINFUT: R$0.20 per point per contract
- * - WDOFUT: R$10.00 per point per contract
+ * Asset P&L Calculations (per point per contract):
+ * - WINFUT: R$0.20/pt (tick_size=5, tick_value=R$1.00/tick = 100 cents)
+ * - WDOFUT: R$10.00/pt (tick_size=0.5, tick_value=R$5.00/tick = 500 cents)
  *
  * Date Range: November 1, 2025 to January 31, 2026
  */
@@ -222,10 +222,13 @@ const runSeed = async () => {
 	const assetTypes = await sql`SELECT id, code FROM asset_types`
 	const typeMap = new Map(assetTypes.map((t) => [t.code, t.id]))
 
+	// tick_value is stored in cents per tick (1 tick = tickSize points)
+	// WINFUT: R$0.20/pt × 5 pts/tick = R$1.00/tick = 100 cents
+	// WDOFUT: R$10.00/pt × 0.5 pts/tick = R$5.00/tick = 500 cents
 	await sql`
 		INSERT INTO assets (id, symbol, name, asset_type_id, tick_size, tick_value, currency, multiplier, is_active) VALUES
-			(gen_random_uuid(), 'WINFUT', 'Mini Índice Bovespa', ${typeMap.get("FUTURE_INDEX")}, 5, 2000, 'BRL', 1, true),
-			(gen_random_uuid(), 'WDOFUT', 'Mini Dólar', ${typeMap.get("FUTURE_FX")}, 0.5, 1000, 'BRL', 1, true)
+			(gen_random_uuid(), 'WINFUT', 'Mini Índice Bovespa', ${typeMap.get("FUTURE_INDEX")}, 5, 100, 'BRL', 1, true),
+			(gen_random_uuid(), 'WDOFUT', 'Mini Dólar', ${typeMap.get("FUTURE_FX")}, 0.5, 500, 'BRL', 1, true)
 		ON CONFLICT (symbol) DO UPDATE SET name = EXCLUDED.name, tick_size = EXCLUDED.tick_size, tick_value = EXCLUDED.tick_value
 	`
 	console.log("✅ Assets seeded")

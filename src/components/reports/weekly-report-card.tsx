@@ -78,7 +78,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 					</p>
 				</div>
 				<div className="gap-s-200 flex items-center">
-					<Button
+					<Button id="weekly-report-previous-week"
 						variant="ghost"
 						size="sm"
 						onClick={() => handleWeekChange(weekOffset + 1)}
@@ -87,7 +87,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
 					<span className="text-small text-txt-200">{weekLabel}</span>
-					<Button
+					<Button id="weekly-report-next-week"
 						variant="ghost"
 						size="sm"
 						onClick={() => handleWeekChange(Math.max(0, weekOffset - 1))}
@@ -198,7 +198,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 					</div>
 
 					{/* Expand/Collapse */}
-					<Button
+					<Button id="weekly-report-toggle-details"
 						variant="ghost"
 						size="sm"
 						className="mt-m-400 w-full"
@@ -263,7 +263,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 												className="bg-bg-100 px-s-300 py-s-200 hover:bg-bg-300 flex items-center justify-between rounded transition-colors"
 											>
 												<div className="gap-s-200 flex items-center">
-													<Badge variant="outline" className="text-tiny">
+													<Badge id={`badge-weekly-win-${trade.id}`} variant="outline" className="text-tiny">
 														{trade.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">
@@ -301,7 +301,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 												className="bg-bg-100 px-s-300 py-s-200 hover:bg-bg-300 flex items-center justify-between rounded transition-colors"
 											>
 												<div className="gap-s-200 flex items-center">
-													<Badge variant="outline" className="text-tiny">
+													<Badge id={`badge-weekly-loss-${trade.id}`} variant="outline" className="text-tiny">
 														{trade.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">

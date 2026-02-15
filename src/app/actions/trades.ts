@@ -1318,10 +1318,22 @@ export const recalculateRValues = async (): Promise<
 > => {
 	try {
 		const { accountId } = await requireAuth()
-		// Get all non-archived trades that have stopLoss but missing plannedRiskAmount
 		const allTrades = await db.query.trades.findMany({
 			where: and(eq(trades.accountId, accountId), eq(trades.isArchived, false)),
 		})
+
+		// Build asset config map upfront to avoid per-trade DB queries
+		const uniqueAssets = [...new Set(allTrades.map((t) => t.asset))]
+		const assetMap = new Map<string, { tickSize: number; tickValue: number }>()
+		for (const symbol of uniqueAssets) {
+			const assetConfig = await getAssetBySymbol(symbol)
+			if (assetConfig) {
+				assetMap.set(symbol, {
+					tickSize: parseFloat(assetConfig.tickSize),
+					tickValue: fromCents(assetConfig.tickValue),
+				})
+			}
+		}
 
 		let updatedCount = 0
 
@@ -1330,31 +1342,33 @@ export const recalculateRValues = async (): Promise<
 			const takeProfit = trade.takeProfit ? Number(trade.takeProfit) : null
 			const entryPrice = Number(trade.entryPrice)
 			const positionSize = Number(trade.positionSize)
-			// pnl is stored in cents, convert to dollars for calculation
-			const pnlCents = trade.pnl
-			const pnl = pnlCents !== null ? pnlCents / 100 : null
+			const pnl = trade.pnl !== null ? fromCents(trade.pnl) : null
 
 			// Only process trades that have stopLoss and entry data
 			if (!stopLoss || !entryPrice || !positionSize) continue
 
-			// Calculate plannedRiskAmount from stopLoss (in dollars)
-			const riskPerUnit =
-				trade.direction === "long"
-					? entryPrice - stopLoss
-					: stopLoss - entryPrice
-			const plannedRiskAmount = Math.abs(riskPerUnit * positionSize)
+			// Calculate plannedRiskAmount using asset tick config when available
+			const priceDiff = Math.abs(entryPrice - stopLoss)
+			const assetConfig = assetMap.get(trade.asset.toUpperCase())
+			let plannedRiskAmount: number
 
-			// Skip if risk is 0 or negative
+			if (assetConfig) {
+				const ticksAtRisk = priceDiff / assetConfig.tickSize
+				plannedRiskAmount = ticksAtRisk * assetConfig.tickValue * positionSize
+			} else {
+				plannedRiskAmount = priceDiff * positionSize
+			}
+
 			if (plannedRiskAmount <= 0) continue
 
 			// Calculate plannedRMultiple from take profit (reward/risk ratio)
 			let plannedRMultiple: number | null = null
-			if (takeProfit && riskPerUnit !== 0) {
-				const rewardPerUnit =
-					trade.direction === "long"
-						? takeProfit - entryPrice
-						: entryPrice - takeProfit
-				plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+			if (takeProfit) {
+				const riskPerUnit = Math.abs(entryPrice - stopLoss)
+				const rewardPerUnit = Math.abs(takeProfit - entryPrice)
+				if (riskPerUnit > 0) {
+					plannedRMultiple = rewardPerUnit / riskPerUnit
+				}
 			}
 
 			// Calculate realizedR if we have pnl
@@ -1363,7 +1377,6 @@ export const recalculateRValues = async (): Promise<
 				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 			}
 
-			// Update the trade - money fields stored as cents
 			await db
 				.update(trades)
 				.set({
@@ -1376,7 +1389,6 @@ export const recalculateRValues = async (): Promise<
 			updatedCount++
 		}
 
-		// Revalidate all pages that might show trade data
 		revalidatePath("/")
 		revalidatePath("/journal")
 		revalidatePath("/analytics")
@@ -1480,10 +1492,24 @@ export const recalculateAllTradesPnL = async (): Promise<
 
 			const outcome = determineOutcome(pnl)
 
-			// Recalculate realized R-multiple if risk data exists
-			const plannedRiskAmount = trade.plannedRiskAmount
-				? fromCents(trade.plannedRiskAmount)
-				: null
+			// Recalculate plannedRiskAmount from stop loss using current asset tick config
+			let plannedRiskAmount: number | null = null
+			const stopLoss = trade.stopLoss ? Number(trade.stopLoss) : null
+			if (stopLoss && entryPrice) {
+				const priceDiff = Math.abs(entryPrice - stopLoss)
+				if (assetConfig) {
+					const tickSize = parseFloat(assetConfig.tickSize)
+					const tickValue = fromCents(assetConfig.tickValue)
+					const ticksAtRisk = priceDiff / tickSize
+					plannedRiskAmount = ticksAtRisk * tickValue * positionSize
+				} else {
+					plannedRiskAmount = priceDiff * positionSize
+				}
+			} else if (trade.plannedRiskAmount) {
+				// Fallback to existing value if no stop loss to recalculate from
+				plannedRiskAmount = fromCents(trade.plannedRiskAmount)
+			}
+
 			const realizedRMultiple =
 				plannedRiskAmount && plannedRiskAmount > 0
 					? calculateRMultiple(pnl, plannedRiskAmount)
@@ -1494,6 +1520,7 @@ export const recalculateAllTradesPnL = async (): Promise<
 				.set({
 					pnl: toCents(pnl),
 					outcome,
+					plannedRiskAmount: plannedRiskAmount !== null ? toCents(plannedRiskAmount) : trade.plannedRiskAmount,
 					realizedRMultiple: realizedRMultiple?.toString() ?? null,
 				})
 				.where(eq(trades.id, trade.id))

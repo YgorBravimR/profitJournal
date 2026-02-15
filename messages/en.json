@@ -43,7 +43,9 @@
 		"hideDetails": "Hide Details",
 		"version": "Trading Journal v1.0",
 		"expandSidebar": "Expand sidebar",
-		"collapseSidebar": "Collapse sidebar"
+		"collapseSidebar": "Collapse sidebar",
+		"openMenu": "Open menu",
+		"closeMenu": "Close menu"
 	},
 	"nav": {
 		"dashboard": "Dashboard",
@@ -144,7 +146,9 @@
 			"allStrategiesDesc": "Combined metrics from all strategies",
 			"universal": "All Accounts + All Strategies",
 			"universalDesc": "Universal metrics across all accounts",
-			"trades": "trades"
+			"trades": "trades",
+			"minTrades": "min. {min}",
+			"minTradesHint": "At least {min} closed trades required for simulation"
 		},
 		"statsPreview": {
 			"winRate": "Win Rate",
@@ -1323,7 +1327,8 @@
 			"tickSize": "Tick Size",
 			"tickSizePlaceholder": "5",
 			"tickValue": "Tick Value",
-			"tickValuePlaceholder": "0.20",
+			"tickValuePlaceholder": "1.00",
+			"tickValueHint": "Value per tick (tick size x point value). E.g. WINFUT: 5 x R$0.20 = R$1.00",
 			"currency": "Currency",
 			"multiplier": "Multiplier",
 			"commission": "Commission",

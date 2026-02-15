@@ -140,7 +140,7 @@ export const MonteCarloContent = ({
 					<h1 className="text-h3 text-txt-100 font-bold">{t("title")}</h1>
 					<p className="mt-s-100 text-small text-txt-300">{t("subtitle")}</p>
 				</div>
-				<Button variant="ghost" size="sm" className="text-txt-300">
+				<Button id="monte-carlo-help" variant="ghost" size="sm" className="text-txt-300">
 					<HelpCircle className="mr-s-100 h-4 w-4" />
 					{t("help")}
 				</Button>
@@ -186,7 +186,7 @@ export const MonteCarloContent = ({
 
 					{/* Run Button */}
 					<div className="flex justify-center">
-						<Button
+						<Button id="monte-carlo-run-simulation"
 							size="lg"
 							onClick={handleRunSimulation}
 							disabled={isRunning}
@@ -232,7 +232,7 @@ export const MonteCarloContent = ({
 								1:{params.rewardRiskRatio}
 							</span>
 						</div>
-						<Button variant="outline" size="sm" onClick={handleRunAgain}>
+						<Button id="monte-carlo-run-again" variant="outline" size="sm" onClick={handleRunAgain}>
 							<Dices className="mr-s-100 h-4 w-4" />
 							{t("results.runAgain")}
 						</Button>

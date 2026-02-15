@@ -177,6 +177,7 @@ const UserProfileSettings = () => {
 					</h2>
 					{!isEditingProfile ? (
 						<Button
+							id="profile-edit-info"
 							variant="ghost"
 							size="sm"
 							onClick={handleStartEditProfile}
@@ -192,6 +193,7 @@ const UserProfileSettings = () => {
 						</div>
 						{isEditingProfile ? (
 							<Input
+								id="profile-name"
 								value={profileForm.name}
 								onChange={handleProfileNameChange}
 								className="w-64"
@@ -211,6 +213,7 @@ const UserProfileSettings = () => {
 				{isEditingProfile ? (
 					<div className="mt-m-500 flex justify-end gap-s-300">
 						<Button
+							id="profile-cancel-info"
 							variant="ghost"
 							size="sm"
 							onClick={handleCancelEditProfile}
@@ -218,7 +221,7 @@ const UserProfileSettings = () => {
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button size="sm" onClick={handleSaveProfile} disabled={isPending}>
+						<Button id="profile-save-info" size="sm" onClick={handleSaveProfile} disabled={isPending}>
 							{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
 							{tCommon("save")}
 						</Button>
@@ -234,6 +237,7 @@ const UserProfileSettings = () => {
 					</h2>
 					{!isChangingPassword ? (
 						<Button
+							id="profile-edit-password"
 							variant="ghost"
 							size="sm"
 							onClick={handleStartChangePassword}
@@ -245,7 +249,7 @@ const UserProfileSettings = () => {
 				{isChangingPassword ? (
 					<div className="mt-m-400 space-y-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="currentPassword">{t("currentPassword")}</Label>
+							<Label id="label-current-password" htmlFor="currentPassword">{t("currentPassword")}</Label>
 							<Input
 								id="currentPassword"
 								type="password"
@@ -254,7 +258,7 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="newPassword">{t("newPassword")}</Label>
+							<Label id="label-new-password" htmlFor="newPassword">{t("newPassword")}</Label>
 							<Input
 								id="newPassword"
 								type="password"
@@ -263,7 +267,7 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="confirmPassword">{t("confirmNewPassword")}</Label>
+							<Label id="label-confirm-new-password" htmlFor="confirmPassword">{t("confirmNewPassword")}</Label>
 							<Input
 								id="confirmPassword"
 								type="password"
@@ -273,6 +277,7 @@ const UserProfileSettings = () => {
 						</div>
 						<div className="flex justify-end gap-s-300">
 							<Button
+								id="profile-cancel-password"
 								variant="ghost"
 								size="sm"
 								onClick={handleCancelChangePassword}
@@ -281,6 +286,7 @@ const UserProfileSettings = () => {
 								{tCommon("cancel")}
 							</Button>
 							<Button
+								id="profile-save-password"
 								size="sm"
 								onClick={handleChangePassword}
 								disabled={isPending}
@@ -312,6 +318,7 @@ const UserProfileSettings = () => {
 							</p>
 						</div>
 						<Switch
+							id="show-all-accounts"
 							checked={showAllAccounts}
 							onCheckedChange={handleToggleShowAllAccounts}
 							disabled={isPending}

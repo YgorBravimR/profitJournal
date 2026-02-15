@@ -20,7 +20,7 @@ const Error = (props: {
 
 	return (
 		<div className="bg-bg-100 p-m-600 flex min-h-screen items-center justify-center">
-			<Card className="bg-bg-200 p-l-700 max-w-lg shadow-xl">
+			<Card id="error-boundary-card" className="bg-bg-200 p-l-700 max-w-lg shadow-xl">
 				<div className="flex flex-col items-center text-center">
 					<div className="bg-fb-error/20 p-m-600 rounded-full">
 						<AlertTriangle className="text-fb-error h-12 w-12" />
@@ -45,13 +45,14 @@ const Error = (props: {
 
 					<div className="mt-l-700 gap-m-400 flex">
 						<Button
+						id="error-try-again"
 							onClick={reset}
 							className="bg-acc-100 text-bg-100 hover:bg-acc-100/90"
 							type="button"
 						>
 							Try Again
 						</Button>
-						<Button variant="ghost" onClick={() => window.location.reload()}>
+						<Button id="error-reload-page" variant="ghost" onClick={() => window.location.reload()}>
 							Reload Page
 						</Button>
 					</div>

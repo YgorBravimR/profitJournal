@@ -78,7 +78,7 @@ export const UserMenu = ({ isCollapsed }: UserMenuProps) => {
 						</span>
 					</button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent side="right" align="end" className="w-56">
+				<DropdownMenuContent id="dropdown-user-menu-collapsed" side="right" align="end" className="w-56">
 					<DropdownMenuLabel>
 						<p className="truncate">{user?.name}</p>
 						<p className="text-xs font-normal text-txt-300 truncate">
@@ -133,7 +133,7 @@ export const UserMenu = ({ isCollapsed }: UserMenuProps) => {
 					</div>
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent side="right" align="end" className="w-56">
+			<DropdownMenuContent id="dropdown-user-menu-expanded" side="right" align="end" className="w-56">
 				<DropdownMenuLabel>
 					<p className="truncate">{user?.name}</p>
 					<p className="text-xs font-normal text-txt-300 truncate">

@@ -4,6 +4,7 @@ import { useState, useEffect, type ReactElement } from "react"
 import { ResponsiveContainer } from "recharts"
 
 interface ChartContainerProps {
+	id: string
 	children: ReactElement
 	className?: string
 }
@@ -18,7 +19,7 @@ interface ChartContainerProps {
  * With:
  *   <ChartContainer className="h-64">{chart}</ChartContainer>
  */
-const ChartContainer = ({ children, className }: ChartContainerProps) => {
+const ChartContainer = ({ id, children, className }: ChartContainerProps) => {
 	const [mounted, setMounted] = useState(false)
 
 	useEffect(() => {
@@ -26,11 +27,11 @@ const ChartContainer = ({ children, className }: ChartContainerProps) => {
 	}, [])
 
 	if (!mounted) {
-		return <div className={className} />
+		return <div id={id} className={className} />
 	}
 
 	return (
-		<div className={className}>
+		<div id={id} className={className}>
 			<ResponsiveContainer
 				width="100%"
 				height="100%"

@@ -70,7 +70,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 					</p>
 				</div>
 				<div className="flex items-center gap-s-200">
-					<Button
+					<Button id="monthly-report-previous-month"
 						variant="ghost"
 						size="sm"
 						onClick={() => handleMonthChange(monthOffset + 1)}
@@ -79,7 +79,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 						<ChevronLeft className="h-4 w-4" />
 					</Button>
 					<span className="text-small text-txt-200">{monthLabel}</span>
-					<Button
+					<Button id="monthly-report-next-month"
 						variant="ghost"
 						size="sm"
 						onClick={() => handleMonthChange(Math.max(0, monthOffset - 1))}
@@ -185,7 +185,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 					</div>
 
 					{/* Expand/Collapse */}
-					<Button
+					<Button id="monthly-report-toggle-details"
 						variant="ghost"
 						size="sm"
 						className="mt-m-400 w-full"
@@ -251,7 +251,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 												className="flex items-center justify-between rounded bg-bg-100 px-s-300 py-s-200"
 											>
 												<div className="flex items-center gap-s-200">
-													<Badge variant="outline" className="text-tiny">
+													<Badge id={`badge-monthly-asset-${asset.asset}`} variant="outline" className="text-tiny">
 														{asset.asset}
 													</Badge>
 													<span className="text-tiny text-txt-300">

@@ -127,7 +127,7 @@ export const TimeframeForm = ({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md">
+			<DialogContent id="timeframe-form-dialog" className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
 						{timeframe ? t("editTimeframe") : t("addTimeframe")}
@@ -146,7 +146,7 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-2 gap-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="code">{t("code")}</Label>
+							<Label id="label-timeframe-code" htmlFor="code">{t("code")}</Label>
 							<Input
 								id="code"
 								placeholder={t("codePlaceholder")}
@@ -159,7 +159,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="type">{t("type")}</Label>
+							<Label id="label-timeframe-type" htmlFor="type">{t("type")}</Label>
 							<Select
 								value={formData.type}
 								onValueChange={(value) => {
@@ -182,7 +182,7 @@ export const TimeframeForm = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="name">{t("name")}</Label>
+						<Label id="label-timeframe-name" htmlFor="name">{t("name")}</Label>
 						<Input
 							id="name"
 							placeholder={t("namePlaceholder")}
@@ -194,7 +194,7 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-3 gap-m-400">
 						<div className="space-y-s-200">
-							<Label htmlFor="value">{t("value")}</Label>
+							<Label id="label-timeframe-value" htmlFor="value">{t("value")}</Label>
 							<Input
 								id="value"
 								type="number"
@@ -206,7 +206,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="unit">{t("unit")}</Label>
+							<Label id="label-timeframe-unit" htmlFor="unit">{t("unit")}</Label>
 							<Select
 								value={formData.unit}
 								onValueChange={(value) => handleChange("unit", value)}
@@ -225,7 +225,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label htmlFor="sortOrder">{t("sortOrder")}</Label>
+							<Label id="label-timeframe-sort-order" htmlFor="sortOrder">{t("sortOrder")}</Label>
 							<Input
 								id="sortOrder"
 								type="number"
@@ -238,13 +238,14 @@ export const TimeframeForm = ({
 
 					<DialogFooter>
 						<Button
+							id="timeframe-form-cancel"
 							type="button"
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button type="submit" disabled={isPending}>
+						<Button id="timeframe-form-submit" type="submit" disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{timeframe ? tCommon("saveChanges") : t("addTimeframe")}
 						</Button>

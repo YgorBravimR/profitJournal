@@ -132,7 +132,7 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("time.dayOfWeekTitle")}
 			</h3>
-			<ChartContainer className="h-[250px] w-full">
+			<ChartContainer id="chart-analytics-day-of-week" className="h-[250px] w-full">
 					<BarChart data={tradingDays} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
 						<CartesianGrid
 							strokeDasharray="3 3"

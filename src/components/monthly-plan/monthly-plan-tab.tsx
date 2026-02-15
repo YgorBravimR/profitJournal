@@ -105,7 +105,7 @@ export const MonthlyPlanTab = ({
 				</div>
 
 				<div className="flex items-center gap-s-200">
-					<Button
+					<Button id="plan-previous-month"
 						variant="ghost"
 						size="icon"
 						onClick={() => handleNavigateMonth(-1)}
@@ -117,7 +117,7 @@ export const MonthlyPlanTab = ({
 					<span className="min-w-[140px] text-center text-small font-medium text-txt-100">
 						{monthLabel}
 					</span>
-					<Button
+					<Button id="plan-next-month"
 						variant="ghost"
 						size="icon"
 						onClick={() => handleNavigateMonth(1)}
@@ -131,7 +131,7 @@ export const MonthlyPlanTab = ({
 				{/* Action buttons */}
 				<div className="flex items-center gap-s-200">
 					{plan && !isEditing && (
-						<Button
+						<Button id="plan-edit"
 							variant="outline"
 							size="sm"
 							onClick={() => setIsEditing(true)}
@@ -155,7 +155,7 @@ export const MonthlyPlanTab = ({
 						<p className="text-tiny text-txt-300">{t("noPlanPrompt")}</p>
 					</div>
 					<div className="flex gap-s-200">
-						<Button
+						<Button id="plan-copy-from-last-month"
 							variant="outline"
 							size="sm"
 							onClick={handleCopyFromLastMonth}
@@ -165,7 +165,7 @@ export const MonthlyPlanTab = ({
 							<Copy className="mr-s-100 h-3.5 w-3.5" />
 							{t("copyFromLastMonth")}
 						</Button>
-						<Button
+						<Button id="plan-create"
 							size="sm"
 							onClick={() => setIsEditing(true)}
 							aria-label={t("createPlan")}

@@ -162,10 +162,12 @@ export interface AssetPnLResult {
 
 /**
  * Calculate P&L for a trade using asset configuration (tick size, tick value)
- * Example: WINFUT with tickSize=5, tickValue=0.20
+ * tickValue = value per tick (one minimum price fluctuation), NOT per point
+ *
+ * Example: WINFUT with tickSize=5, tickValue=1.00 (R$0.20/pt × 5 pts/tick)
  * Entry: 128000, Exit: 128050, Size: 2 contracts
  * Ticks gained: (128050 - 128000) / 5 = 10 ticks
- * Gross P&L: 10 * 0.20 * 2 = R$4.00
+ * Gross P&L: 10 * 1.00 * 2 = R$20.00
  *
  * Costs calculation:
  * - Each trade has at least 2 executions per contract (entry + exit)

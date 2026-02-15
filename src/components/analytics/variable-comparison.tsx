@@ -37,6 +37,7 @@ const HeaderWithTooltip = ({
 			</span>
 		</TooltipTrigger>
 		<TooltipContent
+			id="tooltip-variable-comparison-header"
 			side="top"
 			className="border-bg-300 bg-bg-100 text-acc-100 p-s-300 max-w-xs border shadow-lg"
 		>
@@ -201,7 +202,7 @@ export const VariableComparison = ({
 					{t("noData")}
 				</div>
 			) : (
-				<ChartContainer className="mt-m-400 h-80">
+				<ChartContainer id="chart-analytics-variable-comparison" className="mt-m-400 h-80">
 						<BarChart
 							data={chartData}
 							margin={{ top: 10, right: 10, left: 10, bottom: 40 }}

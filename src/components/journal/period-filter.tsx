@@ -120,6 +120,7 @@ export const PeriodFilter = ({
 					</div>
 					<div className="flex gap-s-100">
 						<Button
+							id="period-filter-cancel"
 							variant="outline"
 							size="sm"
 							onClick={handleCustomCancel}
@@ -127,6 +128,7 @@ export const PeriodFilter = ({
 							{t("period.cancel")}
 						</Button>
 						<Button
+							id="period-filter-apply"
 							size="sm"
 							onClick={handleCustomApply}
 							disabled={!tempFrom || !tempTo}

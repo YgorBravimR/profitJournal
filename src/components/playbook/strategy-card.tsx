@@ -58,6 +58,7 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 				{/* Menu */}
 				<div className="relative">
 					<Button
+					id="playbook-strategy-menu"
 						variant="ghost"
 						size="sm"
 						className="h-8 w-8 p-0"

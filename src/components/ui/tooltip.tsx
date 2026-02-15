@@ -34,12 +34,16 @@ function TooltipTrigger({
 	return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
 }
 
-function TooltipContent({
+interface TooltipContentProps extends React.ComponentProps<typeof TooltipPrimitive.Content> {
+	id: string
+}
+
+const TooltipContent = ({
 	className,
 	sideOffset = 8,
 	children,
 	...props
-}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+}: TooltipContentProps) => {
 	return (
 		<TooltipPrimitive.Portal>
 			<TooltipPrimitive.Content

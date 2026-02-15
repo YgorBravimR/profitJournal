@@ -84,6 +84,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 					<div className="relative">
 						<Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-txt-300" />
 						<Input
+							id="asset-search"
 							placeholder={t("searchAssets")}
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
@@ -92,6 +93,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 					</div>
 					<div className="flex gap-s-200">
 						<Badge
+							id="badge-asset-filter-all"
 							variant={filterType === null ? "default" : "outline"}
 							className="cursor-pointer"
 							onClick={() => setFilterType(null)}
@@ -100,6 +102,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 						</Badge>
 						{assetTypes.map((type) => (
 							<Badge
+								id={`badge-asset-filter-${type.id}`}
 								key={type.id}
 								variant={filterType === type.id ? "default" : "outline"}
 								className="cursor-pointer"
@@ -114,6 +117,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 				</div>
 				<div className="flex items-center gap-s-300">
 					<Button
+						id="asset-toggle-inactive"
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowInactive(!showInactive)}
@@ -126,7 +130,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 						)}
 						{showInactive ? t("showingInactive") : t("hidingInactive")}
 					</Button>
-					<Button onClick={() => setFormOpen(true)}>
+					<Button id="asset-add-new" onClick={() => setFormOpen(true)}>
 						<Plus className="mr-2 h-4 w-4" />
 						{t("addAsset")}
 					</Button>
@@ -193,7 +197,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 										{asset.name}
 									</td>
 									<td className="px-m-400 py-s-300">
-										<Badge variant="outline" className="text-tiny">
+										<Badge id={`badge-asset-type-${asset.id}`} variant="outline" className="text-tiny">
 											{asset.assetType.name}
 										</Badge>
 									</td>
@@ -208,6 +212,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 									</td>
 									<td className="px-m-400 py-s-300 text-center">
 										<Badge
+											id={`badge-asset-status-${asset.id}`}
 											variant={asset.isActive ? "default" : "secondary"}
 											className="text-tiny"
 										>
@@ -221,6 +226,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 											) : (
 												<>
 													<Button
+														id={`asset-edit-${asset.id}`}
 														variant="ghost"
 														size="sm"
 														onClick={() => handleEdit(asset)}
@@ -230,6 +236,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 														<Pencil className="h-4 w-4" aria-hidden="true" />
 													</Button>
 													<Button
+														id={`asset-toggle-active-${asset.id}`}
 														variant="ghost"
 														size="sm"
 														onClick={() => handleToggleActive(asset)}
@@ -243,6 +250,7 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 														)}
 													</Button>
 													<Button
+														id={`asset-delete-${asset.id}`}
 														variant="ghost"
 														size="sm"
 														onClick={() => handleDelete(asset)}

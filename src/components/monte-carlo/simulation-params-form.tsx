@@ -50,7 +50,7 @@ export const SimulationParamsForm = ({
 			<div className="gap-m-400 grid md:grid-cols-3">
 				{/* Initial Balance */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-initial-balance" className="mb-s-200 text-small text-txt-200 block">
 						{t("initialBalance")}
 					</Label>
 					<div className="relative">
@@ -58,6 +58,7 @@ export const SimulationParamsForm = ({
 							$
 						</span>
 						<Input
+							id="simulation-initial-balance"
 							type="number"
 							min={100}
 							max={100000000}
@@ -73,7 +74,7 @@ export const SimulationParamsForm = ({
 
 				{/* Risk Type */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-risk-type" className="mb-s-200 text-small text-txt-200 block">
 						{t("riskType")}
 					</Label>
 					<Select
@@ -83,7 +84,7 @@ export const SimulationParamsForm = ({
 						}
 						disabled={disabled}
 					>
-						<SelectTrigger>
+						<SelectTrigger id="simulation-risk-type">
 							<SelectValue />
 						</SelectTrigger>
 						<SelectContent>
@@ -97,11 +98,12 @@ export const SimulationParamsForm = ({
 
 				{/* Risk Per Trade */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-risk-per-trade" className="mb-s-200 text-small text-txt-200 block">
 						{t("riskPerTrade")}
 					</Label>
 					<div className="relative">
 						<Input
+							id="simulation-risk-per-trade"
 							type="number"
 							step="0.1"
 							min={0.01}
@@ -128,11 +130,12 @@ export const SimulationParamsForm = ({
 
 				{/* Win Rate */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-win-rate" className="mb-s-200 text-small text-txt-200 block">
 						{t("winRate")}
 					</Label>
 					<div className="relative">
 						<Input
+							id="simulation-win-rate"
 							type="number"
 							step="1"
 							min={1}
@@ -152,10 +155,11 @@ export const SimulationParamsForm = ({
 
 				{/* Reward/Risk Ratio */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-reward-risk-ratio" className="mb-s-200 text-small text-txt-200 block">
 						{t("rewardRiskRatio")}
 					</Label>
 					<Input
+						id="simulation-reward-risk-ratio"
 						type="number"
 						step="0.1"
 						min={0.1}
@@ -170,10 +174,11 @@ export const SimulationParamsForm = ({
 
 				{/* Number of Trades */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-number-of-trades" className="mb-s-200 text-small text-txt-200 block">
 						{t("numberOfTrades")}
 					</Label>
 					<Input
+						id="simulation-number-of-trades"
 						type="number"
 						step="10"
 						min={10}
@@ -188,11 +193,12 @@ export const SimulationParamsForm = ({
 
 				{/* Commission */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-commission-per-trade" className="mb-s-200 text-small text-txt-200 block">
 						{t("commissionPerTrade")}
 					</Label>
 					<div className="relative">
 						<Input
+							id="simulation-commission-per-trade"
 							type="number"
 							step="0.01"
 							min={0}
@@ -215,10 +221,11 @@ export const SimulationParamsForm = ({
 
 				{/* Simulation Count */}
 				<div>
-					<Label className="mb-s-200 text-small text-txt-200 block">
+					<Label id="label-simulation-count" className="mb-s-200 text-small text-txt-200 block">
 						{t("simulationCount")}
 					</Label>
 					<Input
+						id="simulation-count"
 						type="number"
 						step="1000"
 						min={100}

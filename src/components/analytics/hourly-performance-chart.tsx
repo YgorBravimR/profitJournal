@@ -98,7 +98,7 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("time.hourlyTitle")}
 			</h3>
-			<ChartContainer className="h-[250px] w-full">
+			<ChartContainer id="chart-analytics-hourly-performance" className="h-[250px] w-full">
 					<BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
 						<CartesianGrid
 							strokeDasharray="3 3"

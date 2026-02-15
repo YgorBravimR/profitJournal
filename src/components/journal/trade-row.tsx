@@ -140,6 +140,7 @@ export const TradeRow = memo(({
 						{t("deleteConfirm")}
 					</span>
 					<Button
+						id={`trade-row-delete-confirm-${trade.id}`}
 						variant="destructive"
 						size="sm"
 						onClick={handleConfirmClick}
@@ -153,6 +154,7 @@ export const TradeRow = memo(({
 						)}
 					</Button>
 					<Button
+						id={`trade-row-delete-cancel-${trade.id}`}
 						variant="outline"
 						size="sm"
 						onClick={handleCancelClick}

@@ -165,7 +165,7 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 							<AccountIcon className="h-5 w-5" />
 						</button>
 					</DropdownMenuTrigger>
-					<DropdownMenuContent side="right" align="start" className="w-56">
+					<DropdownMenuContent id="dropdown-account-switcher-collapsed" side="right" align="start" className="w-56">
 						<DropdownMenuLabel>{t("accounts")}</DropdownMenuLabel>
 						<DropdownMenuSeparator />
 						{accounts.map((account) => {
@@ -231,7 +231,7 @@ export const AccountSwitcher = ({ isCollapsed }: AccountSwitcherProps) => {
 						/>
 					</button>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent side="right" align="start" className="w-56">
+				<DropdownMenuContent id="dropdown-account-switcher-expanded" side="right" align="start" className="w-56">
 					<DropdownMenuLabel>{t("accounts")}</DropdownMenuLabel>
 					<DropdownMenuSeparator />
 					{accounts.map((account) => {
@@ -317,7 +317,7 @@ const CreateAccountDialog = ({
 }: CreateAccountDialogProps) => {
 	return (
 		<Dialog open={isOpen} onOpenChange={onOpenChange}>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent id="create-account-dialog" className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{t("createAccount")}</DialogTitle>
 					<DialogDescription>{t("createAccountDesc")}</DialogDescription>
@@ -325,7 +325,7 @@ const CreateAccountDialog = ({
 
 				<div className="space-y-m-400 py-m-400">
 					<div className="space-y-s-200">
-						<Label htmlFor="accountName">{t("accountName")}</Label>
+						<Label id="label-account-name" htmlFor="accountName">{t("accountName")}</Label>
 						<Input
 							id="accountName"
 							value={form.name}
@@ -336,7 +336,7 @@ const CreateAccountDialog = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="accountType">{t("accountType")}</Label>
+						<Label id="label-account-type" htmlFor="accountType">{t("accountType")}</Label>
 						<Select
 							value={form.accountType}
 							onValueChange={(value: "personal" | "prop" | "replay") =>
@@ -372,7 +372,7 @@ const CreateAccountDialog = ({
 
 					{form.accountType === "replay" && (
 						<div className="space-y-s-200">
-							<Label htmlFor="replayStartDate">{t("replayStartDate")}</Label>
+							<Label id="label-replay-start-date" htmlFor="replayStartDate">{t("replayStartDate")}</Label>
 							<Input
 								id="replayStartDate"
 								type="date"
@@ -389,7 +389,7 @@ const CreateAccountDialog = ({
 					{form.accountType === "prop" && (
 						<>
 							<div className="space-y-s-200">
-								<Label htmlFor="propFirmName">{t("propFirmName")}</Label>
+								<Label id="label-prop-firm-name" htmlFor="propFirmName">{t("propFirmName")}</Label>
 								<Input
 									id="propFirmName"
 									value={form.propFirmName}
@@ -402,7 +402,7 @@ const CreateAccountDialog = ({
 							</div>
 
 							<div className="space-y-s-200">
-								<Label htmlFor="profitShare">{t("profitShare")}</Label>
+								<Label id="label-profit-share" htmlFor="profitShare">{t("profitShare")}</Label>
 								<div className="flex items-center gap-s-200">
 									<Input
 										id="profitShare"
@@ -429,6 +429,7 @@ const CreateAccountDialog = ({
 
 				<div className="flex justify-end gap-s-300">
 					<Button
+					id="account-switcher-cancel"
 						variant="ghost"
 						onClick={() => onOpenChange(false)}
 						disabled={isPending}
@@ -436,6 +437,7 @@ const CreateAccountDialog = ({
 						{t("cancel")}
 					</Button>
 					<Button
+					id="account-switcher-create"
 						onClick={onSubmit}
 						disabled={!form.name.trim() || isPending}
 					>

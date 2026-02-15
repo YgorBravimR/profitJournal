@@ -73,6 +73,7 @@ const CalculatorForm = ({
 				</label>
 				<Select value={selectedAssetId} onValueChange={onAssetChange}>
 					<SelectTrigger
+						id="calculator-asset"
 						className="w-full"
 						aria-label={t("selectAsset")}
 					>
@@ -96,6 +97,7 @@ const CalculatorForm = ({
 					</label>
 					<Select value={selectedStrategyId} onValueChange={onStrategyChange}>
 						<SelectTrigger
+							id="calculator-strategy"
 							className="w-full"
 							aria-label={t("selectStrategy")}
 						>
@@ -175,6 +177,7 @@ const CalculatorForm = ({
 						{t("entryPrice")}
 					</label>
 					<Input
+						id="calculator-entry-price"
 						type="number"
 						step="any"
 						min="0"
@@ -191,6 +194,7 @@ const CalculatorForm = ({
 						{t("stopPrice")}
 					</label>
 					<Input
+						id="calculator-stop-price"
 						type="number"
 						step="any"
 						min="0"
@@ -211,6 +215,7 @@ const CalculatorForm = ({
 					)}
 				</label>
 				<Input
+					id="calculator-target-price"
 					type="number"
 					step="any"
 					min="0"
@@ -233,6 +238,7 @@ const CalculatorForm = ({
 					)}
 				</label>
 				<Input
+					id="calculator-manual-contracts"
 					type="number"
 					step="1"
 					min="1"

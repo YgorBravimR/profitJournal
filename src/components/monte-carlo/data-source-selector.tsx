@@ -1,7 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { Globe, Database, LineChart } from "lucide-react"
+import { Globe, Database, LineChart, Lock } from "lucide-react"
 import {
 	Select,
 	SelectContent,
@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/select"
 import type { DataSourceOption, DataSource } from "@/types/monte-carlo"
 
+const MIN_TRADES = 10
+
 interface DataSourceSelectorProps {
 	options: DataSourceOption[]
 	selectedSource: DataSource | null
@@ -18,7 +20,7 @@ interface DataSourceSelectorProps {
 	isLoading: boolean
 }
 
-export const DataSourceSelector = ({
+const DataSourceSelector = ({
 	options,
 	selectedSource,
 	onSourceChange,
@@ -53,9 +55,30 @@ export const DataSourceSelector = ({
 		}
 	}
 
+	const hasAnyDisabled = options.some((o) => o.disabled)
+
 	// Group options by type
 	const strategyOptions = options.filter((o) => o.type === "strategy")
 	const aggregateOptions = options.filter((o) => o.type !== "strategy")
+
+	const renderTradeCount = (option: DataSourceOption) => {
+		if (option.disabled) {
+			return (
+				<span className="text-tiny text-txt-300 ml-auto flex items-center gap-1">
+					<Lock className="h-3 w-3" aria-hidden="true" />
+					<span>
+						{option.tradesCount}/{MIN_TRADES}
+					</span>
+				</span>
+			)
+		}
+
+		return (
+			<span className="text-tiny text-txt-300">
+				({option.tradesCount} {t("trades")})
+			</span>
+		)
+	}
 
 	return (
 		<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
@@ -68,10 +91,10 @@ export const DataSourceSelector = ({
 				onValueChange={handleValueChange}
 				disabled={isLoading}
 			>
-				<SelectTrigger className="w-full">
+				<SelectTrigger id="monte-carlo-data-source" className="w-full">
 					<SelectValue placeholder={t("selectSource")} />
 				</SelectTrigger>
-				<SelectContent>
+				<SelectContent position="popper" className="w-[var(--radix-select-trigger-width)]">
 					{/* Individual Strategies */}
 					{strategyOptions.length > 0 && (
 						<>
@@ -87,9 +110,7 @@ export const DataSourceSelector = ({
 									<div className="gap-s-200 flex items-center">
 										{getIcon(option.type)}
 										<span>{option.label}</span>
-										<span className="text-tiny text-txt-300">
-											({option.tradesCount} {t("trades")})
-										</span>
+										{renderTradeCount(option)}
 									</div>
 								</SelectItem>
 							))}
@@ -128,15 +149,22 @@ export const DataSourceSelector = ({
 											</span>
 										)}
 									</div>
-									<span className="text-tiny text-txt-300 ml-auto">
-										({option.tradesCount} {t("trades")})
-									</span>
+									{renderTradeCount(option)}
 								</div>
 							</SelectItem>
 						)
 					})}
+
+					{/* Helper hint when some options are disabled */}
+					{hasAnyDisabled && (
+						<div className="text-tiny text-txt-300 border-bg-300 mt-1 border-t px-2 py-2">
+							{t("minTradesHint", { min: MIN_TRADES })}
+						</div>
+					)}
 				</SelectContent>
 			</Select>
 		</div>
 	)
 }
+
+export { DataSourceSelector }

@@ -112,7 +112,7 @@ export const TradingAccountSettings = () => {
 					<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
 				</div>
 				{!isEditing && (
-					<Button variant="ghost" size="sm" onClick={handleEdit}>
+					<Button id="trading-edit" variant="ghost" size="sm" onClick={handleEdit}>
 						{tCommon("edit")}
 					</Button>
 				)}
@@ -128,6 +128,7 @@ export const TradingAccountSettings = () => {
 						</p>
 					</div>
 					<Switch
+						id="is-prop-account"
 						checked={editValues.isPropAccount}
 						onCheckedChange={(checked) =>
 							handleFieldChange("isPropAccount", checked)
@@ -151,7 +152,7 @@ export const TradingAccountSettings = () => {
 
 						{/* Prop Firm Name */}
 						<div className="space-y-s-200">
-							<Label htmlFor="propFirm" className="text-small text-txt-200">
+							<Label id="label-trading-firm-name" htmlFor="propFirm" className="text-small text-txt-200">
 								{t("firmName")}
 							</Label>
 							{isEditing ? (
@@ -182,7 +183,7 @@ export const TradingAccountSettings = () => {
 
 						{/* Profit Share Percentage */}
 						<div className="space-y-s-200">
-							<Label htmlFor="profitShare" className="text-small text-txt-200">
+							<Label id="label-trading-profit-share" htmlFor="profitShare" className="text-small text-txt-200">
 								{t("profitShare")}
 							</Label>
 							<p className="text-tiny text-txt-300">{t("profitShareHelp")}</p>
@@ -229,6 +230,7 @@ export const TradingAccountSettings = () => {
 						{isEditing ? (
 							<div className="flex items-center gap-s-200">
 								<Input
+									id="trading-dayTradeTax"
 									type="number"
 									step="0.1"
 									min="0"
@@ -256,6 +258,7 @@ export const TradingAccountSettings = () => {
 						{isEditing ? (
 							<div className="flex items-center gap-s-200">
 								<Input
+									id="trading-swingTradeTax"
 									type="number"
 									step="0.1"
 									min="0"
@@ -286,6 +289,7 @@ export const TradingAccountSettings = () => {
 							<p className="text-small text-txt-100">{t("showTaxEstimates")}</p>
 						</div>
 						<Switch
+							id="show-tax-estimates"
 							checked={editValues.showTaxEstimates}
 							onCheckedChange={(checked) =>
 								handleFieldChange("showTaxEstimates", checked)
@@ -301,6 +305,7 @@ export const TradingAccountSettings = () => {
 							</p>
 						</div>
 						<Switch
+							id="show-prop-calculations"
 							checked={editValues.showPropCalculations}
 							onCheckedChange={(checked) =>
 								handleFieldChange("showPropCalculations", checked)
@@ -315,6 +320,7 @@ export const TradingAccountSettings = () => {
 			{isEditing && (
 				<div className="mt-m-500 flex justify-end gap-s-300">
 					<Button
+						id="trading-cancel"
 						variant="ghost"
 						size="sm"
 						onClick={handleCancel}
@@ -322,7 +328,7 @@ export const TradingAccountSettings = () => {
 					>
 						{tCommon("cancel")}
 					</Button>
-					<Button size="sm" onClick={handleSave} disabled={isPending}>
+					<Button id="trading-save" size="sm" onClick={handleSave} disabled={isPending}>
 						{isPending ? tCommon("saving") : tCommon("save")}
 					</Button>
 				</div>

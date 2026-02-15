@@ -199,6 +199,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 
 				<div className="space-y-s-300">
 					<Button
+				id="login-account-select-continue"
 						onClick={handleAccountSelect}
 						className="w-full"
 						disabled={!selectedAccountId || isPending}
@@ -249,7 +250,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				)}
 
 				<div className="space-y-s-200">
-					<Label htmlFor="email">{t("email")}</Label>
+					<Label id="label-email" htmlFor="email">{t("email")}</Label>
 					<Input
 						id="email"
 						type="email"
@@ -263,7 +264,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label htmlFor="password">{t("password")}</Label>
+					<Label id="label-password" htmlFor="password">{t("password")}</Label>
 					<div className="relative">
 						<Input
 							id="password"
@@ -290,7 +291,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 					</div>
 				</div>
 
-				<Button type="submit" className="w-full" disabled={isPending}>
+				<Button id="login-submit" type="submit" className="w-full" disabled={isPending}>
 					{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 					{t("submit")}
 				</Button>

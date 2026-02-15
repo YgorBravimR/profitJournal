@@ -109,7 +109,7 @@ export const GeneralSettings = () => {
 				<div className="flex items-center justify-between">
 					<h2 className="text-body font-semibold text-txt-100">{t("riskSettings")}</h2>
 					{!isEditing && (
-						<Button variant="ghost" size="sm" onClick={handleEdit}>
+						<Button id="general-edit-risk" variant="ghost" size="sm" onClick={handleEdit}>
 							{tCommon("edit")}
 						</Button>
 					)}
@@ -125,6 +125,7 @@ export const GeneralSettings = () => {
 						{isEditing ? (
 							<div className="flex items-center gap-s-200">
 								<Input
+									id="general-defaultRisk"
 									type="number"
 									step="0.1"
 									min="0.1"
@@ -157,6 +158,7 @@ export const GeneralSettings = () => {
 							<div className="flex items-center gap-s-200">
 								<span className="text-small text-txt-300">$</span>
 								<Input
+									id="general-accountBalance"
 									type="number"
 									step="100"
 									min="0"
@@ -179,10 +181,10 @@ export const GeneralSettings = () => {
 				</div>
 				{isEditing && (
 					<div className="mt-m-500 flex justify-end gap-s-300">
-						<Button variant="ghost" size="sm" onClick={handleCancel} disabled={isPending}>
+						<Button id="general-cancel-risk" variant="ghost" size="sm" onClick={handleCancel} disabled={isPending}>
 							{tCommon("cancel")}
 						</Button>
-						<Button size="sm" onClick={handleSave} disabled={isPending}>
+						<Button id="general-save-risk" size="sm" onClick={handleSave} disabled={isPending}>
 							{isPending ? tCommon("saving") : tCommon("save")}
 						</Button>
 					</div>

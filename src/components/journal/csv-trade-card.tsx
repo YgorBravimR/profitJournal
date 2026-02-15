@@ -133,6 +133,7 @@ export const CsvTradeCard = ({
 				{/* Select Checkbox */}
 				<div onClick={(e) => e.stopPropagation()}>
 					<Checkbox
+						id={`csv-trade-select-${trade.rowNumber}`}
 						checked={isSelected}
 						onCheckedChange={() => onToggleSelect()}
 						disabled={isSkipped}
@@ -165,7 +166,7 @@ export const CsvTradeCard = ({
 							<TooltipTrigger>
 								<Info className="h-3 w-3 text-txt-300" />
 							</TooltipTrigger>
-							<TooltipContent>
+							<TooltipContent id={`tooltip-csv-asset-${trade.rowNumber}`}>
 								Original: {trade.originalData.originalAssetCode}
 							</TooltipContent>
 						</Tooltip>
@@ -298,7 +299,7 @@ export const CsvTradeCard = ({
 							<div className="grid grid-cols-2 gap-m-400 md:grid-cols-4">
 								{/* Date */}
 								<div>
-									<Label className="text-tiny text-txt-300">Date</Label>
+									<Label id="label-csv-date" className="text-tiny text-txt-300">Date</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{formatDate(trade.originalData.entryDate)}
 									</div>
@@ -306,7 +307,7 @@ export const CsvTradeCard = ({
 
 								{/* Direction (readonly) */}
 								<div>
-									<Label className="text-tiny text-txt-300">Direction</Label>
+									<Label id="label-csv-direction" className="text-tiny text-txt-300">Direction</Label>
 									<div
 										className={cn(
 											"mt-s-100 text-small font-medium",
@@ -321,12 +322,12 @@ export const CsvTradeCard = ({
 
 								{/* Strategy */}
 								<div>
-									<Label className="text-tiny text-txt-300">Strategy</Label>
+									<Label id="label-csv-strategy" className="text-tiny text-txt-300">Strategy</Label>
 									<Select
 										value={trade.edits.strategyId || ""}
 										onValueChange={(v) => handleEditField("strategyId", v || undefined)}
 									>
-										<SelectTrigger className="mt-s-100 h-8">
+										<SelectTrigger id="csv-trade-strategy" className="mt-s-100 h-8">
 											<SelectValue placeholder="Select..." />
 										</SelectTrigger>
 										<SelectContent>
@@ -341,12 +342,12 @@ export const CsvTradeCard = ({
 
 								{/* Timeframe */}
 								<div>
-									<Label className="text-tiny text-txt-300">Timeframe</Label>
+									<Label id="label-csv-timeframe" className="text-tiny text-txt-300">Timeframe</Label>
 									<Select
 										value={trade.edits.timeframeId || ""}
 										onValueChange={(v) => handleEditField("timeframeId", v || undefined)}
 									>
-										<SelectTrigger className="mt-s-100 h-8">
+										<SelectTrigger id="csv-trade-timeframe" className="mt-s-100 h-8">
 											<SelectValue placeholder="Select..." />
 										</SelectTrigger>
 										<SelectContent>
@@ -363,25 +364,25 @@ export const CsvTradeCard = ({
 							{/* Prices (readonly) */}
 							<div className="grid grid-cols-2 gap-m-400 md:grid-cols-4">
 								<div>
-									<Label className="text-tiny text-txt-300">Entry Price</Label>
+									<Label id="label-csv-entry-price" className="text-tiny text-txt-300">Entry Price</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{formatPrice(trade.originalData.entryPrice)}
 									</div>
 								</div>
 								<div>
-									<Label className="text-tiny text-txt-300">Exit Price</Label>
+									<Label id="label-csv-exit-price" className="text-tiny text-txt-300">Exit Price</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{formatPrice(trade.originalData.exitPrice)}
 									</div>
 								</div>
 								<div>
-									<Label className="text-tiny text-txt-300">Position Size</Label>
+									<Label id="label-csv-position-size" className="text-tiny text-txt-300">Position Size</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{trade.originalData.positionSize}
 									</div>
 								</div>
 								<div>
-									<Label className="text-tiny text-txt-300">
+									<Label id="label-csv-pnl" className="text-tiny text-txt-300">
 										P&L from CSV
 									</Label>
 									<div className="mt-s-100 text-small text-txt-100">
@@ -397,7 +398,7 @@ export const CsvTradeCard = ({
 						<TabsContent value="risk" className="space-y-m-400">
 							<div className="grid grid-cols-2 gap-m-400 md:grid-cols-4">
 								<div>
-									<Label htmlFor={`sl-${trade.id}`} className="text-tiny text-txt-300">
+									<Label id={`label-csv-sl-${trade.id}`} htmlFor={`sl-${trade.id}`} className="text-tiny text-txt-300">
 										Stop Loss
 									</Label>
 									<Input
@@ -416,7 +417,7 @@ export const CsvTradeCard = ({
 									/>
 								</div>
 								<div>
-									<Label htmlFor={`tp-${trade.id}`} className="text-tiny text-txt-300">
+									<Label id={`label-csv-tp-${trade.id}`} htmlFor={`tp-${trade.id}`} className="text-tiny text-txt-300">
 										Take Profit
 									</Label>
 									<Input
@@ -435,7 +436,7 @@ export const CsvTradeCard = ({
 									/>
 								</div>
 								<div>
-									<Label className="text-tiny text-txt-300">MFE (from CSV)</Label>
+									<Label id="label-csv-mfe" className="text-tiny text-txt-300">MFE (from CSV)</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{trade.originalData.mfe
 											? formatCurrency(Number(trade.originalData.mfe))
@@ -443,7 +444,7 @@ export const CsvTradeCard = ({
 									</div>
 								</div>
 								<div>
-									<Label className="text-tiny text-txt-300">MAE (from CSV)</Label>
+									<Label id="label-csv-mae" className="text-tiny text-txt-300">MAE (from CSV)</Label>
 									<div className="mt-s-100 text-small text-txt-100">
 										{trade.originalData.mae
 											? formatCurrency(-Number(trade.originalData.mae))
@@ -457,6 +458,7 @@ export const CsvTradeCard = ({
 						<TabsContent value="journal" className="space-y-m-400">
 							<div>
 								<Label
+									id={`label-csv-thoughts-${trade.id}`}
 									htmlFor={`thoughts-${trade.id}`}
 									className="text-tiny text-txt-300"
 								>
@@ -473,6 +475,7 @@ export const CsvTradeCard = ({
 
 							<div>
 								<Label
+									id={`label-csv-reflection-${trade.id}`}
 									htmlFor={`reflection-${trade.id}`}
 									className="text-tiny text-txt-300"
 								>
@@ -489,6 +492,7 @@ export const CsvTradeCard = ({
 
 							<div>
 								<Label
+									id={`label-csv-lesson-${trade.id}`}
 									htmlFor={`lesson-${trade.id}`}
 									className="text-tiny text-txt-300"
 								>
@@ -505,7 +509,7 @@ export const CsvTradeCard = ({
 
 							{/* Follow Plan */}
 							<div className="flex items-center gap-m-400">
-								<Label className="text-tiny text-txt-300">Did you follow your plan?</Label>
+								<Label id="label-csv-followed-plan" className="text-tiny text-txt-300">Did you follow your plan?</Label>
 								<div className="flex gap-s-200">
 									<button
 										type="button"
@@ -538,6 +542,7 @@ export const CsvTradeCard = ({
 							{trade.edits.followedPlan === false && (
 								<div>
 									<Label
+										id={`label-csv-discipline-${trade.id}`}
 										htmlFor={`discipline-${trade.id}`}
 										className="text-tiny text-txt-300"
 									>
@@ -559,7 +564,7 @@ export const CsvTradeCard = ({
 							{/* Setup Tags */}
 							{setupTags.length > 0 && (
 								<div>
-									<Label className="text-tiny text-txt-300">Setup Type</Label>
+									<Label id="label-csv-setup-type" className="text-tiny text-txt-300">Setup Type</Label>
 									<div className="mt-s-200 flex flex-wrap gap-s-200">
 										{setupTags.map((tag) => (
 											<button
@@ -588,7 +593,7 @@ export const CsvTradeCard = ({
 							{/* Mistake Tags */}
 							{mistakeTags.length > 0 && (
 								<div>
-									<Label className="text-tiny text-txt-300">Mistakes</Label>
+									<Label id="label-csv-mistakes" className="text-tiny text-txt-300">Mistakes</Label>
 									<div className="mt-s-200 flex flex-wrap gap-s-200">
 										{mistakeTags.map((tag) => (
 											<button

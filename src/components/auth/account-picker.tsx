@@ -109,6 +109,7 @@ export const AccountPicker = ({ accounts, email, password }: AccountPickerProps)
 			</div>
 
 			<Button
+			id="auth-account-picker-continue"
 				onClick={handleContinue}
 				className="w-full"
 				disabled={!selectedId || isPending}

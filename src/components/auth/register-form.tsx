@@ -112,7 +112,7 @@ export const RegisterForm = () => {
 				)}
 
 				<div className="space-y-s-200">
-					<Label htmlFor="name">{t("name")}</Label>
+					<Label id="label-name" htmlFor="name">{t("name")}</Label>
 					<Input
 						id="name"
 						type="text"
@@ -126,7 +126,7 @@ export const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label htmlFor="email">{t("email")}</Label>
+					<Label id="label-email" htmlFor="email">{t("email")}</Label>
 					<Input
 						id="email"
 						type="email"
@@ -140,7 +140,7 @@ export const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label htmlFor="password">{t("password")}</Label>
+					<Label id="label-password" htmlFor="password">{t("password")}</Label>
 					<div className="relative">
 						<Input
 							id="password"
@@ -190,7 +190,7 @@ export const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label htmlFor="confirmPassword">{t("confirmPassword")}</Label>
+					<Label id="label-confirm-password" htmlFor="confirmPassword">{t("confirmPassword")}</Label>
 					<div className="relative">
 						<Input
 							id="confirmPassword"
@@ -221,6 +221,7 @@ export const RegisterForm = () => {
 				</div>
 
 				<Button
+				id="register-submit"
 					type="submit"
 					className="w-full"
 					disabled={isPending || !allRequirementsMet || !passwordsMatch}

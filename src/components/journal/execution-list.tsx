@@ -97,7 +97,7 @@ export const ExecutionList = ({
 		<div className={cn("space-y-m-400", className)}>
 			<div className="flex items-center justify-between">
 				<h3 className="text-body text-txt-100 font-semibold">{t("title")}</h3>
-				<Button variant="outline" size="sm" onClick={onAddExecution}>
+				<Button id="execution-list-add" variant="outline" size="sm" onClick={onAddExecution}>
 					<Plus className="mr-1 h-4 w-4" />
 					{t("add")}
 				</Button>
@@ -107,6 +107,7 @@ export const ExecutionList = ({
 				<div className="border-stroke-100 bg-bg-200 p-m-400 rounded-lg border text-center">
 					<p className="text-small text-txt-300">{t("noExecutions")}</p>
 					<Button
+						id="execution-list-add-first"
 						variant="ghost"
 						size="sm"
 						className="mt-s-200"
@@ -133,6 +134,7 @@ export const ExecutionList = ({
 								key={execution.id}
 								execution={execution}
 								type={execution.executionType as "entry" | "exit"}
+								direction={direction}
 								onEdit={() => onEditExecution(execution)}
 								onDelete={() => handleDelete(execution.id)}
 								isDeleting={deletingId === execution.id}
@@ -195,6 +197,7 @@ export const ExecutionList = ({
 interface ExecutionRowProps {
 	execution: TradeExecution
 	type: "entry" | "exit"
+	direction: "long" | "short"
 	onEdit: () => void
 	onDelete: () => void
 	isDeleting: boolean
@@ -207,6 +210,7 @@ interface ExecutionRowProps {
 const ExecutionRow = ({
 	execution,
 	type,
+	direction,
 	onEdit,
 	onDelete,
 	isDeleting,
@@ -215,18 +219,21 @@ const ExecutionRow = ({
 	t,
 	tCommon,
 }: ExecutionRowProps) => {
+	// Color by side (buy/sell), not by entry/exit — clearer for short positions
+	const isBuy = (direction === "long" && type === "entry") || (direction === "short" && type === "exit")
+
 	return (
 		<div
 			className={cn(
 				"px-s-300 py-s-200 flex items-center justify-between rounded-md border",
-				type === "entry"
+				isBuy
 					? "border-action-buy/20 bg-action-buy/5"
 					: "border-action-sell/20 bg-action-sell/5"
 			)}
 		>
 			<div className="gap-m-400 flex items-center">
-				{/* Type indicator */}
-				{type === "entry" ? (
+				{/* Side indicator — buy (up arrow) or sell (down arrow) */}
+				{isBuy ? (
 					<ArrowUp
 						className="text-action-buy h-3.5 w-3.5 shrink-0"
 						aria-label={t("entry")}
@@ -259,6 +266,7 @@ const ExecutionRow = ({
 			</div>
 			<div className="gap-s-200 flex items-center">
 				<Button
+					id={`execution-edit-${execution.id}`}
 					variant="ghost"
 					size="icon"
 					className="h-7 w-7"
@@ -270,6 +278,7 @@ const ExecutionRow = ({
 				<AlertDialog>
 					<AlertDialogTrigger asChild>
 						<Button
+							id={`execution-delete-${execution.id}`}
 							variant="ghost"
 							size="icon"
 							className="text-fb-error hover:text-fb-error h-7 w-7"
@@ -294,8 +303,9 @@ const ExecutionRow = ({
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
+							<AlertDialogCancel id="execution-delete-cancel">{tCommon("cancel")}</AlertDialogCancel>
 							<AlertDialogAction
+								id="execution-delete-confirm"
 								className="bg-fb-error hover:bg-fb-error/90"
 								onClick={onDelete}
 							>

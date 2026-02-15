@@ -41,6 +41,7 @@ export const DeleteTradeButton = ({ tradeId }: DeleteTradeButtonProps) => {
 			<div className="flex items-center gap-s-200">
 				<span className="text-small text-txt-200">Delete?</span>
 				<Button
+				id="delete-trade-confirm-yes"
 					variant="destructive"
 					size="sm"
 					onClick={handleDelete}
@@ -53,6 +54,7 @@ export const DeleteTradeButton = ({ tradeId }: DeleteTradeButtonProps) => {
 					)}
 				</Button>
 				<Button
+				id="delete-trade-confirm-no"
 					variant="outline"
 					size="sm"
 					onClick={() => setShowConfirm(false)}
@@ -66,6 +68,7 @@ export const DeleteTradeButton = ({ tradeId }: DeleteTradeButtonProps) => {
 
 	return (
 		<Button
+			id="delete-trade-button"
 			variant="outline"
 			onClick={() => setShowConfirm(true)}
 			className="text-fb-error hover:bg-fb-error/10 hover:text-fb-error"

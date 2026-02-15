@@ -85,15 +85,20 @@ const FormItem = React.forwardRef<
 })
 FormItem.displayName = "FormItem"
 
+interface FormLabelProps extends React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root> {
+	id: string
+}
+
 const FormLabel = React.forwardRef<
 	React.ElementRef<typeof LabelPrimitive.Root>,
-	React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
->(({ className, ...props }, ref) => {
+	FormLabelProps
+>(({ className, id, ...props }, ref) => {
 	const { error, formItemId } = useFormField()
 
 	return (
 		<Label
 			ref={ref}
+			id={id}
 			className={cn(error && "text-fb-error", className)}
 			htmlFor={formItemId}
 			{...props}

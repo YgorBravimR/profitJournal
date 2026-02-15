@@ -84,6 +84,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 			<div className="flex flex-wrap items-center justify-between gap-m-400">
 				<div className="flex items-center gap-s-300">
 					<Badge
+						id="badge-timeframe-filter-all"
 						variant={filterType === "all" ? "default" : "outline"}
 						className="cursor-pointer"
 						onClick={() => setFilterType("all")}
@@ -91,6 +92,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						{tCommon("all")}
 					</Badge>
 					<Badge
+						id="badge-timeframe-filter-time-based"
 						variant={filterType === "time_based" ? "default" : "outline"}
 						className="cursor-pointer"
 						onClick={() => setFilterType("time_based")}
@@ -99,6 +101,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						{t("timeBased")}
 					</Badge>
 					<Badge
+						id="badge-timeframe-filter-renko"
 						variant={filterType === "renko" ? "default" : "outline"}
 						className="cursor-pointer"
 						onClick={() => setFilterType("renko")}
@@ -109,6 +112,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 				</div>
 				<div className="flex items-center gap-s-300">
 					<Button
+						id="timeframe-toggle-inactive"
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowInactive(!showInactive)}
@@ -121,7 +125,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						)}
 						{showInactive ? t("showingInactive") : t("hidingInactive")}
 					</Button>
-					<Button onClick={() => setFormOpen(true)}>
+					<Button id="timeframe-add-new" onClick={() => setFormOpen(true)}>
 						<Plus className="mr-2 h-4 w-4" />
 						{t("addTimeframe")}
 					</Button>
@@ -156,6 +160,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 												{timeframe.code}
 											</span>
 											<Badge
+												id={`badge-timeframe-status-${timeframe.id}`}
 												variant={timeframe.isActive ? "default" : "secondary"}
 												className="text-tiny"
 											>
@@ -180,6 +185,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 									) : (
 										<>
 											<Button
+												id={`timeframe-edit-${timeframe.id}`}
 												variant="ghost"
 												size="sm"
 												onClick={() => handleEdit(timeframe)}
@@ -188,6 +194,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 												<Pencil className="h-4 w-4" />
 											</Button>
 											<Button
+												id={`timeframe-toggle-active-${timeframe.id}`}
 												variant="ghost"
 												size="sm"
 												onClick={() => handleToggleActive(timeframe)}
@@ -200,6 +207,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 												)}
 											</Button>
 											<Button
+												id={`timeframe-delete-${timeframe.id}`}
 												variant="ghost"
 												size="sm"
 												onClick={() => handleDelete(timeframe)}

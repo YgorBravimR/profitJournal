@@ -59,7 +59,7 @@ export const BiasSelector = ({
 			onValueChange={handleValueChange}
 			disabled={disabled}
 		>
-			<SelectTrigger className={cn("w-full", compact && "h-8 w-28")}>
+			<SelectTrigger id="bias-selector" className={cn("w-full", compact && "h-8 w-28")}>
 				<SelectValue placeholder={t("selectBias")}>
 					{value ? (
 						<BiasDisplay bias={value} compact={compact} />

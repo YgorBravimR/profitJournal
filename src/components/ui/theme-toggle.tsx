@@ -32,6 +32,7 @@ export const ThemeToggle = () => {
 
 	return (
 		<Button
+			id="theme-toggle"
 			type="button"
 			variant="outline"
 			size="sm"

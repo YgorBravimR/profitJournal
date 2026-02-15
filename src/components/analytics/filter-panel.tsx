@@ -174,12 +174,13 @@ export const FilterPanel = ({
 				</div>
 				<div className="flex items-center gap-s-200">
 					{hasActiveFilters && (
-						<Button variant="ghost" size="sm" onClick={clearFilters}>
+						<Button id="analytics-filter-clear" variant="ghost" size="sm" onClick={clearFilters}>
 							<X className="mr-1 h-3 w-3" />
 							{t("clear")}
 						</Button>
 					)}
 					<Button
+					id="analytics-filter-toggle"
 						variant="ghost"
 						size="sm"
 						onClick={() => setIsExpanded(!isExpanded)}

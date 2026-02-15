@@ -69,7 +69,7 @@ const NewStrategyPage = () => {
 							<div className="space-y-m-400">
 								<div className="grid grid-cols-3 gap-m-400">
 									<div>
-										<Label htmlFor="code">Code *</Label>
+										<Label id="label-code" htmlFor="code">Code *</Label>
 										<Input
 											id="code"
 											name="code"
@@ -84,7 +84,7 @@ const NewStrategyPage = () => {
 										</p>
 									</div>
 									<div className="col-span-2">
-										<Label htmlFor="name">Strategy Name *</Label>
+										<Label id="label-strategy-name" htmlFor="name">Strategy Name *</Label>
 										<Input
 											id="name"
 											name="name"
@@ -96,7 +96,7 @@ const NewStrategyPage = () => {
 								</div>
 
 								<div>
-									<Label htmlFor="description">Description</Label>
+									<Label id="label-description" htmlFor="description">Description</Label>
 									<Textarea
 										id="description"
 										name="description"
@@ -107,7 +107,7 @@ const NewStrategyPage = () => {
 								</div>
 
 								<div>
-									<Label htmlFor="screenshotUrl">Reference Image URL</Label>
+									<Label id="label-screenshot-url" htmlFor="screenshotUrl">Reference Image URL</Label>
 									<Input
 										id="screenshotUrl"
 										name="screenshotUrl"
@@ -130,7 +130,7 @@ const NewStrategyPage = () => {
 
 							<div className="space-y-m-400">
 								<div>
-									<Label htmlFor="entryCriteria">Entry Criteria</Label>
+									<Label id="label-entry-criteria" htmlFor="entryCriteria">Entry Criteria</Label>
 									<Textarea
 										id="entryCriteria"
 										name="entryCriteria"
@@ -144,7 +144,7 @@ const NewStrategyPage = () => {
 								</div>
 
 								<div>
-									<Label htmlFor="exitCriteria">Exit Criteria</Label>
+									<Label id="label-exit-criteria" htmlFor="exitCriteria">Exit Criteria</Label>
 									<Textarea
 										id="exitCriteria"
 										name="exitCriteria"
@@ -158,7 +158,7 @@ const NewStrategyPage = () => {
 								</div>
 
 								<div>
-									<Label htmlFor="notes">Additional Notes</Label>
+									<Label id="label-notes" htmlFor="notes">Additional Notes</Label>
 									<Textarea
 										id="notes"
 										name="notes"
@@ -178,7 +178,7 @@ const NewStrategyPage = () => {
 
 							<div className="space-y-m-400">
 								<div>
-									<Label htmlFor="riskRules">Risk Management Rules</Label>
+									<Label id="label-risk-rules" htmlFor="riskRules">Risk Management Rules</Label>
 									<Textarea
 										id="riskRules"
 										name="riskRules"
@@ -190,7 +190,7 @@ const NewStrategyPage = () => {
 
 								<div className="grid grid-cols-2 gap-m-400">
 									<div>
-										<Label htmlFor="targetRMultiple">Target R-Multiple</Label>
+										<Label id="label-target-r-multiple" htmlFor="targetRMultiple">Target R-Multiple</Label>
 										<Input
 											id="targetRMultiple"
 											name="targetRMultiple"
@@ -206,7 +206,7 @@ const NewStrategyPage = () => {
 									</div>
 
 									<div>
-										<Label htmlFor="maxRiskPercent">Max Risk per Trade (%)</Label>
+										<Label id="label-max-risk-percent" htmlFor="maxRiskPercent">Max Risk per Trade (%)</Label>
 										<Input
 											id="maxRiskPercent"
 											name="maxRiskPercent"
@@ -228,11 +228,11 @@ const NewStrategyPage = () => {
 						{/* Actions */}
 						<div className="flex justify-end gap-s-300">
 							<Link href="/playbook">
-								<Button type="button" variant="outline" disabled={isPending}>
+								<Button id="playbook-new-cancel" type="button" variant="outline" disabled={isPending}>
 									Cancel
 								</Button>
 							</Link>
-							<Button type="submit" disabled={isPending}>
+							<Button id="playbook-new-create" type="submit" disabled={isPending}>
 								{isPending ? "Creating..." : "Create Strategy"}
 							</Button>
 						</div>

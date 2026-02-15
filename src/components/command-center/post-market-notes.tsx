@@ -62,7 +62,7 @@ export const PostMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PostMa
 					<h3 className="text-body font-semibold text-txt-100">{t("postMarket")}</h3>
 				</div>
 				{hasChanges && !isReadOnly && (
-					<Button size="sm" onClick={handleSave} disabled={saving}>
+					<Button id="post-market-save" size="sm" onClick={handleSave} disabled={saving}>
 						{saving ? (
 							<Loader2 className="mr-s-100 h-4 w-4 animate-spin" />
 						) : (
@@ -77,6 +77,7 @@ export const PostMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PostMa
 			<div>
 				<label className="mb-s-200 block text-small text-txt-200">{t("postMarketLabel")}</label>
 				<Textarea
+					id="post-market-notes-textarea"
 					value={postMarketNotes}
 					onChange={(e) => setPostMarketNotes(e.target.value)}
 					placeholder={t("postMarketPlaceholder")}

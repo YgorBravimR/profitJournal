@@ -105,7 +105,7 @@ export const EquityCurveChart = ({
 				</span>
 			</div>
 
-			<ChartContainer className="h-72">
+			<ChartContainer id="chart-monte-carlo-equity-curve" className="h-72">
 					<AreaChart
 						data={chartData}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

@@ -103,7 +103,7 @@ export const CumulativePnLChart = ({ data, showDrawdown = false }: CumulativePnL
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("cumulativePnL.title")}
 			</h3>
-			<ChartContainer className="h-[200px] w-full">
+			<ChartContainer id="chart-dashboard-cumulative-pnl" className="h-[200px] w-full">
 					<LineChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
 						<CartesianGrid
 							strokeDasharray="3 3"

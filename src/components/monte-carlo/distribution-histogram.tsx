@@ -249,7 +249,7 @@ export const DistributionHistogram = ({
 				</div>
 			</div>
 
-			<ChartContainer className="h-72">
+			<ChartContainer id="chart-monte-carlo-distribution-histogram" className="h-72">
 					<BarChart
 						data={chartData}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

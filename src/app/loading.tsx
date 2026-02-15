@@ -20,7 +20,7 @@ const Loading = () => {
 				{/* Stats column */}
 				<div className="space-y-m-600">
 					{[1, 2, 3, 4].map((i) => (
-						<Card key={i} className="bg-bg-200 p-m-600 shadow-medium">
+						<Card id={`loading-stat-card-${i}`} key={i} className="bg-bg-200 p-m-600 shadow-medium">
 							<div className="space-y-s-300 animate-pulse">
 								<div className="h-4 w-20 rounded bg-bg-300" />
 								<div className="h-8 w-32 rounded bg-bg-300" />
@@ -32,7 +32,7 @@ const Loading = () => {
 
 				{/* Tasks column */}
 				<div className="lg:col-span-2">
-					<Card className="bg-bg-200 p-l-700 shadow-medium">
+					<Card id="loading-tasks-card" className="bg-bg-200 p-l-700 shadow-medium">
 						<div className="space-y-m-500 animate-pulse">
 							<div className="h-8 w-48 rounded bg-bg-300" />
 							<div className="space-y-m-400">
@@ -47,7 +47,7 @@ const Loading = () => {
 
 			{/* Week goals skeleton */}
 			<div className="mt-l-700">
-				<Card className="bg-bg-200 p-l-700 shadow-medium">
+				<Card id="loading-goals-card" className="bg-bg-200 p-l-700 shadow-medium">
 					<div className="space-y-m-500 animate-pulse">
 						<div className="h-8 w-56 rounded bg-bg-300" />
 						<div className="space-y-m-400">

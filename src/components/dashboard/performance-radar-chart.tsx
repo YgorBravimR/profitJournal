@@ -91,7 +91,7 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 			<h3 className="mb-m-400 text-body font-semibold text-txt-100">
 				{t("radar.title")}
 			</h3>
-			<ChartContainer className="h-[250px] w-full">
+			<ChartContainer id="chart-dashboard-performance-radar" className="h-[250px] w-full">
 					<RadarChart data={chartData} cx="50%" cy="50%" outerRadius="70%">
 						<PolarGrid stroke="var(--color-bg-300)" />
 						<PolarAngleAxis

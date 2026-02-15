@@ -77,6 +77,7 @@ const BrandSwitcher = () => {
 	return (
 		<Select value={brand} onValueChange={handleBrandChange}>
 			<SelectTrigger
+				id="brand-switcher"
 				className="w-40"
 				aria-label={t("colorScheme")}
 			>

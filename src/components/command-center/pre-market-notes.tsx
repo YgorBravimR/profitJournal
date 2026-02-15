@@ -69,7 +69,7 @@ export const PreMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PreMark
 					<h3 className="text-body font-semibold text-txt-100">{t("preMarket")}</h3>
 				</div>
 				{hasChanges && !isReadOnly && (
-					<Button size="sm" onClick={handleSave} disabled={saving}>
+					<Button id="pre-market-save" size="sm" onClick={handleSave} disabled={saving}>
 						{saving ? (
 							<Loader2 className="mr-s-100 h-4 w-4 animate-spin" />
 						) : (
@@ -90,6 +90,7 @@ export const PreMarketNotes = ({ notes, onRefresh, isReadOnly = false }: PreMark
 			<div>
 				<label className="mb-s-200 block text-small text-txt-200">{t("preMarketLabel")}</label>
 				<Textarea
+					id="pre-market-notes-textarea"
 					value={preMarketNotes}
 					onChange={(e) => setPreMarketNotes(e.target.value)}
 					placeholder={t("placeholder")}

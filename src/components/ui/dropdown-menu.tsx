@@ -53,9 +53,13 @@ const DropdownMenuSubContent = React.forwardRef<
 ))
 DropdownMenuSubContent.displayName = DropdownMenuPrimitive.SubContent.displayName
 
+interface DropdownMenuContentProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> {
+	id: string
+}
+
 const DropdownMenuContent = React.forwardRef<
 	React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-	React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
+	DropdownMenuContentProps
 >(({ className, sideOffset = 4, ...props }, ref) => (
 	<DropdownMenuPrimitive.Portal>
 		<DropdownMenuPrimitive.Content

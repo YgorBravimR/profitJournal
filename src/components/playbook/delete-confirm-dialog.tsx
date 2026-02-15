@@ -44,6 +44,7 @@ export const DeleteConfirmDialog = ({
 
 				<div className="mt-m-600 flex justify-end gap-s-300">
 					<Button
+					id="playbook-delete-cancel"
 						type="button"
 						variant="outline"
 						onClick={onCancel}
@@ -52,6 +53,7 @@ export const DeleteConfirmDialog = ({
 						Cancel
 					</Button>
 					<Button
+					id="playbook-delete-confirm"
 						type="button"
 						variant="destructive"
 						onClick={onConfirm}

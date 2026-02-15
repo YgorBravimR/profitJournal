@@ -469,6 +469,7 @@ export const OcrImport = () => {
 
 					<div className="mt-m-500 flex items-center justify-center">
 						<Button
+							id="ocr-import-select-image"
 							variant="default"
 							onClick={() => fileInputRef.current?.click()}
 						>
@@ -507,7 +508,7 @@ export const OcrImport = () => {
 							<FileText className="h-5 w-5 text-txt-300" />
 							<span className="text-small font-medium text-txt-100">{fileName}</span>
 						</div>
-						<Button variant="ghost" size="icon" onClick={handleClear} aria-label="Clear">
+						<Button id="ocr-import-clear" variant="ghost" size="icon" onClick={handleClear} aria-label="Clear">
 							<X className="h-4 w-4" />
 						</Button>
 					</div>
@@ -599,6 +600,7 @@ export const OcrImport = () => {
 								</p>
 							</div>
 							<Input
+								id="ocr-trade-date"
 								type="date"
 								value={editedDate}
 								onChange={(e) => setEditedDate(e.target.value)}
@@ -677,6 +679,7 @@ export const OcrImport = () => {
 									</span>
 								</button>
 								<Button
+									id={`ocr-remove-trade-${trade.id}`}
 									variant="ghost"
 									size="icon"
 									onClick={() => handleRemoveTrade(trade.id)}
@@ -794,6 +797,7 @@ export const OcrImport = () => {
 														</td>
 														<td className="px-m-400 py-s-300">
 															<Input
+																id={`ocr-execution-quantity-${ex.id}`}
 																type="number"
 																value={ex.quantity}
 																onChange={(e) =>
@@ -806,6 +810,7 @@ export const OcrImport = () => {
 														</td>
 														<td className="px-m-400 py-s-300">
 															<Input
+																id={`ocr-execution-price-${ex.id}`}
 																type="number"
 																step="0.001"
 																value={ex.price}
@@ -819,6 +824,7 @@ export const OcrImport = () => {
 														</td>
 														<td className="px-m-400 py-s-300 text-center">
 															<Button
+																id={`ocr-remove-execution-${trade.id}-${ex.id}`}
 																variant="ghost"
 																size="icon"
 																onClick={() => handleRemoveExecution(trade.id, ex.id)}
@@ -887,10 +893,11 @@ export const OcrImport = () => {
 
 					{/* Actions */}
 					<div className="flex items-center justify-end gap-m-400">
-						<Button variant="outline" onClick={handleClear}>
+						<Button id="ocr-import-cancel" variant="outline" onClick={handleClear}>
 							{tCommon("cancel")}
 						</Button>
 						<Button
+							id="ocr-import-submit"
 							onClick={handleImport}
 							disabled={isImporting || totalTrades === 0 || !editedDate}
 						>

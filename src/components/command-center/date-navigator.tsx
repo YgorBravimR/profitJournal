@@ -73,7 +73,7 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 
 	return (
 		<div className="flex items-center gap-s-200">
-			<Button
+			<Button id="date-nav-previous"
 				variant="ghost"
 				size="sm"
 				onClick={() => handleNavigate(-1)}
@@ -98,7 +98,7 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 				</span>
 			</div>
 
-			<Button
+			<Button id="date-nav-next"
 				variant="ghost"
 				size="sm"
 				onClick={() => handleNavigate(1)}
@@ -111,7 +111,7 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 			</Button>
 
 			{!isToday && (
-				<Button
+				<Button id="date-nav-today"
 					variant="ghost"
 					size="sm"
 					onClick={handleGoToToday}
@@ -122,7 +122,7 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 			)}
 
 			{isReplayAccount && isToday && (
-				<Button
+				<Button id="date-nav-advance-replay"
 					variant="ghost"
 					size="sm"
 					onClick={handleAdvanceReplayDate}

@@ -39,6 +39,7 @@ export const InlineExecutionRow = ({
 	return (
 		<div className="gap-s-200 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr] items-center">
 			<Input
+				id={`execution-${data.id}-date`}
 				type="date"
 				max={todayDateString}
 				value={data.date}
@@ -46,12 +47,14 @@ export const InlineExecutionRow = ({
 				className="text-small h-8"
 			/>
 			<Input
+				id={`execution-${data.id}-time`}
 				type="time"
 				value={data.time}
 				onChange={(e) => onChange(data.id, "time", e.target.value)}
 				className="text-small h-8"
 			/>
 			<Input
+				id={`execution-${data.id}-price`}
 				type="number"
 				step="any"
 				placeholder={t("price")}
@@ -60,6 +63,7 @@ export const InlineExecutionRow = ({
 				className="text-small h-8"
 			/>
 			<Input
+				id={`execution-${data.id}-quantity`}
 				type="number"
 				step="any"
 				placeholder={t("quantity")}
@@ -68,19 +72,21 @@ export const InlineExecutionRow = ({
 				className="text-small h-8"
 			/>
 			<div className="relative">
-				<span className="text-tiny text-txt-300 absolute top-1/2 left-2 -translate-y-1/2">
+				<span className="text-tiny text-txt-300 pointer-events-none absolute top-1/2 left-2 -translate-y-1/2">
 					{currency}
 				</span>
 				<Input
+					id={`execution-${data.id}-commission`}
 					type="number"
 					step="0.01"
 					placeholder="0.00"
 					value={data.commission}
 					onChange={(e) => onChange(data.id, "commission", e.target.value)}
-					className="text-small h-8 pl-5"
+					className="text-small h-8 pl-10"
 				/>
 			</div>
 			<Button
+				id={`inline-execution-remove-${data.id}`}
 				type="button"
 				variant="ghost"
 				size="sm"

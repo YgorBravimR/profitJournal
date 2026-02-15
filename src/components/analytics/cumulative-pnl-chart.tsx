@@ -76,7 +76,7 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 			<h2 className="text-body font-semibold text-txt-100">{t("cumulative")}</h2>
-			<ChartContainer className="mt-m-400 h-64">
+			<ChartContainer id="chart-analytics-cumulative-pnl" className="mt-m-400 h-64">
 					<AreaChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

@@ -253,7 +253,7 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 					<PeriodToggle period={period} onChange={handlePeriodChange} disabled={isPending} labels={periodLabels} />
 				</div>
 			</div>
-			<ChartContainer className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
+			<ChartContainer id="chart-dashboard-equity-curve" className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
 					<AreaChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

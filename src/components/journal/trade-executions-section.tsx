@@ -130,7 +130,7 @@ export const TradeExecutionsSection = ({
 	// If in simple mode, show convert option
 	if (executionMode === "simple") {
 		return (
-			<Card className="p-m-600">
+			<Card id="trade-executions-simple-card" className="p-m-600">
 				<div className="flex items-center justify-between">
 					<div className="flex items-center gap-s-300">
 						<Layers className="h-5 w-5 text-txt-300" />
@@ -143,7 +143,7 @@ export const TradeExecutionsSection = ({
 					</div>
 					<AlertDialog>
 						<AlertDialogTrigger asChild>
-							<Button variant="outline" disabled={isPending}>
+							<Button id="trade-executions-convert-to-scaled" variant="outline" disabled={isPending}>
 								{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 								{t("convertToScaled")}
 							</Button>
@@ -156,8 +156,8 @@ export const TradeExecutionsSection = ({
 								</AlertDialogDescription>
 							</AlertDialogHeader>
 							<AlertDialogFooter>
-								<AlertDialogCancel>{tCommon("cancel")}</AlertDialogCancel>
-								<AlertDialogAction onClick={handleConvertToScaled}>
+								<AlertDialogCancel id="convert-scaled-cancel">{tCommon("cancel")}</AlertDialogCancel>
+								<AlertDialogAction id="convert-scaled-confirm" onClick={handleConvertToScaled}>
 									{tCommon("confirm")}
 								</AlertDialogAction>
 							</AlertDialogFooter>
@@ -184,7 +184,7 @@ export const TradeExecutionsSection = ({
 			)}
 
 			{/* Execution List */}
-			<Card className="p-m-600">
+			<Card id="trade-executions-scaled-card" className="p-m-600">
 				<ExecutionList
 					executions={executions}
 					direction={direction}

@@ -113,7 +113,7 @@ export const TagForm = ({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md">
+			<DialogContent id="tag-form-dialog" className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? t("editTag") : t("addTag")}</DialogTitle>
 					<DialogDescription>
@@ -130,7 +130,7 @@ export const TagForm = ({
 
 					{/* Name */}
 					<div className="space-y-s-200">
-						<Label htmlFor="tagName">{t("name")}</Label>
+						<Label id="label-tag-name" htmlFor="tagName">{t("name")}</Label>
 						<Input
 							id="tagName"
 							placeholder={t("namePlaceholder")}
@@ -143,7 +143,7 @@ export const TagForm = ({
 
 					{/* Type */}
 					<div className="space-y-s-200">
-						<Label htmlFor="tagType">{t("type")}</Label>
+						<Label id="label-tag-type" htmlFor="tagType">{t("type")}</Label>
 						<Select
 							value={formData.type}
 							onValueChange={(value) => handleChange("type", value)}
@@ -161,7 +161,7 @@ export const TagForm = ({
 
 					{/* Color */}
 					<div className="space-y-s-200">
-						<Label>{t("color")}</Label>
+						<Label id="label-tag-color">{t("color")}</Label>
 						<div className="flex flex-wrap gap-s-200">
 							{TAG_COLORS.map((color) => (
 								<button
@@ -182,7 +182,7 @@ export const TagForm = ({
 
 					{/* Description */}
 					<div className="space-y-s-200">
-						<Label htmlFor="tagDescription">{t("description")}</Label>
+						<Label id="label-tag-description" htmlFor="tagDescription">{t("description")}</Label>
 						<Textarea
 							id="tagDescription"
 							placeholder={t("descriptionPlaceholder")}
@@ -195,13 +195,14 @@ export const TagForm = ({
 
 					<DialogFooter>
 						<Button
+							id="tag-form-cancel"
 							type="button"
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button type="submit" disabled={isPending}>
+						<Button id="tag-form-submit" type="submit" disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{isEdit ? tCommon("saveChanges") : t("createTag")}
 						</Button>

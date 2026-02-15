@@ -43,7 +43,7 @@ export const MonthNavigator = ({
 
 	return (
 		<div className="flex items-center justify-center gap-m-400">
-			<Button
+			<Button id="month-nav-previous"
 				variant="ghost"
 				size="sm"
 				onClick={handlePrevious}
@@ -61,7 +61,7 @@ export const MonthNavigator = ({
 				</span>
 			</div>
 
-			<Button
+			<Button id="month-nav-next"
 				variant="ghost"
 				size="sm"
 				onClick={handleNext}

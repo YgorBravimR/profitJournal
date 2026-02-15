@@ -64,29 +64,40 @@ interface SidebarProps {
 	onToggleCollapse: () => void
 	isReplayAccount?: boolean
 	replayDate?: string
+	variant?: "default" | "sheet"
+	onNavigate?: () => void
 }
 
-export const Sidebar = ({
+const Sidebar = ({
 	isCollapsed,
 	onToggleCollapse,
 	isReplayAccount = false,
 	replayDate,
+	variant = "default",
+	onNavigate,
 }: SidebarProps) => {
 	const t = useTranslations("nav")
 	const tReplay = useTranslations("commandCenter.dateNavigator")
 	const tCommon = useTranslations("common")
 	const pathname = usePathname()
 
+	const isSheet = variant === "sheet"
+	const isCompact = isCollapsed && !isSheet
+	const showLabels = !isCollapsed || isSheet
+
 	return (
 		<aside
 			className={cn(
-				"border-bg-300 bg-bg-200 fixed top-0 left-0 z-40 flex h-screen flex-col border-r transition-[width] duration-300",
-				isCollapsed ? "w-16" : "w-64"
+				"border-bg-300 bg-bg-200 flex flex-col border-r",
+				isSheet
+					? "h-full w-full"
+					: "fixed top-0 left-0 z-40 h-screen transition-[width] duration-300",
+				!isSheet && (isCollapsed ? "w-16" : "w-64")
 			)}
 		>
 			{/* Logo */}
 			<div className="border-bg-300 flex h-16 items-center justify-between border-b px-4">
-				{isCollapsed ? (
+				{isCompact ? (
 					<Image
 						src="/logo_nobg.png"
 						alt="Bravo"
@@ -105,20 +116,24 @@ export const Sidebar = ({
 						priority
 					/>
 				)}
-				<button
-					type="button"
-					onClick={onToggleCollapse}
-					className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
-					aria-label={
-						isCollapsed ? tCommon("expandSidebar") : tCommon("collapseSidebar")
-					}
-				>
-					{isCollapsed ? (
-						<ChevronRight className="h-5 w-5" />
-					) : (
-						<ChevronLeft className="h-5 w-5" />
-					)}
-				</button>
+				{!isSheet && (
+					<button
+						type="button"
+						onClick={onToggleCollapse}
+						className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
+						aria-label={
+							isCollapsed
+								? tCommon("expandSidebar")
+								: tCommon("collapseSidebar")
+						}
+					>
+						{isCollapsed ? (
+							<ChevronRight className="h-5 w-5" />
+						) : (
+							<ChevronLeft className="h-5 w-5" />
+						)}
+					</button>
+				)}
 			</div>
 
 			{/* New Trade Button */}
@@ -127,24 +142,25 @@ export const Sidebar = ({
 					<span
 						className={cn(
 							"bg-acc-100/10 text-acc-100 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium",
-							isCollapsed && "justify-center"
+							isCompact && "justify-center"
 						)}
 						aria-current="page"
 					>
 						<Plus className="h-5 w-5 shrink-0" />
-						{!isCollapsed && <span>{t("newTrade")}</span>}
+						{showLabels && <span>{t("newTrade")}</span>}
 					</span>
 				) : (
 					<Link
 						href="/journal/new"
 						className={cn(
 							"bg-acc-100 hover:bg-acc-100/90 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium text-white transition-colors",
-							isCollapsed && "justify-center"
+							isCompact && "justify-center"
 						)}
 						aria-label={t("newTrade")}
+						onClick={onNavigate}
 					>
 						<Plus className="h-5 w-5 shrink-0" />
-						{!isCollapsed && <span>{t("newTrade")}</span>}
+						{showLabels && <span>{t("newTrade")}</span>}
 					</Link>
 				)}
 			</div>
@@ -166,12 +182,21 @@ export const Sidebar = ({
 								isActive
 									? "bg-acc-100/10 text-acc-100"
 									: "text-txt-200 hover:bg-bg-300 hover:text-txt-100",
-								isCollapsed && "justify-center"
+								isCompact && "justify-center"
 							)}
 							aria-current={isActive ? "page" : undefined}
+							tabIndex={isActive ? -1 : 0}
+							onClick={onNavigate}
+							ref={
+								isActive
+									? (el) => {
+											if (el && el === document.activeElement) el.blur()
+										}
+									: undefined
+							}
 						>
 							<item.icon className="h-5 w-5 shrink-0" />
-							{!isCollapsed && <span>{t(item.labelKey)}</span>}
+							{showLabels && <span>{t(item.labelKey)}</span>}
 						</Link>
 					)
 				})}
@@ -182,10 +207,10 @@ export const Sidebar = ({
 				<div
 					className={cn(
 						"border-bg-300 border-t px-3 py-2",
-						isCollapsed && "flex justify-center px-0"
+						isCompact && "flex justify-center px-0"
 					)}
 				>
-					{isCollapsed ? (
+					{isCompact ? (
 						<div
 							className="bg-acc-100/10 flex h-8 w-8 items-center justify-center rounded-md"
 							aria-label={tReplay("replayMode")}
@@ -214,14 +239,14 @@ export const Sidebar = ({
 			<div
 				className={cn(
 					"border-bg-300 border-t",
-					isCollapsed
-						? "flex flex-col items-center gap-2 py-4"
-						: "space-y-2 p-4"
+					isCompact ? "flex flex-col items-center gap-2 py-4" : "space-y-2 p-4"
 				)}
 			>
-				<AccountSwitcher isCollapsed={isCollapsed} />
-				<UserMenu isCollapsed={isCollapsed} />
+				<AccountSwitcher isCollapsed={isCompact} />
+				<UserMenu isCollapsed={isCompact} />
 			</div>
 		</aside>
 	)
 }
+
+export { Sidebar }

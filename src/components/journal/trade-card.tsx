@@ -39,6 +39,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 	return (
 		<Link href={`/journal/${trade.id}`}>
 			<Card
+				id={`trade-card-${trade.id}`}
 				className={cn(
 					"p-m-500 hover:border-acc-100/50 hover:bg-bg-200/80 transition-colors",
 					className
@@ -65,6 +66,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 									{trade.asset}
 								</span>
 								<Badge
+									id={`trade-card-direction-${trade.id}`}
 									variant="outline"
 									className={cn(
 										"text-tiny",
@@ -78,7 +80,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 										: t("direction.short").toUpperCase()}
 								</Badge>
 								{trade.timeframe && (
-									<Badge variant="secondary" className="text-tiny">
+									<Badge id={`trade-card-timeframe-${trade.id}`} variant="secondary" className="text-tiny">
 										{trade.timeframe.name}
 									</Badge>
 								)}
@@ -115,6 +117,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 					<div className="mt-m-400 gap-s-200 flex flex-wrap">
 						{setupTags.map((tag) => (
 							<Badge
+								id={`badge-setup-${tag.id}`}
 								key={tag.id}
 								variant="secondary"
 								className="bg-trade-buy/10 text-tiny text-trade-buy"
@@ -124,6 +127,7 @@ export const TradeCard = ({ trade, className }: TradeCardProps) => {
 						))}
 						{mistakeTags.map((tag) => (
 							<Badge
+								id={`badge-mistake-${tag.id}`}
 								key={tag.id}
 								variant="secondary"
 								className="bg-warning/10 text-tiny text-warning"

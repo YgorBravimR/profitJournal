@@ -2,7 +2,11 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+interface CardProps extends React.ComponentProps<"div"> {
+	id: string
+}
+
+const Card = ({ className, ...props }: CardProps) => {
 	return (
 		<div
 			data-slot="card"

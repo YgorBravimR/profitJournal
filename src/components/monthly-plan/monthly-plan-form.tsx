@@ -257,6 +257,7 @@ const MonthlyPlanForm = ({
 									R$
 								</span>
 								<Input
+									id="plan-account-balance"
 									type="number"
 									step="0.01"
 									min="0"
@@ -279,6 +280,7 @@ const MonthlyPlanForm = ({
 							</label>
 							<div className="relative">
 								<Input
+									id="plan-risk-per-trade"
 									type="number"
 									step="0.01"
 									min="0"
@@ -305,6 +307,7 @@ const MonthlyPlanForm = ({
 							</label>
 							<div className="relative">
 								<Input
+									id="plan-daily-loss"
 									type="number"
 									step="0.01"
 									min="0"
@@ -331,6 +334,7 @@ const MonthlyPlanForm = ({
 							</label>
 							<div className="relative">
 								<Input
+									id="plan-monthly-loss"
 									type="number"
 									step="0.01"
 									min="0"
@@ -378,6 +382,7 @@ const MonthlyPlanForm = ({
 									</label>
 									<div className="relative">
 										<Input
+											id="plan-daily-profit-target"
 											type="number"
 											step="0.01"
 											min="0"
@@ -404,6 +409,7 @@ const MonthlyPlanForm = ({
 										{t("form.maxDailyTrades")}
 									</label>
 									<Input
+										id="plan-max-daily-trades"
 										type="number"
 										step="1"
 										min="1"
@@ -423,6 +429,7 @@ const MonthlyPlanForm = ({
 										{t("form.maxConsecutiveLosses")}
 									</label>
 									<Input
+										id="plan-max-consecutive-losses"
 										type="number"
 										step="1"
 										min="1"
@@ -445,6 +452,7 @@ const MonthlyPlanForm = ({
 										{t("form.allowSecondOp")}
 									</label>
 									<Switch
+										id="allow-second-op-after-loss"
 										checked={allowSecondOpAfterLoss}
 										onCheckedChange={setAllowSecondOpAfterLoss}
 										aria-label={t("form.allowSecondOp")}
@@ -457,6 +465,7 @@ const MonthlyPlanForm = ({
 										{t("form.reduceRisk")}
 									</label>
 									<Switch
+										id="reduce-risk-after-loss"
 										checked={reduceRiskAfterLoss}
 										onCheckedChange={setReduceRiskAfterLoss}
 										aria-label={t("form.reduceRisk")}
@@ -470,6 +479,7 @@ const MonthlyPlanForm = ({
 											{t("form.riskReductionFactor")}
 										</label>
 										<Input
+											id="plan-risk-reduction-factor"
 											type="number"
 											step="0.01"
 											min="0.01"
@@ -532,6 +542,7 @@ const MonthlyPlanForm = ({
 										</label>
 										<div className="relative">
 											<Input
+												id="plan-profit-reinvestment"
 												type="number"
 												step="1"
 												min="1"
@@ -623,7 +634,7 @@ const MonthlyPlanForm = ({
 
 			{/* Save Button */}
 			<div className="flex justify-end">
-				<Button
+				<Button id="plan-save"
 					onClick={handleSave}
 					disabled={saving || !isValid}
 					aria-label={t("save")}

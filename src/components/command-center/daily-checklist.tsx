@@ -48,7 +48,7 @@ export const DailyChecklist = ({
 				<div className="mb-m-400 flex items-center justify-between">
 					<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 					{!isReadOnly && (
-						<Button variant="ghost" size="sm" onClick={onManageClick}>
+						<Button id="daily-checklist-manage" variant="ghost" size="sm" onClick={onManageClick}>
 							<Settings className="mr-s-100 h-4 w-4" />
 							{t("editChecklist")}
 						</Button>
@@ -89,7 +89,7 @@ export const DailyChecklist = ({
 								)}
 							</div>
 							{!isReadOnly && (
-								<Button variant="ghost" size="sm" onClick={onManageClick}>
+								<Button id="daily-checklist-settings-${checklist.id}" variant="ghost" size="sm" onClick={onManageClick}>
 									<Settings className="h-4 w-4" />
 								</Button>
 							)}
@@ -134,6 +134,7 @@ export const DailyChecklist = ({
 											)}
 										>
 											<Checkbox
+												id={`checklist-item-${checklist.id}-${item.id}`}
 												checked={isChecked}
 												onCheckedChange={(checked) =>
 													handleToggle(checklist.id, item.id, !!checked)

@@ -25,6 +25,7 @@ const StatLabel = ({
 			</p>
 		</TooltipTrigger>
 		<TooltipContent
+			id="tooltip-expected-value-stat"
 			side="top"
 			className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
 		>

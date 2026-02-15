@@ -122,6 +122,7 @@ export const TagList = () => {
 			<div className="gap-m-400 flex flex-wrap items-center justify-between">
 				<div className="gap-s-300 flex items-center">
 					<Badge
+						id="badge-tag-filter-all"
 						variant={filterType === "all" ? "default" : "outline"}
 						className="cursor-pointer"
 						tabIndex={0}
@@ -135,6 +136,7 @@ export const TagList = () => {
 						{tCommon("all")} ({tagCounts.all})
 					</Badge>
 					<Badge
+						id="badge-tag-filter-setup"
 						variant={filterType === "setup" ? "default" : "outline"}
 						className="cursor-pointer"
 						tabIndex={0}
@@ -148,6 +150,7 @@ export const TagList = () => {
 						{t("typeSetup")} ({tagCounts.setup})
 					</Badge>
 					<Badge
+						id="badge-tag-filter-mistake"
 						variant={filterType === "mistake" ? "default" : "outline"}
 						className="cursor-pointer"
 						tabIndex={0}
@@ -161,6 +164,7 @@ export const TagList = () => {
 						{t("typeMistake")} ({tagCounts.mistake})
 					</Badge>
 					<Badge
+						id="badge-tag-filter-general"
 						variant={filterType === "general" ? "default" : "outline"}
 						className="cursor-pointer"
 						tabIndex={0}
@@ -174,7 +178,7 @@ export const TagList = () => {
 						{t("typeGeneral")} ({tagCounts.general})
 					</Badge>
 				</div>
-				<Button onClick={handleAddNew}>
+				<Button id="tag-add-new" onClick={handleAddNew}>
 					<Plus className="mr-2 h-4 w-4" />
 					{t("addTag")}
 				</Button>
@@ -216,6 +220,7 @@ export const TagList = () => {
 									) : (
 										<>
 											<Button
+												id={`tag-edit-${tag.id}`}
 												variant="ghost"
 												size="sm"
 												onClick={() => handleEdit(tag)}
@@ -227,6 +232,7 @@ export const TagList = () => {
 											<AlertDialog>
 												<AlertDialogTrigger asChild>
 													<Button
+														id={`tag-delete-${tag.id}`}
 														variant="ghost"
 														size="sm"
 														className="text-fb-error hover:text-fb-error h-8 w-8 p-0"
@@ -245,10 +251,11 @@ export const TagList = () => {
 														</AlertDialogDescription>
 													</AlertDialogHeader>
 													<AlertDialogFooter>
-														<AlertDialogCancel>
+														<AlertDialogCancel id={`tag-delete-cancel-${tag.id}`}>
 															{tCommon("cancel")}
 														</AlertDialogCancel>
 														<AlertDialogAction
+															id={`tag-delete-confirm-${tag.id}`}
 															className="bg-fb-error hover:bg-fb-error/90"
 															onClick={() => handleDelete(tag.id)}
 														>

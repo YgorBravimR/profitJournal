@@ -72,6 +72,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 							<div className="flex items-center justify-between">
 								<div className="flex items-center gap-s-200">
 									<Badge
+										id={`badge-mistake-cost-${mistake.tagId}`}
 										variant="outline"
 										className="text-tiny"
 										style={{

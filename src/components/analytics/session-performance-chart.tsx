@@ -223,7 +223,7 @@ export const SessionPerformanceChart = ({
 			</div>
 
 			{/* Bar Chart */}
-			<ChartContainer className="h-60 w-full">
+			<ChartContainer id="chart-analytics-session-performance" className="h-60 w-full">
 					<BarChart
 						data={data}
 						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}

@@ -387,7 +387,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 				<TabsContent value="executions" className="space-y-m-500 pt-m-500">
 					{/* Direction Toggle */}
 					<div className="space-y-s-200">
-						<Label>{t("direction.label")}</Label>
+						<Label id="label-scaled-direction">{t("direction.label")}</Label>
 						<div className="gap-m-400 flex">
 							<button
 								type="button"
@@ -425,13 +425,13 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 					{/* Asset */}
 					<div className="space-y-s-200">
 						<div className="gap-s-200 flex items-center">
-							<Label>{t("assetRequired")}</Label>
+							<Label id="label-scaled-asset">{t("assetRequired")}</Label>
 							{selectedAsset && (
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<Info className="text-txt-300 h-4 w-4" />
 									</TooltipTrigger>
-									<TooltipContent>
+									<TooltipContent id="tooltip-scaled-asset-info">
 										<div className="text-tiny space-y-1">
 											<p>
 												<span className="text-txt-300">{t("type")}:</span>{" "}
@@ -456,7 +456,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 							onValueChange={setAsset}
 							disabled={!hasConfiguredAssets}
 						>
-							<SelectTrigger>
+							<SelectTrigger id="scaled-trade-asset">
 								<SelectValue
 									placeholder={
 										hasConfiguredAssets
@@ -479,8 +479,9 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 					{/* Entries Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-action-buy">{tScaled("entries")}</Label>
+							<Label id="label-scaled-entries" className="text-action-buy">{tScaled("entries")}</Label>
 							<Button
+								id="scaled-trade-add-entry"
 								type="button"
 								variant="ghost"
 								size="sm"
@@ -527,8 +528,9 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 					{/* Exits Section */}
 					<div className="space-y-s-300">
 						<div className="flex items-center justify-between">
-							<Label className="text-action-sell">{tScaled("exits")}</Label>
+							<Label id="label-scaled-exits" className="text-action-sell">{tScaled("exits")}</Label>
 							<Button
+								id="scaled-trade-add-exit"
 								type="button"
 								variant="ghost"
 								size="sm"
@@ -543,7 +545,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 						{exits.length > 0 ? (
 							<div className="space-y-s-200">
 								{/* Header */}
-								<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[1fr_80px_90px_90px_100px_40px]">
+								<div className="gap-s-200 text-tiny text-txt-300 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr]">
 									<span>{tExec("date")}</span>
 									<span>{tExec("time")}</span>
 									<span>{tExec("price")}</span>
@@ -668,10 +670,10 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 
 					{/* Risk Management */}
 					<div className="space-y-m-400">
-						<Label>{tScaled("riskManagement")}</Label>
+						<Label id="label-scaled-risk-management">{tScaled("riskManagement")}</Label>
 						<div className="gap-m-400 grid grid-cols-3">
 							<div className="space-y-s-200">
-								<Label htmlFor="stopLoss" className="text-small text-txt-300">
+								<Label id="label-scaled-stop-loss" htmlFor="stopLoss" className="text-small text-txt-300">
 									{t("stopLoss")}
 								</Label>
 								<Input
@@ -688,7 +690,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 								)}
 							</div>
 							<div className="space-y-s-200">
-								<Label htmlFor="takeProfit" className="text-small text-txt-300">
+								<Label id="label-scaled-take-profit" htmlFor="takeProfit" className="text-small text-txt-300">
 									{t("takeProfit")}
 								</Label>
 								<Input
@@ -705,7 +707,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 								)}
 							</div>
 							<div className="space-y-s-200">
-								<Label className="text-small text-txt-300">
+								<Label id="label-scaled-risk-amount" className="text-small text-txt-300">
 									{t("riskAmount")} ({selectedAsset?.currency ?? "$"})
 								</Label>
 								<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
@@ -732,13 +734,13 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 				<TabsContent value="basic" className="space-y-m-500 pt-m-500">
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label>{t("timeframe")}</Label>
+							<Label id="label-scaled-timeframe">{t("timeframe")}</Label>
 							<Select
 								value={timeframeId || ""}
 								onValueChange={(value) => setTimeframeId(value || null)}
 								disabled={!hasConfiguredTimeframes}
 							>
-								<SelectTrigger>
+								<SelectTrigger id="scaled-trade-timeframe">
 									<SelectValue
 										placeholder={
 											hasConfiguredTimeframes
@@ -759,12 +761,12 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 
 						{strategies.length > 0 && (
 							<div className="space-y-s-200">
-								<Label>{t("strategy")}</Label>
+								<Label id="label-scaled-strategy">{t("strategy")}</Label>
 								<Select
 									value={strategyId || ""}
 									onValueChange={(value) => setStrategyId(value || null)}
 								>
-									<SelectTrigger>
+									<SelectTrigger id="scaled-trade-strategy">
 										<SelectValue placeholder={t("selectStrategy")} />
 									</SelectTrigger>
 									<SelectContent>
@@ -785,6 +787,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 							{tScaled("needSimple")}
 						</p>
 						<Button
+							id="scaled-trade-switch-mode"
 							type="button"
 							variant="link"
 							className="text-brand-500 h-auto p-0"
@@ -798,7 +801,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 				{/* Journal Tab */}
 				<TabsContent value="journal" className="space-y-m-500 pt-m-500">
 					<div className="space-y-s-200">
-						<Label htmlFor="preTradeThoughts">{t("preTradeThoughts")}</Label>
+						<Label id="label-scaled-pre-trade-thoughts" htmlFor="preTradeThoughts">{t("preTradeThoughts")}</Label>
 						<Textarea
 							id="preTradeThoughts"
 							placeholder={t("preTradeHint")}
@@ -809,7 +812,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="postTradeReflection">{t("postTradeReflection")}</Label>
+						<Label id="label-scaled-post-trade-reflection" htmlFor="postTradeReflection">{t("postTradeReflection")}</Label>
 						<Textarea
 							id="postTradeReflection"
 							placeholder={t("postTradeHint")}
@@ -820,7 +823,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label htmlFor="lessonLearned">{t("lessonLearned")}</Label>
+						<Label id="label-scaled-lesson-learned" htmlFor="lessonLearned">{t("lessonLearned")}</Label>
 						<Textarea
 							id="lessonLearned"
 							placeholder={t("lessonHint")}
@@ -832,7 +835,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 
 					{/* Compliance */}
 					<div className="space-y-s-200">
-						<Label>{t("didYouFollowPlan")}</Label>
+						<Label id="label-scaled-followed-plan">{t("didYouFollowPlan")}</Label>
 						<div className="gap-m-400 flex">
 							<button
 								type="button"
@@ -867,7 +870,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 
 					{followedPlan === false && (
 						<div className="space-y-s-200">
-							<Label htmlFor="disciplineNotes">{t("whatWentWrong")}</Label>
+							<Label id="label-scaled-discipline-notes" htmlFor="disciplineNotes">{t("whatWentWrong")}</Label>
 							<Textarea
 								id="disciplineNotes"
 								placeholder={t("describeBreach")}
@@ -883,7 +886,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 				<TabsContent value="tags" className="space-y-m-500 pt-m-500">
 					{setupTags.length > 0 && (
 						<div className="space-y-s-200">
-							<Label>{t("setupType")}</Label>
+							<Label id="label-scaled-setup-type">{t("setupType")}</Label>
 							<div className="gap-s-200 flex flex-wrap">
 								{setupTags.map((tag) => (
 									<button
@@ -908,7 +911,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 
 					{mistakeTags.length > 0 && (
 						<div className="space-y-s-200">
-							<Label>{t("mistakes")}</Label>
+							<Label id="label-scaled-mistakes">{t("mistakes")}</Label>
 							<div className="gap-s-200 flex flex-wrap">
 								{mistakeTags.map((tag) => (
 									<button
@@ -945,6 +948,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 			{/* Submit Button */}
 			<div className="gap-m-400 border-bg-300 pt-m-500 flex justify-end border-t">
 				<Button
+					id="scaled-trade-cancel"
 					type="button"
 					variant="outline"
 					onClick={() => router.back()}
@@ -952,7 +956,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(({
 				>
 					{tCommon("cancel")}
 				</Button>
-				<Button type="submit" disabled={isSubmitting}>
+				<Button id="scaled-trade-submit" type="submit" disabled={isSubmitting}>
 					{isSubmitting ? (
 						<>
 							<Loader2 className="mr-2 h-4 w-4 animate-spin" />

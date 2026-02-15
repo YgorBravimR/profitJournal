@@ -173,7 +173,7 @@ export const ExecutionForm = ({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-md">
+			<DialogContent id="execution-form-dialog" className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? t("edit") : t("add")}</DialogTitle>
 					<DialogDescription>
@@ -190,8 +190,9 @@ export const ExecutionForm = ({
 
 					{/* Execution Type */}
 					<div className="space-y-s-200">
-						<Label>{t("type")}</Label>
+						<Label id="label-execution-type">{t("type")}</Label>
 						<RadioGroup
+							id="execution-type-group"
 							value={formData.executionType}
 							onValueChange={(value) => handleChange("executionType", value)}
 							className="gap-m-400 flex"
@@ -199,6 +200,7 @@ export const ExecutionForm = ({
 							<div className="flex items-center space-x-2">
 								<RadioGroupItem value="entry" id="entry" />
 								<Label
+									id="label-execution-entry"
 									htmlFor="entry"
 									className="text-trade-buy cursor-pointer font-normal"
 								>
@@ -208,6 +210,7 @@ export const ExecutionForm = ({
 							<div className="flex items-center space-x-2">
 								<RadioGroupItem value="exit" id="exit" />
 								<Label
+									id="label-execution-exit"
 									htmlFor="exit"
 									className="text-trade-sell cursor-pointer font-normal"
 								>
@@ -220,7 +223,7 @@ export const ExecutionForm = ({
 					{/* Date and Time */}
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label htmlFor="executionDate">{t("date")}</Label>
+							<Label id="label-execution-date" htmlFor="executionDate">{t("date")}</Label>
 							<Input
 								id="executionDate"
 								type="date"
@@ -231,7 +234,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="executionTime">{t("time")}</Label>
+							<Label id="label-execution-time" htmlFor="executionTime">{t("time")}</Label>
 							<Input
 								id="executionTime"
 								type="time"
@@ -246,7 +249,7 @@ export const ExecutionForm = ({
 					{/* Price and Quantity */}
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label htmlFor="price">{t("price")}</Label>
+							<Label id="label-execution-price" htmlFor="price">{t("price")}</Label>
 							<Input
 								id="price"
 								type="number"
@@ -258,7 +261,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="quantity">{t("quantity")}</Label>
+							<Label id="label-execution-quantity" htmlFor="quantity">{t("quantity")}</Label>
 							<Input
 								id="quantity"
 								type="number"
@@ -273,7 +276,7 @@ export const ExecutionForm = ({
 
 					{/* Order Type */}
 					<div className="space-y-s-200">
-						<Label htmlFor="orderType">{t("orderType")}</Label>
+						<Label id="label-execution-order-type" htmlFor="orderType">{t("orderType")}</Label>
 						<Select
 							value={formData.orderType ?? "market"}
 							onValueChange={(value) => handleChange("orderType", value)}
@@ -293,7 +296,7 @@ export const ExecutionForm = ({
 					{/* Costs */}
 					<div className="gap-s-300 grid grid-cols-3">
 						<div className="space-y-s-200">
-							<Label htmlFor="commission" className="text-small">
+							<Label id="label-execution-commission" htmlFor="commission" className="text-small">
 								{t("commission")}
 							</Label>
 							<Input
@@ -307,7 +310,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="fees" className="text-small">
+							<Label id="label-execution-fees" htmlFor="fees" className="text-small">
 								{t("fees")}
 							</Label>
 							<Input
@@ -321,7 +324,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label htmlFor="slippage" className="text-small">
+							<Label id="label-execution-slippage" htmlFor="slippage" className="text-small">
 								{t("slippage")}
 							</Label>
 							<Input
@@ -338,7 +341,7 @@ export const ExecutionForm = ({
 
 					{/* Notes */}
 					<div className="space-y-s-200">
-						<Label htmlFor="notes">{t("notes")}</Label>
+						<Label id="label-execution-notes" htmlFor="notes">{t("notes")}</Label>
 						<Textarea
 							id="notes"
 							placeholder={t("notesPlaceholder")}
@@ -350,13 +353,14 @@ export const ExecutionForm = ({
 
 					<DialogFooter>
 						<Button
+							id="execution-form-cancel"
 							type="button"
 							variant="outline"
 							onClick={() => onOpenChange(false)}
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button type="submit" disabled={isPending}>
+						<Button id="execution-form-submit" type="submit" disabled={isPending}>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{isEdit ? tCommon("saveChanges") : t("addExecution")}
 						</Button>

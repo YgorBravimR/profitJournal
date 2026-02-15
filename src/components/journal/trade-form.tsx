@@ -493,7 +493,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 					<AnimatedTabsContent value="basic" className="space-y-m-500 pt-m-500">
 						{/* Direction Toggle */}
 						<div className="space-y-s-200">
-							<Label>{t("direction.label")}</Label>
+							<Label id="label-trade-direction">{t("direction.label")}</Label>
 							<div className="gap-m-400 flex">
 								<button
 									type="button"
@@ -536,13 +536,13 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								render={({ field }) => (
 									<FormItem>
 										<div className="gap-s-200 flex items-center">
-											<FormLabel>{t("assetRequired")}</FormLabel>
+											<FormLabel id="form-label-asset">{t("assetRequired")}</FormLabel>
 											{selectedAsset && (
 												<Tooltip>
 													<TooltipTrigger asChild>
 														<Info className="text-txt-300 h-4 w-4" />
 													</TooltipTrigger>
-													<TooltipContent>
+													<TooltipContent id="tooltip-trade-asset-info">
 														<div className="text-tiny space-y-1">
 															<p>
 																<span className="text-txt-300">
@@ -578,7 +578,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 											disabled={!hasConfiguredAssets}
 										>
 											<FormControl>
-												<SelectTrigger>
+												<SelectTrigger id="trade-asset">
 													<SelectValue
 														placeholder={
 															hasConfiguredAssets
@@ -611,14 +611,14 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="timeframeId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("timeframe")}</FormLabel>
+										<FormLabel id="form-label-timeframe">{t("timeframe")}</FormLabel>
 										<Select
 											value={field.value || ""}
 											onValueChange={(value) => field.onChange(value || null)}
 											disabled={!hasConfiguredTimeframes}
 										>
 											<FormControl>
-												<SelectTrigger>
+												<SelectTrigger id="trade-timeframe">
 													<SelectValue
 														placeholder={
 															hasConfiguredTimeframes
@@ -654,9 +654,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="entryDate"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("entryDateRequired")}</FormLabel>
+										<FormLabel id="form-label-entry-date">{t("entryDateRequired")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-entry-date"
 												type="datetime-local"
 												max={getEndOfDayLocal(effectiveNow)}
 												value={
@@ -677,9 +678,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="exitDate"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("exitDate")}</FormLabel>
+										<FormLabel id="form-label-exit-date">{t("exitDate")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-exit-date"
 												type="datetime-local"
 												max={getEndOfDayLocal(effectiveNow)}
 												value={
@@ -704,9 +706,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="entryPrice"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("entryPriceRequired")}</FormLabel>
+										<FormLabel id="form-label-entry-price">{t("entryPriceRequired")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-entry-price"
 												type="number"
 												step="any"
 												placeholder="0.00"
@@ -727,9 +730,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="exitPrice"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("exitPrice")}</FormLabel>
+										<FormLabel id="form-label-exit-price">{t("exitPrice")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-exit-price"
 												type="number"
 												step="any"
 												placeholder="0.00"
@@ -754,9 +758,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 							name="positionSize"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("positionSizeRequired")}</FormLabel>
+									<FormLabel id="form-label-position-size">{t("positionSizeRequired")}</FormLabel>
 									<FormControl>
 										<Input
+											id="trade-position-size"
 											type="number"
 											step="any"
 											placeholder={t("positionSizeHint")}
@@ -780,13 +785,13 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="strategyId"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("strategy")}</FormLabel>
+										<FormLabel id="form-label-strategy">{t("strategy")}</FormLabel>
 										<Select
 											value={field.value || ""}
 											onValueChange={field.onChange}
 										>
 											<FormControl>
-												<SelectTrigger>
+												<SelectTrigger id="trade-strategy">
 													<SelectValue placeholder={t("selectStrategy")} />
 												</SelectTrigger>
 											</FormControl>
@@ -814,9 +819,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="stopLoss"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("stopLoss")}</FormLabel>
+										<FormLabel id="form-label-stop-loss">{t("stopLoss")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-stop-loss"
 												type="number"
 												step="any"
 												placeholder="0.00"
@@ -842,9 +848,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="takeProfit"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("takeProfit")}</FormLabel>
+										<FormLabel id="form-label-take-profit">{t("takeProfit")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-take-profit"
 												type="number"
 												step="any"
 												placeholder="0.00"
@@ -870,14 +877,14 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 						{/* Risk Amount (always calculated from entry, stop loss, and position size) */}
 						<div className="space-y-s-200">
 							<div className="gap-s-200 flex items-center">
-								<Label>
+								<Label id="label-trade-planned-risk">
 									{t("plannedRisk")} ({selectedAsset?.currency ?? "$"})
 								</Label>
 								<Tooltip>
 									<TooltipTrigger asChild>
 										<Info className="text-txt-300 h-4 w-4 cursor-help" />
 									</TooltipTrigger>
-									<TooltipContent>
+									<TooltipContent id="tooltip-trade-auto-risk">
 										<p className="text-tiny max-w-[200px]">
 											{t("autoCalculatedRisk")}
 										</p>
@@ -906,7 +913,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 
 						{/* Planned R-Multiple (calculated from TP/SL) */}
 						<div className="space-y-s-200">
-							<Label>{t("plannedRTarget")}</Label>
+							<Label id="label-trade-planned-r-target">{t("plannedRTarget")}</Label>
 							<div className="border-bg-300 bg-bg-100 px-s-300 flex h-10 items-center rounded-md border">
 								{calculatedPlannedR !== null ? (
 									<span className="text-small text-txt-100 font-medium">
@@ -928,9 +935,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="mfe"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("mfeFull")}</FormLabel>
+										<FormLabel id="form-label-mfe">{t("mfeFull")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-mfe"
 												type="number"
 												step="any"
 												placeholder={t("mfeHint")}
@@ -952,9 +960,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="mae"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("maeFull")}</FormLabel>
+										<FormLabel id="form-label-mae">{t("maeFull")}</FormLabel>
 										<FormControl>
 											<Input
+												id="trade-mae"
 												type="number"
 												step="any"
 												placeholder={t("maeHint")}
@@ -980,12 +989,12 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 							render={({ field }) => (
 								<FormItem>
 									<div className="gap-s-200 flex items-center">
-										<FormLabel>{t("contractsExecuted")}</FormLabel>
+										<FormLabel id="form-label-contracts-executed">{t("contractsExecuted")}</FormLabel>
 										<Tooltip>
 											<TooltipTrigger asChild>
 												<Info className="text-txt-300 h-4 w-4" />
 											</TooltipTrigger>
-											<TooltipContent>
+											<TooltipContent id="tooltip-trade-contracts-executed">
 												<div className="text-tiny max-w-xs space-y-1">
 													<p>{t("contractsExecutedDesc")}</p>
 													<p>{t("contractsExecutedDefault")}</p>
@@ -996,6 +1005,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 									</div>
 									<FormControl>
 										<Input
+											id="trade-contracts-executed"
 											type="number"
 											step="1"
 											placeholder={
@@ -1063,9 +1073,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 							name="preTradeThoughts"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("preTradeThoughts")}</FormLabel>
+									<FormLabel id="form-label-pre-trade-thoughts">{t("preTradeThoughts")}</FormLabel>
 									<FormControl>
 										<Textarea
+											id="trade-pre-trade-thoughts"
 											placeholder={t("preTradeHint")}
 											rows={4}
 											{...field}
@@ -1082,9 +1093,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 							name="postTradeReflection"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("postTradeReflection")}</FormLabel>
+									<FormLabel id="form-label-post-trade-reflection">{t("postTradeReflection")}</FormLabel>
 									<FormControl>
 										<Textarea
+											id="trade-post-trade-reflection"
 											placeholder={t("postTradeHint")}
 											rows={4}
 											{...field}
@@ -1101,9 +1113,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 							name="lessonLearned"
 							render={({ field }) => (
 								<FormItem>
-									<FormLabel>{t("lessonLearned")}</FormLabel>
+									<FormLabel id="form-label-lesson-learned">{t("lessonLearned")}</FormLabel>
 									<FormControl>
 										<Textarea
+											id="trade-lesson-learned"
 											placeholder={t("lessonHint")}
 											rows={3}
 											{...field}
@@ -1117,7 +1130,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 
 						{/* Compliance */}
 						<div className="space-y-s-200">
-							<Label>{t("didYouFollowPlan")}</Label>
+							<Label id="label-trade-followed-plan">{t("didYouFollowPlan")}</Label>
 							<div className="gap-m-400 flex">
 								<button
 									type="button"
@@ -1156,9 +1169,10 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 								name="disciplineNotes"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel>{t("whatWentWrong")}</FormLabel>
+										<FormLabel id="form-label-discipline-notes">{t("whatWentWrong")}</FormLabel>
 										<FormControl>
 											<Textarea
+												id="trade-discipline-notes"
 												placeholder={t("describeBreach")}
 												rows={3}
 												{...field}
@@ -1177,7 +1191,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 						{/* Setup Tags */}
 						{setupTags.length > 0 && (
 							<div className="space-y-s-200">
-								<Label>{t("setupType")}</Label>
+								<Label id="label-trade-setup-type">{t("setupType")}</Label>
 								<div className="gap-s-200 flex flex-wrap">
 									{setupTags.map((tag) => (
 										<button
@@ -1203,7 +1217,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 						{/* Mistake Tags */}
 						{mistakeTags.length > 0 && (
 							<div className="space-y-s-200">
-								<Label>{t("mistakes")}</Label>
+								<Label id="label-trade-mistakes">{t("mistakes")}</Label>
 								<div className="gap-s-200 flex flex-wrap">
 									{mistakeTags.map((tag) => (
 										<button
@@ -1229,6 +1243,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 						{/* Inline Create Tag */}
 						<div className="gap-s-300 flex items-center">
 							<Button
+								id="trade-form-create-tag"
 								type="button"
 								variant="outline"
 								size="sm"
@@ -1260,6 +1275,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 				{/* Submit Button */}
 				<div className="gap-m-400 border-bg-300 pt-m-500 flex justify-end border-t">
 					<Button
+						id="trade-form-cancel"
 						type="button"
 						variant="outline"
 						onClick={() => router.back()}
@@ -1267,7 +1283,7 @@ export const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(({
 					>
 						{tCommon("cancel")}
 					</Button>
-					<Button type="submit" disabled={isSubmitting}>
+					<Button id="trade-form-submit" type="submit" disabled={isSubmitting}>
 						{isSubmitting ? (
 							<>
 								<Loader2 className="mr-2 h-4 w-4 animate-spin" />

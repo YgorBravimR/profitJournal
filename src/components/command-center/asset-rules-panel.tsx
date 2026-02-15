@@ -155,7 +155,7 @@ export const AssetRulesPanel = ({
 					<h3 className="text-body font-semibold text-txt-100">{t("title")}</h3>
 				</div>
 				{!addingAsset && availableToAdd.length > 0 && (
-					<Button variant="ghost" size="sm" onClick={() => setAddingAsset(true)}>
+					<Button id="asset-rules-add-asset" variant="ghost" size="sm" onClick={() => setAddingAsset(true)}>
 						<Plus className="mr-s-100 h-4 w-4" aria-hidden="true" />
 						{t("addAsset")}
 					</Button>
@@ -166,7 +166,7 @@ export const AssetRulesPanel = ({
 			{addingAsset && (
 				<div className="mb-m-400 flex items-center gap-s-200 rounded-md border border-dashed border-bg-400 p-s-300">
 					<Select value={selectedAssetId} onValueChange={setSelectedAssetId}>
-						<SelectTrigger className="w-48">
+						<SelectTrigger id="asset-rules-asset" className="w-48">
 							<SelectValue placeholder={t("selectAsset")} />
 						</SelectTrigger>
 						<SelectContent>
@@ -178,6 +178,7 @@ export const AssetRulesPanel = ({
 						</SelectContent>
 					</Select>
 					<Button
+						id="asset-rules-confirm-add"
 						size="sm"
 						onClick={handleAddAsset}
 						disabled={!selectedAssetId || saving === selectedAssetId}
@@ -188,7 +189,7 @@ export const AssetRulesPanel = ({
 							t("add")
 						)}
 					</Button>
-					<Button variant="ghost" size="sm" onClick={() => setAddingAsset(false)}>
+					<Button id="asset-rules-cancel-add" variant="ghost" size="sm" onClick={() => setAddingAsset(false)}>
 						{t("cancel")}
 					</Button>
 				</div>
@@ -247,6 +248,7 @@ export const AssetRulesPanel = ({
 										<td className="py-s-300 pr-m-400">
 											{isEditing ? (
 												<Input
+													id="asset-rules-max-daily-trades"
 													type="number"
 													step="1"
 													min="0"
@@ -265,6 +267,7 @@ export const AssetRulesPanel = ({
 										<td className="py-s-300 pr-m-400">
 											{isEditing ? (
 												<Input
+													id="asset-rules-max-position-size"
 													type="number"
 													step="1"
 													min="0"
@@ -283,6 +286,7 @@ export const AssetRulesPanel = ({
 										<td className="py-s-300 pr-m-400">
 											{isEditing ? (
 												<Input
+													id="asset-rules-notes"
 													value={editing.notes}
 													onChange={(e) =>
 														setEditing({ ...editing, notes: e.target.value })
@@ -301,6 +305,7 @@ export const AssetRulesPanel = ({
 												{isEditing ? (
 													<>
 														<Button
+															id={`asset-rules-save-${setting.assetId}`}
 															variant="ghost"
 															size="sm"
 															onClick={handleSaveEdit}
@@ -315,6 +320,7 @@ export const AssetRulesPanel = ({
 															)}
 														</Button>
 														<Button
+															id={`asset-rules-cancel-edit-${setting.assetId}`}
 															variant="ghost"
 															size="sm"
 															onClick={() => setEditing(null)}
@@ -327,6 +333,7 @@ export const AssetRulesPanel = ({
 												) : (
 													<>
 														<Button
+															id={`asset-rules-add-trade-${setting.assetId}`}
 															variant="ghost"
 															size="sm"
 															onClick={() => handleAddTrade(setting.assetId)}
@@ -336,6 +343,7 @@ export const AssetRulesPanel = ({
 															<PlusCircle className="h-4 w-4" aria-hidden="true" />
 														</Button>
 														<Button
+															id={`asset-rules-edit-${setting.assetId}`}
 															variant="ghost"
 															size="sm"
 															onClick={() => handleStartEdit(setting)}
@@ -345,6 +353,7 @@ export const AssetRulesPanel = ({
 															<Settings2 className="h-4 w-4" aria-hidden="true" />
 														</Button>
 														<Button
+															id={`asset-rules-delete-${setting.assetId}`}
 															variant="ghost"
 															size="sm"
 															onClick={() => handleDelete(setting.assetId)}
