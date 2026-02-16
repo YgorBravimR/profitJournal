@@ -9,6 +9,8 @@ export interface CsvTradeInput extends CreateTradeInput {
 	normalizedAsset: string
 	originalAssetCode: string
 	isFutures: boolean
+	// Replay mode flag (ProfitChart exports prefix assets with [R] in replay mode)
+	isReplayTrade: boolean
 }
 
 export interface CsvParseResult {
@@ -359,6 +361,14 @@ const findHeaderRow = (lines: string[], delimiter: string): number => {
 	return 0 // Fallback to first line
 }
 
+// Strip [R] replay prefix from asset codes (e.g., "[R] WING26" → "WING26")
+const stripReplayPrefix = (assetCode: string): { cleanAsset: string; isReplay: boolean } => {
+	const trimmed = assetCode.trim()
+	const match = trimmed.match(/^\[R\]\s*(.+)$/)
+	if (match) return { cleanAsset: match[1].trim(), isReplay: true }
+	return { cleanAsset: trimmed, isReplay: false }
+}
+
 export const parseCsvContent = (content: string): CsvParseResult => {
 	const result: CsvParseResult = {
 		success: true,
@@ -551,8 +561,9 @@ const parseProfitChartContent = (
 		const mfe = parseBrazilianNumber(rawData.pc_mfe || "")
 		const mae = parseBrazilianNumber(rawData.pc_mae || "")
 
-		// Normalize asset (WING26 → WIN, WDOH25 → WDO, etc.)
-		const assetInfo = normalizeB3Asset(rawData.pc_asset)
+		// Strip [R] replay prefix before normalizing asset
+		const { cleanAsset, isReplay } = stripReplayPrefix(rawData.pc_asset || "")
+		const assetInfo = normalizeB3Asset(cleanAsset)
 
 		// Build trade object
 		const trade: CsvTradeInput = {
@@ -565,6 +576,7 @@ const parseProfitChartContent = (
 			normalizedAsset: assetInfo.normalizedSymbol,
 			originalAssetCode: assetInfo.originalCode,
 			isFutures: assetInfo.isFutures,
+			isReplayTrade: isReplay,
 		}
 
 		if (exitDate) trade.exitDate = exitDate
@@ -684,12 +696,14 @@ const parseStandardContent = (
 			// Parse based on field type
 			switch (field) {
 				case "asset": {
-					// Normalize asset (WING26 → WIN, WDOH25 → WDO, etc.)
-					const assetInfo = normalizeB3Asset(value)
+					// Strip [R] replay prefix before normalizing asset
+					const { cleanAsset, isReplay } = stripReplayPrefix(value)
+					const assetInfo = normalizeB3Asset(cleanAsset)
 					trade.asset = assetInfo.normalizedSymbol
 					trade.normalizedAsset = assetInfo.normalizedSymbol
 					trade.originalAssetCode = assetInfo.originalCode
 					trade.isFutures = assetInfo.isFutures
+					trade.isReplayTrade = isReplay
 					break
 				}
 

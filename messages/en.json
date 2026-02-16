@@ -876,7 +876,14 @@
 			"importTrades": "Import {count} Trades",
 			"formatGuide": "CSV Format Guide",
 			"requiredColumns": "Your CSV should include these required columns:",
-			"optionalColumns": "Optional columns: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan"
+			"optionalColumns": "Optional columns: exit_date, exit_price, stop_loss, take_profit, pnl, timeframe, notes, followed_plan",
+			"replayAlert": {
+				"title": "Replay Trades Detected",
+				"description": "{count} trades have [R] prefix, indicating they were recorded in replay mode. This is not a replay account.",
+				"accept": "Include All",
+				"reject": "Skip Replay Trades",
+				"allReplay": "All trades are from replay. Nothing to import."
+			}
 		},
 		"ocr": {
 			"title": "Import from Screenshot",

@@ -12,6 +12,16 @@ import {
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useToast } from "@/components/ui/toast"
 import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { parseCsvContent, generateCsvTemplate } from "@/lib/csv-parser"
@@ -47,6 +57,10 @@ export const CsvImport = () => {
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 	const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 	const [filter, setFilter] = useState<FilterStatus>("all")
+
+	// Replay alert state
+	const [showReplayAlert, setShowReplayAlert] = useState(false)
+	const [replayTradeCount, setReplayTradeCount] = useState(0)
 
 	// Import state
 	const [isImporting, setIsImporting] = useState(false)
@@ -124,9 +138,19 @@ export const CsvImport = () => {
 				}
 
 				setValidationResult(validation.data!)
-				setProcessedTrades(validation.data!.trades)
 
-				// Auto-select all valid/warning trades
+				// Check for replay trades on non-replay accounts
+				const replayCount = result.trades.filter((t) => t.isReplayTrade).length
+				if (validation.data!.accountType !== "replay" && replayCount > 0) {
+					setReplayTradeCount(replayCount)
+					setShowReplayAlert(true)
+					setIsValidating(false)
+					hideLoading()
+					return
+				}
+
+				// Normal flow: set all trades and auto-select
+				setProcessedTrades(validation.data!.trades)
 				const validIds = new Set(
 					validation.data!.trades
 						.filter((t) => t.status !== "skipped")
@@ -195,6 +219,40 @@ export const CsvImport = () => {
 		if (fileInputRef.current) {
 			fileInputRef.current.value = ""
 		}
+	}
+
+	// Replay alert handlers
+	const handleAcceptReplayTrades = () => {
+		if (!validationResult) return
+		setProcessedTrades(validationResult.trades)
+		const validIds = new Set(
+			validationResult.trades
+				.filter((t) => t.status !== "skipped")
+				.map((t) => t.id)
+		)
+		setSelectedIds(validIds)
+		setShowReplayAlert(false)
+	}
+
+	const handleRejectReplayTrades = () => {
+		if (!validationResult) return
+		const nonReplayTrades = validationResult.trades.filter(
+			(t) => !t.originalData.isReplayTrade
+		)
+		if (nonReplayTrades.length === 0) {
+			showToast("error", t("replayAlert.allReplay"))
+			handleClear()
+			setShowReplayAlert(false)
+			return
+		}
+		setProcessedTrades(nonReplayTrades)
+		const validIds = new Set(
+			nonReplayTrades
+				.filter((t) => t.status !== "skipped")
+				.map((t) => t.id)
+		)
+		setSelectedIds(validIds)
+		setShowReplayAlert(false)
 	}
 
 	// Trade selection
@@ -469,6 +527,56 @@ export const CsvImport = () => {
 				</ul>
 				<p className="mt-m-400 text-small text-txt-300">{t("optionalColumns")}</p>
 			</div>
+
+			{/* Replay Trades Alert Dialog */}
+			<AlertDialog open={showReplayAlert} onOpenChange={setShowReplayAlert}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>{t("replayAlert.title")}</AlertDialogTitle>
+						<AlertDialogDescription>
+							{t("replayAlert.description", { count: replayTradeCount })}
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					{validationResult && (
+						<div className="max-h-48 overflow-y-auto rounded-md border border-bg-300 bg-bg-100 p-s-300">
+							<ul className="space-y-s-100 text-small text-txt-200">
+								{validationResult.trades
+									.filter((t) => t.originalData.isReplayTrade)
+									.map((trade) => (
+										<li key={trade.id} className="flex items-center gap-s-200">
+											<span className="rounded bg-warn-100/20 px-s-100 text-tiny font-medium text-warn-100">
+												[R]
+											</span>
+											<span className="font-medium">{trade.originalData.asset}</span>
+											<span className="text-txt-300">
+												{trade.originalData.direction === "long" ? "Long" : "Short"}
+											</span>
+											<span className="text-txt-300">
+												{trade.originalData.entryDate
+													? new Date(trade.originalData.entryDate).toLocaleDateString()
+													: ""}
+											</span>
+										</li>
+									))}
+							</ul>
+						</div>
+					)}
+					<AlertDialogFooter>
+						<AlertDialogCancel
+							id="csv-replay-alert-reject"
+							onClick={handleRejectReplayTrades}
+						>
+							{t("replayAlert.reject")}
+						</AlertDialogCancel>
+						<AlertDialogAction
+							id="csv-replay-alert-accept"
+							onClick={handleAcceptReplayTrades}
+						>
+							{t("replayAlert.accept")}
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	)
 }

@@ -9,7 +9,7 @@ import { eq, and, inArray } from "drizzle-orm"
 import { calculateAssetPnL } from "@/lib/calculations"
 import { getAssetFees } from "./accounts"
 import { bulkCreateTrades } from "./trades"
-import { requireAuth } from "./auth"
+import { requireAuth, getCurrentAccount } from "./auth"
 import { fromCents } from "@/lib/money"
 
 // ==========================================
@@ -76,6 +76,8 @@ export interface CsvValidationResult {
 	strategies: Strategy[]
 	timeframes: Timeframe[]
 	tags: Tag[]
+	// Account type for replay trade detection
+	accountType: "personal" | "prop" | "replay"
 }
 
 export interface CsvImportResult {
@@ -134,6 +136,10 @@ export const validateCsvTrades = async (
 ): Promise<ActionResponse<CsvValidationResult>> => {
 	try {
 		const { accountId } = await requireAuth()
+		const account = await getCurrentAccount()
+		if (!account) {
+			return { status: "error", message: "Account not found" }
+		}
 
 		// Collect unique asset symbols (normalized + original + FUT variants)
 		const symbolsToLookup = new Set<string>()
@@ -298,6 +304,7 @@ export const validateCsvTrades = async (
 				strategies: accountStrategies,
 				timeframes: accountTimeframes,
 				tags: accountTags,
+				accountType: account.accountType,
 			},
 		}
 	} catch (error) {
