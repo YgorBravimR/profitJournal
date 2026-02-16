@@ -46,6 +46,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 		profitSharePercentage: "100",
 		defaultCommission: "0",
 		defaultFees: "0",
+		defaultBreakevenTicks: "2",
 		replayStartDate: "",
 	})
 
@@ -54,6 +55,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	const [assetFeesForm, setAssetFeesForm] = useState({
 		commission: "0",
 		fees: "0",
+		breakevenTicks: "",
 	})
 
 	useEffect(() => {
@@ -76,6 +78,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 						profitSharePercentage: accountData.profitSharePercentage,
 						defaultCommission: fromCents(accountData.defaultCommission).toString(),
 						defaultFees: fromCents(accountData.defaultFees).toString(),
+						defaultBreakevenTicks: accountData.defaultBreakevenTicks.toString(),
 						replayStartDate: accountData.replayCurrentDate
 							? new Date(accountData.replayCurrentDate).toISOString().split("T")[0]
 							: "",
@@ -99,6 +102,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 				profitSharePercentage: parseFloat(accountForm.profitSharePercentage) || 100,
 				defaultCommission: toCents(parseFloat(accountForm.defaultCommission) || 0),
 				defaultFees: toCents(parseFloat(accountForm.defaultFees) || 0),
+				defaultBreakevenTicks: parseInt(accountForm.defaultBreakevenTicks) || 0,
 				replayStartDate: accountForm.accountType === "replay" ? accountForm.replayStartDate : undefined,
 			})
 			if (result.status === "success" && result.data) {
@@ -116,6 +120,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 		setAssetFeesForm({
 			commission: existing ? fromCents(existing.commissionOverride || 0).toString() : "0",
 			fees: existing ? fromCents(existing.feesOverride || 0).toString() : "0",
+			breakevenTicks: existing?.breakevenTicksOverride != null ? existing.breakevenTicksOverride.toString() : "",
 		})
 		setEditingAssetId(assetId)
 	}
@@ -124,11 +129,15 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 		if (!editingAssetId) return
 
 		startTransition(async () => {
+			const breakevenTicksValue = assetFeesForm.breakevenTicks.trim() === ""
+				? null
+				: parseInt(assetFeesForm.breakevenTicks) || null
 			const result = await updateAccountAsset({
 				assetId: editingAssetId,
 				isEnabled: true,
 				commissionOverride: toCents(parseFloat(assetFeesForm.commission) || 0),
 				feesOverride: toCents(parseFloat(assetFeesForm.fees) || 0),
+				breakevenTicksOverride: breakevenTicksValue,
 			})
 			if (result.status === "success") {
 				// Update local state
@@ -141,6 +150,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 						isEnabled: true,
 						commissionOverride: toCents(parseFloat(assetFeesForm.commission) || 0),
 						feesOverride: toCents(parseFloat(assetFeesForm.fees) || 0),
+						breakevenTicksOverride: breakevenTicksValue,
 						notes: null,
 						createdAt: existing?.createdAt || new Date(),
 						updatedAt: new Date(),
@@ -162,16 +172,23 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 
 	const getAssetFees = (assetId: string) => {
 		const override = accountAssets.find((aa) => aa.assetId === assetId)
-		if (override && (override.commissionOverride !== null || override.feesOverride !== null)) {
+		const hasOverride = override && (
+			override.commissionOverride !== null ||
+			override.feesOverride !== null ||
+			override.breakevenTicksOverride !== null
+		)
+		if (hasOverride) {
 			return {
 				commission: fromCents(override.commissionOverride || 0),
 				fees: fromCents(override.feesOverride || 0),
+				breakevenTicks: override.breakevenTicksOverride,
 				isOverride: true,
 			}
 		}
 		return {
 			commission: fromCents(account?.defaultCommission || 0),
 			fees: fromCents(account?.defaultFees || 0),
+			breakevenTicks: null as number | null,
 			isOverride: false,
 		}
 	}
@@ -348,6 +365,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 										profitSharePercentage: account.profitSharePercentage,
 										defaultCommission: fromCents(account.defaultCommission).toString(),
 										defaultFees: fromCents(account.defaultFees).toString(),
+										defaultBreakevenTicks: account.defaultBreakevenTicks.toString(),
 										replayStartDate: account.replayCurrentDate
 											? new Date(account.replayCurrentDate).toISOString().split("T")[0]
 											: "",
@@ -443,16 +461,45 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							</span>
 						)}
 					</div>
+					<div className="flex items-center justify-between gap-m-400">
+						<div className="flex-1">
+							<p className="text-small text-txt-100">{t("breakevenTicks")}</p>
+							<p className="text-tiny text-txt-300">{t("breakevenTicksDesc")}</p>
+						</div>
+						{isEditingAccount ? (
+							<div className="flex items-center gap-s-200">
+								<Input
+									id="account-default-breakeven-ticks"
+									type="number"
+									step="1"
+									min="0"
+									value={accountForm.defaultBreakevenTicks}
+									onChange={(e) =>
+										setAccountForm((prev) => ({
+											...prev,
+											defaultBreakevenTicks: e.target.value,
+										}))
+									}
+									className="w-24 text-right"
+								/>
+								<span className="text-small text-txt-300">{t("ticks")}</span>
+							</div>
+						) : (
+							<span className="text-small text-txt-200">
+								{account?.defaultBreakevenTicks ?? 2} {t("ticks")}
+							</span>
+						)}
+					</div>
 				</div>
 			</div>
 
-			{/* Per-Asset Fee Overrides */}
+			{/* Per-Asset Overrides */}
 			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
 				<h2 className="text-body font-semibold text-txt-100">
-					{t("assetFeeOverrides")}
+					{t("assetOverrides")}
 				</h2>
 				<p className="mt-s-200 text-tiny text-txt-300">
-					{t("assetFeeOverridesDesc")}
+					{t("assetOverridesDesc")}
 				</p>
 				<div className="mt-m-400 space-y-s-300">
 					{assets.map((asset) => {
@@ -509,6 +556,26 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 												className="h-8 w-20 text-right text-sm"
 											/>
 										</div>
+										<div className="flex items-center gap-s-200">
+											<Label id="label-asset-breakeven-ticks" className="text-tiny text-txt-300">
+												{t("breakevenTicks")}
+											</Label>
+											<Input
+												id="account-asset-breakeven-ticks"
+												type="number"
+												step="1"
+												min="0"
+												value={assetFeesForm.breakevenTicks}
+												onChange={(e) =>
+													setAssetFeesForm((prev) => ({
+														...prev,
+														breakevenTicks: e.target.value,
+													}))
+												}
+												className="h-8 w-16 text-right text-sm"
+												placeholder={account?.defaultBreakevenTicks?.toString() ?? "2"}
+											/>
+										</div>
 										<Button
 											id={`account-cancel-asset-${asset.id}`}
 											variant="ghost"
@@ -534,7 +601,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 									<div className="flex items-center gap-m-400">
 										<div className="text-right">
 											<p className="text-small text-txt-200">
-												${fees.commission.toFixed(2)} / ${fees.fees.toFixed(2)}
+												${fees.commission.toFixed(2)} / ${fees.fees.toFixed(2)} / {fees.breakevenTicks ?? account?.defaultBreakevenTicks ?? 2} {t("ticks")}
 											</p>
 											{fees.isOverride && (
 												<p className="text-tiny text-acc-100">{t("override")}</p>

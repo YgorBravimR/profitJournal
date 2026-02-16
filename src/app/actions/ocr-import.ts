@@ -9,6 +9,7 @@ import { eq, asc } from "drizzle-orm"
 import { calculateAssetPnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { fromCents, toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { getBreakevenTicks } from "@/app/actions/accounts"
 import { z } from "zod"
 
 // ==========================================
@@ -138,6 +139,7 @@ export const createTradeFromOcr = async (
 		let outcome: "win" | "loss" | "breakeven" | undefined
 
 		if (avgExitPrice && totalExitQuantity > 0) {
+			let ticksGained: number | null = null
 			if (assetConfig) {
 				// Use asset-based calculation
 				const tickSize = parseFloat(assetConfig.tickSize)
@@ -153,6 +155,7 @@ export const createTradeFromOcr = async (
 					contractsExecuted: totalEntryQuantity + totalExitQuantity,
 				})
 				pnl = result.netPnl
+				ticksGained = result.ticksGained
 			} else {
 				// Simple calculation
 				const priceDiff = validated.direction === "long"
@@ -161,7 +164,8 @@ export const createTradeFromOcr = async (
 				pnl = priceDiff * Math.min(totalEntryQuantity, totalExitQuantity)
 			}
 
-			outcome = determineOutcome(pnl)
+			const breakevenTicks = await getBreakevenTicks(validated.asset)
+			outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 		}
 
 		// Build pre-trade thoughts with import note
@@ -326,6 +330,7 @@ export const bulkCreateTradesFromOcr = async (
 				let outcome: "win" | "loss" | "breakeven" | undefined
 
 				if (avgExitPrice && totalExitQuantity > 0) {
+					let ticksGained: number | null = null
 					if (assetConfig) {
 						const tickSize = parseFloat(assetConfig.tickSize)
 						const tickValue = fromCents(assetConfig.tickValue)
@@ -340,6 +345,7 @@ export const bulkCreateTradesFromOcr = async (
 							contractsExecuted: totalEntryQuantity + totalExitQuantity,
 						})
 						pnl = calcResult.netPnl
+						ticksGained = calcResult.ticksGained
 					} else {
 						const priceDiff = validated.direction === "long"
 							? avgExitPrice - avgEntryPrice
@@ -347,7 +353,8 @@ export const bulkCreateTradesFromOcr = async (
 						pnl = priceDiff * Math.min(totalEntryQuantity, totalExitQuantity)
 					}
 
-					outcome = determineOutcome(pnl)
+					const breakevenTicks = await getBreakevenTicks(validated.asset)
+					outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 				}
 
 				// Build pre-trade thoughts with import note

@@ -125,6 +125,9 @@ export const tradingAccounts = pgTable(
 		defaultCommission: integer("default_commission").default(0).notNull(), // cents per contract
 		defaultFees: integer("default_fees").default(0).notNull(), // cents per contract
 
+		// Breakeven classification: trades within ±N ticks of entry are classified as breakeven
+		defaultBreakevenTicks: integer("default_breakeven_ticks").default(2).notNull(),
+
 		// Display preferences
 		showTaxEstimates: boolean("show_tax_estimates").default(true).notNull(),
 		showPropCalculations: boolean("show_prop_calculations").default(true).notNull(),
@@ -215,6 +218,7 @@ export const accountAssets = pgTable(
 		// Per-asset fee overrides (NULL = use account default)
 		commissionOverride: integer("commission_override"), // cents, NULL = use account default
 		feesOverride: integer("fees_override"), // cents, NULL = use account default
+		breakevenTicksOverride: integer("breakeven_ticks_override"), // NULL = use account default
 
 		notes: text("notes"),
 

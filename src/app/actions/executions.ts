@@ -16,6 +16,7 @@ import { toCents, fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 import { calculateAssetPnL, determineOutcome } from "@/lib/calculations"
 import { assets } from "@/db/schema"
+import { getBreakevenTicks } from "@/app/actions/accounts"
 
 /**
  * Calculate execution value (price * quantity) in cents
@@ -174,6 +175,7 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 		})
 
 		const contractsExecuted = summary.totalEntryQuantity + summary.totalExitQuantity
+		let ticksGained: number | null = null
 
 		if (assetConfig) {
 			// Use asset-aware calculation (tick-based)
@@ -189,6 +191,7 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 				contractsExecuted,
 			})
 			pnl = toCents(result.netPnl)
+			ticksGained = result.ticksGained
 		} else {
 			// Fallback: simple P&L calculation
 			const priceDiff = trade.direction === "long"
@@ -198,7 +201,8 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 			pnl = toCents(grossPnl) - totalCommission - totalFees
 		}
 
-		outcome = determineOutcome(pnl)
+		const breakevenTicks = await getBreakevenTicks(trade.asset)
+		outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 
 		// Calculate realized R-multiple if stop loss is set
 		if (trade.stopLoss && summary.avgEntryPrice > 0) {

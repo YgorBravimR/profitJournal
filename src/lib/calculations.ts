@@ -91,11 +91,31 @@ export const calculatePnL = ({
 }
 
 /**
- * Determine trade outcome based on P&L
+ * Determine trade outcome based on tick movement or P&L.
+ *
+ * When both ticksGained and breakevenTicks are available, trades exiting
+ * within ±breakevenTicks of entry are classified as breakeven ("scratch"
+ * trades). This uses absolute ticks (bidirectional) because both small
+ * wins and small losses within the threshold are effectively scratches.
+ *
+ * Falls back to pure P&L classification when tick data is unavailable
+ * or breakevenTicks is 0.
  */
-export const determineOutcome = (
+export const determineOutcome = ({
+	pnl,
+	ticksGained,
+	breakevenTicks = 0,
+}: {
 	pnl: number
-): "win" | "loss" | "breakeven" => {
+	ticksGained?: number | null
+	breakevenTicks?: number
+}): "win" | "loss" | "breakeven" => {
+	// Tick-based classification when both values are available
+	if (ticksGained != null && breakevenTicks > 0) {
+		if (Math.abs(ticksGained) <= breakevenTicks) return "breakeven"
+		return ticksGained > 0 ? "win" : "loss"
+	}
+	// Fallback: P&L-based (non-asset trades or breakevenTicks=0)
 	if (pnl > 0) return "win"
 	if (pnl < 0) return "loss"
 	return "breakeven"

@@ -11,6 +11,7 @@ import {
 	SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { fromCents } from "@/lib/money"
 import type { Asset } from "@/db/schema"
 import type { StrategyWithStats } from "@/app/actions/strategies"
 
@@ -22,12 +23,15 @@ interface CalculatorFormProps {
 	stopPrice: string
 	targetPrice: string
 	manualContracts: string
+	maxRiskOverride: string
+	settingsRiskCents: number
 	onAssetChange: (id: string) => void
 	onDirectionChange: (dir: "long" | "short") => void
 	onEntryPriceChange: (value: string) => void
 	onStopPriceChange: (value: string) => void
 	onTargetPriceChange: (value: string) => void
 	onManualContractsChange: (value: string) => void
+	onMaxRiskOverrideChange: (value: string) => void
 	strategies: StrategyWithStats[]
 	selectedStrategyId: string
 	onStrategyChange: (id: string) => void
@@ -50,12 +54,15 @@ const CalculatorForm = ({
 	stopPrice,
 	targetPrice,
 	manualContracts,
+	maxRiskOverride,
+	settingsRiskCents,
 	onAssetChange,
 	onDirectionChange,
 	onEntryPriceChange,
 	onStopPriceChange,
 	onTargetPriceChange,
 	onManualContractsChange,
+	onMaxRiskOverrideChange,
 	strategies,
 	selectedStrategyId,
 	onStrategyChange,
@@ -227,6 +234,30 @@ const CalculatorForm = ({
 						isTargetFromStrategy && "border-acc-100/40 text-acc-100"
 					)}
 				/>
+			</div>
+
+			{/* Max Risk Override */}
+			<div>
+				<label className="mb-s-200 block text-small text-txt-200">
+					{t("maxRisk")}
+				</label>
+				<Input
+					id="calculator-max-risk"
+					type="number"
+					step="any"
+					min="0"
+					value={maxRiskOverride}
+					onChange={(e) => onMaxRiskOverrideChange(e.target.value)}
+					placeholder={
+						settingsRiskCents > 0
+							? `${fromCents(settingsRiskCents).toFixed(2)} (${t("fromSettings")})`
+							: t("enterMaxRisk")
+					}
+					aria-label={t("maxRisk")}
+				/>
+				<p className="mt-s-100 text-tiny text-txt-300">
+					{t("maxRiskHelp")}
+				</p>
 			</div>
 
 			{/* Manual Contracts Override */}

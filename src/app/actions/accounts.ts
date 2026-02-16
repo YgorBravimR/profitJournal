@@ -38,6 +38,7 @@ interface AccountInput {
 	defaultCurrency?: string
 	defaultCommission?: number
 	defaultFees?: number
+	defaultBreakevenTicks?: number
 	showTaxEstimates?: boolean
 	showPropCalculations?: boolean
 	replayStartDate?: string
@@ -48,6 +49,7 @@ interface AccountAssetInput {
 	isEnabled: boolean
 	commissionOverride?: number | null
 	feesOverride?: number | null
+	breakevenTicksOverride?: number | null
 	notes?: string
 }
 
@@ -192,6 +194,7 @@ export const updateAccount = async (
 		if (input.defaultCurrency !== undefined) updateData.defaultCurrency = input.defaultCurrency
 		if (input.defaultCommission !== undefined) updateData.defaultCommission = input.defaultCommission
 		if (input.defaultFees !== undefined) updateData.defaultFees = input.defaultFees
+		if (input.defaultBreakevenTicks !== undefined) updateData.defaultBreakevenTicks = input.defaultBreakevenTicks
 		if (input.showTaxEstimates !== undefined) updateData.showTaxEstimates = input.showTaxEstimates
 		if (input.showPropCalculations !== undefined)
 			updateData.showPropCalculations = input.showPropCalculations
@@ -413,6 +416,7 @@ export const getAccountAssets = async (
 				isEnabled: config?.isEnabled ?? false,
 				commissionOverride: config?.commissionOverride ?? null,
 				feesOverride: config?.feesOverride ?? null,
+				breakevenTicksOverride: config?.breakevenTicksOverride ?? null,
 				notes: config?.notes ?? null,
 				createdAt: config?.createdAt ?? new Date(),
 				updatedAt: config?.updatedAt ?? new Date(),
@@ -471,6 +475,7 @@ export const updateAccountAsset = async (
 					isEnabled: input.isEnabled,
 					commissionOverride: input.commissionOverride,
 					feesOverride: input.feesOverride,
+					breakevenTicksOverride: input.breakevenTicksOverride,
 					notes: input.notes,
 					updatedAt: new Date(),
 				})
@@ -483,6 +488,7 @@ export const updateAccountAsset = async (
 				isEnabled: input.isEnabled,
 				commissionOverride: input.commissionOverride,
 				feesOverride: input.feesOverride,
+				breakevenTicksOverride: input.breakevenTicksOverride,
 				notes: input.notes,
 			})
 		}
@@ -622,6 +628,50 @@ export const updateAccountTimeframe = async (
 // ==========================================
 // FEE CALCULATION HELPER
 // ==========================================
+
+/**
+ * Get the breakeven ticks threshold for an asset in the current account.
+ * Priority: per-asset override > account default > fallback (2)
+ */
+export const getBreakevenTicks = async (
+	assetSymbol: string,
+	accountId?: string
+): Promise<number> => {
+	const session = await auth()
+	const targetAccountId = accountId || session?.user?.accountId
+
+	if (!targetAccountId) {
+		return 2
+	}
+
+	// Get account defaults
+	const account = await db.query.tradingAccounts.findFirst({
+		where: eq(tradingAccounts.id, targetAccountId),
+	})
+
+	if (!account) {
+		return 2
+	}
+
+	// Get asset
+	const asset = await db.query.assets.findFirst({
+		where: eq(assets.symbol, assetSymbol),
+	})
+
+	if (!asset) {
+		return account.defaultBreakevenTicks
+	}
+
+	// Check for per-asset override
+	const assetConfig = await db.query.accountAssets.findFirst({
+		where: and(
+			eq(accountAssets.accountId, targetAccountId),
+			eq(accountAssets.assetId, asset.id)
+		),
+	})
+
+	return assetConfig?.breakevenTicksOverride ?? account.defaultBreakevenTicks
+}
 
 /**
  * Get commission and fees for an asset in the current account.

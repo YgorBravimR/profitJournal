@@ -37,6 +37,7 @@ const PositionCalculator = ({
 	const [stopPrice, setStopPrice] = useState("")
 	const [targetPrice, setTargetPrice] = useState("")
 	const [manualContracts, setManualContracts] = useState("")
+	const [maxRiskOverride, setMaxRiskOverride] = useState("")
 
 	// Strategy state
 	const [selectedStrategyId, setSelectedStrategyId] = useState("")
@@ -63,8 +64,8 @@ const PositionCalculator = ({
 		[strategiesWithTarget, selectedStrategyId]
 	)
 
-	// Derived: max risk from account settings
-	const maxAllowedRiskCents = useMemo(() => {
+	// Derived: max risk from account settings (used as default / placeholder)
+	const settingsRiskCents = useMemo(() => {
 		if (accountSettings.defaultRiskPerTrade) {
 			return toCents(accountSettings.defaultRiskPerTrade)
 		}
@@ -73,6 +74,19 @@ const PositionCalculator = ({
 		}
 		return 0
 	}, [accountSettings])
+
+	// Effective max risk: manual override takes priority over settings
+	const maxAllowedRiskCents = useMemo(() => {
+		if (maxRiskOverride) {
+			const parsed = parseFloat(maxRiskOverride)
+			if (!isNaN(parsed) && parsed > 0) {
+				return toCents(parsed)
+			}
+		}
+		return settingsRiskCents
+	}, [maxRiskOverride, settingsRiskCents])
+
+	const isMaxRiskFromSettings = maxRiskOverride === ""
 
 	// Pre-fill from asset settings when asset changes
 	useEffect(() => {
@@ -205,12 +219,15 @@ const PositionCalculator = ({
 					stopPrice={stopPrice}
 					targetPrice={targetPrice}
 					manualContracts={manualContracts}
+					maxRiskOverride={maxRiskOverride}
+					settingsRiskCents={settingsRiskCents}
 					onAssetChange={setSelectedAssetId}
 					onDirectionChange={setDirection}
 					onEntryPriceChange={setEntryPrice}
 					onStopPriceChange={setStopPrice}
 					onTargetPriceChange={handleTargetPriceChange}
 					onManualContractsChange={setManualContracts}
+					onMaxRiskOverrideChange={setMaxRiskOverride}
 					strategies={strategiesWithTarget}
 					selectedStrategyId={selectedStrategyId}
 					onStrategyChange={handleStrategyChange}
@@ -223,11 +240,12 @@ const PositionCalculator = ({
 					result={calculatorResult}
 					hasAssetSelected={selectedAssetId !== ""}
 					hasPrices={hasPrices}
+					isMaxRiskFromSettings={isMaxRiskFromSettings}
 				/>
 			</div>
 
 			{/* Max risk source indicator */}
-			{maxAllowedRiskCents === 0 && selectedAssetId && (
+			{settingsRiskCents === 0 && !maxRiskOverride && selectedAssetId && (
 				<p className="mt-m-400 text-tiny text-trade-sell">
 					{t("noRiskConfiguredMessage")}{" "}
 					<Link

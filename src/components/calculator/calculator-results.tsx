@@ -11,6 +11,7 @@ interface CalculatorResultsProps {
 	result: CalculatorResult | null
 	hasAssetSelected: boolean
 	hasPrices: boolean
+	isMaxRiskFromSettings?: boolean
 	currency?: string
 }
 
@@ -39,6 +40,7 @@ const CalculatorResults = ({
 	result,
 	hasAssetSelected,
 	hasPrices,
+	isMaxRiskFromSettings = true,
 	currency = "R$",
 }: CalculatorResultsProps) => {
 	const t = useTranslations("commandCenter.calculator")
@@ -114,13 +116,19 @@ const CalculatorResults = ({
 					<div>
 						<p className="text-tiny text-txt-300">
 							{t("maxAllowedRisk")}
-							<Link
-								href="/settings?tab=account"
-								className="ml-s-100 text-acc-100 underline transition-colors hover:text-acc-200"
-								aria-label={t("fromSettings")}
-							>
-								({t("fromSettings")})
-							</Link>
+							{isMaxRiskFromSettings ? (
+								<Link
+									href="/settings?tab=account"
+									className="ml-s-100 text-acc-100 underline transition-colors hover:text-acc-200"
+									aria-label={t("fromSettings")}
+								>
+									({t("fromSettings")})
+								</Link>
+							) : (
+								<span className="ml-s-100 text-acc-100">
+									({t("manual")})
+								</span>
+							)}
 						</p>
 						<p className="text-body font-semibold text-txt-100">
 							{formatCurrency(result.maxAllowedRiskCents, currency)}

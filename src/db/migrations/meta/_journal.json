@@ -57,6 +57,13 @@
       "when": 1771103533253,
       "tag": "0007_bizarre_marrow",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1771230303625,
+      "tag": "0008_misty_galactus",
+      "breakpoints": true
     }
   ]
 }

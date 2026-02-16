@@ -25,7 +25,7 @@ import type { CsvTradeInput } from "@/lib/csv-parser"
 import { eq, and, gte, lte, inArray, desc, asc, count, sql } from "drizzle-orm"
 import { calculatePnL, calculateAssetPnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
 import { getAssetBySymbol } from "./assets"
-import { getAssetFees } from "./accounts"
+import { getAssetFees, getBreakevenTicks } from "./accounts"
 import { fromCents } from "@/lib/money"
 import { getStartOfDay, getEndOfDay } from "@/lib/dates"
 import { toCents } from "@/lib/money"
@@ -96,6 +96,8 @@ export const createTrade = async (
 			}
 		}
 
+		let ticksGained: number | null = null
+
 		if (tradeData.exitPrice) {
 			// Always recalculate P&L from prices — any provided pnl is unreliable
 			const assetConfig = await getAssetBySymbol(tradeData.asset)
@@ -112,6 +114,7 @@ export const createTrade = async (
 					contractsExecuted: tradeData.contractsExecuted ?? tradeData.positionSize * 2,
 				})
 				pnl = result.netPnl
+				ticksGained = result.ticksGained
 			} else if (!pnl) {
 				// Fallback to simple price-based calculation only when no pnl exists
 				pnl = calculatePnL({
@@ -124,7 +127,8 @@ export const createTrade = async (
 		}
 
 		if (pnl !== undefined) {
-			outcome = determineOutcome(pnl)
+			const breakevenTicks = await getBreakevenTicks(tradeData.asset, accountId)
+			outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 		}
 
 		if (pnl !== undefined && plannedRiskAmount && plannedRiskAmount > 0) {
@@ -281,6 +285,7 @@ export const updateTrade = async (
 			// Look up asset for tick-based calculation
 			const assetSymbol = tradeData.asset ?? existing.asset
 			const assetConfig = await getAssetBySymbol(assetSymbol)
+			let ticksGained: number | null = null
 
 			if (assetConfig) {
 				// Use asset-based calculation with tick size and tick value
@@ -294,6 +299,7 @@ export const updateTrade = async (
 					contractsExecuted: tradeData.contractsExecuted ?? (existing.contractsExecuted ? Number(existing.contractsExecuted) : positionSize * 2),
 				})
 				pnl = result.netPnl
+				ticksGained = result.ticksGained
 			} else {
 				// Fallback to simple price-based calculation
 				pnl = calculatePnL({
@@ -303,7 +309,8 @@ export const updateTrade = async (
 					positionSize,
 				})
 			}
-			outcome = determineOutcome(pnl)
+			const breakevenTicks = await getBreakevenTicks(assetSymbol, accountId)
+			outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 
 			if (plannedRiskAmount && plannedRiskAmount > 0) {
 				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
@@ -691,24 +698,27 @@ export const bulkCreateTrades = async (
 			}
 		}
 
-		// Collect unique asset symbols and look them up (including fees)
+		// Collect unique asset symbols and look them up (including fees and breakeven ticks)
 		const assetSymbols = [...new Set(inputs.map((i) => i.asset.toUpperCase()))]
 		const assetMap = new Map<string, {
 			tickSize: string
 			tickValue: number
 			commission: number
 			fees: number
+			breakevenTicks: number
 		}>()
 		for (const symbol of assetSymbols) {
 			const assetConfig = await getAssetBySymbol(symbol)
 			if (assetConfig) {
 				// Use the resolved symbol (e.g., "WINFUT") for fee lookup, not the input symbol ("WIN")
 				const assetFees = await getAssetFees(assetConfig.symbol, accountId)
+				const breakevenTicks = await getBreakevenTicks(assetConfig.symbol, accountId)
 				assetMap.set(symbol, {
 					tickSize: assetConfig.tickSize,
 					tickValue: assetConfig.tickValue,
 					commission: assetFees.commission,
 					fees: assetFees.fees,
+					breakevenTicks,
 				})
 			}
 		}
@@ -774,6 +784,8 @@ export const bulkCreateTrades = async (
 						fees = assetConfig.fees
 					}
 
+					let ticksGained: number | null = null
+
 					if (tradeData.exitPrice) {
 						if (assetConfig) {
 							// Always recalculate P&L from prices — any CSV pnl is unreliable
@@ -790,6 +802,7 @@ export const bulkCreateTrades = async (
 								contractsExecuted,
 							})
 							pnl = result.netPnl
+							ticksGained = result.ticksGained
 						} else if (!pnl) {
 							// Fallback to simple price-based calculation only when no pnl exists
 							pnl = calculatePnL({
@@ -802,7 +815,8 @@ export const bulkCreateTrades = async (
 					}
 
 					if (pnl !== undefined) {
-						outcome = determineOutcome(pnl)
+						const breakevenTicks = assetConfig?.breakevenTicks ?? 0
+						outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 					}
 
 					if (pnl !== undefined && plannedRiskAmount && plannedRiskAmount > 0) {
@@ -990,6 +1004,8 @@ export const createScaledTrade = async (
 				0
 			)
 
+			let ticksGained: number | null = null
+
 			if (assetConfig) {
 				// Use asset-based calculation with tick size and tick value
 				const priceDiff =
@@ -998,8 +1014,8 @@ export const createScaledTrade = async (
 						: avgEntryPrice - avgExitPrice
 				const tickSize = parseFloat(assetConfig.tickSize)
 				const tickValue = fromCents(assetConfig.tickValue)
-				const ticks = priceDiff / tickSize
-				pnl = ticks * tickValue * closedQty - totalCommissions
+				ticksGained = priceDiff / tickSize
+				pnl = ticksGained * tickValue * closedQty - totalCommissions
 			} else {
 				// Fallback to simple price-based calculation
 				const priceDiff =
@@ -1009,7 +1025,8 @@ export const createScaledTrade = async (
 				pnl = priceDiff * closedQty - totalCommissions
 			}
 
-			outcome = determineOutcome(pnl)
+			const breakevenTicks = await getBreakevenTicks(tradeData.asset, accountId)
+			outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 		}
 
 		// Calculate risk values
@@ -1435,6 +1452,7 @@ export const recalculateAllTradesPnL = async (): Promise<
 				tickValue: number
 				commission: number
 				fees: number
+				breakevenTicks: number
 			}
 		>()
 
@@ -1443,11 +1461,13 @@ export const recalculateAllTradesPnL = async (): Promise<
 			if (assetConfig) {
 				// Use the resolved symbol (e.g., "WINFUT") for fee lookup, not the trade's stored symbol ("WIN")
 				const assetFees = await getAssetFees(assetConfig.symbol, accountId)
+				const breakevenTicks = await getBreakevenTicks(assetConfig.symbol, accountId)
 				assetMap.set(symbol, {
 					tickSize: assetConfig.tickSize,
 					tickValue: assetConfig.tickValue,
 					commission: assetFees.commission,
 					fees: assetFees.fees,
+					breakevenTicks,
 				})
 			}
 		}
@@ -1466,6 +1486,7 @@ export const recalculateAllTradesPnL = async (): Promise<
 			if (!entryPrice || !exitPrice || !positionSize) continue
 
 			let pnl: number
+			let ticksGained: number | null = null
 			const assetConfig = assetMap.get(trade.asset.toUpperCase())
 
 			if (assetConfig) {
@@ -1481,6 +1502,7 @@ export const recalculateAllTradesPnL = async (): Promise<
 					contractsExecuted,
 				})
 				pnl = result.netPnl
+				ticksGained = result.ticksGained
 			} else {
 				pnl = calculatePnL({
 					direction,
@@ -1490,7 +1512,8 @@ export const recalculateAllTradesPnL = async (): Promise<
 				})
 			}
 
-			const outcome = determineOutcome(pnl)
+			const breakevenTicks = assetConfig?.breakevenTicks ?? 0
+			const outcome = determineOutcome({ pnl, ticksGained, breakevenTicks })
 
 			// Recalculate plannedRiskAmount from stop loss using current asset tick config
 			let plannedRiskAmount: number | null = null
