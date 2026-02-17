@@ -151,3 +151,113 @@ export interface DataSourceOption {
 	disabled?: boolean
 	disabledReason?: string
 }
+
+// ==========================================
+// MONTE CARLO V2 — DAY-AWARE SIMULATION
+// ==========================================
+
+/**
+ * Flat config derived from a risk profile for the V2 simulation engine.
+ * Avoids deep nesting so the simulation loop stays readable.
+ */
+export interface RiskManagementProfileForSim {
+	name: string
+	baseRiskCents: number
+	rewardRiskRatio: number
+	winRate: number // 0-100 (of decisive trades, excluding breakevens)
+	breakevenRate: number // 0-100 (percentage of ALL trades that are breakeven)
+	dailyTargetCents: number | null
+	dailyLossLimitCents: number
+	lossRecoverySteps: Array<{
+		riskCents: number // pre-computed absolute cents for this step
+	}>
+	executeAllRegardless: boolean // run all recovery trades even if earlier ones win
+	stopAfterSequence: boolean // stop trading for the day after recovery sequence completes
+	compoundingRiskPercent: number // 0-100, 0 = no compounding (single-target mode)
+	stopOnFirstLoss: boolean // in gain mode, stop compounding on first loss
+	weeklyLossLimitCents: number | null
+	monthlyLossLimitCents: number
+	tradingDaysPerMonth: number // typically 22
+	tradingDaysPerWeek: number // typically 5
+	commissionPerTradeCents: number
+}
+
+export interface SimulationParamsV2 {
+	profile: RiskManagementProfileForSim
+	simulationCount: number
+	initialBalance: number // cents
+}
+
+/** The mode a trade was executed under within a simulated day. */
+export type TradeMode = "base" | "lossRecovery" | "gainCompounding"
+
+export interface SimulatedTradeV2 {
+	dayNumber: number
+	tradeNumberInDay: number
+	mode: TradeMode
+	riskAmount: number // cents
+	isWin: boolean
+	isBreakeven: boolean
+	pnl: number // cents (signed)
+	commission: number // cents
+	accumulatedDayPnl: number // running total for the day
+	balanceAfter: number // cents
+}
+
+export interface SimulatedDay {
+	dayNumber: number
+	weekNumber: number
+	mode: "lossRecovery" | "gainCompounding" | "mixed"
+	trades: SimulatedTradeV2[]
+	dayPnl: number // cents
+	targetHit: boolean
+	skipped: boolean
+	skipReason: "weeklyLimit" | "monthlyLimit" | null
+}
+
+export interface SimulationRunV2 {
+	days: SimulatedDay[]
+	totalPnl: number
+	totalTrades: number
+	totalTradingDays: number
+	daysInLossRecovery: number
+	daysInGainCompounding: number
+	daysSkippedWeeklyLimit: number
+	daysSkippedMonthlyLimit: number
+	daysTargetHit: number
+	timesWeeklyLimitHit: number
+	monthlyLimitHit: boolean
+	maxDrawdown: number
+	maxDrawdownPercent: number
+	finalBalance: number
+	totalReturnPercent: number
+}
+
+export interface SimulationStatisticsV2 {
+	medianMonthlyPnl: number
+	meanMonthlyPnl: number
+	bestCaseMonthlyPnl: number
+	worstCaseMonthlyPnl: number
+	medianReturnPercent: number
+	profitableMonthsPct: number
+	monthlyLimitHitPct: number
+	avgTradingDaysPerMonth: number
+	avgDaysInLossRecovery: number
+	avgDaysInGainCompounding: number
+	avgDaysTargetHit: number
+	avgDaysSkippedWeeklyLimit: number
+	avgDaysSkippedMonthlyLimit: number
+	avgTradesPerMonth: number
+	medianMaxDrawdownPercent: number
+	worstMaxDrawdownPercent: number
+	sharpeRatio: number
+	sortinoRatio: number
+	expectedDailyPnl: number
+}
+
+export interface MonteCarloResultV2 {
+	params: SimulationParamsV2
+	statistics: SimulationStatisticsV2
+	distributionBuckets: DistributionBucket[]
+	sampleRun: SimulationRunV2
+}

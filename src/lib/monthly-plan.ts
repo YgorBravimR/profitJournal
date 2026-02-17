@@ -10,6 +10,7 @@ interface MonthlyPlanInputs {
 	monthlyLossPercent: number // e.g. 10.00 = 10%
 	dailyProfitTargetPercent?: number | null // e.g. 5.00 = 5%
 	maxDailyTrades?: number | null // user override
+	weeklyLossPercent?: number | null // e.g. 4.00 = 4%
 }
 
 interface MonthlyPlanDerived {
@@ -18,6 +19,7 @@ interface MonthlyPlanDerived {
 	monthlyLossCents: number
 	dailyProfitTargetCents: number | null
 	derivedMaxDailyTrades: number | null
+	weeklyLossCents: number | null
 }
 
 /**
@@ -42,12 +44,17 @@ const deriveMonthlyPlanValues = (inputs: MonthlyPlanInputs): MonthlyPlanDerived 
 			? Math.floor(dailyLossCents / riskPerTradeCents)
 			: null
 
+	const weeklyLossCents = inputs.weeklyLossPercent
+		? Math.round(inputs.accountBalance * inputs.weeklyLossPercent / 100)
+		: null
+
 	return {
 		riskPerTradeCents,
 		dailyLossCents,
 		monthlyLossCents,
 		dailyProfitTargetCents,
 		derivedMaxDailyTrades,
+		weeklyLossCents,
 	}
 }
 

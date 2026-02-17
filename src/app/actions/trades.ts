@@ -27,7 +27,7 @@ import { calculatePnL, calculateAssetPnL, calculateRMultiple, determineOutcome }
 import { getAssetBySymbol } from "./assets"
 import { getAssetFees, getBreakevenTicks } from "./accounts"
 import { fromCents } from "@/lib/money"
-import { getStartOfDay, getEndOfDay } from "@/lib/dates"
+import { getStartOfDay, getEndOfDay, formatDateKey, APP_TIMEZONE } from "@/lib/dates"
 import { toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 
@@ -282,8 +282,7 @@ export const updateTrade = async (
 		let realizedR: number | undefined
 
 		if (exitPrice) {
-			// Look up asset for tick-based calculation
-			const assetSymbol = tradeData.asset ?? existing.asset
+			// Look up asset for tick-based calculation (reusing assetSymbol from above)
 			const assetConfig = await getAssetBySymbol(assetSymbol)
 			let ticksGained: number | null = null
 
@@ -677,7 +676,7 @@ export const bulkCreateTrades = async (
 	}
 
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		// Collect all unique strategy codes from the inputs
 		const strategyCodes = [
 			...new Set(
@@ -695,6 +694,43 @@ export const bulkCreateTrades = async (
 			})
 			for (const strategy of foundStrategies) {
 				strategyMap.set(strategy.code, strategy.id)
+			}
+
+			// Second pass: try matching unmatched codes by name (case-insensitive)
+			const unmatchedCodes = strategyCodes.filter((code) => !strategyMap.has(code))
+			if (unmatchedCodes.length > 0) {
+				const allStrategies = await db.query.strategies.findMany()
+				for (const strategy of allStrategies) {
+					for (const code of unmatchedCodes) {
+						if (
+							strategy.name.toLowerCase() === code.toLowerCase() ||
+							strategy.code.toLowerCase() === code.toLowerCase()
+						) {
+							strategyMap.set(code, strategy.id)
+						}
+					}
+				}
+			}
+		}
+
+		// Collect all unique tag names from CSV inputs and build lookup map
+		const allTagNames = [
+			...new Set(
+				inputs
+					.flatMap((i) => i.tagNames || [])
+					.map((name) => name.toLowerCase())
+			),
+		]
+
+		const tagNameMap = new Map<string, string>() // lowercase name → tag ID
+		if (allTagNames.length > 0) {
+			const userTags = await db.query.tags.findMany({
+				where: eq(tags.userId, userId),
+			})
+			for (const tag of userTags) {
+				if (allTagNames.includes(tag.name.toLowerCase())) {
+					tagNameMap.set(tag.name.toLowerCase(), tag.id)
+				}
 			}
 		}
 
@@ -733,18 +769,19 @@ export const bulkCreateTrades = async (
 
 		for (const batch of batches) {
 			const tradeValues: Array<typeof trades.$inferInsert> = []
+			const batchTagNames: Array<string[] | undefined> = [] // parallel array for tag names per trade
 
 			for (let i = 0; i < batch.length; i++) {
 				const input = batch[i]
 				const globalIndex = inputs.indexOf(input)
 
 				try {
-					// Extract strategyCode before validation (not part of CreateTradeInput)
-					const { strategyCode, ...tradeInput } = input
+					// Extract strategyCode and tagNames before validation (not part of CreateTradeInput)
+					const { strategyCode, tagNames: inputTagNames, ...tradeInput } = input
 					const validated = createTradeSchema.parse(tradeInput)
 					const { tagIds, ...tradeData } = validated
 
-					// Look up strategy ID from code
+					// Look up strategy ID from code or name
 					const strategyId = strategyCode
 						? strategyMap.get(strategyCode) || null
 						: null
@@ -790,7 +827,7 @@ export const bulkCreateTrades = async (
 						if (assetConfig) {
 							// Always recalculate P&L from prices — any CSV pnl is unreliable
 							const contractsExecuted = tradeData.contractsExecuted ?? tradeData.positionSize * 2
-							const result = calculateAssetPnL({
+							const pnlResult = calculateAssetPnL({
 								entryPrice: tradeData.entryPrice,
 								exitPrice: tradeData.exitPrice,
 								positionSize: tradeData.positionSize,
@@ -801,8 +838,8 @@ export const bulkCreateTrades = async (
 								fees: fromCents(fees),
 								contractsExecuted,
 							})
-							pnl = result.netPnl
-							ticksGained = result.ticksGained
+							pnl = pnlResult.netPnl
+							ticksGained = pnlResult.ticksGained
 						} else if (!pnl) {
 							// Fallback to simple price-based calculation only when no pnl exists
 							pnl = calculatePnL({
@@ -859,6 +896,7 @@ export const bulkCreateTrades = async (
 						lessonLearned: tradeData.lessonLearned,
 						disciplineNotes: tradeData.disciplineNotes,
 					})
+					batchTagNames.push(inputTagNames)
 				} catch (error) {
 					result.failedCount++
 					result.errors.push({
@@ -868,10 +906,27 @@ export const bulkCreateTrades = async (
 				}
 			}
 
-			// Bulk insert valid trades
+			// Bulk insert valid trades (use returning to get IDs for tag associations)
 			if (tradeValues.length > 0) {
-				await db.insert(trades).values(tradeValues)
-				result.successCount += tradeValues.length
+				const insertedTrades = await db.insert(trades).values(tradeValues).returning()
+				result.successCount += insertedTrades.length
+
+				// Insert tradeTags entries for matched tag names
+				const tradeTagValues: Array<{ tradeId: string; tagId: string }> = []
+				for (let j = 0; j < insertedTrades.length; j++) {
+					const tagNamesForTrade = batchTagNames[j]
+					if (tagNamesForTrade?.length) {
+						for (const tagName of tagNamesForTrade) {
+							const tagId = tagNameMap.get(tagName.toLowerCase())
+							if (tagId) {
+								tradeTagValues.push({ tradeId: insertedTrades[j].id, tagId })
+							}
+						}
+					}
+				}
+				if (tradeTagValues.length > 0) {
+					await db.insert(tradeTags).values(tradeTagValues)
+				}
 			}
 		}
 
@@ -1190,7 +1245,7 @@ export const getTradesGroupedByDay = async (
 			}
 		}
 
-		// Group trades by date
+		// Group trades by date (using BRT timezone for correct day boundaries)
 		const groupedMap = new Map<string, {
 			trades: typeof result
 			netPnl: number
@@ -1205,8 +1260,8 @@ export const getTradesGroupedByDay = async (
 		}>()
 
 		for (const trade of result) {
-			// Get date key in YYYY-MM-DD format
-			const dateKey = trade.entryDate.toISOString().split("T")[0]
+			// Get date key in YYYY-MM-DD format using BRT timezone
+			const dateKey = formatDateKey(trade.entryDate)
 			const existing = groupedMap.get(dateKey) || {
 				trades: [],
 				netPnl: 0,
@@ -1251,13 +1306,14 @@ export const getTradesGroupedByDay = async (
 		const tradesByDay: TradesByDay[] = Array.from(groupedMap.entries())
 			.map(([dateKey, data]) => {
 				// Format date for display (e.g., "Friday, Jan 31, 2026")
-				const date = new Date(dateKey + "T12:00:00") // Add time to avoid timezone issues
-				const dateFormatted = date.toLocaleDateString("en-US", {
+				const date = new Date(dateKey + "T12:00:00-03:00")
+				const dateFormatted = new Intl.DateTimeFormat("en-US", {
 					weekday: "long",
 					month: "short",
 					day: "numeric",
 					year: "numeric",
-				})
+					timeZone: APP_TIMEZONE,
+				}).format(date)
 
 				// Calculate summary stats
 				const totalTrades = data.trades.length
@@ -1288,11 +1344,12 @@ export const getTradesGroupedByDay = async (
 					.toSorted((a, b) => a.entryDate.getTime() - b.entryDate.getTime())
 					.map((trade) => ({
 						id: trade.id,
-						time: trade.entryDate.toLocaleTimeString("en-US", {
+						time: new Intl.DateTimeFormat("en-US", {
 							hour: "2-digit",
 							minute: "2-digit",
 							hour12: false,
-						}),
+							timeZone: APP_TIMEZONE,
+						}).format(trade.entryDate),
 						asset: trade.asset,
 						direction: trade.direction as "long" | "short",
 						timeframeName: trade.timeframe?.name || null,

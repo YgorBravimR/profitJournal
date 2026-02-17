@@ -76,7 +76,8 @@
       "Bash(git diff:*)",
       "Bash(git restore:*)",
       "Bash(npx drizzle-kit migrate:*)",
-      "Bash(npx drizzle-kit push:*)"
+      "Bash(npx drizzle-kit push:*)",
+      "Bash(npx tsx:*)"
     ],
     "deny": [],
     "ask": []

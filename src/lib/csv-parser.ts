@@ -1,10 +1,12 @@
 import type { CreateTradeInput } from "./validations/trade"
 import { normalizeB3Asset } from "@/lib/ocr"
+import { BRT_OFFSET } from "@/lib/dates"
 
 // Extended type that includes strategy code, timeframe code, and asset normalization for CSV import
 export interface CsvTradeInput extends CreateTradeInput {
 	strategyCode?: string
 	timeframeCode?: string
+	tagNames?: string[]
 	// Asset normalization fields (for B3 futures: WING26 → WIN)
 	normalizedAsset: string
 	originalAssetCode: string
@@ -89,7 +91,12 @@ const PROFITCHART_COLUMN_MAPPINGS: Record<string, ProfitChartField> = {
 }
 
 // Headers that indicate ProfitChart format
-const PROFITCHART_INDICATOR_HEADERS = ["ativo", "abertura", "fechamento", "lado"]
+const PROFITCHART_INDICATOR_HEADERS = [
+	"ativo",
+	"abertura",
+	"fechamento",
+	"lado",
+]
 
 // Expected CSV columns mapping (standard format)
 const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
@@ -183,10 +190,18 @@ const COLUMN_MAPPINGS: Record<string, keyof CreateTradeInput> = {
 }
 
 // Strategy column mappings (separate because it's not part of CreateTradeInput)
-const STRATEGY_COLUMN_NAMES = ["strategy", "strategy_code", "strategycode", "strat"]
+const STRATEGY_COLUMN_NAMES = [
+	"strategy",
+	"strategy_code",
+	"strategycode",
+	"strat",
+]
 
 // Timeframe column mappings (separate because it's resolved to timeframeId during import)
 const TIMEFRAME_COLUMN_NAMES = ["timeframe", "tf", "time_frame"]
+
+// Tag column mappings (separate because tags are resolved by name during import)
+const TAG_COLUMN_NAMES = ["tags", "tag", "labels"]
 
 const REQUIRED_FIELDS: Array<keyof CreateTradeInput> = [
 	"asset",
@@ -206,16 +221,18 @@ const PROFITCHART_REQUIRED_FIELDS: ProfitChartField[] = [
 ]
 
 const normalizeHeader = (header: string): string => {
-	return header
-		.toLowerCase()
-		.trim()
-		.replace(/[\s-]/g, "_")
-		// Handle common encoding issues with Portuguese characters
-		.replace(/[çã]/g, (char) => (char === "ç" ? "c" : "a"))
-		// Remove special characters that might appear due to encoding
-		.replace(/[^\w_]/g, "_")
-		.replace(/_+/g, "_")
-		.replace(/^_|_$/g, "")
+	return (
+		header
+			.toLowerCase()
+			.trim()
+			.replace(/[\s-]/g, "_")
+			// Handle common encoding issues with Portuguese characters
+			.replace(/[çã]/g, (char) => (char === "ç" ? "c" : "a"))
+			// Remove special characters that might appear due to encoding
+			.replace(/[^\w_]/g, "_")
+			.replace(/_+/g, "_")
+			.replace(/^_|_$/g, "")
+	)
 }
 
 const parseDirection = (value: string): "long" | "short" | null => {
@@ -233,30 +250,87 @@ const parseProfitChartSide = (value: string): "long" | "short" | null => {
 	return null
 }
 
+/** Pad a number to 2 digits for ISO date construction */
+const pad2 = (n: number): string => String(n).padStart(2, "0")
+
+/**
+ * Parse date strings in various standard formats.
+ * All times are interpreted as BRT (UTC-3) since this app is for B3 trading.
+ * We construct ISO strings with the BRT offset to avoid system timezone dependency.
+ */
 const parseDate = (value: string): Date | null => {
 	if (!value) return null
 
-	// Try ISO format first
-	let date = new Date(value)
-	if (!isNaN(date.getTime())) return date
+	// Try ISO format first — if it already has timezone info, respect it
+	if (
+		value.includes("T") &&
+		(value.includes("Z") || value.includes("+") || /T.*-\d{2}:/.test(value))
+	) {
+		const date = new Date(value)
+		if (!isNaN(date.getTime())) return date
+	}
 
-	// Try common date formats
-	const formats = [
+	// Try date+time formats first (before date-only)
+	const dateTimeFormats = [
+		/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // YYYY-MM-DD HH:MM[:SS]
+		/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // YYYY-MM-DDTHH:MM[:SS] (no tz)
+		/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // MM/DD/YYYY HH:MM[:SS]
+		/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // MM-DD-YYYY HH:MM[:SS]
+	]
+
+	for (const fmt of dateTimeFormats) {
+		const match = value.match(fmt)
+		if (match) {
+			const [, p1, p2, p3, hours, minutes, seconds] = match
+			const h = parseInt(hours)
+			const m = parseInt(minutes)
+			const s = seconds ? parseInt(seconds) : 0
+
+			let year: number, month: number, day: number
+			if (p1.length === 4) {
+				year = parseInt(p1)
+				month = parseInt(p2)
+				day = parseInt(p3)
+			} else if (p3.length === 4) {
+				year = parseInt(p3)
+				month = parseInt(p1)
+				day = parseInt(p2)
+			} else {
+				continue
+			}
+
+			const iso = `${year}-${pad2(month)}-${pad2(day)}T${pad2(h)}:${pad2(m)}:${pad2(s)}${BRT_OFFSET}`
+			const date = new Date(iso)
+			if (!isNaN(date.getTime())) return date
+		}
+	}
+
+	// Try date-only formats — midnight BRT
+	const dateOnlyFormats = [
 		/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/, // MM/DD/YYYY or DD/MM/YYYY
 		/^(\d{4})-(\d{1,2})-(\d{1,2})$/, // YYYY-MM-DD
 		/^(\d{1,2})-(\d{1,2})-(\d{4})$/, // MM-DD-YYYY or DD-MM-YYYY
 	]
 
-	for (const format of formats) {
-		const match = value.match(format)
+	for (const fmt of dateOnlyFormats) {
+		const match = value.match(fmt)
 		if (match) {
-			// Assume MM/DD/YYYY for US format
 			const [, part1, part2, part3] = match
+			let year: number, month: number, day: number
 			if (part1.length === 4) {
-				date = new Date(parseInt(part1), parseInt(part2) - 1, parseInt(part3))
+				year = parseInt(part1)
+				month = parseInt(part2)
+				day = parseInt(part3)
 			} else if (part3.length === 4) {
-				date = new Date(parseInt(part3), parseInt(part1) - 1, parseInt(part2))
+				year = parseInt(part3)
+				month = parseInt(part1)
+				day = parseInt(part2)
+			} else {
+				continue
 			}
+
+			const iso = `${year}-${pad2(month)}-${pad2(day)}T00:00:00${BRT_OFFSET}`
+			const date = new Date(iso)
 			if (!isNaN(date.getTime())) return date
 		}
 	}
@@ -264,30 +338,32 @@ const parseDate = (value: string): Date | null => {
 	return null
 }
 
-// Parse Brazilian date/time format: DD/MM/YYYY HH:MM:SS
+/**
+ * Parse Brazilian date/time format: DD/MM/YYYY HH:MM:SS
+ * Times from ProfitChart are in BRT (America/Sao_Paulo, UTC-3).
+ * We construct an ISO string with BRT_OFFSET so the resulting Date
+ * stores the correct UTC instant regardless of the server's local timezone.
+ */
 const parseBrazilianDateTime = (value: string): Date | null => {
 	if (!value) return null
 
 	// Format: DD/MM/YYYY HH:MM:SS (e.g., "13/06/2025 12:10:56")
-	const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/)
+	const match = value.match(
+		/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/
+	)
 	if (match) {
-		const [, day, month, year, hours, minutes, seconds] = match
-		const date = new Date(
-			parseInt(year),
-			parseInt(month) - 1,
-			parseInt(day),
-			parseInt(hours),
-			parseInt(minutes),
-			parseInt(seconds)
-		)
+		const [, d, m, y, h, mi, s] = match.map(Number)
+		const iso = `${y}-${pad2(m)}-${pad2(d)}T${pad2(h)}:${pad2(mi)}:${pad2(s)}${BRT_OFFSET}`
+		const date = new Date(iso)
 		if (!isNaN(date.getTime())) return date
 	}
 
-	// Try without time: DD/MM/YYYY
+	// Try without time: DD/MM/YYYY — midnight BRT
 	const dateOnlyMatch = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
 	if (dateOnlyMatch) {
-		const [, day, month, year] = dateOnlyMatch
-		const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day))
+		const [, d, m, y] = dateOnlyMatch.map(Number)
+		const iso = `${y}-${pad2(m)}-${pad2(d)}T00:00:00${BRT_OFFSET}`
+		const date = new Date(iso)
 		if (!isNaN(date.getTime())) return date
 	}
 
@@ -362,7 +438,9 @@ const findHeaderRow = (lines: string[], delimiter: string): number => {
 }
 
 // Strip [R] replay prefix from asset codes (e.g., "[R] WING26" → "WING26")
-const stripReplayPrefix = (assetCode: string): { cleanAsset: string; isReplay: boolean } => {
+const stripReplayPrefix = (
+	assetCode: string
+): { cleanAsset: string; isReplay: boolean } => {
 	const trimmed = assetCode.trim()
 	const match = trimmed.match(/^\[R\]\s*(.+)$/)
 	if (match) return { cleanAsset: match[1].trim(), isReplay: true }
@@ -404,7 +482,13 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 	const isProfitChart = isProfitChartFormat(headers)
 
 	if (isProfitChart) {
-		return parseProfitChartContent(lines, headerRowIndex, headers, delimiter, result)
+		return parseProfitChartContent(
+			lines,
+			headerRowIndex,
+			headers,
+			delimiter,
+			result
+		)
 	}
 
 	// Standard format parsing
@@ -423,18 +507,20 @@ const parseProfitChartContent = (
 	const columnMap: Array<{ index: number; field: ProfitChartField }> = []
 	const unmappedHeaders: string[] = []
 
-	headers.forEach((header, index) => {
+	for (const [index, header] of headers.entries()) {
 		const field = PROFITCHART_COLUMN_MAPPINGS[header]
 		if (field) {
 			columnMap.push({ index, field })
 		} else if (header && header !== "") {
 			unmappedHeaders.push(header)
 		}
-	})
+	}
 
 	// Check for required ProfitChart fields
 	const mappedFields = columnMap.map((c) => c.field)
-	const missingRequired = PROFITCHART_REQUIRED_FIELDS.filter((f) => !mappedFields.includes(f))
+	const missingRequired = PROFITCHART_REQUIRED_FIELDS.filter(
+		(f) => !mappedFields.includes(f)
+	)
 
 	if (missingRequired.length > 0) {
 		result.success = false
@@ -607,18 +693,25 @@ const parseStandardContent = (
 	const unmappedHeaders: string[] = []
 	let strategyColumnIndex: number | null = null
 	let timeframeColumnIndex: number | null = null
+	let tagColumnIndex: number | null = null
 
-	headers.forEach((header, index) => {
+	for (const [index, header] of headers.entries()) {
 		// Check if it's a strategy column
 		if (STRATEGY_COLUMN_NAMES.includes(header)) {
 			strategyColumnIndex = index
-			return
+			continue
 		}
 
 		// Check if it's a timeframe column
 		if (TIMEFRAME_COLUMN_NAMES.includes(header)) {
 			timeframeColumnIndex = index
-			return
+			continue
+		}
+
+		// Check if it's a tag column
+		if (TAG_COLUMN_NAMES.includes(header)) {
+			tagColumnIndex = index
+			continue
 		}
 
 		const field = COLUMN_MAPPINGS[header]
@@ -627,11 +720,13 @@ const parseStandardContent = (
 		} else if (header) {
 			unmappedHeaders.push(header)
 		}
-	})
+	}
 
 	// Check for required fields
 	const mappedFields = columnMap.map((c) => c.field)
-	const missingRequired = REQUIRED_FIELDS.filter((f) => !mappedFields.includes(f))
+	const missingRequired = REQUIRED_FIELDS.filter(
+		(f) => !mappedFields.includes(f)
+	)
 
 	if (missingRequired.length > 0) {
 		result.success = false
@@ -675,6 +770,17 @@ const parseStandardContent = (
 			const timeframeCode = values[timeframeColumnIndex]?.trim().toUpperCase()
 			if (timeframeCode) {
 				trade.timeframeCode = timeframeCode
+			}
+		}
+
+		// Extract tag names if column exists (comma-separated)
+		if (tagColumnIndex !== null) {
+			const tagValue = values[tagColumnIndex]?.trim()
+			if (tagValue) {
+				trade.tagNames = tagValue
+					.split(",")
+					.map((t) => t.trim())
+					.filter(Boolean)
 			}
 		}
 
@@ -848,7 +954,9 @@ export const generateCsvTemplate = (): string => {
 		"stop_loss",
 		"take_profit",
 		"pnl",
+		"strategy",
 		"timeframe",
+		"tags",
 		"notes",
 		"followed_plan",
 	]
@@ -856,15 +964,17 @@ export const generateCsvTemplate = (): string => {
 	const sampleRow = [
 		"BTCUSD",
 		"long",
-		"2024-01-15",
-		"2024-01-16",
+		"2024-01-15 09:30:00",
+		"2024-01-15 14:45:00",
 		"42000",
 		"43500",
 		"0.5",
 		"41000",
 		"44000",
 		"750",
+		"Breakout",
 		"4h",
+		'"trend,breakout"',
 		"Breakout setup",
 		"yes",
 	]

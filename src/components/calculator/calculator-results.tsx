@@ -152,6 +152,33 @@ const CalculatorResults = ({
 							<p className="text-tiny text-fb-error">{t("exceedsMaxRisk")}</p>
 						)}
 					</div>
+
+					{/* Risk with +1 contract hint */}
+					{result.suggestedContracts > 0 && result.riskPerContractCents > 0 && (
+						<div className="col-span-2 rounded-md border border-dashed border-bg-300 px-m-300 py-s-200">
+							<p className="text-tiny text-txt-300">
+								{t("riskWithExtraContract", { contracts: result.suggestedContracts + 1 })}
+							</p>
+							<p
+								className={cn(
+									"text-small font-medium",
+									(result.suggestedContracts + 1) * result.riskPerContractCents > result.maxAllowedRiskCents
+										? "text-trade-sell"
+										: "text-txt-200"
+								)}
+							>
+								{formatCurrency((result.suggestedContracts + 1) * result.riskPerContractCents, currency)}
+								{(result.suggestedContracts + 1) * result.riskPerContractCents > result.maxAllowedRiskCents && (
+									<span className="ml-s-200 text-tiny font-normal text-trade-sell">
+										(+{formatCurrency(
+											(result.suggestedContracts + 1) * result.riskPerContractCents - result.maxAllowedRiskCents,
+											currency
+										)} {t("overLimit")})
+									</span>
+								)}
+							</p>
+						</div>
+					)}
 				</div>
 			</div>
 

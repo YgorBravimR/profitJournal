@@ -93,9 +93,9 @@ export const TradeDayGroup = memo(({
 						className="font-semibold"
 					/>
 
-					{/* Win/Loss */}
+					{/* Win/Loss/Breakeven */}
 					<span className="text-caption text-txt-300 hidden sm:inline">
-						{summary.wins}W {summary.losses}L
+						{summary.wins}W {summary.losses}L{summary.breakevens > 0 ? ` ${summary.breakevens}BE` : ""}
 					</span>
 
 					{/* Win Rate */}

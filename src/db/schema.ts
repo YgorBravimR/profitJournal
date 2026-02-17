@@ -754,6 +754,37 @@ export const accountAssetSettings = pgTable(
 	]
 )
 
+// Risk Management Profiles Table (admin-created decision tree configurations)
+export const riskManagementProfiles = pgTable(
+	"risk_management_profiles",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		name: varchar("name", { length: 100 }).notNull(),
+		description: text("description"),
+		createdByUserId: uuid("created_by_user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		isActive: boolean("is_active").default(true).notNull(),
+
+		// Top-level limits (relational for quick queries)
+		baseRiskCents: integer("base_risk_cents").notNull(),
+		dailyLossCents: integer("daily_loss_cents").notNull(),
+		weeklyLossCents: integer("weekly_loss_cents"), // nullable
+		monthlyLossCents: integer("monthly_loss_cents").notNull(),
+		dailyProfitTargetCents: integer("daily_profit_target_cents"), // nullable
+
+		// Decision tree config (JSON stored as text — matches dailyChecklists.items pattern)
+		decisionTree: text("decision_tree").notNull(), // JSON: DecisionTreeConfig
+
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		index("risk_profiles_created_by_idx").on(table.createdByUserId),
+		index("risk_profiles_active_idx").on(table.isActive),
+	]
+)
+
 // Monthly Plans Table (monthly risk configuration per account)
 export const monthlyPlans = pgTable(
 	"monthly_plans",
@@ -782,6 +813,15 @@ export const monthlyPlans = pgTable(
 		capRiskAfterWin: boolean("cap_risk_after_win").default(false),
 		profitReinvestmentPercent: decimal("profit_reinvestment_percent", { precision: 5, scale: 2 }), // % of profit to add/cap next trade's risk
 		notes: text("notes"),
+
+		// Risk profile reference (nullable — when set, profile's decision tree governs behavior)
+		riskProfileId: uuid("risk_profile_id").references(() => riskManagementProfiles.id, {
+			onDelete: "set null",
+		}),
+
+		// Weekly loss limit (optional, independent of risk profile)
+		weeklyLossPercent: decimal("weekly_loss_percent", { precision: 5, scale: 2 }), // nullable
+		weeklyLossCents: integer("weekly_loss_cents"), // nullable, auto-derived
 
 		// AUTO-DERIVED (computed on save)
 		riskPerTradeCents: integer("risk_per_trade_cents").notNull(), // round(balance * riskPercent / 100)
@@ -864,6 +904,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	oauthAccounts: many(oauthAccounts),
 	strategies: many(strategies),
 	tags: many(tags),
+	riskManagementProfiles: many(riskManagementProfiles),
 }))
 
 // Trading Account Relations
@@ -1060,11 +1101,24 @@ export const dailyAssetSettingsRelations = relations(dailyAssetSettings, ({ one 
 	}),
 }))
 
+// Risk Management Profiles Relations
+export const riskManagementProfilesRelations = relations(riskManagementProfiles, ({ one, many }) => ({
+	createdBy: one(users, {
+		fields: [riskManagementProfiles.createdByUserId],
+		references: [users.id],
+	}),
+	monthlyPlans: many(monthlyPlans),
+}))
+
 // Monthly Plans Relations
 export const monthlyPlansRelations = relations(monthlyPlans, ({ one }) => ({
 	account: one(tradingAccounts, {
 		fields: [monthlyPlans.accountId],
 		references: [tradingAccounts.id],
+	}),
+	riskProfile: one(riskManagementProfiles, {
+		fields: [monthlyPlans.riskProfileId],
+		references: [riskManagementProfiles.id],
 	}),
 }))
 
@@ -1151,3 +1205,6 @@ export type NewAccountAssetSetting = typeof accountAssetSettings.$inferInsert
 
 export type MonthlyPlan = typeof monthlyPlans.$inferSelect
 export type NewMonthlyPlan = typeof monthlyPlans.$inferInsert
+
+export type RiskManagementProfileRow = typeof riskManagementProfiles.$inferSelect
+export type NewRiskManagementProfileRow = typeof riskManagementProfiles.$inferInsert

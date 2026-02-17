@@ -69,6 +69,17 @@ export const monthlyPlanSchema = z.object({
 		.max(5000, "Notes must be 5000 characters or less")
 		.optional()
 		.nullable(),
+
+	// Risk profile reference (optional — when set, profile's decision tree governs behavior)
+	riskProfileId: z.string().uuid("Invalid risk profile ID").optional().nullable(),
+
+	// Weekly loss limit (optional, independent of risk profile)
+	weeklyLossPercent: z.coerce
+		.number()
+		.positive("Weekly loss limit must be positive")
+		.max(100, "Weekly loss limit cannot exceed 100%")
+		.optional()
+		.nullable(),
 }).refine(
 	(data) => !(data.increaseRiskAfterWin && data.capRiskAfterWin),
 	{ message: "increaseRiskAfterWin and capRiskAfterWin are mutually exclusive", path: ["capRiskAfterWin"] }

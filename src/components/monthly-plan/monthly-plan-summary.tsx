@@ -7,6 +7,7 @@ import {
 	BarChart3,
 	Target,
 	CalendarDays,
+	ShieldCheck,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useFormatting } from "@/hooks/use-formatting"
@@ -42,9 +43,10 @@ const SummaryCard = ({
 
 interface MonthlyPlanSummaryProps {
 	plan: MonthlyPlan
+	profileName?: string | null
 }
 
-export const MonthlyPlanSummary = ({ plan }: MonthlyPlanSummaryProps) => {
+export const MonthlyPlanSummary = ({ plan, profileName }: MonthlyPlanSummaryProps) => {
 	const t = useTranslations("commandCenter.plan.summary")
 	const { formatCurrency } = useFormatting()
 
@@ -62,7 +64,16 @@ export const MonthlyPlanSummary = ({ plan }: MonthlyPlanSummaryProps) => {
 		: null
 
 	return (
-		<div className="grid gap-m-400 sm:grid-cols-2 lg:grid-cols-3">
+		<div className="space-y-m-400">
+			{profileName && (
+				<div className="flex items-center gap-s-200 rounded-lg border border-acc-100/20 bg-acc-100/5 px-m-300 py-s-300">
+					<ShieldCheck className="h-4 w-4 text-acc-100" />
+					<span className="text-small font-medium text-txt-100">
+						{t("usingProfile", { name: profileName })}
+					</span>
+				</div>
+			)}
+			<div className="grid gap-m-400 sm:grid-cols-2 lg:grid-cols-3">
 			<SummaryCard
 				icon={DollarSign}
 				label={t("accountBalance")}
@@ -112,6 +123,7 @@ export const MonthlyPlanSummary = ({ plan }: MonthlyPlanSummaryProps) => {
 					value={String(maxLosingDays)}
 				/>
 			)}
+		</div>
 		</div>
 	)
 }

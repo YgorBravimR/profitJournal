@@ -2,22 +2,19 @@
 
 import { db } from "@/db/drizzle"
 import { trades, tags, tradeTags, tradingAccounts } from "@/db/schema"
-import { eq, and, gte, lte, desc, sql, inArray } from "drizzle-orm"
+import { eq, and, gte, lte, desc, inArray } from "drizzle-orm"
 import {
 	startOfWeek,
 	endOfWeek,
 	startOfMonth,
 	endOfMonth,
 	eachDayOfInterval,
-	format,
 	subWeeks,
 	subMonths,
-	addMonths,
 	differenceInBusinessDays,
-	isWeekend,
-	eachWeekOfInterval,
 } from "date-fns"
 import { fromCents } from "@/lib/money"
+import { formatDateKey } from "@/lib/dates"
 import { getUserSettings, type UserSettingsData } from "./settings"
 import { requireAuth } from "@/app/actions/auth"
 import { getServerEffectiveNow } from "@/lib/effective-date"
@@ -126,7 +123,11 @@ export interface MistakeCostAnalysis {
 
 export const getWeeklyReport = async (
 	weekOffset = 0
-): Promise<{ status: "success" | "error"; data?: WeeklyReport; message?: string }> => {
+): Promise<{
+	status: "success" | "error"
+	data?: WeeklyReport
+	message?: string
+}> => {
 	try {
 		const authContext = await requireAuth()
 		const accountCondition = authContext.showAllAccounts
@@ -152,8 +153,8 @@ export const getWeeklyReport = async (
 			return {
 				status: "success",
 				data: {
-					weekStart: format(weekStart, "yyyy-MM-dd"),
-					weekEnd: format(weekEnd, "yyyy-MM-dd"),
+					weekStart: formatDateKey(weekStart),
+					weekEnd: formatDateKey(weekEnd),
 					summary: {
 						totalTrades: 0,
 						winCount: 0,
@@ -208,29 +209,33 @@ export const getWeeklyReport = async (
 						.filter((t) => t.realizedRMultiple)
 						.reduce(
 							(sum, t) =>
-								sum + (t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
+								sum +
+								(t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
 							0
 						) / weekTrades.filter((t) => t.realizedRMultiple).length
 				: 0
 
-		const pnlValues = weekTrades.map((t) => fromCents(t.pnl)).filter((p) => p !== 0)
+		const pnlValues = weekTrades
+			.map((t) => fromCents(t.pnl))
+			.filter((p) => p !== 0)
 
 		// Daily breakdown
 		const days = eachDayOfInterval({ start: weekStart, end: weekEnd })
 		const dailyBreakdown: DailyBreakdown[] = days.map((day) => {
 			const dayTrades = weekTrades.filter(
-				(t) =>
-					format(new Date(t.entryDate), "yyyy-MM-dd") === format(day, "yyyy-MM-dd")
+				(t) => formatDateKey(new Date(t.entryDate)) === formatDateKey(day)
 			)
 			const dayWins = dayTrades.filter((t) => t.outcome === "win").length
+			const dayLosses = dayTrades.filter((t) => t.outcome === "loss").length
 			const dayPnl = dayTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+			const dayDecided = dayWins + dayLosses
 			return {
-				date: format(day, "yyyy-MM-dd"),
+				date: formatDateKey(day),
 				tradeCount: dayTrades.length,
 				winCount: dayWins,
-				lossCount: dayTrades.filter((t) => t.outcome === "loss").length,
+				lossCount: dayLosses,
 				pnl: dayPnl,
-				winRate: dayTrades.length > 0 ? (dayWins / dayTrades.length) * 100 : 0,
+				winRate: dayDecided > 0 ? (dayWins / dayDecided) * 100 : 0,
 			}
 		})
 
@@ -248,7 +253,7 @@ export const getWeeklyReport = async (
 				pnl: fromCents(t.pnl),
 				r: t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : null,
 				direction: t.direction,
-				date: format(new Date(t.entryDate), "yyyy-MM-dd"),
+				date: formatDateKey(new Date(t.entryDate)),
 			}))
 
 		const topLosses = sortedByPnl
@@ -261,14 +266,14 @@ export const getWeeklyReport = async (
 				pnl: fromCents(t.pnl),
 				r: t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : null,
 				direction: t.direction,
-				date: format(new Date(t.entryDate), "yyyy-MM-dd"),
+				date: formatDateKey(new Date(t.entryDate)),
 			}))
 
 		return {
 			status: "success",
 			data: {
-				weekStart: format(weekStart, "yyyy-MM-dd"),
-				weekEnd: format(weekEnd, "yyyy-MM-dd"),
+				weekStart: formatDateKey(weekStart),
+				weekEnd: formatDateKey(weekEnd),
 				summary: {
 					totalTrades: weekTrades.length,
 					winCount: winTrades.length,
@@ -278,8 +283,9 @@ export const getWeeklyReport = async (
 					netPnl,
 					totalFees,
 					winRate:
-						weekTrades.length > 0
-							? (winTrades.length / weekTrades.length) * 100
+						winTrades.length + lossTrades.length > 0
+							? (winTrades.length / (winTrades.length + lossTrades.length)) *
+								100
 							: 0,
 					avgWin,
 					avgLoss,
@@ -305,7 +311,11 @@ export const getWeeklyReport = async (
 
 export const getMonthlyReport = async (
 	monthOffset = 0
-): Promise<{ status: "success" | "error"; data?: MonthlyReport; message?: string }> => {
+): Promise<{
+	status: "success" | "error"
+	data?: MonthlyReport
+	message?: string
+}> => {
 	try {
 		const authContext = await requireAuth()
 		const accountCondition = authContext.showAllAccounts
@@ -331,8 +341,8 @@ export const getMonthlyReport = async (
 			return {
 				status: "success",
 				data: {
-					monthStart: format(monthStart, "yyyy-MM-dd"),
-					monthEnd: format(monthEnd, "yyyy-MM-dd"),
+					monthStart: formatDateKey(monthStart),
+					monthEnd: formatDateKey(monthEnd),
 					summary: {
 						totalTrades: 0,
 						winCount: 0,
@@ -386,7 +396,8 @@ export const getMonthlyReport = async (
 						.filter((t) => t.realizedRMultiple)
 						.reduce(
 							(sum, t) =>
-								sum + (t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
+								sum +
+								(t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
 							0
 						) / monthTrades.filter((t) => t.realizedRMultiple).length
 				: 0
@@ -394,9 +405,9 @@ export const getMonthlyReport = async (
 		// Daily P&L for best/worst day
 		const dailyPnl = new Map<string, number>()
 		for (const trade of monthTrades) {
-			const day = format(new Date(trade.entryDate), "yyyy-MM-dd")
+			const day = formatDateKey(new Date(trade.entryDate))
 			const currentPnl = dailyPnl.get(day) || 0
-			dailyPnl.set(day, currentPnl + (fromCents(trade.pnl)))
+			dailyPnl.set(day, currentPnl + fromCents(trade.pnl))
 		}
 
 		let bestDay: { date: string; pnl: number } | null = null
@@ -424,15 +435,16 @@ export const getMonthlyReport = async (
 
 			if (weekTrades.length > 0) {
 				const weekWins = weekTrades.filter((t) => t.outcome === "win").length
+				const weekLosses = weekTrades.filter((t) => t.outcome === "loss").length
 				const weekPnl = weekTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+				const weekDecided = weekWins + weekLosses
 
 				weeklyBreakdown.push({
-					weekStart: format(currentWeekStart, "yyyy-MM-dd"),
-					weekEnd: format(currentWeekEnd, "yyyy-MM-dd"),
+					weekStart: formatDateKey(currentWeekStart),
+					weekEnd: formatDateKey(currentWeekEnd),
 					tradeCount: weekTrades.length,
 					pnl: weekPnl,
-					winRate:
-						weekTrades.length > 0 ? (weekWins / weekTrades.length) * 100 : 0,
+					winRate: weekDecided > 0 ? (weekWins / weekDecided) * 100 : 0,
 				})
 			}
 
@@ -443,37 +455,40 @@ export const getMonthlyReport = async (
 		// Asset breakdown
 		const assetMap = new Map<
 			string,
-			{ tradeCount: number; pnl: number; winCount: number }
+			{ tradeCount: number; pnl: number; winCount: number; lossCount: number }
 		>()
 		for (const trade of monthTrades) {
 			const current = assetMap.get(trade.asset) || {
 				tradeCount: 0,
 				pnl: 0,
 				winCount: 0,
+				lossCount: 0,
 			}
 			assetMap.set(trade.asset, {
 				tradeCount: current.tradeCount + 1,
-				pnl: current.pnl + (fromCents(trade.pnl)),
-				winCount:
-					current.winCount + (trade.outcome === "win" ? 1 : 0),
+				pnl: current.pnl + fromCents(trade.pnl),
+				winCount: current.winCount + (trade.outcome === "win" ? 1 : 0),
+				lossCount: current.lossCount + (trade.outcome === "loss" ? 1 : 0),
 			})
 		}
 
 		const assetBreakdown = Array.from(assetMap.entries())
-			.map(([asset, data]) => ({
-				asset,
-				tradeCount: data.tradeCount,
-				pnl: data.pnl,
-				winRate:
-					data.tradeCount > 0 ? (data.winCount / data.tradeCount) * 100 : 0,
-			}))
+			.map(([asset, data]) => {
+				const decided = data.winCount + data.lossCount
+				return {
+					asset,
+					tradeCount: data.tradeCount,
+					pnl: data.pnl,
+					winRate: decided > 0 ? (data.winCount / decided) * 100 : 0,
+				}
+			})
 			.toSorted((a, b) => b.pnl - a.pnl)
 
 		return {
 			status: "success",
 			data: {
-				monthStart: format(monthStart, "yyyy-MM-dd"),
-				monthEnd: format(monthEnd, "yyyy-MM-dd"),
+				monthStart: formatDateKey(monthStart),
+				monthEnd: formatDateKey(monthEnd),
 				summary: {
 					totalTrades: monthTrades.length,
 					winCount: winTrades.length,
@@ -483,8 +498,9 @@ export const getMonthlyReport = async (
 					netPnl,
 					totalFees,
 					winRate:
-						monthTrades.length > 0
-							? (winTrades.length / monthTrades.length) * 100
+						winTrades.length + lossTrades.length > 0
+							? (winTrades.length / (winTrades.length + lossTrades.length)) *
+								100
 							: 0,
 					avgWin,
 					avgLoss,
@@ -552,7 +568,12 @@ export const getMistakeCostAnalysis = async (): Promise<{
 		// Calculate cost per mistake
 		const mistakeStats = new Map<
 			string,
-			{ tagName: string; color: string | null; totalLoss: number; tradeCount: number }
+			{
+				tagName: string
+				color: string | null
+				totalLoss: number
+				tradeCount: number
+			}
 		>()
 
 		for (const association of filteredAssociations) {
@@ -586,8 +607,7 @@ export const getMistakeCostAnalysis = async (): Promise<{
 			.toSorted((a, b) => b.totalLoss - a.totalLoss)
 
 		const totalMistakeCost = mistakes.reduce((sum, m) => sum + m.totalLoss, 0)
-		const mostCostlyMistake =
-			mistakes.length > 0 ? mistakes[0].tagName : null
+		const mostCostlyMistake = mistakes.length > 0 ? mistakes[0].tagName : null
 
 		return {
 			status: "success",
@@ -712,7 +732,7 @@ const getUniqueTradingDays = (
 ): number => {
 	const uniqueDays = new Set<string>()
 	for (const trade of tradeList) {
-		const dateKey = format(new Date(trade.entryDate), "yyyy-MM-dd")
+		const dateKey = formatDateKey(new Date(trade.entryDate))
 		uniqueDays.add(dateKey)
 	}
 	return uniqueDays.size
@@ -867,7 +887,10 @@ export const getMonthlyProjection = async (): Promise<{
 		}
 
 		// Calculate projected prop values using account-specific settings
-		const projectedProp = calculatePropProfit(projectedMonthlyProfit, accountSettings)
+		const projectedProp = calculatePropProfit(
+			projectedMonthlyProfit,
+			accountSettings
+		)
 
 		return {
 			status: "success",
@@ -927,9 +950,7 @@ export const getMonthComparison = async (
 		const winRateChange = previous
 			? current.report.winRate - previous.report.winRate
 			: 0
-		const avgRChange = previous
-			? current.report.avgR - previous.report.avgR
-			: 0
+		const avgRChange = previous ? current.report.avgR - previous.report.avgR : 0
 		const tradeCountChange = previous
 			? current.report.totalTrades - previous.report.totalTrades
 			: 0

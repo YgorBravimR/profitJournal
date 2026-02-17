@@ -11,14 +11,18 @@ import type {
 	DataSourceOption,
 	StrategyComparisonResult,
 	ComparisonRecommendation,
+	SimulationParamsV2,
+	MonteCarloResultV2,
 } from "@/types/monte-carlo"
 import { eq, and, inArray, isNotNull, desc } from "drizzle-orm"
 import { z } from "zod"
 import {
 	simulationParamsSchema,
 	dataSourceSchema,
+	simulationParamsV2Schema,
 } from "@/lib/validations/monte-carlo"
 import { runMonteCarloSimulation } from "@/lib/monte-carlo"
+import { runMonteCarloV2 } from "@/lib/monte-carlo-v2"
 import { requireAuth } from "@/app/actions/auth"
 
 export const getDataSourceOptions = async (): Promise<
@@ -124,6 +128,7 @@ export const getSimulationStats = async (
 
 		let tradesList: Array<{
 			outcome: string | null
+			pnl: number | null
 			realizedRMultiple: string | null
 			plannedRiskAmount: number | null
 			commission: number | null
@@ -157,6 +162,7 @@ export const getSimulationStats = async (
 				orderBy: [desc(trades.entryDate)],
 				columns: {
 					outcome: true,
+					pnl: true,
 					realizedRMultiple: true,
 					plannedRiskAmount: true,
 					commission: true,
@@ -178,6 +184,7 @@ export const getSimulationStats = async (
 				orderBy: [desc(trades.entryDate)],
 				columns: {
 					outcome: true,
+					pnl: true,
 					realizedRMultiple: true,
 					plannedRiskAmount: true,
 					commission: true,
@@ -215,6 +222,7 @@ export const getSimulationStats = async (
 				orderBy: [desc(trades.entryDate)],
 				columns: {
 					outcome: true,
+					pnl: true,
 					realizedRMultiple: true,
 					plannedRiskAmount: true,
 					commission: true,
@@ -234,8 +242,12 @@ export const getSimulationStats = async (
 		}
 
 		const wins = tradesList.filter((t) => t.outcome === "win")
-		const winRate = (wins.length / tradesList.length) * 100
+		const losses = tradesList.filter((t) => t.outcome === "loss")
+		const decidedCount = wins.length + losses.length
+		// Win rate excludes breakeven trades from denominator (consistent with dashboard)
+		const winRate = decidedCount > 0 ? (wins.length / decidedCount) * 100 : 0
 
+		// Avg R:R stays R-multiple-based (ratio of avg winning R to avg losing R)
 		const tradesWithR = tradesList.filter(
 			(t) => t.realizedRMultiple !== null && t.realizedRMultiple !== undefined
 		)
@@ -267,8 +279,9 @@ export const getSimulationStats = async (
 		const avgCommissionImpact =
 			totalRisk > 0 ? (totalCommission / totalRisk) * 100 : 0
 
-		const grossProfit = winningR.reduce((sum, r) => sum + r, 0)
-		const grossLoss = losingR.reduce((sum, r) => sum + r, 0)
+		// Profit factor uses PnL values (consistent with dashboard), not R-multiples
+		const grossProfit = wins.reduce((sum, t) => sum + (t.pnl ?? 0), 0)
+		const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.pnl ?? 0), 0))
 		const profitFactor =
 			grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0
 
@@ -280,7 +293,7 @@ export const getSimulationStats = async (
 		if (validated.type !== "strategy") {
 			const breakdown = new Map<
 				string,
-				{ name: string; tradesCount: number; wins: number }
+				{ name: string; tradesCount: number; wins: number; losses: number }
 			>()
 			const strategyIds = [
 				...new Set(tradesList.map((t) => t.strategyId).filter(Boolean)),
@@ -302,18 +315,23 @@ export const getSimulationStats = async (
 					? strategiesMap.get(trade.strategyId) || "No Strategy"
 					: "No Strategy"
 				if (!breakdown.has(name)) {
-					breakdown.set(name, { name, tradesCount: 0, wins: 0 })
+					breakdown.set(name, { name, tradesCount: 0, wins: 0, losses: 0 })
 				}
 				const entry = breakdown.get(name)!
 				entry.tradesCount++
 				if (trade.outcome === "win") entry.wins++
+				if (trade.outcome === "loss") entry.losses++
 			}
 
-			strategiesBreakdown = Array.from(breakdown.values()).map((s) => ({
-				name: s.name,
-				tradesCount: s.tradesCount,
-				winRate: (s.wins / s.tradesCount) * 100,
-			}))
+			// Win rate excludes breakeven trades from denominator (consistent with dashboard)
+			strategiesBreakdown = Array.from(breakdown.values()).map((s) => {
+				const decided = s.wins + s.losses
+				return {
+					name: s.name,
+					tradesCount: s.tradesCount,
+					winRate: decided > 0 ? (s.wins / decided) * 100 : 0,
+				}
+			})
 		}
 
 		const dates = tradesList.map((t) => new Date(t.entryDate))
@@ -509,3 +527,44 @@ export const runComparisonSimulation = async (
 		}
 	}
 }
+
+// ==========================================
+// V2 — DAY-AWARE SIMULATION ACTIONS
+// ==========================================
+
+/**
+ * Run V2 Monte Carlo simulation with a risk management profile.
+ */
+export const runSimulationV2 = async (
+	params: SimulationParamsV2
+): Promise<ActionResponse<MonteCarloResultV2>> => {
+	try {
+		await requireAuth()
+		const validated = simulationParamsV2Schema.parse(params)
+		const result = runMonteCarloV2(validated)
+
+		return {
+			status: "success",
+			message: "V2 simulation completed",
+			data: result,
+		}
+	} catch (error) {
+		if (error instanceof z.ZodError) {
+			return {
+				status: "error",
+				message: "Validation failed",
+				errors: error.issues.map((e) => ({
+					code: "VALIDATION_ERROR",
+					detail: `${e.path.join(".")}: ${e.message}`,
+				})),
+			}
+		}
+
+		return {
+			status: "error",
+			message: "Failed to run V2 simulation",
+			errors: [{ code: "SIMULATION_V2_ERROR", detail: String(error) }],
+		}
+	}
+}
+

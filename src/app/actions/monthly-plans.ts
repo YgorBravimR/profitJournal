@@ -106,6 +106,7 @@ export const upsertMonthlyPlan = async (
 			monthlyLossPercent: validated.monthlyLossPercent,
 			dailyProfitTargetPercent: validated.dailyProfitTargetPercent ?? null,
 			maxDailyTrades: validated.maxDailyTrades ?? null,
+			weeklyLossPercent: validated.weeklyLossPercent ?? null,
 		})
 
 		// Check if plan already exists for this account + year + month
@@ -138,6 +139,13 @@ export const upsertMonthlyPlan = async (
 				? String(validated.profitReinvestmentPercent)
 				: null,
 			notes: validated.notes ?? null,
+			// Risk profile reference
+			riskProfileId: validated.riskProfileId ?? null,
+			// Weekly loss
+			weeklyLossPercent: validated.weeklyLossPercent != null
+				? String(validated.weeklyLossPercent)
+				: null,
+			weeklyLossCents: derived.weeklyLossCents,
 			// Derived fields
 			riskPerTradeCents: derived.riskPerTradeCents,
 			dailyLossCents: derived.dailyLossCents,
@@ -284,6 +292,10 @@ export const rolloverMonthlyPlan = async (
 			? parseFloat(previousPlan.dailyProfitTargetPercent)
 			: null
 
+		const weeklyLossPercent = previousPlan.weeklyLossPercent
+			? parseFloat(previousPlan.weeklyLossPercent)
+			: null
+
 		// Recompute derived values with the new balance
 		const derived = deriveMonthlyPlanValues({
 			accountBalance: newBalanceCents,
@@ -292,6 +304,7 @@ export const rolloverMonthlyPlan = async (
 			monthlyLossPercent,
 			dailyProfitTargetPercent,
 			maxDailyTrades: previousPlan.maxDailyTrades,
+			weeklyLossPercent,
 		})
 
 		// Build the new plan fields (copy everything from previous plan except balance + derived)
@@ -312,6 +325,10 @@ export const rolloverMonthlyPlan = async (
 			capRiskAfterWin: previousPlan.capRiskAfterWin,
 			profitReinvestmentPercent: previousPlan.profitReinvestmentPercent,
 			notes: previousPlan.notes,
+			// Risk profile + weekly loss (carried forward)
+			riskProfileId: previousPlan.riskProfileId,
+			weeklyLossPercent: previousPlan.weeklyLossPercent,
+			weeklyLossCents: derived.weeklyLossCents,
 			// Derived fields (recomputed with new balance)
 			riskPerTradeCents: derived.riskPerTradeCents,
 			dailyLossCents: derived.dailyLossCents,

@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
-import { format } from "date-fns"
 import { cn } from "@/lib/utils"
+import { formatBrtShortDateTime } from "@/lib/dates"
 import { Button } from "@/components/ui/button"
 import { deleteExecution } from "@/app/actions/executions"
 import type { TradeExecution } from "@/db/schema"
@@ -44,7 +44,8 @@ export const ExecutionList = ({
 
 	// Sort all executions chronologically (no entry/exit grouping)
 	const sortedExecutions = executions.toSorted(
-		(a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+		(a, b) =>
+			new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
 	)
 
 	// Calculate totals
@@ -56,14 +57,18 @@ export const ExecutionList = ({
 	// Calculate average prices
 	const avgEntryPrice =
 		totalEntryQty > 0
-			? entries.reduce((sum, e) => sum + Number(e.price) * Number(e.quantity), 0) /
-			  totalEntryQty
+			? entries.reduce(
+					(sum, e) => sum + Number(e.price) * Number(e.quantity),
+					0
+				) / totalEntryQty
 			: 0
 
 	const avgExitPrice =
 		totalExitQty > 0
-			? exits.reduce((sum, e) => sum + Number(e.price) * Number(e.quantity), 0) /
-			  totalExitQty
+			? exits.reduce(
+					(sum, e) => sum + Number(e.price) * Number(e.quantity),
+					0
+				) / totalExitQty
 			: 0
 
 	const handleDelete = (id: string) => {
@@ -77,7 +82,7 @@ export const ExecutionList = ({
 		})
 	}
 
-	const formatPrice = (price: string | number) => {
+	const formatPrice = (price: string | number): string => {
 		const num = typeof price === "string" ? parseFloat(price) : price
 		return num.toLocaleString("pt-BR", {
 			minimumFractionDigits: 2,
@@ -85,7 +90,7 @@ export const ExecutionList = ({
 		})
 	}
 
-	const formatQuantity = (qty: string | number) => {
+	const formatQuantity = (qty: string | number): string => {
 		const num = typeof qty === "string" ? parseFloat(qty) : qty
 		return num.toLocaleString("pt-BR", {
 			minimumFractionDigits: 0,
@@ -97,8 +102,14 @@ export const ExecutionList = ({
 		<div className={cn("space-y-m-400", className)}>
 			<div className="flex items-center justify-between">
 				<h3 className="text-body text-txt-100 font-semibold">{t("title")}</h3>
-				<Button id="execution-list-add" variant="outline" size="sm" onClick={onAddExecution}>
-					<Plus className="mr-1 h-4 w-4" />
+				<Button
+					id="execution-list-add"
+					variant="outline"
+					size="sm"
+					onClick={onAddExecution}
+					aria-label={t("add")}
+				>
+					<Plus className="mr-1 h-4 w-4" aria-hidden="true" />
 					{t("add")}
 				</Button>
 			</div>
@@ -112,8 +123,9 @@ export const ExecutionList = ({
 						size="sm"
 						className="mt-s-200"
 						onClick={onAddExecution}
+						aria-label={t("addFirst")}
 					>
-						<Plus className="mr-1 h-4 w-4" />
+						<Plus className="mr-1 h-4 w-4" aria-hidden="true" />
 						{t("addFirst")}
 					</Button>
 				</div>
@@ -219,8 +231,10 @@ const ExecutionRow = ({
 	t,
 	tCommon,
 }: ExecutionRowProps) => {
-	// Color by side (buy/sell), not by entry/exit — clearer for short positions
-	const isBuy = (direction === "long" && type === "entry") || (direction === "short" && type === "exit")
+	// Color by side (buy/sell), not by entry/exit -- clearer for short positions
+	const isBuy =
+		(direction === "long" && type === "entry") ||
+		(direction === "short" && type === "exit")
 
 	return (
 		<div
@@ -232,7 +246,7 @@ const ExecutionRow = ({
 			)}
 		>
 			<div className="gap-m-400 flex items-center">
-				{/* Side indicator — buy (up arrow) or sell (down arrow) */}
+				{/* Side indicator -- buy (up arrow) or sell (down arrow) */}
 				{isBuy ? (
 					<ArrowUp
 						className="text-action-buy h-3.5 w-3.5 shrink-0"
@@ -246,7 +260,7 @@ const ExecutionRow = ({
 				)}
 				<div className="text-small">
 					<span className="text-txt-300">
-						{format(new Date(execution.executionDate), "dd/MM HH:mm:ss")}
+						{formatBrtShortDateTime(new Date(execution.executionDate))}
 					</span>
 				</div>
 				<div className="text-small">
@@ -254,9 +268,7 @@ const ExecutionRow = ({
 						{formatQuantity(execution.quantity)}
 					</span>
 					<span className="mx-s-100 text-txt-300">@</span>
-					<span className="text-txt-100">
-						{formatPrice(execution.price)}
-					</span>
+					<span className="text-txt-100">{formatPrice(execution.price)}</span>
 				</div>
 				{execution.orderType && (
 					<span className="bg-bg-300 px-s-200 py-s-100 text-caption text-txt-300 rounded">
@@ -303,7 +315,9 @@ const ExecutionRow = ({
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>
-							<AlertDialogCancel id="execution-delete-cancel">{tCommon("cancel")}</AlertDialogCancel>
+							<AlertDialogCancel id="execution-delete-cancel">
+								{tCommon("cancel")}
+							</AlertDialogCancel>
 							<AlertDialogAction
 								id="execution-delete-confirm"
 								className="bg-fb-error hover:bg-fb-error/90"

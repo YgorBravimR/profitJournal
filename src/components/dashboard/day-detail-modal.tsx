@@ -12,8 +12,13 @@ import {
 import { DaySummaryStats } from "./day-summary-stats"
 import { DayEquityCurve } from "./day-equity-curve"
 import { DayTradesList } from "./day-trades-list"
-import { getDaySummary, getDayTrades, getDayEquityCurve } from "@/app/actions/analytics"
+import {
+	getDaySummary,
+	getDayTrades,
+	getDayEquityCurve,
+} from "@/app/actions/analytics"
 import type { DaySummary, DayTrade, DayEquityPoint } from "@/types"
+import { APP_TIMEZONE } from "@/lib/dates"
 import { LoadingSpinner } from "@/components/shared"
 
 interface DayDetailModalProps {
@@ -22,7 +27,11 @@ interface DayDetailModalProps {
 	onOpenChange: (open: boolean) => void
 }
 
-export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps) => {
+export const DayDetailModal = ({
+	date,
+	open,
+	onOpenChange,
+}: DayDetailModalProps) => {
 	const t = useTranslations("dashboard")
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
@@ -66,6 +75,7 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 			day: "numeric",
 			month: "long",
 			year: "numeric",
+			timeZone: APP_TIMEZONE,
 		})
 	}
 
@@ -73,7 +83,10 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent id="day-detail-dialog" className="max-h-[90vh] max-w-3xl overflow-y-auto">
+			<DialogContent
+				id="day-detail-dialog"
+				className="max-h-[90vh] max-w-3xl overflow-y-auto"
+			>
 				<DialogHeader>
 					<DialogTitle className="capitalize">{dayName}</DialogTitle>
 				</DialogHeader>
@@ -86,8 +99,8 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 						<DaySummaryStats summary={summary} />
 
 						{/* Equity Curve */}
-						<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-							<h4 className="mb-s-300 text-small font-medium text-txt-100">
+						<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+							<h4 className="mb-s-300 text-small text-txt-100 font-medium">
 								{t("dayDetail.equityCurve")}
 							</h4>
 							<DayEquityCurve
@@ -98,20 +111,17 @@ export const DayDetailModal = ({ date, open, onOpenChange }: DayDetailModalProps
 
 						{/* Trades List */}
 						<div>
-							<h4 className="mb-s-300 text-small font-medium text-txt-100">
+							<h4 className="mb-s-300 text-small text-txt-100 font-medium">
 								{t("dayDetail.tradesTitle")}
 							</h4>
-							<DayTradesList
-								trades={trades}
-								onTradeClick={handleTradeClick}
-							/>
+							<DayTradesList trades={trades} onTradeClick={handleTradeClick} />
 							<p className="mt-s-200 text-caption text-txt-300">
 								{t("dayDetail.clickHint")}
 							</p>
 						</div>
 					</div>
 				) : (
-					<div className="flex h-[200px] items-center justify-center text-txt-300">
+					<div className="text-txt-300 flex h-[200px] items-center justify-center">
 						{t("dayDetail.noData")}
 					</div>
 				)}

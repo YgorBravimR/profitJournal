@@ -25,8 +25,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { createExecution, updateExecution } from "@/app/actions/executions"
 import type { TradeExecution } from "@/db/schema"
 import { Loader2 } from "lucide-react"
-import { format } from "date-fns"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { formatDateKey, formatBrtTimeInput, BRT_OFFSET } from "@/lib/dates"
 
 interface ExecutionFormProps {
 	tradeId: string
@@ -44,8 +44,8 @@ interface ExecutionFormProps {
 const getSmartDefaults = (existingExecutions: TradeExecution[], now: Date) => {
 	if (existingExecutions.length === 0) {
 		return {
-			date: format(now, "yyyy-MM-dd"),
-			time: format(now, "HH:mm:ss"),
+			date: formatDateKey(now),
+			time: formatBrtTimeInput(now),
 		}
 	}
 
@@ -56,13 +56,16 @@ const getSmartDefaults = (existingExecutions: TradeExecution[], now: Date) => {
 
 	const recentDate = new Date(mostRecent.executionDate)
 	return {
-		date: format(recentDate, "yyyy-MM-dd"),
-		time: format(recentDate, "HH:mm:ss"),
+		date: formatDateKey(recentDate),
+		time: formatBrtTimeInput(recentDate),
 	}
 }
 
 /** Build the blank form state for a new execution */
-const buildNewExecutionState = (existingExecutions: TradeExecution[], now: Date) => {
+const buildNewExecutionState = (
+	existingExecutions: TradeExecution[],
+	now: Date
+) => {
 	const defaults = getSmartDefaults(existingExecutions, now)
 	return {
 		executionType: "entry",
@@ -81,8 +84,8 @@ const buildNewExecutionState = (existingExecutions: TradeExecution[], now: Date)
 /** Build form state from an existing execution for editing */
 const buildEditExecutionState = (execution: TradeExecution) => ({
 	executionType: execution.executionType ?? "entry",
-	executionDate: format(new Date(execution.executionDate), "yyyy-MM-dd"),
-	executionTime: format(new Date(execution.executionDate), "HH:mm:ss"),
+	executionDate: formatDateKey(new Date(execution.executionDate)),
+	executionTime: formatBrtTimeInput(new Date(execution.executionDate)),
 	price: execution.price ?? "",
 	quantity: execution.quantity ?? "",
 	orderType: execution.orderType ?? "market",
@@ -128,12 +131,14 @@ export const ExecutionForm = ({
 		setError(null)
 
 		startTransition(async () => {
-			// Combine date and time (supports HH:mm:ss format)
+			// Combine date and time with BRT offset (user enters times in BRT)
 			const timeValue =
 				formData.executionTime.length === 5
 					? `${formData.executionTime}:00`
 					: formData.executionTime
-			const executionDate = new Date(`${formData.executionDate}T${timeValue}`)
+			const executionDate = new Date(
+				`${formData.executionDate}T${timeValue}${BRT_OFFSET}`
+			)
 
 			const data = {
 				tradeId,
@@ -223,18 +228,22 @@ export const ExecutionForm = ({
 					{/* Date and Time */}
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-execution-date" htmlFor="executionDate">{t("date")}</Label>
+							<Label id="label-execution-date" htmlFor="executionDate">
+								{t("date")}
+							</Label>
 							<Input
 								id="executionDate"
 								type="date"
-								max={format(effectiveDate, "yyyy-MM-dd")}
+								max={formatDateKey(effectiveDate)}
 								value={formData.executionDate}
 								onChange={(e) => handleChange("executionDate", e.target.value)}
 								required
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-time" htmlFor="executionTime">{t("time")}</Label>
+							<Label id="label-execution-time" htmlFor="executionTime">
+								{t("time")}
+							</Label>
 							<Input
 								id="executionTime"
 								type="time"
@@ -249,7 +258,9 @@ export const ExecutionForm = ({
 					{/* Price and Quantity */}
 					<div className="gap-m-400 grid grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-execution-price" htmlFor="price">{t("price")}</Label>
+							<Label id="label-execution-price" htmlFor="price">
+								{t("price")}
+							</Label>
 							<Input
 								id="price"
 								type="number"
@@ -261,7 +272,9 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-quantity" htmlFor="quantity">{t("quantity")}</Label>
+							<Label id="label-execution-quantity" htmlFor="quantity">
+								{t("quantity")}
+							</Label>
 							<Input
 								id="quantity"
 								type="number"
@@ -276,7 +289,9 @@ export const ExecutionForm = ({
 
 					{/* Order Type */}
 					<div className="space-y-s-200">
-						<Label id="label-execution-order-type" htmlFor="orderType">{t("orderType")}</Label>
+						<Label id="label-execution-order-type" htmlFor="orderType">
+							{t("orderType")}
+						</Label>
 						<Select
 							value={formData.orderType ?? "market"}
 							onValueChange={(value) => handleChange("orderType", value)}
@@ -296,7 +311,11 @@ export const ExecutionForm = ({
 					{/* Costs */}
 					<div className="gap-s-300 grid grid-cols-3">
 						<div className="space-y-s-200">
-							<Label id="label-execution-commission" htmlFor="commission" className="text-small">
+							<Label
+								id="label-execution-commission"
+								htmlFor="commission"
+								className="text-small"
+							>
 								{t("commission")}
 							</Label>
 							<Input
@@ -310,7 +329,11 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-fees" htmlFor="fees" className="text-small">
+							<Label
+								id="label-execution-fees"
+								htmlFor="fees"
+								className="text-small"
+							>
 								{t("fees")}
 							</Label>
 							<Input
@@ -324,7 +347,11 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-slippage" htmlFor="slippage" className="text-small">
+							<Label
+								id="label-execution-slippage"
+								htmlFor="slippage"
+								className="text-small"
+							>
 								{t("slippage")}
 							</Label>
 							<Input
@@ -341,7 +368,9 @@ export const ExecutionForm = ({
 
 					{/* Notes */}
 					<div className="space-y-s-200">
-						<Label id="label-execution-notes" htmlFor="notes">{t("notes")}</Label>
+						<Label id="label-execution-notes" htmlFor="notes">
+							{t("notes")}
+						</Label>
 						<Textarea
 							id="notes"
 							placeholder={t("notesPlaceholder")}
@@ -360,7 +389,11 @@ export const ExecutionForm = ({
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button id="execution-form-submit" type="submit" disabled={isPending}>
+						<Button
+							id="execution-form-submit"
+							type="submit"
+							disabled={isPending}
+						>
 							{isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
 							{isEdit ? tCommon("saveChanges") : t("addExecution")}
 						</Button>

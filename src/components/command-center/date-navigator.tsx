@@ -2,11 +2,16 @@
 
 import { useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { ChevronLeft, ChevronRight, CalendarDays, SkipForward } from "lucide-react"
+import {
+	ChevronLeft,
+	ChevronRight,
+	CalendarDays,
+	SkipForward,
+} from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { formatDateKey } from "@/lib/dates"
+import { APP_TIMEZONE, formatDateKey } from "@/lib/dates"
 import { advanceReplayDate } from "@/app/actions/accounts"
 
 interface DateNavigatorProps {
@@ -22,10 +27,15 @@ const formatDisplayDate = (dateStr: string, locale: string): string => {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
+		timeZone: APP_TIMEZONE,
 	})
 }
 
-export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }: DateNavigatorProps) => {
+export const DateNavigator = ({
+	currentDate,
+	isToday,
+	isReplayAccount = false,
+}: DateNavigatorProps) => {
 	const t = useTranslations("commandCenter.dateNavigator")
 	const router = useRouter()
 	const pathname = usePathname()
@@ -72,8 +82,9 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 	const locale = pathname.startsWith("/pt-BR") ? "pt-BR" : "en"
 
 	return (
-		<div className="flex items-center gap-s-200">
-			<Button id="date-nav-previous"
+		<div className="gap-s-200 flex items-center">
+			<Button
+				id="date-nav-previous"
 				variant="ghost"
 				size="sm"
 				onClick={() => handleNavigate(-1)}
@@ -84,12 +95,14 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 				<ChevronLeft className="h-4 w-4" />
 			</Button>
 
-			<div className="flex items-center gap-s-200">
-				<CalendarDays className="h-4 w-4 text-txt-300" />
-				<span className={cn(
-					"text-small font-medium",
-					isToday ? "text-txt-100" : "text-acc-100"
-				)}>
+			<div className="gap-s-200 flex items-center">
+				<CalendarDays className="text-txt-300 h-4 w-4" />
+				<span
+					className={cn(
+						"text-small font-medium",
+						isToday ? "text-txt-100" : "text-acc-100"
+					)}
+				>
 					{isToday
 						? isReplayAccount
 							? formatDisplayDate(currentDate, locale)
@@ -98,7 +111,8 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 				</span>
 			</div>
 
-			<Button id="date-nav-next"
+			<Button
+				id="date-nav-next"
 				variant="ghost"
 				size="sm"
 				onClick={() => handleNavigate(1)}
@@ -111,7 +125,8 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 			</Button>
 
 			{!isToday && (
-				<Button id="date-nav-today"
+				<Button
+					id="date-nav-today"
 					variant="ghost"
 					size="sm"
 					onClick={handleGoToToday}
@@ -122,7 +137,8 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 			)}
 
 			{isReplayAccount && isToday && (
-				<Button id="date-nav-advance-replay"
+				<Button
+					id="date-nav-advance-replay"
 					variant="ghost"
 					size="sm"
 					onClick={handleAdvanceReplayDate}
@@ -137,7 +153,7 @@ export const DateNavigator = ({ currentDate, isToday, isReplayAccount = false }:
 			)}
 
 			{!isToday && (
-				<span className="ml-s-200 rounded-sm bg-acc-100/10 px-s-200 py-s-100 text-tiny text-acc-100">
+				<span className="ml-s-200 bg-acc-100/10 px-s-200 py-s-100 text-tiny text-acc-100 rounded-sm">
 					{t("readOnlyNotice")}
 				</span>
 			)}

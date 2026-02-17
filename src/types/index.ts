@@ -57,6 +57,7 @@ export interface OverallStats {
 	totalTrades: number
 	winCount: number
 	lossCount: number
+	breakevenCount: number
 	avgWin: number
 	avgLoss: number
 }

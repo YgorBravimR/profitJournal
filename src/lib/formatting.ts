@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config"
+import { APP_TIMEZONE } from "@/lib/dates"
 
 /**
  * Locale to BCP 47 language tag mapping
@@ -106,10 +107,10 @@ export const formatDateLocale = (
 		month: "short",
 		day: "numeric",
 	}
-	return new Intl.DateTimeFormat(
-		localeMap[locale],
-		options || defaultOptions
-	).format(date)
+	return new Intl.DateTimeFormat(localeMap[locale], {
+		...(options || defaultOptions),
+		timeZone: APP_TIMEZONE,
+	}).format(date)
 }
 
 /**
@@ -122,6 +123,7 @@ export const formatDateTimeLocale = (date: Date, locale: Locale): string => {
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
@@ -132,6 +134,7 @@ export const formatShortDate = (date: Date, locale: Locale): string => {
 	return new Intl.DateTimeFormat(localeMap[locale], {
 		month: "2-digit",
 		day: "2-digit",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
@@ -144,6 +147,7 @@ export const formatFullDate = (date: Date, locale: Locale): string => {
 		year: "numeric",
 		month: "long",
 		day: "numeric",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
@@ -154,6 +158,7 @@ export const formatMonthYear = (date: Date, locale: Locale): string => {
 	return new Intl.DateTimeFormat(localeMap[locale], {
 		year: "numeric",
 		month: "long",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
@@ -223,6 +228,7 @@ export const formatTime = (date: Date, locale: Locale): string => {
 	return new Intl.DateTimeFormat(localeMap[locale], {
 		hour: "numeric",
 		minute: "2-digit",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
@@ -235,6 +241,7 @@ export const formatHourOfDay = (hour: number, locale: Locale): string => {
 	return new Intl.DateTimeFormat(localeMap[locale], {
 		hour: "numeric",
 		minute: "2-digit",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { memo, useCallback } from "react"
-import { ChevronRight, Trash2, Loader2 } from "lucide-react"
+import { ChevronRight, Trash2, Loader2, Target, ShieldX, Minus } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { DayTradeCompact } from "@/types"
 import { formatBrlWithSign } from "@/lib/formatting"
@@ -78,7 +78,11 @@ export const TradeRow = memo(({
 	return (
 		<div
 			className={cn(
-				"gap-s-200 px-s-300 py-s-200 flex items-center transition-colors",
+				"gap-s-200 px-s-300 py-s-200 flex items-center transition-colors border-l-2",
+				trade.outcome === "win" && "border-l-trade-buy",
+				trade.outcome === "loss" && "border-l-trade-sell",
+				trade.outcome === "breakeven" && "border-l-txt-300",
+				!trade.outcome && "border-l-transparent",
 				isThisDeleting && "bg-fb-error/8",
 				isDisabled && "pointer-events-none opacity-40",
 				!isAnyDeleting && onTradeClick && "hover:bg-bg-100 cursor-pointer"
@@ -90,6 +94,17 @@ export const TradeRow = memo(({
 			aria-label={`Trade ${trade.asset} ${trade.direction} at ${trade.time}`}
 			aria-disabled={isDisabled}
 		>
+			{/* Outcome Icon */}
+			{trade.outcome === "win" && (
+				<Target className="h-3.5 w-3.5 shrink-0 text-trade-buy" aria-label="Take Profit" />
+			)}
+			{trade.outcome === "loss" && (
+				<ShieldX className="h-3.5 w-3.5 shrink-0 text-trade-sell" aria-label="Stop Loss" />
+			)}
+			{trade.outcome === "breakeven" && (
+				<Minus className="h-3.5 w-3.5 shrink-0 text-txt-300" aria-label="Breakeven" />
+			)}
+
 			{/* Direction Icon */}
 			<DirectionBadge
 				direction={trade.direction}

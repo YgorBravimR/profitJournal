@@ -32,6 +32,7 @@ import {
 	type ProcessedCsvTrade,
 	type CsvValidationResult,
 } from "@/app/actions/csv-import"
+import { APP_TIMEZONE } from "@/lib/dates"
 import { CsvImportSummary, type FilterStatus } from "./csv-import-summary"
 import { CsvTradeCard } from "./csv-trade-card"
 
@@ -49,8 +50,11 @@ export const CsvImport = () => {
 	const [parseResult, setParseResult] = useState<CsvParseResult | null>(null)
 
 	// Validation state
-	const [validationResult, setValidationResult] = useState<CsvValidationResult | null>(null)
-	const [processedTrades, setProcessedTrades] = useState<ProcessedCsvTrade[]>([])
+	const [validationResult, setValidationResult] =
+		useState<CsvValidationResult | null>(null)
+	const [processedTrades, setProcessedTrades] = useState<ProcessedCsvTrade[]>(
+		[]
+	)
 	const [isValidating, setIsValidating] = useState(false)
 
 	// UI state
@@ -152,8 +156,8 @@ export const CsvImport = () => {
 				// Normal flow: set all trades and auto-select
 				setProcessedTrades(validation.data!.trades)
 				const validIds = new Set(
-					validation.data!.trades
-						.filter((t) => t.status !== "skipped")
+					validation
+						.data!.trades.filter((t) => t.status !== "skipped")
 						.map((t) => t.id)
 				)
 				setSelectedIds(validIds)
@@ -247,9 +251,7 @@ export const CsvImport = () => {
 		}
 		setProcessedTrades(nonReplayTrades)
 		const validIds = new Set(
-			nonReplayTrades
-				.filter((t) => t.status !== "skipped")
-				.map((t) => t.id)
+			nonReplayTrades.filter((t) => t.status !== "skipped").map((t) => t.id)
 		)
 		setSelectedIds(validIds)
 		setShowReplayAlert(false)
@@ -290,7 +292,10 @@ export const CsvImport = () => {
 	}
 
 	// Trade editing
-	const handleEditTrade = (tradeId: string, edits: ProcessedCsvTrade["edits"]) => {
+	const handleEditTrade = (
+		tradeId: string,
+		edits: ProcessedCsvTrade["edits"]
+	) => {
 		setProcessedTrades((prev) =>
 			prev.map((t) => (t.id === tradeId ? { ...t, edits } : t))
 		)
@@ -349,7 +354,7 @@ export const CsvImport = () => {
 			{/* Upload Area */}
 			{!validationResult && (
 				<div
-					className={`rounded-lg border-2 border-dashed p-l-800 text-center transition-colors ${
+					className={`p-l-800 rounded-lg border-2 border-dashed text-center transition-colors ${
 						isDragging
 							? "border-acc-100 bg-acc-100/10"
 							: "border-bg-300 hover:border-txt-300"
@@ -369,8 +374,8 @@ export const CsvImport = () => {
 
 					{isValidating ? (
 						<>
-							<Loader2 className="mx-auto h-12 w-12 animate-spin text-acc-100" />
-							<h3 className="mt-m-400 text-body font-semibold text-txt-100">
+							<Loader2 className="text-acc-100 mx-auto h-12 w-12 animate-spin" />
+							<h3 className="mt-m-400 text-body text-txt-100 font-semibold">
 								Validating trades...
 							</h3>
 							<p className="mt-s-200 text-small text-txt-300">
@@ -379,13 +384,13 @@ export const CsvImport = () => {
 						</>
 					) : (
 						<>
-							<Upload className="mx-auto h-12 w-12 text-txt-300" />
-							<h3 className="mt-m-400 text-body font-semibold text-txt-100">
+							<Upload className="text-txt-300 mx-auto h-12 w-12" />
+							<h3 className="mt-m-400 text-body text-txt-100 font-semibold">
 								{t("dropHere")}
 							</h3>
 							<p className="mt-s-200 text-small text-txt-300">{t("orClick")}</p>
 
-							<div className="mt-m-500 flex items-center justify-center gap-m-400">
+							<div className="mt-m-500 gap-m-400 flex items-center justify-center">
 								<Button
 									id="csv-import-select-file"
 									variant="default"
@@ -394,7 +399,11 @@ export const CsvImport = () => {
 									<FileText className="mr-2 h-4 w-4" />
 									{t("selectFile")}
 								</Button>
-								<Button id="csv-import-download-template" variant="outline" onClick={handleDownloadTemplate}>
+								<Button
+									id="csv-import-download-template"
+									variant="outline"
+									onClick={handleDownloadTemplate}
+								>
 									<Download className="mr-2 h-4 w-4" />
 									{t("downloadTemplate")}
 								</Button>
@@ -408,10 +417,12 @@ export const CsvImport = () => {
 			{validationResult && (
 				<div className="space-y-m-500">
 					{/* File Info */}
-					<div className="flex items-center justify-between rounded-lg bg-bg-200 p-m-400">
-						<div className="flex items-center gap-s-300">
-							<FileText className="h-5 w-5 text-txt-300" />
-							<span className="text-small font-medium text-txt-100">{fileName}</span>
+					<div className="bg-bg-200 p-m-400 flex items-center justify-between rounded-lg">
+						<div className="gap-s-300 flex items-center">
+							<FileText className="text-txt-300 h-5 w-5" />
+							<span className="text-small text-txt-100 font-medium">
+								{fileName}
+							</span>
 							<span className="text-tiny text-txt-300">
 								({validationResult.summary.total} trades)
 							</span>
@@ -457,12 +468,16 @@ export const CsvImport = () => {
 					</div>
 
 					{/* Actions */}
-					<div className="flex items-center justify-between rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-						<Button id="csv-import-cancel" variant="outline" onClick={handleClear}>
+					<div className="border-bg-300 bg-bg-200 p-m-400 flex items-center justify-between rounded-lg border">
+						<Button
+							id="csv-import-cancel"
+							variant="outline"
+							onClick={handleClear}
+						>
 							Cancel
 						</Button>
 
-						<div className="flex items-center gap-m-400">
+						<div className="gap-m-400 flex items-center">
 							{selectedCount > 0 && (
 								<span className="text-small text-txt-300">
 									{selectedCount} trades selected
@@ -492,40 +507,54 @@ export const CsvImport = () => {
 			)}
 
 			{/* Help Section */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h3 className="text-small font-semibold text-txt-100">{t("formatGuide")}</h3>
+			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
+				<h3 className="text-small text-txt-100 font-semibold">
+					{t("formatGuide")}
+				</h3>
 
 				{/* ProfitChart Support */}
-				<div className="mt-s-300 rounded-md border border-acc-100/30 bg-acc-100/10 p-s-300">
-					<p className="text-small font-medium text-acc-100">
+				<div className="mt-s-300 border-acc-100/30 bg-acc-100/10 p-s-300 rounded-md border">
+					<p className="text-small text-acc-100 font-medium">
 						✓ ProfitChart Export Supported
 					</p>
 					<p className="mt-s-100 text-tiny text-txt-300">
-						Exports from ProfitChart are automatically detected and imported. Just
-						export your trades and upload the file directly. Assets like WING26 are
-						automatically normalized to WIN.
+						Exports from ProfitChart are automatically detected and imported.
+						Just export your trades and upload the file directly. Assets like
+						WING26 are automatically normalized to WIN.
 					</p>
 				</div>
 
-				<p className="mt-m-400 text-small text-txt-300">{t("requiredColumns")}</p>
-				<ul className="mt-s-300 grid grid-cols-2 gap-s-200 text-small text-txt-200 md:grid-cols-5">
+				<p className="mt-m-400 text-small text-txt-300">
+					{t("requiredColumns")}
+				</p>
+				<ul className="mt-s-300 gap-s-200 text-small text-txt-200 grid grid-cols-2 md:grid-cols-5">
 					<li>
-						<code className="rounded bg-bg-100 px-s-100 text-tiny">asset</code>
+						<code className="bg-bg-100 px-s-100 text-tiny rounded">asset</code>
 					</li>
 					<li>
-						<code className="rounded bg-bg-100 px-s-100 text-tiny">direction</code>
+						<code className="bg-bg-100 px-s-100 text-tiny rounded">
+							direction
+						</code>
 					</li>
 					<li>
-						<code className="rounded bg-bg-100 px-s-100 text-tiny">entry_date</code>
+						<code className="bg-bg-100 px-s-100 text-tiny rounded">
+							entry_date
+						</code>
 					</li>
 					<li>
-						<code className="rounded bg-bg-100 px-s-100 text-tiny">entry_price</code>
+						<code className="bg-bg-100 px-s-100 text-tiny rounded">
+							entry_price
+						</code>
 					</li>
 					<li>
-						<code className="rounded bg-bg-100 px-s-100 text-tiny">position_size</code>
+						<code className="bg-bg-100 px-s-100 text-tiny rounded">
+							position_size
+						</code>
 					</li>
 				</ul>
-				<p className="mt-m-400 text-small text-txt-300">{t("optionalColumns")}</p>
+				<p className="mt-m-400 text-small text-txt-300">
+					{t("optionalColumns")}
+				</p>
 			</div>
 
 			{/* Replay Trades Alert Dialog */}
@@ -538,22 +567,30 @@ export const CsvImport = () => {
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					{validationResult && (
-						<div className="max-h-48 overflow-y-auto rounded-md border border-bg-300 bg-bg-100 p-s-300">
+						<div className="border-bg-300 bg-bg-100 p-s-300 max-h-48 overflow-y-auto rounded-md border">
 							<ul className="space-y-s-100 text-small text-txt-200">
 								{validationResult.trades
 									.filter((t) => t.originalData.isReplayTrade)
 									.map((trade) => (
-										<li key={trade.id} className="flex items-center gap-s-200">
-											<span className="rounded bg-warn-100/20 px-s-100 text-tiny font-medium text-warn-100">
+										<li key={trade.id} className="gap-s-200 flex items-center">
+											<span className="bg-warn-100/20 px-s-100 text-tiny text-warn-100 rounded font-medium">
 												[R]
 											</span>
-											<span className="font-medium">{trade.originalData.asset}</span>
+											<span className="font-medium">
+												{trade.originalData.asset}
+											</span>
 											<span className="text-txt-300">
-												{trade.originalData.direction === "long" ? "Long" : "Short"}
+												{trade.originalData.direction === "long"
+													? "Long"
+													: "Short"}
 											</span>
 											<span className="text-txt-300">
 												{trade.originalData.entryDate
-													? new Date(trade.originalData.entryDate).toLocaleDateString()
+													? new Date(
+															trade.originalData.entryDate
+														).toLocaleDateString(undefined, {
+															timeZone: APP_TIMEZONE,
+														})
 													: ""}
 											</span>
 										</li>

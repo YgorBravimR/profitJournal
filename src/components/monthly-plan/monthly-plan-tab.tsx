@@ -22,17 +22,20 @@ import {
 	rolloverMonthlyPlan,
 } from "@/app/actions/monthly-plans"
 import type { MonthlyPlan } from "@/db/schema"
+import type { RiskManagementProfile } from "@/types/risk-profile"
 
 interface MonthlyPlanTabProps {
 	initialPlan: MonthlyPlan | null
 	initialYear: number
 	initialMonth: number
+	riskProfiles?: RiskManagementProfile[]
 }
 
 export const MonthlyPlanTab = ({
 	initialPlan,
 	initialYear,
 	initialMonth,
+	riskProfiles = [],
 }: MonthlyPlanTabProps) => {
 	const t = useTranslations("commandCenter.plan")
 	const tMonths = useTranslations("months")
@@ -198,11 +201,17 @@ export const MonthlyPlanTab = ({
 					onSave={handleSave}
 					year={year}
 					month={month}
+					riskProfiles={riskProfiles}
 				/>
 			)}
 
 			{!loading && plan && !isEditing && (
-				<MonthlyPlanSummary plan={plan} />
+				<MonthlyPlanSummary
+					plan={plan}
+					profileName={plan.riskProfileId
+						? riskProfiles.find((p) => p.id === plan.riskProfileId)?.name ?? null
+						: null}
+				/>
 			)}
 		</div>
 	)

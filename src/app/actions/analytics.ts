@@ -29,7 +29,7 @@ import {
 	calculateWinRate,
 	calculateProfitFactor,
 } from "@/lib/calculations"
-import { getStartOfMonth, getEndOfMonth, formatDateKey } from "@/lib/dates"
+import { getStartOfMonth, getEndOfMonth, getStartOfDay, getEndOfDay, formatDateKey, APP_TIMEZONE } from "@/lib/dates"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 
@@ -120,6 +120,7 @@ export const getOverallStats = async (
 					totalTrades: 0,
 					winCount: 0,
 					lossCount: 0,
+					breakevenCount: 0,
 					avgWin: 0,
 					avgLoss: 0,
 				},
@@ -133,6 +134,7 @@ export const getOverallStats = async (
 		let rCount = 0
 		let winCount = 0
 		let lossCount = 0
+		let breakevenCount = 0
 		let grossProfit = 0
 		let grossLoss = 0
 		const wins: number[] = []
@@ -160,6 +162,8 @@ export const getOverallStats = async (
 				lossCount++
 				grossLoss += Math.abs(pnl)
 				losses.push(Math.abs(pnl))
+			} else if (trade.outcome === "breakeven") {
+				breakevenCount++
 			}
 		}
 
@@ -186,6 +190,7 @@ export const getOverallStats = async (
 				totalTrades,
 				winCount,
 				lossCount,
+				breakevenCount,
 				avgWin,
 				avgLoss,
 			},
@@ -1320,29 +1325,28 @@ export const getDayTrades = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		// Get start and end of the day
-		const startOfDay = new Date(date)
-		startOfDay.setHours(0, 0, 0, 0)
-		const endOfDay = new Date(date)
-		endOfDay.setHours(23, 59, 59, 999)
+		// Get start and end of the day in BRT
+		const startOfDayBrt = getStartOfDay(date)
+		const endOfDayBrt = getEndOfDay(date)
 
 		const result = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
-				gte(trades.entryDate, startOfDay),
-				lte(trades.entryDate, endOfDay)
+				gte(trades.entryDate, startOfDayBrt),
+				lte(trades.entryDate, endOfDayBrt)
 			),
 			orderBy: [asc(trades.entryDate)],
 		})
 
 		const dayTrades: DayTrade[] = result.map((trade) => ({
 			id: trade.id,
-			time: trade.entryDate.toLocaleTimeString("en-US", {
+			time: new Intl.DateTimeFormat("en-US", {
 				hour: "2-digit",
 				minute: "2-digit",
 				hour12: false,
-			}),
+				timeZone: APP_TIMEZONE,
+			}).format(trade.entryDate),
 			asset: trade.asset,
 			direction: trade.direction as "long" | "short",
 			entryPrice: fromCents(trade.entryPrice),
@@ -1380,18 +1384,16 @@ export const getDayEquityCurve = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		// Get start and end of the day
-		const startOfDay = new Date(date)
-		startOfDay.setHours(0, 0, 0, 0)
-		const endOfDay = new Date(date)
-		endOfDay.setHours(23, 59, 59, 999)
+		// Get start and end of the day in BRT
+		const startOfDayBrt = getStartOfDay(date)
+		const endOfDayBrt = getEndOfDay(date)
 
 		const result = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
-				gte(trades.entryDate, startOfDay),
-				lte(trades.entryDate, endOfDay)
+				gte(trades.entryDate, startOfDayBrt),
+				lte(trades.entryDate, endOfDayBrt)
 			),
 			orderBy: [asc(trades.entryDate)],
 		})
@@ -1408,11 +1410,12 @@ export const getDayEquityCurve = async (
 		const equityPoints: DayEquityPoint[] = result.map((trade) => {
 			cumulativePnl += fromCents(trade.pnl)
 			return {
-				time: trade.entryDate.toLocaleTimeString("en-US", {
+				time: new Intl.DateTimeFormat("en-US", {
 					hour: "2-digit",
 					minute: "2-digit",
 					hour12: false,
-				}),
+					timeZone: APP_TIMEZONE,
+				}).format(trade.entryDate),
 				cumulativePnl,
 				tradeId: trade.id,
 			}

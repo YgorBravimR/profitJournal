@@ -1,101 +1,212 @@
 /**
+ * App timezone — all dates in the journal are displayed and grouped in São Paulo time (BRT, UTC-3).
+ * Brazil abolished DST in 2019, so this is a fixed offset.
+ */
+export const APP_TIMEZONE = "America/Sao_Paulo"
+
+/**
+ * Fixed UTC offset for BRT (UTC-3).
+ * Used when constructing ISO-8601 date strings to ensure correct UTC instant
+ * regardless of the server/browser's local timezone.
+ */
+export const BRT_OFFSET = "-03:00"
+
+/** Pad a number to 2 digits */
+const pad2 = (n: number): string => String(n).padStart(2, "0")
+
+/**
+ * Extract year/month/day components as they appear in São Paulo timezone.
+ * Useful for constructing BRT-aware date boundaries.
+ */
+const getBrtDateParts = (
+	date: Date
+): { year: number; month: number; day: number } => {
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone: APP_TIMEZONE,
+		year: "numeric",
+		month: "numeric",
+		day: "numeric",
+	}).formatToParts(date)
+
+	return {
+		year: parseInt(parts.find((p) => p.type === "year")!.value),
+		month: parseInt(parts.find((p) => p.type === "month")!.value),
+		day: parseInt(parts.find((p) => p.type === "day")!.value),
+	}
+}
+
+/** Build a YYYY-MM-DD string from year/month/day numbers */
+const toDateString = (year: number, month: number, day: number): string =>
+	`${year}-${pad2(month)}-${pad2(day)}`
+
+/**
  * Get start and end dates for the week containing the given date
- * Week starts on Sunday
+ * Week starts on Sunday. All boundaries are in BRT.
  */
-export const getWeekBoundaries = (date: Date) => {
-	const start = new Date(date)
-	start.setDate(date.getDate() - date.getDay())
-	start.setHours(0, 0, 0, 0)
+export const getWeekBoundaries = (date: Date): { start: Date; end: Date } => {
+	const { year, month, day } = getBrtDateParts(date)
 
-	const end = new Date(start)
-	end.setDate(start.getDate() + 6)
-	end.setHours(23, 59, 59, 999)
+	const tempDate = new Date(year, month - 1, day)
+	const dayOfWeek = tempDate.getDay()
 
-	return { start, end }
+	const startDate = new Date(year, month - 1, day - dayOfWeek)
+	const endDate = new Date(year, month - 1, day - dayOfWeek + 6)
+
+	const startKey = toDateString(
+		startDate.getFullYear(),
+		startDate.getMonth() + 1,
+		startDate.getDate()
+	)
+	const endKey = toDateString(
+		endDate.getFullYear(),
+		endDate.getMonth() + 1,
+		endDate.getDate()
+	)
+
+	return {
+		start: new Date(`${startKey}T00:00:00${BRT_OFFSET}`),
+		end: new Date(`${endKey}T23:59:59.999${BRT_OFFSET}`),
+	}
 }
 
 /**
- * Get start and end dates for the month containing the given date
+ * Get start and end dates for the month containing the given date.
+ * All boundaries are in BRT.
  */
-export const getMonthBoundaries = (date: Date) => {
-	const start = new Date(date.getFullYear(), date.getMonth(), 1)
-	const end = new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+export const getMonthBoundaries = (date: Date): { start: Date; end: Date } => ({
+	start: getStartOfMonth(date),
+	end: getEndOfMonth(date),
+})
 
-	return { start, end }
+/**
+ * Get start of day for a given date (midnight in BRT)
+ */
+export const getStartOfDay = (date: Date): Date => {
+	const dateKey = formatDateKey(date)
+	return new Date(`${dateKey}T00:00:00${BRT_OFFSET}`)
 }
 
 /**
- * Get start of day for a given date
+ * Get end of day for a given date (23:59:59.999 in BRT)
  */
-export const getStartOfDay = (date: Date) => {
-	const result = new Date(date)
-	result.setHours(0, 0, 0, 0)
-	return result
+export const getEndOfDay = (date: Date): Date => {
+	const dateKey = formatDateKey(date)
+	return new Date(`${dateKey}T23:59:59.999${BRT_OFFSET}`)
 }
 
 /**
- * Get end of day for a given date
+ * Format date for display (always in BRT)
  */
-export const getEndOfDay = (date: Date) => {
-	const result = new Date(date)
-	result.setHours(23, 59, 59, 999)
-	return result
-}
-
-/**
- * Format date for display
- */
-export const formatDate = (date: Date, options?: Intl.DateTimeFormatOptions) => {
+export const formatDate = (
+	date: Date,
+	options?: Intl.DateTimeFormatOptions
+): string => {
 	const defaultOptions: Intl.DateTimeFormatOptions = {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
 	}
-	return new Intl.DateTimeFormat("en-US", options || defaultOptions).format(date)
+	return new Intl.DateTimeFormat("en-US", {
+		...(options || defaultOptions),
+		timeZone: APP_TIMEZONE,
+	}).format(date)
 }
 
 /**
- * Format date and time for display
+ * Format date and time for display (always in BRT)
  */
-export const formatDateTime = (date: Date) => {
+export const formatDateTime = (date: Date): string => {
 	return new Intl.DateTimeFormat("en-US", {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
 		hour: "numeric",
 		minute: "2-digit",
+		timeZone: APP_TIMEZONE,
 	}).format(date)
 }
 
 /**
- * Format date as YYYY-MM-DD using local timezone (not UTC)
- * This avoids timezone shift issues when comparing dates
+ * Format date as YYYY-MM-DD in São Paulo timezone (BRT).
+ * Uses Intl.DateTimeFormat with en-CA locale which outputs YYYY-MM-DD natively.
  */
 export const formatDateKey = (date: Date): string => {
-	const year = date.getFullYear()
-	const month = String(date.getMonth() + 1).padStart(2, "0")
-	const day = String(date.getDate()).padStart(2, "0")
-	return `${year}-${month}-${day}`
+	return new Intl.DateTimeFormat("en-CA", {
+		timeZone: APP_TIMEZONE,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).format(date)
 }
 
 /**
- * Get start of month for a given date
+ * Get start of month for a given date (in BRT)
  */
-export const getStartOfMonth = (date: Date) => {
-	return new Date(date.getFullYear(), date.getMonth(), 1)
+export const getStartOfMonth = (date: Date): Date => {
+	const { year, month } = getBrtDateParts(date)
+	return new Date(`${toDateString(year, month, 1)}T00:00:00${BRT_OFFSET}`)
 }
 
 /**
- * Get end of month for a given date
+ * Get end of month for a given date (in BRT)
  */
-export const getEndOfMonth = (date: Date) => {
-	return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999)
+export const getEndOfMonth = (date: Date): Date => {
+	const { year, month } = getBrtDateParts(date)
+	const lastDay = new Date(year, month, 0).getDate()
+	return new Date(
+		`${toDateString(year, month, lastDay)}T23:59:59.999${BRT_OFFSET}`
+	)
+}
+
+/**
+ * Format a Date as "HH:mm:ss" in BRT timezone.
+ * Used to populate <input type="time"> fields with the correct BRT time.
+ */
+export const formatBrtTimeInput = (date: Date): string => {
+	return new Intl.DateTimeFormat("en-GB", {
+		timeZone: APP_TIMEZONE,
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false,
+	}).format(date)
+}
+
+/**
+ * Format a Date as "dd/MM HH:mm:ss" in BRT timezone.
+ * Used for compact execution date/time display.
+ *
+ * en-GB's date-only format is "DD/MM/YYYY" so we take the "DD/MM" prefix,
+ * then append the 24-hour time from formatBrtTimeInput.
+ */
+export const formatBrtShortDateTime = (date: Date): string => {
+	const datePart = new Intl.DateTimeFormat("en-GB", {
+		timeZone: APP_TIMEZONE,
+		day: "2-digit",
+		month: "2-digit",
+	}).format(date)
+
+	return `${datePart} ${formatBrtTimeInput(date)}`
+}
+
+/**
+ * Format a Date as "HH:mm" in BRT timezone (without seconds).
+ * Used for compact time display in forms.
+ */
+export const formatBrtTimeShort = (date: Date): string => {
+	return new Intl.DateTimeFormat("en-GB", {
+		timeZone: APP_TIMEZONE,
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	}).format(date)
 }
 
 /**
  * Get relative time string (e.g., "2 days ago")
+ * Uses absolute timestamp differences — timezone doesn't affect this.
  */
-export const getRelativeTime = (date: Date) => {
+export const getRelativeTime = (date: Date): string => {
 	const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
 	const now = new Date()
 	const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000)

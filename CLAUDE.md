@@ -30,6 +30,10 @@
   - Errors on `console.log()`
   - Other helpful constraints
 
+#### React Imports
+  - Never use `import * as React from "react"` or `React.*` namespace acce<ss                             
+  - Always import React utilities directly: `import { forwardRef, useState, useContext } from "react"`          
+  - Same applies to types: `import type { ComponentProps, HTMLAttributes, ElementRef } from "reac>t"`     
 #### Syntax and Structure
 
 - Be consistent with tabs or spaces - do not mix both

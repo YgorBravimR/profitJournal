@@ -9,6 +9,7 @@ import {
 	getDailySummary,
 } from "@/app/actions/command-center"
 import { getActiveMonthlyPlan } from "@/app/actions/monthly-plans"
+import { listActiveRiskProfiles } from "@/app/actions/risk-profiles"
 import { getActiveAssets } from "@/app/actions/assets"
 import { getCurrentAccount } from "@/app/actions/auth"
 import { getStrategies } from "@/app/actions/strategies"
@@ -60,6 +61,7 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 		assetsResult,
 		strategiesResult,
 		monthlyPlanResult,
+		riskProfilesResult,
 	] = await Promise.all([
 		getChecklists(),
 		getTodayCompletions(dateArg),
@@ -70,6 +72,7 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 		getActiveAssets().catch(() => []),
 		getStrategies(),
 		getActiveMonthlyPlan(),
+		listActiveRiskProfiles(),
 	])
 
 	const initialChecklists =
@@ -97,6 +100,8 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 			: []
 	const initialPlan =
 		monthlyPlanResult.status === "success" ? (monthlyPlanResult.data ?? null) : null
+	const riskProfiles =
+		riskProfilesResult.status === "success" ? (riskProfilesResult.data ?? []) : []
 
 	// Derive current year/month from effective date for the Plan tab
 	const planYear = effectiveDate.getFullYear()
@@ -130,6 +135,7 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 				initialMonth={planMonth}
 				viewDate={viewDateStr}
 				isToday={isToday}
+				riskProfiles={riskProfiles}
 				isReplayAccount={account?.accountType === "replay"}
 			/>
 		</div>

@@ -6,6 +6,7 @@ import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { Dices, HelpCircle } from "lucide-react"
 import { LoadingSpinner } from "@/components/shared"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, AnimatedTabsContent } from "@/components/ui/tabs"
 import { InputModeSelector } from "./input-mode-selector"
 import { DataSourceSelector } from "./data-source-selector"
 import { StatsPreview } from "./stats-preview"
@@ -17,6 +18,7 @@ import { MetricsCards } from "./metrics-cards"
 import { KellyCriterionCard } from "./kelly-criterion-card"
 import { TradeSequenceList } from "./trade-sequence-list"
 import { StrategyAnalysis } from "./strategy-analysis"
+import { MonteCarloV2Content } from "./v2/monte-carlo-v2-content"
 import {
 	getDataSourceOptions,
 	getSimulationStats,
@@ -30,13 +32,16 @@ import type {
 	MonteCarloResult,
 	DataSourceOption,
 } from "@/types/monte-carlo"
+import type { RiskManagementProfile } from "@/types/risk-profile"
 
 interface MonteCarloContentProps {
 	initialOptions: DataSourceOption[]
+	riskProfiles?: RiskManagementProfile[]
 }
 
 export const MonteCarloContent = ({
 	initialOptions,
+	riskProfiles = [],
 }: MonteCarloContentProps) => {
 	const t = useTranslations("monteCarlo")
 	const tOverlay = useTranslations("overlay")
@@ -132,6 +137,8 @@ export const MonteCarloContent = ({
 		setResult(null)
 	}
 
+	const tV2 = useTranslations("monteCarlo.v2")
+
 	return (
 		<div className="space-y-m-500">
 			{/* Header */}
@@ -146,6 +153,87 @@ export const MonteCarloContent = ({
 				</Button>
 			</div>
 
+			{/* Mode Tabs: Classic | Risk Management */}
+			<Tabs defaultValue="classic">
+				<TabsList variant="line" className="mb-m-500">
+					<TabsTrigger value="classic">{tV2("tabClassic")}</TabsTrigger>
+					<TabsTrigger value="riskManagement">{tV2("tabRiskManagement")}</TabsTrigger>
+				</TabsList>
+
+				<AnimatedTabsContent value="classic">
+					<ClassicContent
+						initialOptions={initialOptions}
+						inputMode={inputMode}
+						setInputMode={setInputMode}
+						selectedSource={selectedSource}
+						setSelectedSource={setSelectedSource}
+						sourceStats={sourceStats}
+						isLoadingStats={isLoadingStats}
+						params={params}
+						setParams={setParams}
+						result={result}
+						isRunning={isRunning}
+						error={error}
+						onUseStats={handleUseStats}
+						onCustomize={handleCustomize}
+						onRunSimulation={handleRunSimulation}
+						onRunAgain={handleRunAgain}
+					/>
+				</AnimatedTabsContent>
+
+				<AnimatedTabsContent value="riskManagement">
+					<MonteCarloV2Content profiles={riskProfiles} />
+				</AnimatedTabsContent>
+			</Tabs>
+		</div>
+	)
+}
+
+// ==========================================
+// CLASSIC CONTENT — Extracted for tab layout
+// ==========================================
+
+interface ClassicContentProps {
+	initialOptions: DataSourceOption[]
+	inputMode: "auto" | "manual"
+	setInputMode: (mode: "auto" | "manual") => void
+	selectedSource: DataSource | null
+	setSelectedSource: (source: DataSource | null) => void
+	sourceStats: SourceStats | null
+	isLoadingStats: boolean
+	params: SimulationParams
+	setParams: (params: SimulationParams | ((prev: SimulationParams) => SimulationParams)) => void
+	result: MonteCarloResult | null
+	isRunning: boolean
+	error: string | null
+	onUseStats: () => void
+	onCustomize: () => void
+	onRunSimulation: () => void
+	onRunAgain: () => void
+}
+
+const ClassicContent = ({
+	initialOptions,
+	inputMode,
+	setInputMode,
+	selectedSource,
+	setSelectedSource,
+	sourceStats,
+	isLoadingStats,
+	params,
+	setParams,
+	result,
+	isRunning,
+	error,
+	onUseStats,
+	onCustomize,
+	onRunSimulation,
+	onRunAgain,
+}: ClassicContentProps) => {
+	const t = useTranslations("monteCarlo")
+
+	return (
+		<div className="space-y-m-500">
 			{/* Input Section */}
 			{!result && (
 				<div className="space-y-m-400">
@@ -164,8 +252,8 @@ export const MonteCarloContent = ({
 							<StatsPreview
 								stats={sourceStats}
 								isLoading={isLoadingStats}
-								onUseStats={handleUseStats}
-								onCustomize={handleCustomize}
+								onUseStats={onUseStats}
+								onCustomize={onCustomize}
 							/>
 						</div>
 					)}
@@ -188,7 +276,7 @@ export const MonteCarloContent = ({
 					<div className="flex justify-center">
 						<Button id="monte-carlo-run-simulation"
 							size="lg"
-							onClick={handleRunSimulation}
+							onClick={onRunSimulation}
 							disabled={isRunning}
 							className="min-w-[200px]"
 						>
@@ -232,7 +320,7 @@ export const MonteCarloContent = ({
 								1:{params.rewardRiskRatio}
 							</span>
 						</div>
-						<Button id="monte-carlo-run-again" variant="outline" size="sm" onClick={handleRunAgain}>
+						<Button id="monte-carlo-run-again" variant="outline" size="sm" onClick={onRunAgain}>
 							<Dices className="mr-s-100 h-4 w-4" />
 							{t("results.runAgain")}
 						</Button>

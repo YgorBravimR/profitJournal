@@ -9,6 +9,7 @@ import { CommandCenterContent, type CommandCenterContentProps } from "./command-
 import type { Asset, MonthlyPlan } from "@/db/schema"
 import type { StrategyWithStats } from "@/app/actions/strategies"
 import type { AssetSettingWithAsset } from "@/app/actions/command-center"
+import type { RiskManagementProfile } from "@/types/risk-profile"
 
 const MarketMonitorContent = lazy(() =>
 	import("@/components/market/market-monitor-content").then((m) => ({
@@ -39,6 +40,7 @@ interface CommandCenterTabsProps extends CommandCenterContentProps {
 	initialPlan: MonthlyPlan | null
 	initialYear: number
 	initialMonth: number
+	riskProfiles?: RiskManagementProfile[]
 	isReplayAccount?: boolean
 }
 
@@ -56,6 +58,7 @@ export const CommandCenterTabs = ({
 	initialPlan,
 	initialYear,
 	initialMonth,
+	riskProfiles = [],
 	isReplayAccount = false,
 	...commandCenterProps
 }: CommandCenterTabsProps) => {
@@ -111,12 +114,20 @@ export const CommandCenterTabs = ({
 						initialPlan={initialPlan}
 						initialYear={initialYear}
 						initialMonth={initialMonth}
+						riskProfiles={riskProfiles}
 					/>
 				</Suspense>
 			</AnimatedTabsContent>
 
 			<AnimatedTabsContent value="command-center" className="flex-1 overflow-auto p-m-600">
-				<CommandCenterContent key={commandCenterProps.viewDate} {...commandCenterProps} initialPlan={initialPlan} />
+				<CommandCenterContent
+					key={commandCenterProps.viewDate}
+					{...commandCenterProps}
+					initialPlan={initialPlan}
+					riskProfileName={initialPlan?.riskProfileId
+						? riskProfiles.find((p) => p.id === initialPlan.riskProfileId)?.name ?? null
+						: null}
+				/>
 			</AnimatedTabsContent>
 
 			{!isReplayAccount && (

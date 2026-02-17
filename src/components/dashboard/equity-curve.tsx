@@ -1,20 +1,14 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import {
-	AreaChart,
-	Area,
-	XAxis,
-	YAxis,
-	CartesianGrid,
-	Tooltip,
-} from "recharts"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { getEquityCurve, type EquityCurveMode } from "@/app/actions/analytics"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { APP_TIMEZONE } from "@/lib/dates"
 import type { EquityPoint } from "@/types"
 
 type Period = "month" | "year" | "all"
@@ -24,7 +18,6 @@ interface EquityCurveProps {
 	data: EquityPoint[]
 	calendarMonth: Date
 }
-
 
 interface CustomTooltipProps {
 	active?: boolean
@@ -43,7 +36,12 @@ interface PeriodToggleProps {
 	labels: { month: string; year: string; all: string }
 }
 
-const PeriodToggle = ({ period, onChange, disabled, labels }: PeriodToggleProps) => {
+const PeriodToggle = ({
+	period,
+	onChange,
+	disabled,
+	labels,
+}: PeriodToggleProps) => {
 	const options: { value: Period; label: string }[] = [
 		{ value: "month", label: labels.month },
 		{ value: "year", label: labels.year },
@@ -51,7 +49,7 @@ const PeriodToggle = ({ period, onChange, disabled, labels }: PeriodToggleProps)
 	]
 
 	return (
-		<div className="flex rounded-lg border border-bg-300 bg-bg-100 p-s-100">
+		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border">
 			{options.map((option) => (
 				<button
 					key={option.value}
@@ -59,7 +57,7 @@ const PeriodToggle = ({ period, onChange, disabled, labels }: PeriodToggleProps)
 					onClick={() => onChange(option.value)}
 					disabled={disabled}
 					className={cn(
-						"rounded-md px-s-300 py-s-100 text-tiny font-medium transition-colors",
+						"px-s-300 py-s-100 text-tiny rounded-md font-medium transition-colors",
 						period === option.value
 							? "bg-acc-100 text-bg-100"
 							: "text-txt-300 hover:text-txt-100",
@@ -80,14 +78,19 @@ interface ViewModeToggleProps {
 	labels: { days: string; trades: string }
 }
 
-const ViewModeToggle = ({ mode, onChange, disabled, labels }: ViewModeToggleProps) => {
+const ViewModeToggle = ({
+	mode,
+	onChange,
+	disabled,
+	labels,
+}: ViewModeToggleProps) => {
 	const options: { value: ViewMode; label: string }[] = [
 		{ value: "days", label: labels.days },
 		{ value: "trades", label: labels.trades },
 	]
 
 	return (
-		<div className="flex rounded-lg border border-bg-300 bg-bg-100 p-s-100">
+		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border">
 			{options.map((option) => (
 				<button
 					key={option.value}
@@ -95,7 +98,7 @@ const ViewModeToggle = ({ mode, onChange, disabled, labels }: ViewModeToggleProp
 					onClick={() => onChange(option.value)}
 					disabled={disabled}
 					className={cn(
-						"rounded-md px-s-300 py-s-100 text-tiny font-medium transition-colors",
+						"px-s-300 py-s-100 text-tiny rounded-md font-medium transition-colors",
 						mode === option.value
 							? "bg-acc-100 text-bg-100"
 							: "text-txt-300 hover:text-txt-100",
@@ -115,37 +118,54 @@ interface TooltipContextProps {
 	drawdownLabel: string
 }
 
-const createCustomTooltip = ({ viewMode, locale, drawdownLabel }: TooltipContextProps) => {
+const createCustomTooltip = ({
+	viewMode,
+	locale,
+	drawdownLabel,
+}: TooltipContextProps) => {
 	const formatDateLocale = (dateStr: string): string => {
 		const date = new Date(dateStr)
-		return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", { month: "short", day: "numeric" })
+		return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", {
+			month: "short",
+			day: "numeric",
+			timeZone: APP_TIMEZONE,
+		})
 	}
 
-	const CustomTooltipInner = ({ active, payload, label }: CustomTooltipProps) => {
+	const CustomTooltipInner = ({
+		active,
+		payload,
+		label,
+	}: CustomTooltipProps) => {
 		if (active && payload && payload.length > 0) {
 			const data = payload[0].payload
 			// Calculate drawdown value: if we're X% down from peak, the dollar amount is
 			// accountEquity * (drawdown / (100 - drawdown))
-			const drawdownValue = data.drawdown > 0
-				? data.accountEquity * (data.drawdown / (100 - data.drawdown))
-				: 0
+			const drawdownValue =
+				data.drawdown > 0
+					? data.accountEquity * (data.drawdown / (100 - data.drawdown))
+					: 0
 
-			const labelDisplay = viewMode === "trades" && data.tradeNumber
-				? `Trade #${data.tradeNumber}`
-				: formatDateLocale(label || "")
+			const labelDisplay =
+				viewMode === "trades" && data.tradeNumber
+					? `Trade #${data.tradeNumber}`
+					: formatDateLocale(label || "")
 
 			return (
-				<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg">
+				<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border shadow-lg">
 					<p className="text-tiny text-txt-300">{labelDisplay}</p>
 					{viewMode === "trades" && (
-						<p className="text-tiny text-txt-300">{formatDateLocale(data.date)}</p>
+						<p className="text-tiny text-txt-300">
+							{formatDateLocale(data.date)}
+						</p>
 					)}
-					<p className="text-small font-semibold text-txt-100">
+					<p className="text-small text-txt-100 font-semibold">
 						{formatCompactCurrency(data.accountEquity)}
 					</p>
 					{data.drawdown > 0 && (
 						<p className="text-tiny text-trade-sell">
-							{drawdownLabel}: {formatCompactCurrency(drawdownValue)} ({data.drawdown.toFixed(1)}%)
+							{drawdownLabel}: {formatCompactCurrency(drawdownValue)} (
+							{data.drawdown.toFixed(1)}%)
 						</p>
 					)}
 				</div>
@@ -156,7 +176,10 @@ const createCustomTooltip = ({ viewMode, locale, drawdownLabel }: TooltipContext
 	return CustomTooltipInner
 }
 
-export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurveProps) => {
+export const EquityCurve = ({
+	data: initialData,
+	calendarMonth,
+}: EquityCurveProps) => {
 	const t = useTranslations("dashboard.equity")
 	const locale = useLocale()
 	const effectiveDate = useEffectiveDate()
@@ -185,7 +208,11 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 
 	const formatDateLocale = (dateStr: string): string => {
 		const date = new Date(dateStr)
-		return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", { month: "short", day: "numeric" })
+		return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", {
+			month: "short",
+			day: "numeric",
+			timeZone: APP_TIMEZONE,
+		})
 	}
 
 	const fetchData = (newPeriod: Period, newMode: ViewMode) => {
@@ -195,8 +222,16 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 
 			if (newPeriod === "month") {
 				// Use calendar month instead of current month
-				dateFrom = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth(), 1)
-				dateTo = new Date(calendarMonth.getFullYear(), calendarMonth.getMonth() + 1, 0)
+				dateFrom = new Date(
+					calendarMonth.getFullYear(),
+					calendarMonth.getMonth(),
+					1
+				)
+				dateTo = new Date(
+					calendarMonth.getFullYear(),
+					calendarMonth.getMonth() + 1,
+					0
+				)
 			} else if (newPeriod === "year") {
 				dateFrom = new Date(effectiveDate.getFullYear(), 0, 1)
 				dateTo = new Date(effectiveDate.getFullYear(), 11, 31)
@@ -223,15 +258,23 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 
 	if (data.length === 0 && !isPending) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
-					<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
-					<div className="flex items-center gap-s-200">
-						<ViewModeToggle mode={viewMode} onChange={handleViewModeChange} labels={viewModeLabels} />
-						<PeriodToggle period={period} onChange={handlePeriodChange} labels={periodLabels} />
+					<h2 className="text-body text-txt-100 font-semibold">{t("title")}</h2>
+					<div className="gap-s-200 flex items-center">
+						<ViewModeToggle
+							mode={viewMode}
+							onChange={handleViewModeChange}
+							labels={viewModeLabels}
+						/>
+						<PeriodToggle
+							period={period}
+							onChange={handlePeriodChange}
+							labels={periodLabels}
+						/>
 					</div>
 				</div>
-				<div className="mt-m-400 flex h-64 items-center justify-center text-txt-300">
+				<div className="mt-m-400 text-txt-300 flex h-64 items-center justify-center">
 					{t("noData")}
 				</div>
 			</div>
@@ -242,66 +285,93 @@ export const EquityCurve = ({ data: initialData, calendarMonth }: EquityCurvePro
 	const maxEquity = Math.max(...data.map((d) => d.accountEquity))
 	const padding = (maxEquity - minEquity) * 0.1 || 100
 
-	const CustomTooltip = createCustomTooltip({ viewMode, locale, drawdownLabel: t("drawdown") })
+	const CustomTooltip = createCustomTooltip({
+		viewMode,
+		locale,
+		drawdownLabel: t("drawdown"),
+	})
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+		<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 			<div className="flex items-center justify-between">
-				<h2 className="text-body font-semibold text-txt-100">{t("title")}</h2>
-				<div className="flex items-center gap-s-200">
-					<ViewModeToggle mode={viewMode} onChange={handleViewModeChange} disabled={isPending} labels={viewModeLabels} />
-					<PeriodToggle period={period} onChange={handlePeriodChange} disabled={isPending} labels={periodLabels} />
+				<h2 className="text-body text-txt-100 font-semibold">{t("title")}</h2>
+				<div className="gap-s-200 flex items-center">
+					<ViewModeToggle
+						mode={viewMode}
+						onChange={handleViewModeChange}
+						disabled={isPending}
+						labels={viewModeLabels}
+					/>
+					<PeriodToggle
+						period={period}
+						onChange={handlePeriodChange}
+						disabled={isPending}
+						labels={periodLabels}
+					/>
 				</div>
 			</div>
-			<ChartContainer id="chart-dashboard-equity-curve" className={cn("mt-m-400 h-64", isPending && "opacity-50")}>
-					<AreaChart
-						data={data}
-						margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
-					>
-						<defs>
-							<linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
-								<stop offset="5%" stopColor="var(--color-acc-100)" stopOpacity={0.3} />
-								<stop offset="95%" stopColor="var(--color-acc-100)" stopOpacity={0} />
-							</linearGradient>
-						</defs>
-						<CartesianGrid
-							strokeDasharray="3 3"
-							stroke="var(--color-bg-300)"
-							vertical={false}
-						/>
-						<XAxis
-							dataKey={viewMode === "trades" ? "tradeNumber" : "date"}
-							tickFormatter={viewMode === "trades" ? (v) => `#${v}` : formatDateLocale}
-							stroke="var(--color-txt-300)"
-							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
-							tickLine={false}
-							axisLine={false}
-						/>
-						<YAxis
-							tickFormatter={(value: number) => formatCompactCurrency(value)}
-							stroke="var(--color-txt-300)"
-							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
-							tickLine={false}
-							axisLine={false}
-							domain={[minEquity - padding, maxEquity + padding]}
-							width={60}
-						/>
-						<Tooltip content={<CustomTooltip />} />
-						<Area
-							type="monotone"
-							dataKey="accountEquity"
-							stroke="var(--color-acc-100)"
-							strokeWidth={2}
-							fill="url(#equityGradient)"
-							dot={false}
-							activeDot={{
-								r: 4,
-								fill: "var(--color-acc-100)",
-								stroke: "var(--color-bg-200)",
-								strokeWidth: 2,
-							}}
-						/>
-					</AreaChart>
+			<ChartContainer
+				id="chart-dashboard-equity-curve"
+				className={cn("mt-m-400 h-64", isPending && "opacity-50")}
+			>
+				<AreaChart
+					data={data}
+					margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+				>
+					<defs>
+						<linearGradient id="equityGradient" x1="0" y1="0" x2="0" y2="1">
+							<stop
+								offset="5%"
+								stopColor="var(--color-acc-100)"
+								stopOpacity={0.3}
+							/>
+							<stop
+								offset="95%"
+								stopColor="var(--color-acc-100)"
+								stopOpacity={0}
+							/>
+						</linearGradient>
+					</defs>
+					<CartesianGrid
+						strokeDasharray="3 3"
+						stroke="var(--color-bg-300)"
+						vertical={false}
+					/>
+					<XAxis
+						dataKey={viewMode === "trades" ? "tradeNumber" : "date"}
+						tickFormatter={
+							viewMode === "trades" ? (v) => `#${v}` : formatDateLocale
+						}
+						stroke="var(--color-txt-300)"
+						tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
+						tickLine={false}
+						axisLine={false}
+					/>
+					<YAxis
+						tickFormatter={(value: number) => formatCompactCurrency(value)}
+						stroke="var(--color-txt-300)"
+						tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
+						tickLine={false}
+						axisLine={false}
+						domain={[minEquity - padding, maxEquity + padding]}
+						width={60}
+					/>
+					<Tooltip content={<CustomTooltip />} />
+					<Area
+						type="monotone"
+						dataKey="accountEquity"
+						stroke="var(--color-acc-100)"
+						strokeWidth={2}
+						fill="url(#equityGradient)"
+						dot={false}
+						activeDot={{
+							r: 4,
+							fill: "var(--color-acc-100)",
+							stroke: "var(--color-bg-200)",
+							strokeWidth: 2,
+						}}
+					/>
+				</AreaChart>
 			</ChartContainer>
 		</div>
 	)

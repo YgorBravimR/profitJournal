@@ -7,6 +7,13 @@ import { Search } from "lucide-react"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { JournalPeriod, TradesByDay } from "@/types"
 import { getTradesGroupedByDay, deleteTrade } from "@/app/actions/trades"
+import {
+	getStartOfDay,
+	getEndOfDay,
+	getMonthBoundaries,
+	formatDateKey,
+	BRT_OFFSET,
+} from "@/lib/dates"
 import { formatBrlWithSign } from "@/lib/formatting"
 import { LoadingSpinner, EmptyState, ColoredValue } from "@/components/shared"
 import { useToast } from "@/components/ui/toast"
@@ -15,11 +22,13 @@ import { TradeDayGroup } from "./trade-day-group"
 
 /**
  * Calculates the date range based on the selected period.
+ * All boundaries are computed in BRT (America/Sao_Paulo) so that day/week/month
+ * edges align with the B3 trading day regardless of the user's browser timezone.
  *
  * @param period - The journal period type (day, week, month, custom)
  * @param now - The effective "today" date (supports replay accounts)
  * @param customRange - Optional custom date range when period is "custom"
- * @returns Object containing from and to Date objects
+ * @returns Object containing from and to Date objects (UTC instants representing BRT boundaries)
  */
 const getDateRange = (
 	period: JournalPeriod,
@@ -27,51 +36,46 @@ const getDateRange = (
 	customRange?: { from: Date; to: Date }
 ): { from: Date; to: Date } => {
 	switch (period) {
-		case "day": {
-			const from = new Date(now)
-			from.setHours(0, 0, 0, 0)
-			const to = new Date(now)
-			to.setHours(23, 59, 59, 999)
-			return { from, to }
-		}
+		case "day":
+			return { from: getStartOfDay(now), to: getEndOfDay(now) }
 		case "week": {
-			// Get Monday of current week
-			const from = new Date(now)
-			const dayOfWeek = from.getDay()
-			const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek // Monday = 1
-			from.setDate(from.getDate() + diff)
-			from.setHours(0, 0, 0, 0)
-			// Get Sunday of current week
-			const to = new Date(from)
-			to.setDate(to.getDate() + 6)
-			to.setHours(23, 59, 59, 999)
-			return { from, to }
+			// Get BRT date components and compute Monday-based week
+			const brtKey = formatDateKey(now)
+			const [year, month, day] = brtKey.split("-").map(Number)
+			const tempDate = new Date(year, month - 1, day)
+			const dayOfWeek = tempDate.getDay()
+			const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+			const monday = new Date(year, month - 1, day + diffToMonday)
+			const sunday = new Date(year, month - 1, day + diffToMonday + 6)
+			const pad = (n: number) => String(n).padStart(2, "0")
+			const mondayKey = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}`
+			const sundayKey = `${sunday.getFullYear()}-${pad(sunday.getMonth() + 1)}-${pad(sunday.getDate())}`
+			return {
+				from: new Date(`${mondayKey}T00:00:00${BRT_OFFSET}`),
+				to: new Date(`${sundayKey}T23:59:59.999${BRT_OFFSET}`),
+			}
 		}
 		case "month": {
-			const from = new Date(now.getFullYear(), now.getMonth(), 1)
-			const to = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-			return { from, to }
+			const { start, end } = getMonthBoundaries(now)
+			return { from: start, to: end }
 		}
 		case "all": {
-			// Far past to far future — fetch all trades (including ghost trades with future dates)
 			const from = new Date(2000, 0, 1)
 			const to = new Date(2099, 11, 31, 23, 59, 59, 999)
 			return { from, to }
 		}
 		case "custom": {
 			if (customRange) {
-				return customRange
+				return {
+					from: getStartOfDay(customRange.from),
+					to: getEndOfDay(customRange.to),
+				}
 			}
-			// Default to last 30 days if no custom range
-			const from = new Date(now)
-			from.setDate(from.getDate() - 30)
-			from.setHours(0, 0, 0, 0)
-			const to = new Date(now)
-			to.setHours(23, 59, 59, 999)
-			return { from, to }
+			const from = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+			return { from: getStartOfDay(from), to: getEndOfDay(now) }
 		}
 		default:
-			return { from: new Date(now), to: new Date(now) }
+			return { from: getStartOfDay(now), to: getEndOfDay(now) }
 	}
 }
 
@@ -86,7 +90,9 @@ interface JournalContentProps {
  *
  * @param initialPeriod - The initial period to display (defaults to "week")
  */
-export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) => {
+export const JournalContent = ({
+	initialPeriod = "week",
+}: JournalContentProps) => {
 	const router = useRouter()
 	const t = useTranslations("journal")
 	const tTrade = useTranslations("trade")
@@ -95,7 +101,9 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	const [isPending, startTransition] = useTransition()
 
 	const [period, setPeriod] = useState<JournalPeriod>(initialPeriod)
-	const [customDateRange, setCustomDateRange] = useState<{ from: Date; to: Date } | undefined>()
+	const [customDateRange, setCustomDateRange] = useState<
+		{ from: Date; to: Date } | undefined
+	>()
 	const [tradesByDay, setTradesByDay] = useState<TradesByDay[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [totalTrades, setTotalTrades] = useState(0)
@@ -115,7 +123,10 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 			if (result.status === "success" && result.data) {
 				setTradesByDay(result.data)
 				// Calculate total trades
-				const total = result.data.reduce((sum, day) => sum + day.trades.length, 0)
+				const total = result.data.reduce(
+					(sum, day) => sum + day.trades.length,
+					0
+				)
 				setTotalTrades(total)
 			} else {
 				setTradesByDay([])
@@ -131,19 +142,22 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 	}, [period, customDateRange, effectiveDate])
 
 	// Memoized handlers to prevent unnecessary re-renders in child components
-	const handlePeriodChange = useCallback((
-		newPeriod: JournalPeriod,
-		dateRange?: { from: Date; to: Date }
-	) => {
-		setPeriod(newPeriod)
-		if (newPeriod === "custom" && dateRange) {
-			setCustomDateRange(dateRange)
-		}
-	}, [])
+	const handlePeriodChange = useCallback(
+		(newPeriod: JournalPeriod, dateRange?: { from: Date; to: Date }) => {
+			setPeriod(newPeriod)
+			if (newPeriod === "custom" && dateRange) {
+				setCustomDateRange(dateRange)
+			}
+		},
+		[]
+	)
 
-	const handleTradeClick = useCallback((tradeId: string) => {
-		router.push(`/journal/${tradeId}`)
-	}, [router])
+	const handleTradeClick = useCallback(
+		(tradeId: string) => {
+			router.push(`/journal/${tradeId}`)
+		},
+		[router]
+	)
 
 	// Delete handlers
 	const handleDeleteRequest = useCallback((tradeId: string) => {
@@ -154,33 +168,38 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 		setDeletingTradeId(null)
 	}, [])
 
-	const handleDeleteConfirm = useCallback(async (tradeId: string) => {
-		setIsDeleting(true)
-		const result = await deleteTrade(tradeId)
+	const handleDeleteConfirm = useCallback(
+		async (tradeId: string) => {
+			setIsDeleting(true)
+			const result = await deleteTrade(tradeId)
 
-		if (result.status === "success") {
-			showToast("success", tTrade("deleteSuccess"))
-			// Remove trade from local state for instant UI feedback
-			setTradesByDay((prev) =>
-				prev
-					.map((day) => ({
-						...day,
-						trades: day.trades.filter((t) => t.id !== tradeId),
-						summary: {
-							...day.summary,
-							totalTrades: day.summary.totalTrades - (day.trades.some((t) => t.id === tradeId) ? 1 : 0),
-						},
-					}))
-					.filter((day) => day.trades.length > 0)
-			)
-			setTotalTrades((prev) => prev - 1)
-		} else {
-			showToast("error", result.message || tTrade("deleteError"))
-		}
+			if (result.status === "success") {
+				showToast("success", tTrade("deleteSuccess"))
+				// Remove trade from local state for instant UI feedback
+				setTradesByDay((prev) =>
+					prev
+						.map((day) => ({
+							...day,
+							trades: day.trades.filter((trade) => trade.id !== tradeId),
+							summary: {
+								...day.summary,
+								totalTrades:
+									day.summary.totalTrades -
+									(day.trades.some((trade) => trade.id === tradeId) ? 1 : 0),
+							},
+						}))
+						.filter((day) => day.trades.length > 0)
+				)
+				setTotalTrades((prev) => prev - 1)
+			} else {
+				showToast("error", result.message || tTrade("deleteError"))
+			}
 
-		setIsDeleting(false)
-		setDeletingTradeId(null)
-	}, [showToast, tTrade])
+			setIsDeleting(false)
+			setDeletingTradeId(null)
+		},
+		[showToast, tTrade]
+	)
 
 	// Calculate period summary
 	const periodSummary = tradesByDay.reduce(
@@ -188,9 +207,10 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 			acc.netPnl += day.summary.netPnl
 			acc.wins += day.summary.wins
 			acc.losses += day.summary.losses
+			acc.breakevens += day.summary.breakevens
 			return acc
 		},
-		{ netPnl: 0, wins: 0, losses: 0 }
+		{ netPnl: 0, wins: 0, losses: 0, breakevens: 0 }
 	)
 	const periodWinRate =
 		periodSummary.wins + periodSummary.losses > 0
@@ -198,9 +218,9 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 			: 0
 
 	return (
-		<div className="flex flex-col gap-m-400">
+		<div className="gap-m-400 flex flex-col">
 			{/* Period Filter */}
-			<div className="flex flex-wrap items-start justify-between gap-m-400">
+			<div className="gap-m-400 flex flex-wrap items-start justify-between">
 				<PeriodFilter
 					value={period}
 					onChange={handlePeriodChange}
@@ -209,7 +229,7 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 
 				{/* Period Summary */}
 				{!isLoading && totalTrades > 0 && (
-					<div className="flex items-center gap-m-400 text-small">
+					<div className="gap-m-400 text-small flex items-center">
 						<span className="text-txt-300">
 							{totalTrades} {t("tradesCount")}
 						</span>
@@ -220,7 +240,11 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 							className="font-medium"
 						/>
 						<span className="text-txt-300">
-							{periodSummary.wins}W {periodSummary.losses}L ({periodWinRate.toFixed(0)}%)
+							{periodSummary.wins}W {periodSummary.losses}L
+							{periodSummary.breakevens > 0
+								? ` ${periodSummary.breakevens}BE`
+								: ""}{" "}
+							({periodWinRate.toFixed(0)}%)
 						</span>
 					</div>
 				)}
@@ -231,7 +255,7 @@ export const JournalContent = ({ initialPeriod = "week" }: JournalContentProps) 
 
 			{/* Empty State */}
 			{!isLoading && tradesByDay.length === 0 && (
-				<div className="rounded-lg border border-bg-300 bg-bg-200 p-l-700">
+				<div className="border-bg-300 bg-bg-200 p-l-700 rounded-lg border">
 					<EmptyState
 						icon={Search}
 						title={t("noTradesInPeriod")}

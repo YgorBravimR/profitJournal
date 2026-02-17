@@ -28,7 +28,7 @@ import type { DailyChecklist as DailyChecklistType, DailyAccountNote, Asset, Tra
 import { useTranslations } from "next-intl"
 import { useFormatting } from "@/hooks/use-formatting"
 import { fromCents } from "@/lib/money"
-import { CalendarDays, Target, TrendingDown } from "lucide-react"
+import { CalendarDays, Target, TrendingDown, ShieldCheck } from "lucide-react"
 
 export interface CommandCenterContentProps {
 	initialChecklists: DailyChecklistType[]
@@ -42,6 +42,7 @@ export interface CommandCenterContentProps {
 	viewDate: string
 	isToday: boolean
 	initialPlan?: MonthlyPlan | null
+	riskProfileName?: string | null
 }
 
 export const CommandCenterContent = ({
@@ -56,6 +57,7 @@ export const CommandCenterContent = ({
 	viewDate,
 	isToday,
 	initialPlan,
+	riskProfileName,
 }: CommandCenterContentProps) => {
 	const isReadOnly = !isToday
 	const tPlan = useTranslations("commandCenter.plan")
@@ -157,6 +159,14 @@ export const CommandCenterContent = ({
 								<CalendarDays className="h-4 w-4 text-acc-100" />
 								<h3 className="text-small font-semibold text-txt-100">{tPlan("title")}</h3>
 							</div>
+							{riskProfileName && (
+								<div className="mb-m-300 flex items-center gap-s-200 rounded-md border border-acc-100/20 bg-acc-100/5 px-s-300 py-s-200">
+									<ShieldCheck className="h-3.5 w-3.5 text-acc-100" />
+									<span className="text-tiny font-medium text-txt-200">
+										{tPlan("summary.usingProfile", { name: riskProfileName })}
+									</span>
+								</div>
+							)}
 							<div className="grid grid-cols-2 gap-m-300">
 								<div className="rounded-md border border-bg-300 bg-bg-200 p-s-300">
 									<div className="flex items-center gap-s-100">

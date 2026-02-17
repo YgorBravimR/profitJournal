@@ -246,6 +246,91 @@
 			"hideAll": "Ocultar Trades",
 			"more": "mais"
 		},
+		"v2": {
+			"tabClassic": "Classico",
+			"tabRiskManagement": "Gestao de Risco",
+			"title": "Simulador de Gestao de Risco",
+			"subtitle": "Simulacao Monte Carlo por dia respeitando sua arvore de decisao",
+			"profileSelector": {
+				"title": "Perfil de Risco",
+				"selectProfile": "Selecione um perfil de risco",
+				"custom": "Personalizado",
+				"fromPlan": "Do Plano Mensal",
+				"noProfiles": "Nenhum perfil de risco disponivel"
+			},
+			"params": {
+				"winRate": "Taxa de Acerto (%)",
+				"profitFactor": "Fator de Lucro",
+				"profitFactorPlaceholder": "ex: 1.81",
+				"rewardRiskRatio": "Retorno:Risco",
+				"derivedFromPF": "via FL",
+				"impliedPF": "FL implicito",
+				"breakevenRate": "Taxa de Breakeven (%)",
+				"simulationCount": "Simulacoes",
+				"initialBalance": "Saldo Inicial",
+				"tradingDaysPerMonth": "Dias Operando/Mes",
+				"tradingDaysPerWeek": "Dias Operando/Semana",
+				"commissionPerTrade": "Comissao/Trade (centavos)",
+				"calculate": "Executar Simulacao"
+			},
+			"results": {
+				"simulations": "Simulacoes",
+				"daysPerMonth": "Dias/Mes",
+				"winRate": "Taxa de Acerto",
+				"rewardRisk": "R:R",
+				"profitFactor": "PF",
+				"breakevenRate": "Taxa BE",
+				"profileName": "Perfil",
+				"runAgain": "Simular Novamente"
+			},
+			"metrics": {
+				"monthlyPnl": "P&L Mensal",
+				"median": "Mediana",
+				"mean": "Media",
+				"bestCase": "Melhor Caso (95o)",
+				"worstCase": "Pior Caso (5o)",
+				"profitableMonths": "Meses Lucrativos",
+				"monthlyLimitHit": "Limite Mensal Atingido",
+				"avgTradingDays": "Media Dias Operando",
+				"avgTradesPerMonth": "Media Trades/Mes",
+				"modeDistribution": "Distribuicao de Modos",
+				"lossRecoveryDays": "Dias em Recuperacao",
+				"gainCompoundingDays": "Dias em Composicao",
+				"targetHitDays": "Dias com Meta Atingida",
+				"skippedWeekly": "Pulados (Limite Semanal)",
+				"skippedMonthly": "Pulados (Limite Mensal)",
+				"drawdown": "Drawdown",
+				"medianMaxDrawdown": "Drawdown Max Mediano",
+				"worstMaxDrawdown": "Pior Drawdown Max",
+				"riskAdjusted": "Ajustado ao Risco",
+				"sharpeRatio": "Indice Sharpe",
+				"sortinoRatio": "Indice Sortino",
+				"expectedDailyPnl": "P&L Diario Esperado",
+				"monthlyReturn": "Retorno Mensal"
+			},
+			"charts": {
+				"dailyPnl": "P&L Diario (Mes Exemplo)",
+				"modeDistribution": "Distribuicao de Modos",
+				"monthlyDistribution": "Distribuicao P&L Mensal",
+				"lossRecovery": "Recuperacao",
+				"gainCompounding": "Composicao",
+				"skipped": "Pulado",
+				"dayNumber": "Dia",
+				"pnl": "P&L"
+			},
+			"profileSummary": {
+				"baseRisk": "Risco Base",
+				"dailyLossLimit": "Limite de Perda Diario",
+				"weeklyLossLimit": "Limite de Perda Semanal",
+				"monthlyLossLimit": "Limite de Perda Mensal",
+				"dailyTarget": "Meta Diaria",
+				"lossRecovery": "Recuperacao de Perda",
+				"gainMode": "Modo de Ganho",
+				"steps": "passos",
+				"compounding": "Composicao",
+				"singleTarget": "Meta Unica"
+			}
+		},
 		"analysis": {
 			"title": "Análise da Estratégia de Trading",
 			"monteCarlo": "Análise da Simulação Monte Carlo",
@@ -469,6 +554,8 @@
 			"noRiskConfiguredMessage": "Risco por operação não configurado.",
 			"setInAccountSettings": "Configure nas configurações da conta.",
 			"exceedsMaxRisk": "Excede o risco máximo permitido!",
+			"riskWithExtraContract": "Se {contracts} contratos (+1)",
+			"overLimit": "acima do limite",
 			"strategy": "Estratégia",
 			"selectStrategy": "Selecionar estratégia",
 			"strategyHint": "Alvo calculado automaticamente pelo múltiplo de {r}R",
@@ -528,7 +615,109 @@
 				"profitReinvestmentHelpIncrease": "% do lucro do último gain a adicionar ao risco da próxima operação",
 				"profitReinvestmentHelpCap": "Limitar risco das operações seguintes a este % do lucro do primeiro gain",
 				"notes": "Notas",
-				"notesPlaceholder": "Notas opcionais sobre seu plano para este mês..."
+				"notesPlaceholder": "Notas opcionais sobre seu plano para este mês...",
+				"riskProfileMode": "Modo do Plano",
+				"riskProfileModeCustom": "Plano Personalizado",
+				"riskProfileModeProfile": "Usar Perfil de Risco",
+				"riskProfileSelect": "Perfil de Risco",
+				"riskProfileSelectPlaceholder": "Selecione um perfil de risco...",
+				"riskProfileSummary": "Resumo do Perfil",
+				"weeklyLoss": "Limite de Perda Semanal",
+				"weeklyLossHelp": "Perda maxima permitida por semana (% do saldo)",
+				"profileLocked": "Valores derivados do perfil de risco",
+				"dailyTarget": "Meta Diária",
+				"lossRecovery": "Recuperação de Perdas",
+				"lossRecoverySteps": "{count} etapas de recuperação",
+				"gainMode": "Modo de Ganho",
+				"gainModeCompounding": "Composição ({percent}% reinvestimento)",
+				"gainModeSingleTarget": "Meta Única",
+				"seeDecisionTree": "Ver árvore de decisão"
+			},
+			"decisionTree": {
+				"title": "Árvore de Decisão",
+				"baseTrade": "Trade 1 (Trade Base)",
+				"risk": "Risco",
+				"maxContracts": "Máx. Contratos",
+				"minStop": "Stop Mínimo",
+				"points": "pts",
+				"lossPath": "Loss",
+				"winPath": "Gain",
+				"recoveryMode": "Recuperação de Perdas",
+				"recoveryStep": "Trade {number}",
+				"riskCalcPercent": "{percent}% da base",
+				"riskCalcSame": "Mesmo que anterior",
+				"riskCalcFixed": "Fixo",
+				"executeAll": "Executar todos os trades independente do resultado",
+				"stopAfter": "Parar de operar após sequência",
+				"maxDailyLoss": "Perda Diária Máx.",
+				"gainMode": "Modo de Ganho",
+				"compounding": "Composição",
+				"reinvest": "Reinvestir {percent}% dos ganhos",
+				"stopOnFirstLoss": "Parar no primeiro loss",
+				"singleTarget": "Meta Única",
+				"dailyTarget": "Meta Diária",
+				"bankTheDay": "1 trade vencedor = meta diária",
+				"cascadingLimits": "Limites em Cascata",
+				"weeklyLoss": "Perda Semanal",
+				"monthlyLoss": "Perda Mensal",
+				"action": {
+					"stopTrading": "Parar de operar",
+					"reduceRisk": "Reduzir risco"
+				},
+				"constraints": "Restrições de Execução",
+				"operatingHours": "Horário de Operação",
+				"noLimit": "Sem limite",
+			"tabs": {
+				"overview": "Visão Geral"
+			},
+			"progression": {
+				"title": "Progressão do Dia (Pior Cenário)",
+				"totalExposure": "Exposição Total",
+				"thenStop": "Parar de operar"
+			},
+			"context": {
+				"title": "Contexto",
+				"dayStart": "Início do dia de operação. Sem trades anteriores.",
+				"afterLoss": "Trade {previousNumber} resultou em perda.",
+				"cumulativeLoss": "Perda acumulada até agora: {amount}"
+			},
+			"setup": {
+				"title": "Setup do Trade",
+				"calculatedAs": "Calculado como"
+			},
+			"outcome": {
+				"ifWin": "Se GAIN",
+				"ifLoss": "Se LOSS",
+				"next": "O que acontece a seguir:",
+				"enterGainMode": "Entrar no modo de ganho",
+				"compoundingDetail": "Reinvestir {percent}% dos ganhos no próximo trade",
+				"singleTargetHit": "Meta diária alcançada — parar de operar",
+				"stopOnFirstLossActive": "Parar composição no primeiro loss",
+				"enterRecovery": "Entrar na sequência de recuperação de perdas",
+				"proceedToNext": "Prosseguir para Trade {nextNumber}",
+				"recoveryComplete": "Sequência de recuperação completa",
+				"continueRecovery": "Continuar recuperação — executar Trade {nextNumber}",
+				"maxLossReached": "Perda diária máxima de {amount} alcançada — parar de operar",
+				"stopForDay": "Parar de operar hoje"
+			},
+			"cumulative": {
+				"worstCase": "Pior cenário até T{number}",
+				"bufferRemaining": "Buffer restante até limite diário: {amount}"
+			},
+			"stop": "STOP",
+			"winExample": "Gain (1:2): +{amount}",
+			"lossExample": "Loss: -{amount}",
+			"scenarios": {
+				"title": "Cenários (1:2 R:R)",
+				"colScenario": "Cenário",
+				"colGain": "Ganho",
+				"colNet": "Líquido",
+				"colAction": "Ação",
+				"winAt": "Gain no T{number}",
+				"allLosses": "Todas perdas",
+				"enterGainMode": "Modo ganho",
+				"stopDay": "Parar no dia"
+			}
 			},
 			"preview": {
 				"title": "Prévia em Tempo Real",
@@ -537,7 +726,9 @@
 				"monthlyLossLimit": "Limite de Perda Mensal",
 				"dailyProfitTarget": "Meta de Lucro Diária",
 				"maxTradesPerDay": "Máx. Operações / Dia",
-				"derived": "calculado automaticamente"
+				"derived": "calculado automaticamente",
+				"weeklyLossLimit": "Limite de Perda Semanal",
+				"maxConsecutiveLosses": "Máx. Perdas Consecutivas"
 			},
 			"summary": {
 				"riskPerTrade": "Risco / Operação",
@@ -548,7 +739,9 @@
 				"maxLosingDays": "Máx. Dias de Perda",
 				"accountBalance": "Saldo da Conta",
 				"notConfigured": "Não configurado",
-				"derived": "calculado automaticamente"
+				"derived": "calculado automaticamente",
+				"usingProfile": "Usando: {name}",
+				"weeklyLossLimit": "Limite de Perda Semanal"
 			},
 			"validation": {
 				"balanceRequired": "O saldo da conta é obrigatório",
@@ -734,7 +927,8 @@
 			"avgLoss": "Loss Médio",
 			"followed": "seguidos",
 			"w": "G",
-			"l": "L"
+			"l": "L",
+			"be": "BE"
 		},
 		"calendar": {
 			"title": "Calendário de Trades",
@@ -1244,6 +1438,7 @@
 			"tags": "Tags",
 			"assets": "Ativos",
 			"timeframes": "Timeframes",
+			"riskProfiles": "Perfis de Risco",
 			"general": "Geral"
 		},
 		"profile": {
@@ -1448,6 +1643,28 @@
 			"showPropCalculations": "Mostrar cálculos da mesa proprietária",
 			"settingsUpdated": "Configurações de conta atualizadas",
 			"settingsUpdateFailed": "Falha ao atualizar configurações"
+		},
+		"riskProfiles": {
+			"title": "Perfis de Risco",
+			"description": "Gerencie perfis de gestao de risco para simulacoes Monte Carlo",
+			"create": "Criar Perfil",
+			"edit": "Editar",
+			"deactivate": "Desativar",
+			"activate": "Ativar",
+			"name": "Nome",
+			"descriptionField": "Descricao",
+			"baseRisk": "Risco Base (centavos)",
+			"dailyLoss": "Limite Diario (centavos)",
+			"weeklyLoss": "Limite Semanal (centavos)",
+			"monthlyLoss": "Limite Mensal (centavos)",
+			"dailyTarget": "Meta Diaria (centavos)",
+			"decisionTree": "Configuracao da Arvore de Decisao",
+			"noProfiles": "Nenhum perfil de risco ainda",
+			"confirmDeactivate": "Tem certeza que deseja desativar este perfil?",
+			"active": "Ativo",
+			"inactive": "Inativo",
+			"save": "Salvar Perfil",
+			"cancel": "Cancelar"
 		},
 		"goToSettings": "Configurações → {section}"
 	},

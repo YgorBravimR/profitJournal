@@ -57,7 +57,7 @@ export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
 				value={stats ? formatChartPercent(stats.winRate, false) : "--"}
 				subValue={
 					stats
-						? `${stats.winCount}${t("w")} / ${stats.lossCount}${t("l")}`
+						? `${stats.winCount}${t("w")} / ${stats.lossCount}${t("l")}${stats.breakevenCount > 0 ? ` / ${stats.breakevenCount}${t("be")}` : ""}`
 						: undefined
 				}
 			/>

@@ -64,6 +64,13 @@
       "when": 1771230303625,
       "tag": "0008_misty_galactus",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1771256786159,
+      "tag": "0009_clever_vengeance",
+      "breakpoints": true
     }
   ]
 }

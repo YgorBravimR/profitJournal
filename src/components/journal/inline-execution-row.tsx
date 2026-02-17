@@ -4,8 +4,8 @@ import { useTranslations } from "next-intl"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { X } from "lucide-react"
-import { format } from "date-fns"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { formatDateKey } from "@/lib/dates"
 
 export interface ExecutionRowData {
 	id: string
@@ -34,7 +34,7 @@ export const InlineExecutionRow = ({
 }: InlineExecutionRowProps) => {
 	const t = useTranslations("execution")
 	const effectiveDate = useEffectiveDate()
-	const todayDateString = format(effectiveDate, "yyyy-MM-dd")
+	const todayDateString = formatDateKey(effectiveDate)
 
 	return (
 		<div className="gap-s-200 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr] items-center">
@@ -92,9 +92,10 @@ export const InlineExecutionRow = ({
 				size="sm"
 				onClick={() => onRemove(data.id)}
 				disabled={!canRemove}
+				aria-label={t("remove")}
 				className="text-txt-300 hover:text-fb-error h-8 w-8 p-0"
 			>
-				<X className="h-4 w-4" />
+				<X className="h-4 w-4" aria-hidden="true" />
 			</Button>
 		</div>
 	)

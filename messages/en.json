@@ -246,6 +246,91 @@
 			"hideAll": "Hide Trades",
 			"more": "more"
 		},
+		"v2": {
+			"tabClassic": "Classic",
+			"tabRiskManagement": "Risk Management",
+			"title": "Risk Management Simulator",
+			"subtitle": "Day-aware Monte Carlo simulation respecting your decision tree",
+			"profileSelector": {
+				"title": "Risk Profile",
+				"selectProfile": "Select a risk profile",
+				"custom": "Custom",
+				"fromPlan": "From Monthly Plan",
+				"noProfiles": "No risk profiles available"
+			},
+			"params": {
+				"winRate": "Win Rate (%)",
+				"profitFactor": "Profit Factor",
+				"profitFactorPlaceholder": "e.g. 1.81",
+				"rewardRiskRatio": "Reward:Risk Ratio",
+				"derivedFromPF": "from PF",
+				"impliedPF": "Implied PF",
+				"breakevenRate": "Breakeven Rate (%)",
+				"simulationCount": "Simulations",
+				"initialBalance": "Initial Balance",
+				"tradingDaysPerMonth": "Trading Days/Month",
+				"tradingDaysPerWeek": "Trading Days/Week",
+				"commissionPerTrade": "Commission/Trade (cents)",
+				"calculate": "Run Simulation"
+			},
+			"results": {
+				"simulations": "Simulations",
+				"daysPerMonth": "Days/Month",
+				"winRate": "Win Rate",
+				"rewardRisk": "R:R",
+				"profitFactor": "PF",
+				"breakevenRate": "BE Rate",
+				"profileName": "Profile",
+				"runAgain": "Run Again"
+			},
+			"metrics": {
+				"monthlyPnl": "Monthly P&L",
+				"median": "Median",
+				"mean": "Mean",
+				"bestCase": "Best Case (95th)",
+				"worstCase": "Worst Case (5th)",
+				"profitableMonths": "Profitable Months",
+				"monthlyLimitHit": "Monthly Limit Hit",
+				"avgTradingDays": "Avg Trading Days",
+				"avgTradesPerMonth": "Avg Trades/Month",
+				"modeDistribution": "Mode Distribution",
+				"lossRecoveryDays": "Loss Recovery Days",
+				"gainCompoundingDays": "Gain Compounding Days",
+				"targetHitDays": "Target Hit Days",
+				"skippedWeekly": "Skipped (Weekly Limit)",
+				"skippedMonthly": "Skipped (Monthly Limit)",
+				"drawdown": "Drawdown",
+				"medianMaxDrawdown": "Median Max Drawdown",
+				"worstMaxDrawdown": "Worst Max Drawdown",
+				"riskAdjusted": "Risk-Adjusted",
+				"sharpeRatio": "Sharpe Ratio",
+				"sortinoRatio": "Sortino Ratio",
+				"expectedDailyPnl": "Expected Daily P&L",
+				"monthlyReturn": "Monthly Return"
+			},
+			"charts": {
+				"dailyPnl": "Daily P&L (Sample Month)",
+				"modeDistribution": "Mode Distribution",
+				"monthlyDistribution": "Monthly P&L Distribution",
+				"lossRecovery": "Loss Recovery",
+				"gainCompounding": "Gain Compounding",
+				"skipped": "Skipped",
+				"dayNumber": "Day",
+				"pnl": "P&L"
+			},
+			"profileSummary": {
+				"baseRisk": "Base Risk",
+				"dailyLossLimit": "Daily Loss Limit",
+				"weeklyLossLimit": "Weekly Loss Limit",
+				"monthlyLossLimit": "Monthly Loss Limit",
+				"dailyTarget": "Daily Target",
+				"lossRecovery": "Loss Recovery",
+				"gainMode": "Gain Mode",
+				"steps": "steps",
+				"compounding": "Compounding",
+				"singleTarget": "Single Target"
+			}
+		},
 		"analysis": {
 			"title": "Trading Strategy Analysis",
 			"monteCarlo": "Monte Carlo Simulation Analysis",
@@ -469,6 +554,8 @@
 			"noRiskConfiguredMessage": "No risk per trade configured.",
 			"setInAccountSettings": "Set it in account settings.",
 			"exceedsMaxRisk": "Exceeds maximum allowed risk!",
+			"riskWithExtraContract": "If {contracts} contracts (+1)",
+			"overLimit": "over limit",
 			"strategy": "Strategy",
 			"selectStrategy": "Select strategy",
 			"strategyHint": "Target auto-calculated from {r}R multiple",
@@ -528,7 +615,109 @@
 				"profitReinvestmentHelpIncrease": "% of last win's profit to add to next trade's risk",
 				"profitReinvestmentHelpCap": "Cap subsequent trades' risk at this % of first win's profit",
 				"notes": "Notes",
-				"notesPlaceholder": "Optional notes about your plan for this month..."
+				"notesPlaceholder": "Optional notes about your plan for this month...",
+				"riskProfileMode": "Plan Mode",
+				"riskProfileModeCustom": "Custom Plan",
+				"riskProfileModeProfile": "Use Risk Profile",
+				"riskProfileSelect": "Risk Profile",
+				"riskProfileSelectPlaceholder": "Select a risk profile...",
+				"riskProfileSummary": "Profile Summary",
+				"weeklyLoss": "Weekly Loss Limit",
+				"weeklyLossHelp": "Maximum loss allowed per week (% of balance)",
+				"profileLocked": "Values derived from risk profile",
+				"dailyTarget": "Daily Target",
+				"lossRecovery": "Loss Recovery",
+				"lossRecoverySteps": "{count} recovery steps",
+				"gainMode": "Gain Mode",
+				"gainModeCompounding": "Compounding ({percent}% reinvest)",
+				"gainModeSingleTarget": "Single Target",
+				"seeDecisionTree": "See decision tree"
+			},
+			"decisionTree": {
+				"title": "Decision Tree",
+				"baseTrade": "Trade 1 (Base Trade)",
+				"risk": "Risk",
+				"maxContracts": "Max Contracts",
+				"minStop": "Min Stop",
+				"points": "pts",
+				"lossPath": "Loss",
+				"winPath": "Win",
+				"recoveryMode": "Loss Recovery",
+				"recoveryStep": "Trade {number}",
+				"riskCalcPercent": "{percent}% of base",
+				"riskCalcSame": "Same as previous",
+				"riskCalcFixed": "Fixed",
+				"executeAll": "Execute all trades regardless",
+				"stopAfter": "Stop trading after sequence",
+				"maxDailyLoss": "Max Daily Loss",
+				"gainMode": "Gain Mode",
+				"compounding": "Compounding",
+				"reinvest": "Reinvest {percent}% of gains",
+				"stopOnFirstLoss": "Stop on first loss",
+				"singleTarget": "Single Target",
+				"dailyTarget": "Daily Target",
+				"bankTheDay": "1 winning trade = daily goal",
+				"cascadingLimits": "Cascading Limits",
+				"weeklyLoss": "Weekly Loss",
+				"monthlyLoss": "Monthly Loss",
+				"action": {
+					"stopTrading": "Stop trading",
+					"reduceRisk": "Reduce risk"
+				},
+				"constraints": "Execution Constraints",
+				"operatingHours": "Operating Hours",
+				"noLimit": "No limit",
+			"tabs": {
+				"overview": "Overview"
+			},
+			"progression": {
+				"title": "Full Day Progression (Worst Case)",
+				"totalExposure": "Total Exposure",
+				"thenStop": "Stop trading"
+			},
+			"context": {
+				"title": "Context",
+				"dayStart": "Start of trading day. No previous trades.",
+				"afterLoss": "Trade {previousNumber} resulted in a loss.",
+				"cumulativeLoss": "Cumulative loss so far: {amount}"
+			},
+			"setup": {
+				"title": "Trade Setup",
+				"calculatedAs": "Calculated as"
+			},
+			"outcome": {
+				"ifWin": "If WIN",
+				"ifLoss": "If LOSS",
+				"next": "What happens next:",
+				"enterGainMode": "Enter gain mode",
+				"compoundingDetail": "Reinvest {percent}% of gains into next trade",
+				"singleTargetHit": "Daily goal achieved — stop trading",
+				"stopOnFirstLossActive": "Stop compounding on first loss",
+				"enterRecovery": "Enter loss recovery sequence",
+				"proceedToNext": "Proceed to Trade {nextNumber}",
+				"recoveryComplete": "Recovery sequence complete",
+				"continueRecovery": "Continue recovery — execute Trade {nextNumber}",
+				"maxLossReached": "Max daily loss of {amount} reached — stop trading",
+				"stopForDay": "Stop trading for the day"
+			},
+			"cumulative": {
+				"worstCase": "Worst case through T{number}",
+				"bufferRemaining": "Remaining buffer to daily limit: {amount}"
+			},
+			"stop": "STOP",
+			"winExample": "Win (1:2): +{amount}",
+			"lossExample": "Loss: -{amount}",
+			"scenarios": {
+				"title": "Scenarios (1:2 R:R)",
+				"colScenario": "Scenario",
+				"colGain": "Gain",
+				"colNet": "Net",
+				"colAction": "Action",
+				"winAt": "Win at T{number}",
+				"allLosses": "All losses",
+				"enterGainMode": "Gain mode",
+				"stopDay": "Stop for the day"
+			}
 			},
 			"preview": {
 				"title": "Live Preview",
@@ -537,7 +726,9 @@
 				"monthlyLossLimit": "Monthly Loss Limit",
 				"dailyProfitTarget": "Daily Profit Target",
 				"maxTradesPerDay": "Max Trades / Day",
-				"derived": "auto-calculated"
+				"derived": "auto-calculated",
+				"weeklyLossLimit": "Weekly Loss Limit",
+				"maxConsecutiveLosses": "Max Consecutive Losses"
 			},
 			"summary": {
 				"riskPerTrade": "Risk / Trade",
@@ -548,7 +739,9 @@
 				"maxLosingDays": "Max Losing Days",
 				"accountBalance": "Account Balance",
 				"notConfigured": "Not set",
-				"derived": "auto-calculated"
+				"derived": "auto-calculated",
+				"usingProfile": "Using: {name}",
+				"weeklyLossLimit": "Weekly Loss Limit"
 			},
 			"validation": {
 				"balanceRequired": "Account balance is required",
@@ -734,7 +927,8 @@
 			"avgLoss": "Avg Loss",
 			"followed": "followed",
 			"w": "W",
-			"l": "L"
+			"l": "L",
+			"be": "BE"
 		},
 		"calendar": {
 			"title": "Trading Calendar",
@@ -1244,6 +1438,7 @@
 			"tags": "Tags",
 			"assets": "Assets",
 			"timeframes": "Timeframes",
+			"riskProfiles": "Risk Profiles",
 			"general": "General"
 		},
 		"profile": {
@@ -1448,6 +1643,28 @@
 			"showPropCalculations": "Show prop firm calculations",
 			"settingsUpdated": "Trading account settings updated",
 			"settingsUpdateFailed": "Failed to update settings"
+		},
+		"riskProfiles": {
+			"title": "Risk Profiles",
+			"description": "Manage risk management profiles for Monte Carlo simulations",
+			"create": "Create Profile",
+			"edit": "Edit",
+			"deactivate": "Deactivate",
+			"activate": "Activate",
+			"name": "Name",
+			"descriptionField": "Description",
+			"baseRisk": "Base Risk (cents)",
+			"dailyLoss": "Daily Loss Limit (cents)",
+			"weeklyLoss": "Weekly Loss Limit (cents)",
+			"monthlyLoss": "Monthly Loss Limit (cents)",
+			"dailyTarget": "Daily Target (cents)",
+			"decisionTree": "Decision Tree Configuration",
+			"noProfiles": "No risk profiles yet",
+			"confirmDeactivate": "Are you sure you want to deactivate this profile?",
+			"active": "Active",
+			"inactive": "Inactive",
+			"save": "Save Profile",
+			"cancel": "Cancel"
 		},
 		"goToSettings": "Settings → {section}"
 	},
