@@ -1,18 +1,18 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { cn } from "@/lib/utils"
+import { Info } from "lucide-react"
 import {
-	formatCompactCurrency,
-	formatChartPercent,
-	formatRatio,
-} from "@/lib/formatting"
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+} from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
+import { formatR, formatRatio } from "@/lib/formatting"
 import type { SimulationStatistics } from "@/types/monte-carlo"
 
 interface MetricsCardsProps {
 	statistics: SimulationStatistics
-	initialBalance: number
-	currency?: string
 }
 
 interface MetricCardProps {
@@ -31,11 +31,30 @@ interface MetricRowProps {
 	label: string
 	value: string
 	valueClass?: string
+	tooltip?: string
 }
 
-const MetricRow = ({ label, value, valueClass }: MetricRowProps) => (
+const MetricRow = ({ label, value, valueClass, tooltip }: MetricRowProps) => (
 	<div className="flex items-center justify-between">
-		<span className="text-tiny text-txt-300">{label}</span>
+		{tooltip ? (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="inline-flex cursor-help items-center gap-s-100 text-tiny text-txt-300">
+						{label}
+						<Info className="h-3 w-3" />
+					</span>
+				</TooltipTrigger>
+				<TooltipContent
+					id={`tooltip-metric-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+					side="top"
+					className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+				>
+					<p className="text-tiny leading-relaxed">{tooltip}</p>
+				</TooltipContent>
+			</Tooltip>
+		) : (
+			<span className="text-tiny text-txt-300">{label}</span>
+		)}
 		<span
 			className={cn("text-small font-medium", valueClass || "text-txt-100")}
 		>
@@ -44,39 +63,55 @@ const MetricRow = ({ label, value, valueClass }: MetricRowProps) => (
 	</div>
 )
 
-export const MetricsCards = ({
-	statistics,
-	initialBalance,
-	currency = "$",
-}: MetricsCardsProps) => {
+export const MetricsCards = ({ statistics }: MetricsCardsProps) => {
 	const t = useTranslations("monteCarlo.metrics")
-
-	const finalBalance = statistics.medianFinalBalance
-	const totalReturn = finalBalance - initialBalance
-	const returnPercent = statistics.medianReturn
+	const tTooltips = useTranslations("monteCarlo.tooltips")
 
 	return (
 		<div className="gap-m-400 grid md:grid-cols-2 lg:grid-cols-3">
-			{/* Balance Summary */}
-			<MetricCard title={t("balanceSummary")}>
+			{/* Edge Summary */}
+			<MetricCard title={t("edgeSummary")}>
 				<MetricRow
-					label={t("initial")}
-					value={formatCompactCurrency(initialBalance, currency)}
+					label={t("expectedRPerTrade")}
+					value={formatR(statistics.expectedRPerTrade)}
+					valueClass={
+						statistics.expectedRPerTrade >= 0
+							? "text-trade-buy"
+							: "text-trade-sell"
+					}
+					tooltip={tTooltips("expectedRPerTrade")}
 				/>
 				<MetricRow
-					label={t("final")}
-					value={formatCompactCurrency(finalBalance, currency)}
-					valueClass={returnPercent >= 0 ? "text-trade-buy" : "text-trade-sell"}
+					label={t("medianFinalR")}
+					value={formatR(statistics.medianFinalR)}
+					valueClass={
+						statistics.medianFinalR >= 0
+							? "text-trade-buy"
+							: "text-trade-sell"
+					}
 				/>
 				<MetricRow
-					label={t("totalReturn")}
-					value={formatChartPercent(returnPercent)}
-					valueClass={returnPercent >= 0 ? "text-trade-buy" : "text-trade-sell"}
+					label={t("meanFinalR")}
+					value={formatR(statistics.meanFinalR)}
+					valueClass={
+						statistics.meanFinalR >= 0
+							? "text-trade-buy"
+							: "text-trade-sell"
+					}
 				/>
 				<MetricRow
-					label={t("tradeProfit")}
-					value={formatCompactCurrency(totalReturn, currency)}
-					valueClass={totalReturn >= 0 ? "text-trade-buy" : "text-trade-sell"}
+					label={t("profitFactor")}
+					value={
+						statistics.profitFactor === Infinity
+							? "∞"
+							: formatRatio(statistics.profitFactor)
+					}
+					valueClass={
+						statistics.profitFactor >= 1
+							? "text-trade-buy"
+							: "text-trade-sell"
+					}
+					tooltip={tTooltips("profitFactor")}
 				/>
 			</MetricCard>
 
@@ -88,6 +123,7 @@ export const MetricsCards = ({
 					valueClass={
 						statistics.sharpeRatio >= 1 ? "text-trade-buy" : "text-txt-100"
 					}
+					tooltip={tTooltips("sharpeRatio")}
 				/>
 				<MetricRow
 					label={t("sortinoRatio")}
@@ -95,51 +131,26 @@ export const MetricsCards = ({
 					valueClass={
 						statistics.sortinoRatio >= 1 ? "text-trade-buy" : "text-txt-100"
 					}
-				/>
-				<MetricRow
-					label={t("calmarRatio")}
-					value={formatRatio(statistics.calmarRatio)}
-					valueClass={
-						statistics.calmarRatio >= 1 ? "text-trade-buy" : "text-txt-100"
-					}
-				/>
-			</MetricCard>
-
-			{/* Performance Metrics */}
-			<MetricCard title={t("performance")}>
-				<MetricRow
-					label={t("profitFactor")}
-					value={formatRatio(statistics.profitFactor)}
-					valueClass={
-						statistics.profitFactor >= 1 ? "text-trade-buy" : "text-trade-sell"
-					}
-				/>
-				<MetricRow
-					label={t("bestTrade")}
-					value={formatCompactCurrency(statistics.bestTrade, currency)}
-					valueClass="text-trade-buy"
-				/>
-				<MetricRow
-					label={t("worstTrade")}
-					value={formatCompactCurrency(statistics.worstTrade, currency)}
-					valueClass="text-trade-sell"
+					tooltip={tTooltips("sortinoRatio")}
 				/>
 			</MetricCard>
 
 			{/* Drawdown Analysis */}
 			<MetricCard title={t("drawdown")}>
 				<MetricRow
-					label={t("maxDrawdown")}
-					value={formatChartPercent(statistics.medianMaxDrawdown, false)}
+					label={t("medianMaxDrawdownR")}
+					value={formatR(-statistics.medianMaxRDrawdown)}
 					valueClass="text-trade-sell"
+					tooltip={tTooltips("maxDrawdown")}
 				/>
 				<MetricRow
-					label={t("avgDrawdown")}
-					value={formatChartPercent(statistics.meanMaxDrawdown, false)}
+					label={t("avgDrawdownR")}
+					value={formatR(-statistics.meanMaxRDrawdown)}
 				/>
 				<MetricRow
-					label={t("underwaterTime")}
-					value={formatChartPercent(statistics.avgUnderwaterPercent, false)}
+					label={t("worstDrawdownR")}
+					value={formatR(-statistics.worstMaxRDrawdown)}
+					valueClass="text-trade-sell"
 				/>
 			</MetricCard>
 
@@ -169,27 +180,32 @@ export const MetricsCards = ({
 			<MetricCard title={t("monteCarloOutcomes")}>
 				<MetricRow
 					label={t("bestCase")}
-					value={formatChartPercent(statistics.bestCaseReturn)}
+					value={formatR(statistics.bestCaseFinalR)}
 					valueClass="text-trade-buy"
 				/>
 				<MetricRow
 					label={t("medianLabel")}
-					value={formatChartPercent(statistics.medianReturn)}
+					value={formatR(statistics.medianFinalR)}
 					valueClass={
-						statistics.medianReturn >= 0 ? "text-trade-buy" : "text-trade-sell"
+						statistics.medianFinalR >= 0
+							? "text-trade-buy"
+							: "text-trade-sell"
 					}
 				/>
 				<MetricRow
 					label={t("worstCase")}
-					value={formatChartPercent(statistics.worstCaseReturn)}
+					value={formatR(statistics.worstCaseFinalR)}
 					valueClass="text-trade-sell"
 				/>
 				<MetricRow
 					label={t("profitableSimulations")}
-					value={formatChartPercent(statistics.profitablePct, false)}
+					value={`${statistics.profitablePct.toFixed(0)}%`}
 					valueClass={
-						statistics.profitablePct >= 70 ? "text-trade-buy" : "text-txt-100"
+						statistics.profitablePct >= 70
+							? "text-trade-buy"
+							: "text-txt-100"
 					}
+					tooltip={tTooltips("profitableSimulations")}
 				/>
 			</MetricCard>
 		</div>

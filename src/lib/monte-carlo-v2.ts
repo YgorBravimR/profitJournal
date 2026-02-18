@@ -484,8 +484,14 @@ const aggregateStatisticsV2 = (
 
 	const meanReturn = mean(returns)
 	const returnStdDev = stdDev(returns)
-	const downsideReturns = returns.filter((r) => r < 0)
-	const downsideDev = downsideReturns.length > 0 ? stdDev(downsideReturns) : 1
+
+	// Downside deviation: sqrt( (1/N) * Σ min(0, r_i)^2 ) using target = 0
+	const downsideDev = returns.length > 0
+		? Math.sqrt(
+				returns.reduce((sum, r) => (r < 0 ? sum + r * r : sum), 0) /
+					returns.length
+			)
+		: 0
 
 	const sharpeRatio = returnStdDev > 0 ? meanReturn / returnStdDev : 0
 	const sortinoRatio = downsideDev > 0 ? meanReturn / downsideDev : 0

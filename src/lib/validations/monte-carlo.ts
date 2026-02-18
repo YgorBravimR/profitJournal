@@ -5,12 +5,6 @@ export const SIMULATION_BUDGET_CAP = 3_000_000
 
 export const simulationParamsSchema = z
 	.object({
-		initialBalance: z
-			.number()
-			.min(100, "Initial balance must be at least $100")
-			.max(100000000, "Initial balance cannot exceed $100,000,000"),
-		riskType: z.enum(["percentage", "fixed"]),
-		riskPerTrade: z.number().min(0.01, "Risk per trade must be at least 0.01"),
 		winRate: z
 			.number()
 			.min(1, "Win rate must be at least 1%")
@@ -24,10 +18,10 @@ export const simulationParamsSchema = z
 			.int()
 			.min(10, "Minimum 10 trades per simulation")
 			.max(10000, "Maximum 10,000 trades per simulation"),
-		commissionPerTrade: z
+		commissionImpactR: z
 			.number()
 			.min(0, "Commission cannot be negative")
-			.max(10, "Commission cannot exceed 10% of risk"),
+			.max(50, "Commission cannot exceed 50% of risk"),
 		simulationCount: z
 			.number()
 			.int()
@@ -35,20 +29,6 @@ export const simulationParamsSchema = z
 			.max(50000, "Maximum 50,000 simulations"),
 	})
 	.superRefine((data, ctx) => {
-		if (data.riskType === "percentage" && data.riskPerTrade > 100) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: "Risk per trade cannot exceed 100%",
-				path: ["riskPerTrade"],
-			})
-		}
-		if (data.riskType === "fixed" && data.riskPerTrade > data.initialBalance) {
-			ctx.addIssue({
-				code: z.ZodIssueCode.custom,
-				message: `Risk per trade cannot exceed initial balance ($${data.initialBalance.toLocaleString()})`,
-				path: ["riskPerTrade"],
-			})
-		}
 		// Budget cap: trades × simulations must not exceed 3,000,000 total iterations
 		const totalIterations = data.numberOfTrades * data.simulationCount
 		if (totalIterations > SIMULATION_BUDGET_CAP) {
@@ -80,13 +60,10 @@ export const dataSourceSchema = z.discriminatedUnion("type", [
 export type DataSourceInput = z.infer<typeof dataSourceSchema>
 
 export const defaultSimulationParams: SimulationParamsInput = {
-	initialBalance: 10000,
-	riskType: "percentage",
-	riskPerTrade: 1,
 	winRate: 55,
 	rewardRiskRatio: 1.5,
 	numberOfTrades: 100,
-	commissionPerTrade: 0.1,
+	commissionImpactR: 0,
 	simulationCount: 1000,
 }
 

@@ -755,10 +755,16 @@ export const getExpectedValue = async (
 					expectedValue: 0,
 					projectedPnl100: 0,
 					sampleSize: 0,
+					avgWinR: 0,
+					avgLossR: 0,
+					expectedR: 0,
+					projectedR100: 0,
+					rSampleSize: 0,
 				},
 			}
 		}
 
+		// Capital Expectancy ($)
 		const wins: number[] = []
 		const losses: number[] = []
 
@@ -775,11 +781,36 @@ export const getExpectedValue = async (
 		const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
 		const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
 
-		// EV = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)
+		// EV($) = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)
 		const expectedValue = winRate * avgWin - (1 - winRate) * avgLoss
-
-		// Project over 100 trades
 		const projectedPnl100 = expectedValue * 100
+
+		// Edge Expectancy (R-based)
+		// Uses realizedRMultiple which is trade-relative (1R = that trade's initial risk)
+		const tradesWithR = tradesWithOutcome.filter(
+			(t) => t.realizedRMultiple !== null
+		)
+
+		const rWins: number[] = []
+		const rLosses: number[] = []
+
+		for (const trade of tradesWithR) {
+			const rMultiple = Number(trade.realizedRMultiple)
+			if (rMultiple > 0) {
+				rWins.push(rMultiple)
+			} else if (rMultiple < 0) {
+				rLosses.push(Math.abs(rMultiple))
+			}
+		}
+
+		const rSampleSize = tradesWithR.length
+		const rDecisiveCount = rWins.length + rLosses.length
+		const rWinRate = rDecisiveCount > 0 ? rWins.length / rDecisiveCount : 0
+		const avgWinR = rWins.length > 0 ? rWins.reduce((a, b) => a + b, 0) / rWins.length : 0
+		const avgLossR = rLosses.length > 0 ? rLosses.reduce((a, b) => a + b, 0) / rLosses.length : 0
+		// EV(R) = (Win Rate × Avg Win R) - (Loss Rate × Avg Loss R)
+		const expectedR = rDecisiveCount > 0 ? (rWinRate * avgWinR) - ((1 - rWinRate) * avgLossR) : 0
+		const projectedR100 = expectedR * 100
 
 		return {
 			status: "success",
@@ -791,6 +822,11 @@ export const getExpectedValue = async (
 				expectedValue,
 				projectedPnl100,
 				sampleSize: tradesWithOutcome.length,
+				avgWinR,
+				avgLossR,
+				expectedR,
+				projectedR100,
+				rSampleSize,
 			},
 		}
 	} catch (error) {

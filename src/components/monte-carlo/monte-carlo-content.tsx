@@ -6,7 +6,12 @@ import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { Dices, HelpCircle } from "lucide-react"
 import { LoadingSpinner } from "@/components/shared"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsList, TabsTrigger, AnimatedTabsContent } from "@/components/ui/tabs"
+import {
+	Tabs,
+	TabsList,
+	TabsTrigger,
+	AnimatedTabsContent,
+} from "@/components/ui/tabs"
 import { InputModeSelector } from "./input-mode-selector"
 import { DataSourceSelector } from "./data-source-selector"
 import { StatsPreview } from "./stats-preview"
@@ -90,17 +95,15 @@ export const MonteCarloContent = ({
 		}
 	}, [selectedSource, inputMode, loadSourceStats])
 
-	// Handle "Use These Stats" button
+	// Handle "Use These Stats" button — populates R-based params
 	const handleUseStats = () => {
-		if (sourceStats) {
-			setParams((prev) => ({
-				...prev,
-				winRate: Math.round(sourceStats.winRate * 100) / 100,
-				rewardRiskRatio: Math.round(sourceStats.avgRewardRiskRatio * 100) / 100,
-				commissionPerTrade:
-					Math.round(sourceStats.avgCommissionImpact * 100) / 100,
-			}))
-		}
+		if (!sourceStats) return
+		setParams((prev) => ({
+			...prev,
+			winRate: sourceStats.winRate,
+			rewardRiskRatio: sourceStats.avgRewardRiskRatio,
+			commissionImpactR: sourceStats.commissionImpactR,
+		}))
 	}
 
 	// Handle "Customize" button
@@ -119,9 +122,7 @@ export const MonteCarloContent = ({
 			if (response.status === "success" && response.data) {
 				setResult(response.data)
 			} else {
-				const errorDetails = response.errors
-					?.map((e) => e.detail)
-					.join(", ")
+				const errorDetails = response.errors?.map((e) => e.detail).join(", ")
 				setError(errorDetails || response.message)
 			}
 		} catch (err) {
@@ -147,21 +148,30 @@ export const MonteCarloContent = ({
 					<h1 className="text-h3 text-txt-100 font-bold">{t("title")}</h1>
 					<p className="mt-s-100 text-small text-txt-300">{t("subtitle")}</p>
 				</div>
-				<Button id="monte-carlo-help" variant="ghost" size="sm" className="text-txt-300">
+				<Button
+					id="monte-carlo-help"
+					variant="ghost"
+					size="sm"
+					className="text-txt-300"
+				>
 					<HelpCircle className="mr-s-100 h-4 w-4" />
 					{t("help")}
 				</Button>
 			</div>
 
-			{/* Mode Tabs: Classic | Risk Management */}
-			<Tabs defaultValue="classic">
+			{/* Mode Tabs: Edge Expectancy | Capital Expectancy */}
+			<Tabs defaultValue="edgeExpectancy">
 				<TabsList variant="line" className="mb-m-500">
-					<TabsTrigger value="classic">{tV2("tabClassic")}</TabsTrigger>
-					<TabsTrigger value="riskManagement">{tV2("tabRiskManagement")}</TabsTrigger>
+					<TabsTrigger value="edgeExpectancy">
+						{tV2("tabEdgeExpectancy")}
+					</TabsTrigger>
+					<TabsTrigger value="capitalExpectancy">
+						{tV2("tabCapitalExpectancy")}
+					</TabsTrigger>
 				</TabsList>
 
-				<AnimatedTabsContent value="classic">
-					<ClassicContent
+				<AnimatedTabsContent value="edgeExpectancy">
+					<EdgeExpectancyContent
 						initialOptions={initialOptions}
 						inputMode={inputMode}
 						setInputMode={setInputMode}
@@ -181,8 +191,11 @@ export const MonteCarloContent = ({
 					/>
 				</AnimatedTabsContent>
 
-				<AnimatedTabsContent value="riskManagement">
-					<MonteCarloV2Content profiles={riskProfiles} />
+				<AnimatedTabsContent value="capitalExpectancy">
+					<MonteCarloV2Content
+						profiles={riskProfiles}
+						dataSourceOptions={initialOptions}
+					/>
 				</AnimatedTabsContent>
 			</Tabs>
 		</div>
@@ -190,10 +203,10 @@ export const MonteCarloContent = ({
 }
 
 // ==========================================
-// CLASSIC CONTENT — Extracted for tab layout
+// EDGE EXPECTANCY CONTENT
 // ==========================================
 
-interface ClassicContentProps {
+interface EdgeExpectancyContentProps {
 	initialOptions: DataSourceOption[]
 	inputMode: "auto" | "manual"
 	setInputMode: (mode: "auto" | "manual") => void
@@ -202,7 +215,9 @@ interface ClassicContentProps {
 	sourceStats: SourceStats | null
 	isLoadingStats: boolean
 	params: SimulationParams
-	setParams: (params: SimulationParams | ((prev: SimulationParams) => SimulationParams)) => void
+	setParams: (
+		params: SimulationParams | ((prev: SimulationParams) => SimulationParams)
+	) => void
 	result: MonteCarloResult | null
 	isRunning: boolean
 	error: string | null
@@ -212,7 +227,7 @@ interface ClassicContentProps {
 	onRunAgain: () => void
 }
 
-const ClassicContent = ({
+const EdgeExpectancyContent = ({
 	initialOptions,
 	inputMode,
 	setInputMode,
@@ -229,7 +244,7 @@ const ClassicContent = ({
 	onCustomize,
 	onRunSimulation,
 	onRunAgain,
-}: ClassicContentProps) => {
+}: EdgeExpectancyContentProps) => {
 	const t = useTranslations("monteCarlo")
 
 	return (
@@ -274,7 +289,8 @@ const ClassicContent = ({
 
 					{/* Run Button */}
 					<div className="flex justify-center">
-						<Button id="monte-carlo-run-simulation"
+						<Button
+							id="monte-carlo-run-simulation"
 							size="lg"
 							onClick={onRunSimulation}
 							disabled={isRunning}
@@ -299,62 +315,66 @@ const ClassicContent = ({
 					{/* Top Summary Banner */}
 					<div className="border-bg-300 bg-bg-200 p-m-500 gap-m-500 flex flex-wrap items-center justify-between rounded-lg border">
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">{t("results.simulations")}:</span>
+							<span className="text-txt-300 text-small">
+								{t("results.simulations")}:
+							</span>
 							<span className="text-txt-100 font-medium">
 								{params.simulationCount.toLocaleString()}
 							</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">{t("results.tradesLabel")}:</span>
+							<span className="text-txt-300 text-small">
+								{t("results.tradesLabel")}:
+							</span>
 							<span className="text-txt-100 font-medium">
 								{params.numberOfTrades}
 							</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">{t("results.winRateLabel")}:</span>
-							<span className="text-txt-100 font-medium">{params.winRate}%</span>
+							<span className="text-txt-300 text-small">
+								{t("results.winRateLabel")}:
+							</span>
+							<span className="text-txt-100 font-medium">
+								{params.winRate}%
+							</span>
 						</div>
 						<div className="gap-m-400 flex items-center">
-							<span className="text-txt-300 text-small">{t("results.rrLabel")}:</span>
+							<span className="text-txt-300 text-small">
+								{t("results.rrLabel")}:
+							</span>
 							<span className="text-txt-100 font-medium">
 								1:{params.rewardRiskRatio}
 							</span>
 						</div>
-						<Button id="monte-carlo-run-again" variant="outline" size="sm" onClick={onRunAgain}>
+						<Button
+							id="monte-carlo-run-again"
+							variant="outline"
+							size="sm"
+							onClick={onRunAgain}
+						>
 							<Dices className="mr-s-100 h-4 w-4" />
 							{t("results.runAgain")}
 						</Button>
 					</div>
 
-					{/* Charts Row - Two equal columns */}
+					{/* Charts Row */}
 					<div className="gap-m-500 grid lg:grid-cols-2">
-						<EquityCurveChart
-							trades={result.sampleRun.trades}
-							initialBalance={params.initialBalance}
-							showPercentage
-						/>
+						<EquityCurveChart trades={result.sampleRun.trades} />
 						<DrawdownChart trades={result.sampleRun.trades} />
 					</div>
 
 					{/* Distribution - Full width */}
 					<DistributionHistogram
 						buckets={result.distributionBuckets}
-						medianBalance={result.statistics.medianFinalBalance}
-						initialBalance={params.initialBalance}
+						medianFinalR={result.statistics.medianFinalR}
 					/>
 
-					{/* Metrics Cards - 2x3 grid on desktop */}
-					<MetricsCards
-						statistics={result.statistics}
-						initialBalance={params.initialBalance}
-					/>
+					{/* Metrics Cards */}
+					<MetricsCards statistics={result.statistics} />
 
 					{/* Kelly + Trade Sequence - Side by side on desktop */}
 					<div className="gap-m-500 grid xl:grid-cols-2">
-						<KellyCriterionCard
-							statistics={result.statistics}
-							initialBalance={params.initialBalance}
-						/>
+						<KellyCriterionCard statistics={result.statistics} />
 						<TradeSequenceList trades={result.sampleRun.trades} />
 					</div>
 

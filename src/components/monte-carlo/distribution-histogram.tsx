@@ -14,13 +14,12 @@ import {
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
-import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
+import { formatR } from "@/lib/formatting"
 import type { DistributionBucket } from "@/types/monte-carlo"
 
 interface DistributionHistogramProps {
 	buckets: DistributionBucket[]
-	medianBalance: number
-	initialBalance: number
+	medianFinalR: number
 }
 
 interface CustomTooltipProps {
@@ -29,7 +28,6 @@ interface CustomTooltipProps {
 		value: number
 		payload: DistributionBucket & { midPoint: number; percentileZone: string }
 	}>
-	initialBalance: number
 }
 
 interface PercentileBoundaries {
@@ -99,26 +97,22 @@ const getPercentileZone = (
 	midPoint: number,
 	boundaries: PercentileBoundaries
 ): PercentileZone => {
-	// Outer: < 5th or > 95th percentile (5% each tail = 10% total)
 	if (midPoint < boundaries.p5 || midPoint > boundaries.p95) {
 		return "outer"
 	}
-	// Middle: 5th-15th or 85th-95th percentile (10% each side = 20% total)
 	if (midPoint < boundaries.p15 || midPoint > boundaries.p85) {
 		return "middle"
 	}
-	// Center: 15th-40th or 60th-85th percentile (25% each side = 50% total)
 	if (midPoint < boundaries.p40 || midPoint > boundaries.p60) {
 		return "center"
 	}
-	// Core: 40th-60th percentile (20% in the very middle)
 	return "core"
 }
 
 const ZONE_COLORS: Record<PercentileZone, string> = {
-	core: "rgba(255, 50, 0, 0.2)", // brightest orange - very center
-	center: "rgba(255, 153, 0, 0.2)", // accent orange
-	middle: "rgba(255, 238, 0, 0.2)", // warning yellow
+	core: "rgba(255, 50, 0, 0.2)",
+	center: "rgba(255, 153, 0, 0.2)",
+	middle: "rgba(255, 238, 0, 0.2)",
 	outer: "transparent",
 }
 
@@ -161,27 +155,21 @@ const CustomBarBackground = (props: CustomBarBackgroundProps) => {
 const CustomTooltip = ({
 	active,
 	payload,
-	initialBalance,
 }: CustomTooltipProps) => {
 	if (!active || !payload || payload.length === 0) return null
 
 	const data = payload[0].payload
-	const returnPct = ((data.midPoint - initialBalance) / initialBalance) * 100
-	const isProfit = data.midPoint >= initialBalance
+	const isProfit = data.midPoint >= 0
 
 	return (
 		<div className="border-bg-300 bg-bg-100 p-s-300 rounded-lg border shadow-lg">
 			<p className="text-tiny text-txt-300">
-				{formatCompactCurrency(data.rangeStart)} –{" "}
-				{formatCompactCurrency(data.rangeEnd)}
+				{formatR(data.rangeStart)} – {formatR(data.rangeEnd)}
 			</p>
 			<p
 				className={`text-small font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}
 			>
 				{data.count} simulations ({data.percentage.toFixed(1)}%)
-			</p>
-			<p className="text-tiny text-txt-300">
-				Return: {formatChartPercent(returnPct)}
 			</p>
 		</div>
 	)
@@ -189,15 +177,14 @@ const CustomTooltip = ({
 
 export const DistributionHistogram = ({
 	buckets,
-	medianBalance,
-	initialBalance,
+	medianFinalR,
 }: DistributionHistogramProps) => {
 	const t = useTranslations("monteCarlo.results")
 
 	const chartData = useMemo(() => {
 		const data = buckets.map((bucket) => ({
 			...bucket,
-			label: formatCompactCurrency((bucket.rangeStart + bucket.rangeEnd) / 2),
+			label: formatR((bucket.rangeStart + bucket.rangeEnd) / 2),
 			midPoint: (bucket.rangeStart + bucket.rangeEnd) / 2,
 		}))
 
@@ -217,9 +204,9 @@ export const DistributionHistogram = ({
 	const profitableCount = useMemo(
 		() =>
 			chartData
-				.filter((d) => d.midPoint >= initialBalance)
+				.filter((d) => d.midPoint >= 0)
 				.reduce((sum, d) => sum + d.count, 0),
-		[chartData, initialBalance]
+		[chartData]
 	)
 
 	const totalCount = useMemo(
@@ -239,7 +226,7 @@ export const DistributionHistogram = ({
 					<span className="text-tiny text-txt-300">
 						{t("median")}:{" "}
 						<span className="text-txt-100 font-medium">
-							{formatCompactCurrency(medianBalance)}
+							{formatR(medianFinalR)}
 						</span>
 					</span>
 					<span className="text-tiny text-txt-300">
@@ -266,7 +253,7 @@ export const DistributionHistogram = ({
 							fontSize={10}
 							tickLine={false}
 							axisLine={false}
-							tickFormatter={(value) => formatCompactCurrency(value)}
+							tickFormatter={(value) => formatR(value)}
 							interval="preserveStartEnd"
 						/>
 						<YAxis
@@ -278,15 +265,15 @@ export const DistributionHistogram = ({
 							width={40}
 						/>
 						<Tooltip
-							content={<CustomTooltip initialBalance={initialBalance} />}
+							content={<CustomTooltip />}
 						/>
 						<ReferenceLine
-							x={initialBalance}
+							x={0}
 							stroke="var(--color-acc-100)"
 							strokeDasharray="4 4"
 							strokeWidth={1.5}
 							label={{
-								value: "Start",
+								value: "0R",
 								position: "top",
 								fill: "var(--color-acc-100)",
 								fontSize: 10,
@@ -302,7 +289,7 @@ export const DistributionHistogram = ({
 								<Cell
 									key={`cell-${index}`}
 									fill={
-										entry.midPoint >= initialBalance
+										entry.midPoint >= 0
 											? "var(--color-trade-buy)"
 											: "var(--color-trade-sell)"
 									}
@@ -314,7 +301,7 @@ export const DistributionHistogram = ({
 			</ChartContainer>
 
 			<p className="mt-s-300 text-tiny text-txt-300 text-center">
-				{t("finalBalance")}
+				{t("finalCumulativeR")}
 			</p>
 
 			{/* Percentile Zone Legend */}

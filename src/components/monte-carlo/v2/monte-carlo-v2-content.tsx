@@ -1,31 +1,41 @@
 "use client"
 
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useEffect, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { Dices } from "lucide-react"
 import { LoadingSpinner } from "@/components/shared"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { InputModeSelector } from "../input-mode-selector"
+import { DataSourceSelector } from "../data-source-selector"
+import { StatsPreview } from "../stats-preview"
 import { RiskProfileSelector } from "./risk-profile-selector"
 import { V2ResultsSummary } from "./v2-results-summary"
 import { V2MetricsCards } from "./v2-metrics-cards"
 import { DailyPnlChart } from "./daily-pnl-chart"
 import { ModeDistributionChart } from "./mode-distribution-chart"
-import { DistributionHistogram } from "../distribution-histogram"
-import { runSimulationV2 } from "@/app/actions/monte-carlo"
+import { V2DistributionHistogram } from "./v2-distribution-histogram"
+import { getSimulationStats, runSimulationV2 } from "@/app/actions/monte-carlo"
 import { buildProfileForSim } from "@/lib/risk-profile"
 import type { RiskManagementProfile } from "@/types/risk-profile"
 import type {
+	DataSource,
+	DataSourceOption,
 	MonteCarloResultV2,
 	RiskManagementProfileForSim,
+	SourceStats,
 } from "@/types/monte-carlo"
 
 interface MonteCarloV2ContentProps {
 	profiles: RiskManagementProfile[]
+	dataSourceOptions: DataSourceOption[]
 }
 
-const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
+const MonteCarloV2Content = ({
+	profiles,
+	dataSourceOptions,
+}: MonteCarloV2ContentProps) => {
 	const t = useTranslations("monteCarlo.v2")
 	const tOverlay = useTranslations("overlay")
 	const { showLoading, hideLoading } = useLoadingOverlay()
@@ -42,12 +52,59 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 	const [tradingDaysPerWeek, setTradingDaysPerWeek] = useState("5")
 	const [commissionPerTrade, setCommissionPerTrade] = useState("0")
 
+	// Data source state (auto-populate from strategy)
+	const [inputMode, setInputMode] = useState<"auto" | "manual">("auto")
+	const [selectedSource, setSelectedSource] = useState<DataSource | null>(null)
+	const [sourceStats, setSourceStats] = useState<SourceStats | null>(null)
+	const [isLoadingStats, setIsLoadingStats] = useState(false)
+
+	// Load stats when source changes
+	const loadSourceStats = useCallback(async (source: DataSource) => {
+		setIsLoadingStats(true)
+		try {
+			const response = await getSimulationStats(source)
+			setSourceStats(
+				response.status === "success" && response.data ? response.data : null
+			)
+		} catch (error) {
+			console.error("Failed to load source stats:", error)
+			setSourceStats(null)
+		} finally {
+			setIsLoadingStats(false)
+		}
+	}, [])
+
+	useEffect(() => {
+		if (selectedSource && inputMode === "auto") {
+			loadSourceStats(selectedSource)
+		}
+	}, [selectedSource, inputMode, loadSourceStats])
+
+	const handleUseStats = () => {
+		if (!sourceStats) return
+
+		setWinRate(sourceStats.winRate.toFixed(1))
+		setProfitFactor(
+			sourceStats.profitFactor === Infinity
+				? ""
+				: sourceStats.profitFactor.toFixed(2)
+		)
+		setCommissionPerTrade(
+			sourceStats.avgCommissionPerTradeCents?.toString() ?? "0"
+		)
+		setBreakevenRate(sourceStats.breakevenRate?.toFixed(1) ?? "0")
+	}
+
+	const handleCustomize = () => {
+		setInputMode("manual")
+	}
+
 	// When Profit Factor is set, auto-derive R:R = PF × (1 - WR) / WR
 	const derivedRR = useMemo(() => {
 		const pf = parseFloat(profitFactor)
 		const wr = parseFloat(winRate) / 100
-		if (!pf || isNaN(pf) || pf <= 0 || isNaN(wr) || wr <= 0 || wr >= 1) return null
-		return pf * (1 - wr) / wr
+		if (isNaN(pf) || pf <= 0 || isNaN(wr) || wr <= 0 || wr >= 1) return null
+		return (pf * (1 - wr)) / wr
 	}, [profitFactor, winRate])
 
 	// The effective R:R: derived from PF when set, otherwise manual input
@@ -56,7 +113,14 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 	// Implied PF from current WR + effective R:R (for display)
 	const impliedPF = useMemo(() => {
 		const wr = parseFloat(winRate) / 100
-		if (isNaN(wr) || wr <= 0 || wr >= 1 || isNaN(effectiveRR) || effectiveRR <= 0) return null
+		if (
+			isNaN(wr) ||
+			wr <= 0 ||
+			wr >= 1 ||
+			isNaN(effectiveRR) ||
+			effectiveRR <= 0
+		)
+			return null
 		return (wr * effectiveRR) / (1 - wr)
 	}, [winRate, effectiveRR])
 
@@ -72,7 +136,8 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 		if (!selectedProfile) return null
 
 		const wr = parseFloat(winRate)
-		if (isNaN(wr) || wr <= 0 || isNaN(effectiveRR) || effectiveRR <= 0) return null
+		if (isNaN(wr) || wr <= 0 || isNaN(effectiveRR) || effectiveRR <= 0)
+			return null
 
 		return buildProfileForSim(selectedProfile, {
 			winRate: wr,
@@ -113,24 +178,33 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 			if (response.status === "success" && response.data) {
 				setResult(response.data)
 			} else {
-				const errorDetails = response.errors
-					?.map((e) => e.detail)
-					.join(", ")
+				const errorDetails = response.errors?.map((e) => e.detail).join(", ")
 				setError(errorDetails || response.message)
 			}
-		} catch {
+		} catch (error) {
+			console.error("V2 simulation error:", error)
 			setError("Failed to run V2 simulation")
 		} finally {
 			hideLoading()
 			setIsRunning(false)
 		}
-	}, [simProfile, initialBalance, simulationCount, showLoading, hideLoading, tOverlay])
+	}, [
+		simProfile,
+		initialBalance,
+		simulationCount,
+		showLoading,
+		hideLoading,
+		tOverlay,
+	])
 
 	const handleRunAgain = () => {
 		setResult(null)
 	}
 
-	const isValid = !!simProfile && parseFloat(initialBalance) > 0 && parseInt(simulationCount, 10) > 0
+	const isValid =
+		!!simProfile &&
+		parseFloat(initialBalance) > 0 &&
+		parseInt(simulationCount, 10) > 0
 
 	return (
 		<div className="space-y-m-500">
@@ -140,9 +214,33 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 				<p className="mt-s-100 text-small text-txt-300">{t("subtitle")}</p>
 			</div>
 
+			{/* Info banner explaining Capital Expectancy */}
+			<div className="border-accent-primary/30 bg-accent-primary/5 p-m-400 text-small text-txt-200 rounded-lg border">
+				{t("capitalExplanation")}
+			</div>
+
 			{/* Input Section */}
 			{!result && (
 				<div className="space-y-m-400">
+					{/* Input Mode + Data Source (auto mode) */}
+					<InputModeSelector mode={inputMode} onModeChange={setInputMode} />
+					{inputMode === "auto" && (
+						<div className="gap-m-400 grid lg:grid-cols-2">
+							<DataSourceSelector
+								options={dataSourceOptions}
+								selectedSource={selectedSource}
+								onSourceChange={setSelectedSource}
+								isLoading={isLoadingStats}
+							/>
+							<StatsPreview
+								stats={sourceStats}
+								isLoading={isLoadingStats}
+								onUseStats={handleUseStats}
+								onCustomize={handleCustomize}
+							/>
+						</div>
+					)}
+
 					{/* Profile Selector */}
 					<RiskProfileSelector
 						profiles={profiles}
@@ -390,9 +488,12 @@ const MonteCarloV2Content = ({ profiles }: MonteCarloV2ContentProps) => {
 					</div>
 
 					{/* Distribution - Full width */}
-					<DistributionHistogram
+					<V2DistributionHistogram
 						buckets={result.distributionBuckets}
-						medianBalance={result.params.initialBalance / 100 + result.statistics.medianMonthlyPnl / 100}
+						medianBalance={
+							result.params.initialBalance / 100 +
+							result.statistics.medianMonthlyPnl / 100
+						}
 						initialBalance={result.params.initialBalance / 100}
 					/>
 

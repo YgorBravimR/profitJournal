@@ -2,13 +2,16 @@
 
 import { useTranslations } from "next-intl"
 import { AlertTriangle, Info, CheckCircle } from "lucide-react"
+import {
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import type { SimulationStatistics } from "@/types/monte-carlo"
 
 interface KellyCriterionCardProps {
 	statistics: SimulationStatistics
-	initialBalance: number
-	currency?: string
 }
 
 const formatKellyPercent = (value: number): string => `${value.toFixed(2)}%`
@@ -18,10 +21,9 @@ const formatKellyCurrency = (value: number, symbol = "$"): string =>
 
 export const KellyCriterionCard = ({
 	statistics,
-	initialBalance,
-	currency = "$",
 }: KellyCriterionCardProps) => {
 	const t = useTranslations("monteCarlo.metrics")
+	const tTooltips = useTranslations("monteCarlo.tooltips")
 
 	const {
 		kellyFull,
@@ -30,10 +32,6 @@ export const KellyCriterionCard = ({
 		kellyRecommendation,
 		kellyLevel,
 	} = statistics
-
-	const quarterKellyRisk = (kellyQuarter / 100) * initialBalance
-	const halfKellyRisk = (kellyHalf / 100) * initialBalance
-	const fullKellyRisk = (kellyFull / 100) * initialBalance
 
 	const levelConfig = {
 		aggressive: {
@@ -59,7 +57,6 @@ export const KellyCriterionCard = ({
 		bgColor: levelBgColor,
 	} = levelConfig[kellyLevel]
 
-	// Get the recommended kelly value and label based on level
 	const recommendedKellyConfig = {
 		aggressive: {
 			value: kellyFull,
@@ -82,7 +79,23 @@ export const KellyCriterionCard = ({
 		<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 			<div className="mb-m-400 flex items-start justify-between">
 				<div>
-					<h3 className="text-body text-txt-100 font-semibold">{t("kelly")}</h3>
+					<div className="gap-s-200 flex items-center">
+						<h3 className="text-body text-txt-100 font-semibold">{t("kelly")}</h3>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<span className="cursor-help">
+									<Info className="h-3.5 w-3.5 text-txt-300" />
+								</span>
+							</TooltipTrigger>
+							<TooltipContent
+								id="tooltip-kelly-criterion"
+								side="top"
+								className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+							>
+								<p className="text-tiny leading-relaxed">{tTooltips("kellyCriterion")}</p>
+							</TooltipContent>
+						</Tooltip>
+					</div>
 					<p className="mt-s-100 text-tiny text-txt-300">
 						{t("kellyDescription")}
 					</p>
@@ -99,12 +112,23 @@ export const KellyCriterionCard = ({
 							: "border-bg-300 bg-bg-100"
 					)}
 				>
-					<p className="text-tiny text-txt-300">{t("quarterKelly")}</p>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<p className="inline-flex cursor-help items-center justify-center gap-s-100 text-tiny text-txt-300">
+								{t("quarterKelly")}
+								<Info className="h-3 w-3" />
+							</p>
+						</TooltipTrigger>
+						<TooltipContent
+							id="tooltip-kelly-quarter"
+							side="top"
+							className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+						>
+							<p className="text-tiny leading-relaxed">{tTooltips("kellyQuarter")}</p>
+						</TooltipContent>
+					</Tooltip>
 					<p className="text-h4 text-txt-100 font-bold">
 						{formatKellyPercent(kellyQuarter)}
-					</p>
-					<p className="text-tiny text-txt-300">
-						{formatKellyCurrency(quarterKellyRisk, currency)}/trade
 					</p>
 				</div>
 				<div
@@ -113,12 +137,23 @@ export const KellyCriterionCard = ({
 						kellyLevel === "balanced" ? levelBgColor : "border-bg-300 bg-bg-100"
 					)}
 				>
-					<p className="text-tiny text-txt-300">{t("halfKelly")}</p>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<p className="inline-flex cursor-help items-center justify-center gap-s-100 text-tiny text-txt-300">
+								{t("halfKelly")}
+								<Info className="h-3 w-3" />
+							</p>
+						</TooltipTrigger>
+						<TooltipContent
+							id="tooltip-kelly-half"
+							side="top"
+							className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+						>
+							<p className="text-tiny leading-relaxed">{tTooltips("kellyHalf")}</p>
+						</TooltipContent>
+					</Tooltip>
 					<p className="text-h4 text-txt-100 font-bold">
 						{formatKellyPercent(kellyHalf)}
-					</p>
-					<p className="text-tiny text-txt-300">
-						{formatKellyCurrency(halfKellyRisk, currency)}/trade
 					</p>
 				</div>
 				<div
@@ -129,12 +164,23 @@ export const KellyCriterionCard = ({
 							: "border-bg-300 bg-bg-100"
 					)}
 				>
-					<p className="text-tiny text-txt-300">{t("fullKelly")}</p>
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<p className="inline-flex cursor-help items-center justify-center gap-s-100 text-tiny text-txt-300">
+								{t("fullKelly")}
+								<Info className="h-3 w-3" />
+							</p>
+						</TooltipTrigger>
+						<TooltipContent
+							id="tooltip-kelly-full"
+							side="top"
+							className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+						>
+							<p className="text-tiny leading-relaxed">{tTooltips("kellyFull")}</p>
+						</TooltipContent>
+					</Tooltip>
 					<p className="text-h4 text-txt-100 font-bold">
 						{formatKellyPercent(kellyFull)}
-					</p>
-					<p className="text-tiny text-txt-300">
-						{formatKellyCurrency(fullKellyRisk, currency)}/trade
 					</p>
 				</div>
 			</div>
@@ -158,30 +204,27 @@ export const KellyCriterionCard = ({
 					<p>
 						•{" "}
 						{t("accountRisk", {
-							account: formatKellyCurrency(10000, currency),
+							account: formatKellyCurrency(10000),
 							risk: formatKellyCurrency(
-								(recommendedKelly / 100) * 10000,
-								currency
+								(recommendedKelly / 100) * 10000
 							),
 						})}
 					</p>
 					<p>
 						•{" "}
 						{t("accountRisk", {
-							account: formatKellyCurrency(25000, currency),
+							account: formatKellyCurrency(25000),
 							risk: formatKellyCurrency(
-								(recommendedKelly / 100) * 25000,
-								currency
+								(recommendedKelly / 100) * 25000
 							),
 						})}
 					</p>
 					<p>
 						•{" "}
 						{t("accountRisk", {
-							account: formatKellyCurrency(50000, currency),
+							account: formatKellyCurrency(50000),
 							risk: formatKellyCurrency(
-								(recommendedKelly / 100) * 50000,
-								currency
+								(recommendedKelly / 100) * 50000
 							),
 						})}
 					</p>

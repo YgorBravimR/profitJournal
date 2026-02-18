@@ -303,6 +303,15 @@ export const formatBrlWithSign = (value: number): string => {
 }
 
 /**
+ * Format R-multiple for compact display (e.g., +2.30R, -1.00R)
+ * Used in Monte Carlo and analytics components for R-based displays
+ */
+export const formatR = (value: number): string => {
+	const sign = value > 0 ? "+" : ""
+	return `${sign}${value.toFixed(2)}R`
+}
+
+/**
  * Format BRL currency in compact form with sign (e.g., +R$1.5K, -R$500)
  * Used in analytics components for chart tooltips and compact displays
  */
