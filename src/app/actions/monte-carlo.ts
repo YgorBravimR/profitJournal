@@ -272,11 +272,18 @@ export const getSimulationStats = async (
 			(sum, t) => sum + (t.commission || 0) + (t.fees || 0),
 			0
 		)
+		const avgCommissionPerTradeCents =
+			tradesList.length > 0
+				? Math.round(totalCommission / tradesList.length)
+				: 0
+		const breakevenCount = tradesList.length - wins.length - losses.length
+		const breakevenRate =
+			tradesList.length > 0 ? (breakevenCount / tradesList.length) * 100 : 0
 		const totalRisk = tradesList.reduce(
 			(sum, t) => sum + (t.plannedRiskAmount || 0),
 			0
 		)
-		const avgCommissionImpact =
+		const commissionImpactR =
 			totalRisk > 0 ? (totalCommission / totalRisk) * 100 : 0
 
 		// Profit factor uses PnL values (consistent with dashboard), not R-multiples
@@ -340,6 +347,8 @@ export const getSimulationStats = async (
 			to: new Date(Math.max(...dates.map((d) => d.getTime()))),
 		}
 
+		const roundTo2 = (n: number) => Math.round(n * 100) / 100
+
 		return {
 			status: "success",
 			message: "Stats retrieved",
@@ -347,13 +356,18 @@ export const getSimulationStats = async (
 				sourceType: validated.type,
 				sourceName,
 				totalTrades: tradesList.length,
-				winRate: Math.round(winRate * 100) / 100,
-				avgRewardRiskRatio: Math.round(avgRewardRiskRatio * 100) / 100,
-				avgRiskPerTrade: 1, // Default - would need account balance history for accurate %
-				avgCommissionImpact: Math.round(avgCommissionImpact * 100) / 100,
+				winRate: roundTo2(winRate),
+				avgRewardRiskRatio: roundTo2(avgRewardRiskRatio),
+				avgRiskPerTrade: 1,
+				avgCommissionImpact: roundTo2(commissionImpactR),
 				dateRange,
-				profitFactor: Math.round(profitFactor * 100) / 100,
-				avgR: Math.round(avgR * 100) / 100,
+				profitFactor: roundTo2(profitFactor),
+				avgR: roundTo2(avgR),
+				avgWinR: roundTo2(avgWinR),
+				avgLossR: roundTo2(avgLossR),
+				commissionImpactR: roundTo2(commissionImpactR),
+				avgCommissionPerTradeCents,
+				breakevenRate: roundTo2(breakevenRate),
 				strategiesCount,
 				accountsCount:
 					validated.type === "universal" ? accountsCount : undefined,
@@ -456,17 +470,18 @@ export const runComparisonSimulation = async (
 				tradesCount: stats.totalTrades,
 				winRate: stats.winRate,
 				rewardRiskRatio: stats.avgRewardRiskRatio,
-				medianReturn: simResult.statistics.medianReturn,
+				medianFinalR: simResult.statistics.medianFinalR,
 				profitablePct: simResult.statistics.profitablePct,
-				maxDrawdown: simResult.statistics.medianMaxDrawdown,
+				maxRDrawdown: simResult.statistics.medianMaxRDrawdown,
 				sharpeRatio: simResult.statistics.sharpeRatio,
-				rank: 0, // Will be calculated below
+				rank: 0,
 				result: simResult,
 			})
 		}
 
-		// Sort and assign ranks (using toSorted for immutability, for loop for clarity)
-		const sortedResults = results.toSorted((a, b) => b.profitablePct - a.profitablePct)
+		const sortedResults = results.toSorted(
+			(a, b) => b.profitablePct - a.profitablePct
+		)
 		for (let i = 0; i < sortedResults.length; i++) {
 			sortedResults[i].rank = i + 1
 		}
@@ -567,4 +582,3 @@ export const runSimulationV2 = async (
 		}
 	}
 }
-

@@ -12,33 +12,29 @@ import {
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
-import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
+import { formatR } from "@/lib/formatting"
 import type { SimulatedTrade } from "@/types/monte-carlo"
 
 interface EquityCurveChartProps {
 	trades: SimulatedTrade[]
-	initialBalance: number
-	showPercentage?: boolean
 }
 
 interface CustomTooltipProps {
 	active?: boolean
 	payload?: Array<{
 		value: number
-		payload: { tradeNumber: number; balance: number; returnPct: number }
+		payload: { tradeNumber: number; cumulativeR: number }
 	}>
-	showPercentage: boolean
 }
 
 const CustomTooltip = ({
 	active,
 	payload,
-	showPercentage,
 }: CustomTooltipProps) => {
 	if (!active || !payload || payload.length === 0) return null
 
 	const data = payload[0].payload
-	const isPositive = data.returnPct >= 0
+	const isPositive = data.cumulativeR >= 0
 
 	return (
 		<div className="border-bg-300 bg-bg-100 p-s-300 rounded-lg border shadow-lg">
@@ -46,9 +42,7 @@ const CustomTooltip = ({
 			<p
 				className={`text-small font-semibold ${isPositive ? "text-trade-buy" : "text-trade-sell"}`}
 			>
-				{showPercentage
-					? formatChartPercent(data.returnPct)
-					: formatCompactCurrency(data.balance)}
+				{formatR(data.cumulativeR)}
 			</p>
 		</div>
 	)
@@ -56,38 +50,30 @@ const CustomTooltip = ({
 
 export const EquityCurveChart = ({
 	trades,
-	initialBalance,
-	showPercentage = false,
 }: EquityCurveChartProps) => {
 	const t = useTranslations("monteCarlo.results")
 
-	// Transform data for chart
 	const chartData = useMemo(
 		() => [
-			{ tradeNumber: 0, balance: initialBalance, returnPct: 0 },
+			{ tradeNumber: 0, cumulativeR: 0 },
 			...trades.map((trade) => ({
 				tradeNumber: trade.tradeNumber,
-				balance: trade.balanceAfter,
-				returnPct:
-					((trade.balanceAfter - initialBalance) / initialBalance) * 100,
+				cumulativeR: trade.cumulativeR,
 			})),
 		],
-		[trades, initialBalance]
+		[trades]
 	)
 
 	const { minValue, maxValue, padding } = useMemo(() => {
-		const values = showPercentage
-			? chartData.map((d) => d.returnPct)
-			: chartData.map((d) => d.balance)
+		const values = chartData.map((d) => d.cumulativeR)
 		const min = Math.min(...values)
 		const max = Math.max(...values)
-		return { minValue: min, maxValue: max, padding: (max - min) * 0.1 || 100 }
-	}, [chartData, showPercentage])
+		return { minValue: min, maxValue: max, padding: (max - min) * 0.1 || 1 }
+	}, [chartData])
 
-	const finalReturnPct = chartData[chartData.length - 1]?.returnPct || 0
-	const isPositive = finalReturnPct >= 0
+	const finalR = chartData[chartData.length - 1]?.cumulativeR || 0
+	const isPositive = finalR >= 0
 
-	// Use CSS variable colors for consistency with theme
 	const strokeColor = isPositive
 		? "var(--color-trade-buy)"
 		: "var(--color-trade-sell)"
@@ -101,7 +87,7 @@ export const EquityCurveChart = ({
 				<span
 					className={`text-small font-medium ${isPositive ? "text-trade-buy" : "text-trade-sell"}`}
 				>
-					{formatChartPercent(finalReturnPct)}
+					{formatR(finalR)}
 				</span>
 			</div>
 
@@ -165,28 +151,22 @@ export const EquityCurveChart = ({
 							fontSize={11}
 							tickLine={false}
 							axisLine={false}
-							tickFormatter={(value) =>
-								showPercentage
-									? formatChartPercent(value)
-									: formatCompactCurrency(value)
-							}
+							tickFormatter={(value) => formatR(value)}
 							domain={[minValue - padding, maxValue + padding]}
 							width={65}
 						/>
 						<Tooltip
-							content={<CustomTooltip showPercentage={showPercentage} />}
+							content={<CustomTooltip />}
 						/>
-						{showPercentage && (
-							<ReferenceLine
-								y={0}
-								stroke="var(--color-txt-300)"
-								strokeDasharray="4 4"
-								strokeOpacity={0.5}
-							/>
-						)}
+						<ReferenceLine
+							y={0}
+							stroke="var(--color-txt-300)"
+							strokeDasharray="4 4"
+							strokeOpacity={0.5}
+						/>
 						<Area
 							type="monotone"
-							dataKey={showPercentage ? "returnPct" : "balance"}
+							dataKey="cumulativeR"
 							stroke={strokeColor}
 							strokeWidth={2}
 							fill={

@@ -121,12 +121,19 @@ export interface PerformanceByGroup {
 }
 
 export interface ExpectedValueData {
+	// Capital Expectancy ($)
 	winRate: number
 	avgWin: number
 	avgLoss: number
 	expectedValue: number
 	projectedPnl100: number
 	sampleSize: number
+	// Edge Expectancy (R)
+	avgWinR: number
+	avgLossR: number
+	expectedR: number
+	projectedR100: number
+	rSampleSize: number
 }
 
 export interface RDistributionBucket {

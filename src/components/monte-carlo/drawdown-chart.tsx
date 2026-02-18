@@ -12,6 +12,7 @@ import {
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
+import { formatR } from "@/lib/formatting"
 import type { SimulatedTrade } from "@/types/monte-carlo"
 
 interface DrawdownChartProps {
@@ -22,7 +23,7 @@ interface CustomTooltipProps {
 	active?: boolean
 	payload?: Array<{
 		value: number
-		payload: { tradeNumber: number; drawdownPercent: number }
+		payload: { tradeNumber: number; rDrawdown: number }
 	}>
 }
 
@@ -34,7 +35,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 		<div className="border-bg-300 bg-bg-100 p-s-300 rounded-lg border shadow-lg">
 			<p className="text-tiny text-txt-300">Trade #{data.tradeNumber}</p>
 			<p className="text-small text-trade-sell font-semibold">
-				-{data.drawdownPercent.toFixed(2)}%
+				-{data.rDrawdown.toFixed(2)}R
 			</p>
 		</div>
 	)
@@ -43,21 +44,20 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 export const DrawdownChart = ({ trades }: DrawdownChartProps) => {
 	const t = useTranslations("monteCarlo.results")
 
-	// Transform data for chart
 	const chartData = useMemo(
 		() => [
-			{ tradeNumber: 0, drawdownPercent: 0 },
+			{ tradeNumber: 0, rDrawdown: 0 },
 			...trades.map((trade) => ({
 				tradeNumber: trade.tradeNumber,
-				drawdownPercent: trade.drawdownPercent,
+				rDrawdown: trade.rDrawdown,
 			})),
 		],
 		[trades]
 	)
 
 	const { maxDrawdown, padding } = useMemo(() => {
-		const max = Math.max(...chartData.map((d) => d.drawdownPercent))
-		return { maxDrawdown: max, padding: max * 0.1 || 1 }
+		const max = Math.max(...chartData.map((d) => d.rDrawdown))
+		return { maxDrawdown: max, padding: max * 0.1 || 0.5 }
 	}, [chartData])
 
 	return (
@@ -67,7 +67,7 @@ export const DrawdownChart = ({ trades }: DrawdownChartProps) => {
 					{t("drawdownCurve")}
 				</h3>
 				<span className="text-small text-trade-sell font-medium">
-					Max: -{maxDrawdown.toFixed(1)}%
+					Max: -{maxDrawdown.toFixed(2)}R
 				</span>
 			</div>
 
@@ -107,10 +107,10 @@ export const DrawdownChart = ({ trades }: DrawdownChartProps) => {
 							fontSize={11}
 							tickLine={false}
 							axisLine={false}
-							tickFormatter={(value) => `-${value.toFixed(0)}%`}
+							tickFormatter={(value) => `-${value.toFixed(1)}R`}
 							domain={[0, maxDrawdown + padding]}
 							reversed
-							width={45}
+							width={50}
 						/>
 						<Tooltip content={<CustomTooltip />} />
 						<ReferenceLine
@@ -121,7 +121,7 @@ export const DrawdownChart = ({ trades }: DrawdownChartProps) => {
 						/>
 						<Area
 							type="monotone"
-							dataKey="drawdownPercent"
+							dataKey="rDrawdown"
 							stroke="var(--color-trade-sell)"
 							strokeWidth={2}
 							fill="url(#drawdownGradient)"

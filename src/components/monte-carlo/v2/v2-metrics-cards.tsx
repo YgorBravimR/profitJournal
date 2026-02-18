@@ -1,6 +1,12 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { Info } from "lucide-react"
+import {
+	Tooltip,
+	TooltipTrigger,
+	TooltipContent,
+} from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import {
 	formatCompactCurrency,
@@ -30,11 +36,30 @@ interface MetricRowProps {
 	label: string
 	value: string
 	valueClass?: string
+	tooltip?: string
 }
 
-const MetricRow = ({ label, value, valueClass }: MetricRowProps) => (
+const MetricRow = ({ label, value, valueClass, tooltip }: MetricRowProps) => (
 	<div className="flex items-center justify-between">
-		<span className="text-tiny text-txt-300">{label}</span>
+		{tooltip ? (
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<span className="inline-flex cursor-help items-center gap-s-100 text-tiny text-txt-300">
+						{label}
+						<Info className="h-3 w-3" />
+					</span>
+				</TooltipTrigger>
+				<TooltipContent
+					id={`tooltip-metric-${label.toLowerCase().replace(/[^a-z0-9]/g, "-")}`}
+					side="top"
+					className="border-bg-300 bg-bg-100 text-txt-200 max-w-xs border p-s-300 shadow-lg"
+				>
+					<p className="text-tiny leading-relaxed">{tooltip}</p>
+				</TooltipContent>
+			</Tooltip>
+		) : (
+			<span className="text-tiny text-txt-300">{label}</span>
+		)}
 		<span
 			className={cn("text-small font-medium", valueClass || "text-txt-100")}
 		>
@@ -48,6 +73,7 @@ const V2MetricsCards = ({
 	initialBalance,
 }: V2MetricsCardsProps) => {
 	const t = useTranslations("monteCarlo.v2.metrics")
+	const tTooltips = useTranslations("monteCarlo.tooltips")
 
 	const medianPnlFromCents = statistics.medianMonthlyPnl / 100
 
@@ -95,6 +121,7 @@ const V2MetricsCards = ({
 							? "text-trade-buy"
 							: "text-trade-sell"
 					}
+					tooltip={tTooltips("profitableMonths")}
 				/>
 				<MetricRow
 					label={t("monthlyLimitHit")}
@@ -104,6 +131,7 @@ const V2MetricsCards = ({
 							? "text-trade-buy"
 							: "text-trade-sell"
 					}
+					tooltip={tTooltips("monthlyLimitHit")}
 				/>
 				<MetricRow
 					label={t("avgTradingDays")}
@@ -146,6 +174,7 @@ const V2MetricsCards = ({
 					label={t("medianMaxDrawdown")}
 					value={formatChartPercent(statistics.medianMaxDrawdownPercent, false)}
 					valueClass="text-trade-sell"
+					tooltip={tTooltips("maxDrawdown")}
 				/>
 				<MetricRow
 					label={t("worstMaxDrawdown")}
@@ -162,6 +191,7 @@ const V2MetricsCards = ({
 					valueClass={
 						statistics.sharpeRatio >= 1 ? "text-trade-buy" : "text-txt-100"
 					}
+					tooltip={tTooltips("sharpeRatio")}
 				/>
 				<MetricRow
 					label={t("sortinoRatio")}
@@ -169,6 +199,7 @@ const V2MetricsCards = ({
 					valueClass={
 						statistics.sortinoRatio >= 1 ? "text-trade-buy" : "text-txt-100"
 					}
+					tooltip={tTooltips("sortinoRatio")}
 				/>
 				<MetricRow
 					label={t("expectedDailyPnl")}
@@ -178,6 +209,7 @@ const V2MetricsCards = ({
 							? "text-trade-buy"
 							: "text-trade-sell"
 					}
+					tooltip={tTooltips("expectedDailyPnl")}
 				/>
 			</MetricCard>
 

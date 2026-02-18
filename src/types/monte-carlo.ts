@@ -3,14 +3,12 @@ export type DataSource =
 	| { type: "all_strategies" }
 	| { type: "universal" }
 
+// V1: Edge Expectancy — simulates in R-multiples (strategy quality)
 export interface SimulationParams {
-	initialBalance: number
-	riskType: "percentage" | "fixed"
-	riskPerTrade: number
-	winRate: number
-	rewardRiskRatio: number
+	winRate: number              // 0-100
+	rewardRiskRatio: number      // e.g. 2.0 means wins pay +2R
 	numberOfTrades: number
-	commissionPerTrade: number
+	commissionImpactR: number    // commission as % of 1R (e.g. 2 = 2% of risk)
 	simulationCount: number
 }
 
@@ -25,6 +23,12 @@ export interface SourceStats {
 	dateRange: { from: Date | string; to: Date | string }
 	profitFactor: number
 	avgR: number
+	// R-specific stats for Edge Expectancy
+	avgWinR: number
+	avgLossR: number
+	commissionImpactR: number
+	avgCommissionPerTradeCents?: number
+	breakevenRate?: number
 	strategiesCount?: number
 	accountsCount?: number
 	strategiesBreakdown?: Array<{
@@ -37,28 +41,22 @@ export interface SourceStats {
 export interface SimulatedTrade {
 	tradeNumber: number
 	isWin: boolean
-	pnl: number
-	commission: number
-	balanceAfter: number
-	drawdown: number
-	drawdownPercent: number
+	rResult: number              // +R:R or -1R (after commission)
+	commission: number           // R units
+	cumulativeR: number          // running total
+	rDrawdown: number            // peak R - current R
 }
 
 export interface SimulationRun {
 	runId: number
 	trades: SimulatedTrade[]
-	finalBalance: number
-	totalReturn: number
-	totalReturnPercent: number
-	maxDrawdown: number
-	maxDrawdownPercent: number
-	totalCommission: number
+	finalCumulativeR: number
+	maxRDrawdown: number
 	winCount: number
 	lossCount: number
 	maxWinStreak: number
 	maxLossStreak: number
-	peakBalance: number
-	underwaterTrades: number
+	peakR: number
 }
 
 export interface DistributionBucket {
@@ -69,24 +67,17 @@ export interface DistributionBucket {
 }
 
 export interface SimulationStatistics {
-	medianFinalBalance: number
-	meanFinalBalance: number
-	bestCaseFinalBalance: number
-	worstCaseFinalBalance: number
-	medianReturn: number
-	meanReturn: number
-	bestCaseReturn: number
-	worstCaseReturn: number
-	medianMaxDrawdown: number
-	meanMaxDrawdown: number
-	worstMaxDrawdown: number
-	profitablePct: number
-	ruinPct: number
-	sharpeRatio: number
+	medianFinalR: number
+	meanFinalR: number
+	bestCaseFinalR: number
+	worstCaseFinalR: number
+	medianMaxRDrawdown: number
+	meanMaxRDrawdown: number
+	worstMaxRDrawdown: number
+	profitablePct: number        // % of runs ending with positive R
+	sharpeRatio: number          // mean R per trade / std dev
 	sortinoRatio: number
-	calmarRatio: number
-	profitFactor: number
-	expectedValuePerTrade: number
+	expectedRPerTrade: number    // the edge
 	expectedMaxWinStreak: number
 	expectedMaxLossStreak: number
 	avgWinStreak: number
@@ -96,10 +87,8 @@ export interface SimulationStatistics {
 	kellyQuarter: number
 	kellyRecommendation: string
 	kellyLevel: "aggressive" | "balanced" | "conservative"
+	profitFactor: number         // total winning R / total losing R
 	avgRecoveryTrades: number
-	avgUnderwaterPercent: number
-	bestTrade: number
-	worstTrade: number
 }
 
 export interface MonteCarloResult {
@@ -112,13 +101,13 @@ export interface MonteCarloResult {
 export interface StrategyComparisonResult {
 	strategyId: string
 	strategyName: string
-	accountName?: string // For universal mode
+	accountName?: string
 	tradesCount: number
 	winRate: number
 	rewardRiskRatio: number
-	medianReturn: number
-	profitablePct: number // % of simulations profitable
-	maxDrawdown: number
+	medianFinalR: number
+	profitablePct: number
+	maxRDrawdown: number
 	sharpeRatio: number
 	rank: number
 	result: MonteCarloResult
@@ -127,8 +116,8 @@ export interface StrategyComparisonResult {
 export type ComparisonSortField =
 	| "rank"
 	| "profitablePct"
-	| "medianReturn"
-	| "maxDrawdown"
+	| "medianFinalR"
+	| "maxRDrawdown"
 	| "sharpeRatio"
 	| "winRate"
 

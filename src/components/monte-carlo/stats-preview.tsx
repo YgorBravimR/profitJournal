@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/shared"
+import { formatR } from "@/lib/formatting"
 import type { SourceStats } from "@/types/monte-carlo"
 
 interface StatsPreviewProps {
@@ -61,8 +62,8 @@ export const StatsPreview = ({
 				) : null}
 			</div>
 
-			{/* Stats Grid */}
-			<div className="mb-m-400 gap-s-300 grid grid-cols-3">
+			{/* Stats Grid — Row 1: Core */}
+			<div className="mb-s-300 gap-s-300 grid grid-cols-3">
 				<div className="bg-bg-100 p-s-300 rounded-md text-center">
 					<p className="text-tiny text-txt-300">{t("winRate")}</p>
 					<p className="text-body text-txt-100 font-semibold">
@@ -81,6 +82,28 @@ export const StatsPreview = ({
 						{stats.profitFactor === Infinity
 							? "∞"
 							: stats.profitFactor.toFixed(2)}
+					</p>
+				</div>
+			</div>
+
+			{/* Stats Grid — Row 2: R-specific */}
+			<div className="mb-m-400 gap-s-300 grid grid-cols-3">
+				<div className="bg-bg-100 p-s-300 rounded-md text-center">
+					<p className="text-tiny text-txt-300">{t("avgWinR")}</p>
+					<p className="text-body text-trade-buy font-semibold">
+						{formatR(stats.avgWinR)}
+					</p>
+				</div>
+				<div className="bg-bg-100 p-s-300 rounded-md text-center">
+					<p className="text-tiny text-txt-300">{t("avgLossR")}</p>
+					<p className="text-body text-trade-sell font-semibold">
+						{formatR(-stats.avgLossR)}
+					</p>
+				</div>
+				<div className="bg-bg-100 p-s-300 rounded-md text-center">
+					<p className="text-tiny text-txt-300">{t("commissionR")}</p>
+					<p className="text-body text-txt-100 font-semibold">
+						{stats.commissionImpactR.toFixed(1)}%
 					</p>
 				</div>
 			</div>
@@ -113,7 +136,8 @@ export const StatsPreview = ({
 				<Button id="monte-carlo-use-stats" size="sm" onClick={onUseStats} className="flex-1">
 					{t("useStats")}
 				</Button>
-				<Button id="monte-carlo-customize"
+				<Button
+					id="monte-carlo-customize"
 					size="sm"
 					variant="outline"
 					onClick={onCustomize}

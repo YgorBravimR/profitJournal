@@ -5,23 +5,17 @@ import { useTranslations } from "next-intl"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { formatR } from "@/lib/formatting"
 import type { SimulatedTrade } from "@/types/monte-carlo"
 
 interface TradeSequenceListProps {
 	trades: SimulatedTrade[]
-	currency?: string
 	initiallyCollapsed?: boolean
 	maxVisible?: number
 }
 
-const formatTradePnl = (value: number, symbol = "$"): string => {
-	const sign = value >= 0 ? "+" : "-"
-	return `${sign}${symbol}${Math.abs(value).toFixed(2)}`
-}
-
 export const TradeSequenceList = ({
 	trades,
-	currency = "$",
 	initiallyCollapsed = true,
 	maxVisible = 10,
 }: TradeSequenceListProps) => {
@@ -48,13 +42,13 @@ export const TradeSequenceList = ({
 								{t("result")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
-								{t("pnl")}
+								{t("rResult")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
 								{t("commission")}
 							</th>
 							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
-								{t("balance")}
+								{t("cumulativeR")}
 							</th>
 						</tr>
 					</thead>
@@ -86,21 +80,21 @@ export const TradeSequenceList = ({
 								<td
 									className={cn(
 										"py-s-200 text-small text-right font-medium",
-										trade.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"
+										trade.rResult >= 0 ? "text-trade-buy" : "text-trade-sell"
 									)}
 								>
-									{formatTradePnl(trade.pnl, currency)}
+									{formatR(trade.rResult)}
 								</td>
 								<td className="py-s-200 text-small text-txt-300 text-right">
-									{currency}
-									{trade.commission.toFixed(2)}
+									{trade.commission.toFixed(3)}R
 								</td>
-								<td className="py-s-200 text-small text-txt-100 text-right font-medium">
-									{currency}
-									{trade.balanceAfter.toLocaleString(undefined, {
-										minimumFractionDigits: 2,
-										maximumFractionDigits: 2,
-									})}
+								<td
+									className={cn(
+										"py-s-200 text-small text-right font-medium",
+										trade.cumulativeR >= 0 ? "text-trade-buy" : "text-trade-sell"
+									)}
+								>
+									{formatR(trade.cumulativeR)}
 								</td>
 							</tr>
 						))}
@@ -110,7 +104,8 @@ export const TradeSequenceList = ({
 
 			{hasMore && (
 				<div className="mt-s-300 text-center">
-					<Button id="monte-carlo-toggle-trades"
+					<Button
+						id="monte-carlo-toggle-trades"
 						variant="ghost"
 						size="sm"
 						onClick={() => setShowAll(!showAll)}

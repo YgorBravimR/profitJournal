@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl"
 import {
 	BarChart3,
-	DollarSign,
+	TrendingUp,
 	AlertTriangle,
 	Brain,
 	Lightbulb,
@@ -11,13 +11,12 @@ import {
 	XCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
+import { formatR } from "@/lib/formatting"
 import { generateAnalysisInsights } from "@/lib/monte-carlo"
 import type { MonteCarloResult } from "@/types/monte-carlo"
 
 interface StrategyAnalysisProps {
 	result: MonteCarloResult
-	currency?: string
 }
 
 interface SectionProps {
@@ -64,7 +63,7 @@ const Insight = ({ type, children }: InsightProps) => {
 }
 
 type ProfitQualityKey = "robust" | "moderate" | "risky"
-type CommissionKey = "good" | "moderate" | "high"
+type CommissionKey = "negligible" | "moderate" | "high"
 type RiskKey = "excellent" | "good" | "moderate" | "concerning"
 
 const profitQualityTranslationKeys: Record<ProfitQualityKey, string> = {
@@ -74,7 +73,7 @@ const profitQualityTranslationKeys: Record<ProfitQualityKey, string> = {
 }
 
 const commissionTranslationKeys: Record<CommissionKey, string> = {
-	good: "commissionCostsGood",
+	negligible: "commissionCostsNegligible",
 	moderate: "commissionCostsModerate",
 	high: "commissionCostsHigh",
 }
@@ -86,9 +85,9 @@ const riskTranslationKeys: Record<RiskKey, string> = {
 	concerning: "riskConcerning",
 }
 
-const getDrawdownLabelKey = (dd: number): string => {
-	if (dd <= 10) return "wellControlled"
-	if (dd <= 20) return "moderate"
+const getDrawdownLabelKey = (ddR: number): string => {
+	if (ddR <= 3) return "wellControlled"
+	if (ddR <= 5) return "moderate"
 	return "highRisk"
 }
 
@@ -108,19 +107,17 @@ const getWinRateLabelKey = (winRate: number): string => {
 	return "winRateRequiresDiscipline"
 }
 
-export const StrategyAnalysis = ({
-	result,
-	currency = "$",
-}: StrategyAnalysisProps) => {
+export const StrategyAnalysis = ({ result }: StrategyAnalysisProps) => {
 	const t = useTranslations("monteCarlo.analysis")
-	const { statistics: stats, params, sampleRun } = result
+	const { statistics: stats, params } = result
 	const insights = generateAnalysisInsights(result)
 
-	const profitQualityKey = profitQualityTranslationKeys[insights.profitabilityQuality as ProfitQualityKey]
-	const expectedProfit = stats.medianFinalBalance - params.initialBalance
-	const commissionPct =
-		expectedProfit > 0 ? (sampleRun.totalCommission / expectedProfit) * 100 : 0
-	const commissionKey = commissionTranslationKeys[insights.commissionAssessment as CommissionKey]
+	const profitQualityKey =
+		profitQualityTranslationKeys[
+			insights.profitabilityQuality as ProfitQualityKey
+		]
+	const commissionKey =
+		commissionTranslationKeys[insights.commissionAssessment as CommissionKey]
 	const riskKey = riskTranslationKeys[insights.riskAssessment as RiskKey]
 
 	return (
@@ -133,56 +130,59 @@ export const StrategyAnalysis = ({
 				{/* Monte Carlo Analysis */}
 				<Section icon={BarChart3} title={t("monteCarlo")}>
 					<p className="text-small text-txt-300">
-						{t("basedOnSimulations", { count: params.simulationCount.toLocaleString() })}
+						{t("basedOnSimulations", {
+							count: params.simulationCount.toLocaleString(),
+						})}
 					</p>
 					<ul className="space-y-s-100 text-small text-txt-200">
 						<li>
 							• <strong>{t("averageReturn")}:</strong>{" "}
-							{formatChartPercent(stats.medianReturn)} ({t("maxDD")}:{" "}
-							{stats.medianMaxDrawdown.toFixed(1)}%) - {t("mostLikelyOutcome")}
+							{formatR(stats.medianFinalR)} ({t("maxDD")}:{" "}
+							{formatR(-stats.medianMaxRDrawdown)}) -{" "}
+							{t("mostLikelyOutcome")}
 						</li>
 						<li>
 							• <strong>{t("bestCaseLabel")}:</strong>{" "}
-							{formatChartPercent(stats.bestCaseReturn)} ({t("maxDD")}:{" "}
-							{(stats.medianMaxDrawdown * 0.5).toFixed(1)}%) - {t("top5Percent")}
+							{formatR(stats.bestCaseFinalR)} - {t("top5Percent")}
 						</li>
 						<li>
 							• <strong>{t("worstCaseLabel")}:</strong>{" "}
-							{formatChartPercent(stats.worstCaseReturn)} ({t("maxDD")}:{" "}
-							{stats.worstMaxDrawdown.toFixed(1)}%) - {t("maximumDownsideRisk")}
+							{formatR(stats.worstCaseFinalR)} ({t("maxDD")}:{" "}
+							{formatR(-stats.worstMaxRDrawdown)}) -{" "}
+							{t("maximumDownsideRisk")}
 						</li>
 					</ul>
-					<Insight type={stats.profitablePct >= 70 ? "positive" : "neutral"}>
+					<Insight
+						type={stats.profitablePct >= 70 ? "positive" : "neutral"}
+					>
 						{t("simulationsProfitable", {
 							percent: stats.profitablePct.toFixed(0),
-							quality: t(profitQualityKey)
+							quality: t(profitQualityKey),
 						})}
 					</Insight>
-					<Insight type="tip">
-						{t("reliableStrategy")}
-					</Insight>
+					<Insight type="tip">{t("reliableStrategy")}</Insight>
 				</Section>
 
-				{/* Balance and Returns */}
-				<Section icon={DollarSign} title={t("balanceReturns")}>
+				{/* Edge Performance */}
+				<Section icon={TrendingUp} title={t("edgePerformance")}>
 					<p className="text-small text-txt-300">
-						{t("startingWith", { amount: formatCompactCurrency(params.initialBalance, currency) })}
+						{t("edgeMetrics")}
 					</p>
 					<ul className="space-y-s-100 text-small text-txt-200">
 						<li>
-							• <strong>{t("expectedProfit")}:</strong>{" "}
-							{formatCompactCurrency(expectedProfit, currency)} (
-							{formatChartPercent(stats.medianReturn)} {t("return")})
+							• <strong>{t("expectedEdge")}:</strong>{" "}
+							{formatR(stats.expectedRPerTrade)} {t("perTrade")}
 						</li>
 						<li>
 							• <strong>{t("commissionImpact")}:</strong>{" "}
-							{formatCompactCurrency(sampleRun.totalCommission, currency)} (
-							{commissionPct.toFixed(1)}% {t("ofProfits")})
+							{params.commissionImpactR.toFixed(1)}% {t("ofRisk")}
 						</li>
 					</ul>
 					<Insight
 						type={
-							insights.commissionAssessment === "good" ? "positive" : "neutral"
+							insights.commissionAssessment === "negligible"
+								? "positive"
+								: "neutral"
 						}
 					>
 						{t(commissionKey)}
@@ -190,25 +190,31 @@ export const StrategyAnalysis = ({
 				</Section>
 
 				<Section icon={AlertTriangle} title={t("riskAnalysis")}>
-					<p className="text-small text-txt-300">{t("riskMetricsIndicate")}</p>
+					<p className="text-small text-txt-300">
+						{t("riskMetricsIndicate")}
+					</p>
 					<ul className="space-y-s-100 text-small text-txt-200">
 						<li>
 							• <strong>{t("maximumDrawdown")}:</strong>{" "}
-							{stats.medianMaxDrawdown.toFixed(1)}% -{" "}
-							{t(getDrawdownLabelKey(stats.medianMaxDrawdown))}
+							{formatR(-stats.medianMaxRDrawdown)} -{" "}
+							{t(getDrawdownLabelKey(stats.medianMaxRDrawdown))}
 						</li>
 						<li>
-							• <strong>{t("sharpeRatio")}:</strong> {stats.sharpeRatio.toFixed(2)} -{" "}
+							• <strong>{t("sharpeRatio")}:</strong>{" "}
+							{stats.sharpeRatio.toFixed(2)} -{" "}
 							{t(getSharpeLabelKey(stats.sharpeRatio))}
 						</li>
 						<li>
-							• <strong>{t("sortinoRatio")}:</strong> {stats.sortinoRatio.toFixed(2)}{" "}
-							- {t(getSortinoLabelKey(stats.sortinoRatio))}
+							• <strong>{t("sortinoRatio")}:</strong>{" "}
+							{stats.sortinoRatio.toFixed(2)} -{" "}
+							{t(getSortinoLabelKey(stats.sortinoRatio))}
 						</li>
 					</ul>
 					<Insight
 						type={
-							insights.riskAssessment === "excellent" ? "positive" : "neutral"
+							insights.riskAssessment === "excellent"
+								? "positive"
+								: "neutral"
 						}
 					>
 						{t("riskAdjustedPerformance", { quality: t(riskKey) })}
@@ -222,8 +228,8 @@ export const StrategyAnalysis = ({
 					</p>
 					<ul className="space-y-s-100 text-small text-txt-200">
 						<li>
-							• <strong>{t("winRateLabel")}:</strong> {params.winRate}% -{" "}
-							{t(getWinRateLabelKey(params.winRate))}
+							• <strong>{t("winRateLabel")}:</strong> {params.winRate}%
+							- {t(getWinRateLabelKey(params.winRate))}
 						</li>
 						<li>
 							• <strong>{t("longestWinStreak")}:</strong>{" "}
@@ -250,9 +256,7 @@ export const StrategyAnalysis = ({
 								<li key={i}>• {suggestion}</li>
 							))}
 						</ul>
-						<Insight type="tip">
-							{t("bestStrategyTip")}
-						</Insight>
+						<Insight type="tip">{t("bestStrategyTip")}</Insight>
 					</Section>
 				)}
 			</div>

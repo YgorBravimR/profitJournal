@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { Calculator, TrendingUp, TrendingDown, Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 import {
@@ -7,8 +8,9 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 import type { ExpectedValueData } from "@/types"
-import { formatCompactCurrencyWithSign } from "@/lib/formatting"
+import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
 
 const StatLabel = ({
 	label,
@@ -34,45 +36,150 @@ const StatLabel = ({
 	</Tooltip>
 )
 
+type ExpectancyMode = "edge" | "capital"
+
 interface ExpectedValueProps {
 	data: ExpectedValueData | null
 }
 
-export const ExpectedValue = ({ data }: ExpectedValueProps) => {
+const EdgeExpectancyDisplay = ({ data }: { data: ExpectedValueData }) => {
 	const t = useTranslations("analytics.expectedValue")
+	const isPositiveR = data.expectedR >= 0
+	const rWinRate = data.rSampleSize > 0
+		? (data.avgWinR > 0 ? data.avgWinR : 0) // for formula display we use the win rate from the main data
+		: 0
 
-	if (!data || data.sampleSize === 0) {
-		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<div className="flex items-center gap-s-200">
-					<Calculator className="h-5 w-5 text-txt-300" />
-					<h3 className="text-body font-semibold text-txt-100">
-						{t("title")}
-					</h3>
-				</div>
-				<div className="mt-m-400 flex h-32 items-center justify-center text-txt-300">
-					{t("noData")}
+	return (
+		<>
+			{/* Main R Display */}
+			<div className="mt-m-500 flex items-center justify-center">
+				<div className="text-center">
+					<p className="text-tiny text-txt-300">{t("perTradeR")}</p>
+					<div className="mt-s-200 flex items-center justify-center gap-s-200">
+						{isPositiveR ? (
+							<TrendingUp className="h-8 w-8 text-trade-buy" />
+						) : (
+							<TrendingDown className="h-8 w-8 text-trade-sell" />
+						)}
+						<span
+							className={`text-h2 font-bold ${
+								isPositiveR ? "text-trade-buy" : "text-trade-sell"
+							}`}
+						>
+							{formatR(data.expectedR)}
+						</span>
+					</div>
 				</div>
 			</div>
-		)
-	}
 
+			{/* Breakdown */}
+			<div className="mt-m-600 grid grid-cols-2 gap-m-400 md:grid-cols-4">
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label={t("winRateLabel")}
+						tooltip={t("winRateDesc")}
+					/>
+					<p className="mt-s-100 text-body font-bold text-txt-100">
+						{data.winRate.toFixed(1)}%
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label={t("avgWinR")}
+						tooltip={t("avgWinRDesc")}
+					/>
+					<p className="mt-s-100 text-body font-bold text-trade-buy">
+						{formatR(data.avgWinR)}
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label={t("avgLossR")}
+						tooltip={t("avgLossRDesc")}
+					/>
+					<p className="mt-s-100 text-body font-bold text-trade-sell">
+						{formatR(-data.avgLossR)}
+					</p>
+				</div>
+				<div className="rounded-lg bg-bg-100 p-s-300 text-center">
+					<StatLabel
+						label={t("projectedR100")}
+						tooltip={t("projectedR100Desc")}
+					/>
+					<p
+						className={`mt-s-100 text-body font-bold ${
+							data.projectedR100 >= 0 ? "text-trade-buy" : "text-trade-sell"
+						}`}
+					>
+						{formatR(data.projectedR100)}
+					</p>
+				</div>
+			</div>
+
+			{/* Formula Explanation */}
+			<div className="mt-m-500 rounded-lg bg-bg-100 p-m-400">
+				<div className="flex items-start gap-s-200">
+					<Info className="mt-s-100 h-4 w-4 shrink-0 text-txt-300" />
+					<div className="text-tiny text-txt-300">
+						<p className="font-medium text-txt-200">{t("formulaTitleR")}</p>
+						<p className="mt-s-100">
+							{t("formulaR")}
+						</p>
+						<p className="mt-s-200">
+							EV(R) = ({data.winRate.toFixed(1)}% × {data.avgWinR.toFixed(2)}R) - (
+							{(100 - data.winRate).toFixed(1)}% × {data.avgLossR.toFixed(2)}R)
+						</p>
+						<p className="mt-s-200">
+							EV(R) = {((data.winRate / 100) * data.avgWinR).toFixed(2)}R - {" "}
+							{(((100 - data.winRate) / 100) * data.avgLossR).toFixed(2)}R ={" "}
+							<span
+								className={
+									isPositiveR ? "text-trade-buy" : "text-trade-sell"
+								}
+							>
+								{formatR(data.expectedR)}
+							</span>
+						</p>
+					</div>
+				</div>
+			</div>
+
+			{/* Interpretation */}
+			<div className="mt-m-400">
+				<p className="text-small text-txt-200">
+					{isPositiveR
+						? t.rich("systemHasPositiveEdgeR", {
+								positive: (chunks) => (
+									<span className="font-semibold text-trade-buy">{chunks}</span>
+								),
+								amount: () => (
+									<span className="font-semibold text-trade-buy">
+										{formatR(data.expectedR)}
+									</span>
+								),
+						  })
+						: t.rich("systemHasNegativeEdgeR", {
+								negative: (chunks) => (
+									<span className="font-semibold text-trade-sell">{chunks}</span>
+								),
+								amount: () => (
+									<span className="font-semibold text-trade-sell">
+										{formatR(Math.abs(data.expectedR))}
+									</span>
+								),
+						  })}
+				</p>
+			</div>
+		</>
+	)
+}
+
+const CapitalExpectancyDisplay = ({ data }: { data: ExpectedValueData }) => {
+	const t = useTranslations("analytics.expectedValue")
 	const isPositiveEV = data.expectedValue >= 0
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-s-200">
-					<Calculator className="h-5 w-5 text-txt-300" />
-					<h3 className="text-body font-semibold text-txt-100">
-						{t("title")}
-					</h3>
-				</div>
-				<span className="text-tiny text-txt-300">
-					{t("basedOn", { count: data.sampleSize })}
-				</span>
-			</div>
-
+		<>
 			{/* Main EV Display */}
 			<div className="mt-m-500 flex items-center justify-center">
 				<div className="text-center">
@@ -192,6 +299,87 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 						  })}
 				</p>
 			</div>
+		</>
+	)
+}
+
+export const ExpectedValue = ({ data }: ExpectedValueProps) => {
+	const t = useTranslations("analytics.expectedValue")
+	const [mode, setMode] = useState<ExpectancyMode>("edge")
+
+	if (!data || data.sampleSize === 0) {
+		return (
+			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+				<div className="flex items-center gap-s-200">
+					<Calculator className="h-5 w-5 text-txt-300" />
+					<h3 className="text-body font-semibold text-txt-100">
+						{t("title")}
+					</h3>
+				</div>
+				<div className="mt-m-400 flex h-32 items-center justify-center text-txt-300">
+					{t("noData")}
+				</div>
+			</div>
+		)
+	}
+
+	const hasRData = data.rSampleSize > 0
+
+	return (
+		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-s-200">
+					<Calculator className="h-5 w-5 text-txt-300" />
+					<h3 className="text-body font-semibold text-txt-100">
+						{mode === "edge" ? t("edgeTitle") : t("capitalTitle")}
+					</h3>
+				</div>
+				<div className="flex items-center gap-s-300">
+					<div className="flex rounded-md border border-bg-300 bg-bg-100">
+						<button
+							type="button"
+							tabIndex={0}
+							aria-label={t("edgeTitle")}
+							className={cn(
+								"px-s-300 py-s-100 text-tiny rounded-l-md transition-colors",
+								mode === "edge" ? "bg-acc-100 text-bg-100" : "text-txt-300 hover:text-txt-100"
+							)}
+							onClick={() => setMode("edge")}
+							onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setMode("edge") }}
+						>
+							R
+						</button>
+						<button
+							type="button"
+							tabIndex={0}
+							aria-label={t("capitalTitle")}
+							className={cn(
+								"px-s-300 py-s-100 text-tiny rounded-r-md transition-colors",
+								mode === "capital" ? "bg-acc-100 text-bg-100" : "text-txt-300 hover:text-txt-100"
+							)}
+							onClick={() => setMode("capital")}
+							onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setMode("capital") }}
+						>
+							$
+						</button>
+					</div>
+					<span className="text-tiny text-txt-300">
+						{t("basedOn", { count: mode === "edge" ? data.rSampleSize : data.sampleSize })}
+					</span>
+				</div>
+			</div>
+
+			{mode === "edge" ? (
+				hasRData ? (
+					<EdgeExpectancyDisplay data={data} />
+				) : (
+					<div className="mt-m-400 flex h-32 items-center justify-center text-txt-300">
+						{t("noRData")}
+					</div>
+				)
+			) : (
+				<CapitalExpectancyDisplay data={data} />
+			)}
 		</div>
 	)
 }

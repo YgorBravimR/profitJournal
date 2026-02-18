@@ -3,13 +3,6 @@
 import { useTranslations } from "next-intl"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select"
 import type { SimulationParams } from "@/types/monte-carlo"
 import { SIMULATION_BUDGET_CAP } from "@/lib/validations/monte-carlo"
 import { cn } from "@/lib/utils"
@@ -48,86 +41,6 @@ export const SimulationParamsForm = ({
 			</h3>
 
 			<div className="gap-m-400 grid md:grid-cols-3">
-				{/* Initial Balance */}
-				<div>
-					<Label id="label-simulation-initial-balance" className="mb-s-200 text-small text-txt-200 block">
-						{t("initialBalance")}
-					</Label>
-					<div className="relative">
-						<span className="text-tiny text-txt-300 absolute top-1/2 left-3 -translate-y-1/2">
-							$
-						</span>
-						<Input
-							id="simulation-initial-balance"
-							type="number"
-							min={100}
-							max={100000000}
-							value={params.initialBalance}
-							onChange={(e) =>
-								handleChange("initialBalance", parseFloat(e.target.value) || 0)
-							}
-							className="pl-7"
-							disabled={disabled}
-						/>
-					</div>
-				</div>
-
-				{/* Risk Type */}
-				<div>
-					<Label id="label-simulation-risk-type" className="mb-s-200 text-small text-txt-200 block">
-						{t("riskType")}
-					</Label>
-					<Select
-						value={params.riskType}
-						onValueChange={(value) =>
-							handleChange("riskType", value as "percentage" | "fixed")
-						}
-						disabled={disabled}
-					>
-						<SelectTrigger id="simulation-risk-type">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="percentage">
-								{t("riskTypePercentage")}
-							</SelectItem>
-							<SelectItem value="fixed">{t("riskTypeFixed")}</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-
-				{/* Risk Per Trade */}
-				<div>
-					<Label id="label-simulation-risk-per-trade" className="mb-s-200 text-small text-txt-200 block">
-						{t("riskPerTrade")}
-					</Label>
-					<div className="relative">
-						<Input
-							id="simulation-risk-per-trade"
-							type="number"
-							step="0.1"
-							min={0.01}
-							max={
-								params.riskType === "percentage" ? 100 : params.initialBalance
-							}
-							value={params.riskPerTrade}
-							onChange={(e) =>
-								handleChange("riskPerTrade", parseFloat(e.target.value) || 0)
-							}
-							className={params.riskType === "percentage" ? "pr-7" : "pl-7"}
-							disabled={disabled}
-						/>
-						<span
-							className={cn(
-								"text-tiny text-txt-300 absolute top-1/2 -translate-y-1/2",
-								params.riskType === "percentage" ? "right-3" : "left-3"
-							)}
-						>
-							{params.riskType === "percentage" ? "%" : "$"}
-						</span>
-					</div>
-				</div>
-
 				{/* Win Rate */}
 				<div>
 					<Label id="label-simulation-win-rate" className="mb-s-200 text-small text-txt-200 block">
@@ -191,22 +104,22 @@ export const SimulationParamsForm = ({
 					/>
 				</div>
 
-				{/* Commission */}
+				{/* Commission Impact (% of R) */}
 				<div>
-					<Label id="label-simulation-commission-per-trade" className="mb-s-200 text-small text-txt-200 block">
-						{t("commissionPerTrade")}
+					<Label id="label-simulation-commission-impact" className="mb-s-200 text-small text-txt-200 block">
+						{t("commissionImpactR")}
 					</Label>
 					<div className="relative">
 						<Input
-							id="simulation-commission-per-trade"
+							id="simulation-commission-impact"
 							type="number"
-							step="0.01"
+							step="0.1"
 							min={0}
-							max={10}
-							value={params.commissionPerTrade}
+							max={50}
+							value={params.commissionImpactR}
 							onChange={(e) =>
 								handleChange(
-									"commissionPerTrade",
+									"commissionImpactR",
 									parseFloat(e.target.value) || 0
 								)
 							}

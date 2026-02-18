@@ -7,6 +7,11 @@ import type {
 	DistributionBucket,
 } from "@/types/monte-carlo"
 
+/**
+ * Run a Monte Carlo simulation in R-multiples (Edge Expectancy).
+ * Every trade risks exactly 1R. Wins pay +rewardRiskRatio R, losses cost -1R.
+ * No balance tracking — this measures pure strategy quality.
+ */
 export const runMonteCarloSimulation = (
 	params: SimulationParams
 ): MonteCarloResult => {
@@ -18,14 +23,14 @@ export const runMonteCarloSimulation = (
 	}
 
 	const statistics = aggregateStatistics(params, runs)
-	const distributionBuckets = calculateDistribution(runs, params.initialBalance)
+	const distributionBuckets = calculateDistribution(runs)
 
-	// Find median run for sample display (using toSorted for immutability)
-	const sortedByReturn = runs.toSorted(
-		(a, b) => a.totalReturnPercent - b.totalReturnPercent
+	// Find median run for sample display
+	const sortedByFinalR = runs.toSorted(
+		(a, b) => a.finalCumulativeR - b.finalCumulativeR
 	)
-	const medianIndex = Math.floor(sortedByReturn.length / 2)
-	const sampleRun = sortedByReturn[medianIndex]
+	const medianIndex = Math.floor(sortedByFinalR.length / 2)
+	const sampleRun = sortedByFinalR[medianIndex]
 
 	return {
 		params,
@@ -39,8 +44,8 @@ const simulateSingleRun = (
 	params: SimulationParams,
 	runId: number
 ): SimulationRun => {
-	let balance = params.initialBalance
-	let peakBalance = balance
+	let cumulativeR = 0
+	let peakR = 0
 	const trades: SimulatedTrade[] = []
 	let winCount = 0
 	let lossCount = 0
@@ -48,77 +53,57 @@ const simulateSingleRun = (
 	let currentLossStreak = 0
 	let maxWinStreak = 0
 	let maxLossStreak = 0
-	let underwaterTrades = 0
-	let totalCommission = 0
+	let maxRDrawdown = 0
+
+	const commissionFraction = params.commissionImpactR / 100
 
 	for (let t = 0; t < params.numberOfTrades; t++) {
-		const riskAmount =
-			params.riskType === "percentage"
-				? balance * (params.riskPerTrade / 100)
-				: Math.min(params.riskPerTrade, balance)
-
-		const commission = riskAmount * (params.commissionPerTrade / 100)
-		totalCommission += commission
-
 		const isWin = Math.random() * 100 < params.winRate
+		const commission = commissionFraction // expressed in R units
 
-		let pnl: number
+		let rResult: number
 		if (isWin) {
-			pnl = riskAmount * params.rewardRiskRatio - commission
+			// Win: earn rewardRiskRatio R, minus commission
+			rResult = params.rewardRiskRatio - commission
 			winCount++
 			currentWinStreak++
 			currentLossStreak = 0
 			maxWinStreak = Math.max(maxWinStreak, currentWinStreak)
 		} else {
-			pnl = -riskAmount - commission
+			// Loss: lose 1R, plus commission
+			rResult = -1 - commission
 			lossCount++
 			currentLossStreak++
 			currentWinStreak = 0
 			maxLossStreak = Math.max(maxLossStreak, currentLossStreak)
 		}
 
-		balance = Math.max(0, balance + pnl)
-		peakBalance = Math.max(peakBalance, balance)
-
-		const drawdown = peakBalance - balance
-		const drawdownPercent = peakBalance > 0 ? (drawdown / peakBalance) * 100 : 0
-
-		if (balance < peakBalance) underwaterTrades++
+		cumulativeR += rResult
+		peakR = Math.max(peakR, cumulativeR)
+		const rDrawdown = peakR - cumulativeR
+		maxRDrawdown = Math.max(maxRDrawdown, rDrawdown)
 
 		trades.push({
 			tradeNumber: t + 1,
 			isWin,
-			pnl,
+			rResult,
 			commission,
-			balanceAfter: balance,
-			drawdown,
-			drawdownPercent,
+			cumulativeR,
+			rDrawdown,
 		})
-
-		if (balance <= 0) break
+		// No ruin break — R-space doesn't have bankruptcy
 	}
-
-	const maxDrawdownTrade = trades.reduce(
-		(max, t) => (t.drawdownPercent > max.drawdownPercent ? t : max),
-		trades[0]
-	)
 
 	return {
 		runId,
 		trades,
-		finalBalance: balance,
-		totalReturn: balance - params.initialBalance,
-		totalReturnPercent:
-			((balance - params.initialBalance) / params.initialBalance) * 100,
-		maxDrawdown: maxDrawdownTrade?.drawdown || 0,
-		maxDrawdownPercent: maxDrawdownTrade?.drawdownPercent || 0,
-		totalCommission,
+		finalCumulativeR: cumulativeR,
+		maxRDrawdown,
 		winCount,
 		lossCount,
 		maxWinStreak,
 		maxLossStreak,
-		peakBalance,
-		underwaterTrades,
+		peakR,
 	}
 }
 
@@ -126,12 +111,8 @@ const aggregateStatistics = (
 	params: SimulationParams,
 	runs: SimulationRun[]
 ): SimulationStatistics => {
-	// Using toSorted for immutability in statistical calculations
-	const finalBalances = runs.map((r) => r.finalBalance).toSorted((a, b) => a - b)
-	const returns = runs.map((r) => r.totalReturnPercent).toSorted((a, b) => a - b)
-	const maxDrawdowns = runs
-		.map((r) => r.maxDrawdownPercent)
-		.toSorted((a, b) => a - b)
+	const finalRValues = runs.map((r) => r.finalCumulativeR).toSorted((a, b) => a - b)
+	const maxDrawdowns = runs.map((r) => r.maxRDrawdown).toSorted((a, b) => a - b)
 
 	const percentile = (arr: number[], p: number): number => {
 		const index = Math.ceil((p / 100) * arr.length) - 1
@@ -146,36 +127,31 @@ const aggregateStatistics = (
 	const mean = (arr: number[]): number =>
 		arr.reduce((sum, v) => sum + v, 0) / arr.length
 
-	const profitableRuns = runs.filter((r) => r.totalReturn > 0).length
-	const ruinRuns = runs.filter((r) => r.totalReturnPercent <= -50).length
-	const meanReturnPct = mean(returns)
-	const stdDev = calculateStdDev(returns)
-	const downsideReturns = returns.filter((r) => r < 0)
-	const downsideDev =
-		downsideReturns.length > 0 ? calculateStdDev(downsideReturns) : 1
+	const profitableRuns = runs.filter((r) => r.finalCumulativeR > 0).length
 
-	const sharpeRatio = stdDev > 0 ? meanReturnPct / stdDev : 0
-	const sortinoRatio = downsideDev > 0 ? meanReturnPct / downsideDev : 0
-	const calmarRatio =
-		mean(maxDrawdowns) > 0 ? meanReturnPct / mean(maxDrawdowns) : 0
+	// Collect all per-trade R results across all runs for Sharpe/Sortino
+	const allTradeResults: number[] = []
+	for (const run of runs) {
+		for (const trade of run.trades) {
+			allTradeResults.push(trade.rResult)
+		}
+	}
 
-	const winProb = params.winRate / 100
-	const expectedValue =
-		winProb * params.rewardRiskRatio -
-		(1 - winProb) -
-		params.commissionPerTrade / 100
-	const totalWins = runs.reduce((sum, r) => {
-		const wins = r.trades.filter((t) => t.isWin).reduce((s, t) => s + t.pnl, 0)
-		return sum + wins
-	}, 0)
-	const totalLosses = runs.reduce((sum, r) => {
-		const losses = r.trades
-			.filter((t) => !t.isWin)
-			.reduce((s, t) => s + Math.abs(t.pnl), 0)
-		return sum + losses
-	}, 0)
-	const profitFactor =
-		totalLosses > 0 ? totalWins / totalLosses : totalWins > 0 ? Infinity : 0
+	const meanRPerTrade = mean(allTradeResults)
+	const stdDev = calculateStdDev(allTradeResults)
+	const downsideDev = calculateDownsideDeviation(allTradeResults, 0)
+
+	const sharpeRatio = stdDev > 0 ? meanRPerTrade / stdDev : 0
+	const sortinoRatio = downsideDev > 0 ? meanRPerTrade / downsideDev : 0
+
+	// Profit factor: total winning R / total losing R
+	const totalWinningR = allTradeResults.filter((r) => r > 0).reduce((sum, r) => sum + r, 0)
+	const totalLosingR = Math.abs(allTradeResults.filter((r) => r < 0).reduce((sum, r) => sum + r, 0))
+	const profitFactor = totalLosingR > 0
+		? totalWinningR / totalLosingR
+		: totalWinningR > 0 ? Infinity : 0
+
+	// Streak analysis
 	const avgMaxWinStreak = mean(runs.map((r) => r.maxWinStreak))
 	const avgMaxLossStreak = mean(runs.map((r) => r.maxLossStreak))
 	const allWinStreaks: number[] = []
@@ -210,37 +186,18 @@ const aggregateStatistics = (
 		kellyLevel,
 	} = calculateKellyCriterion(params.winRate, params.rewardRiskRatio)
 
-	const avgUnderwaterPct = mean(
-		runs.map((r) => (r.underwaterTrades / r.trades.length) * 100)
-	)
-	let bestTrade = -Infinity
-	let worstTrade = Infinity
-	for (const run of runs) {
-		for (const trade of run.trades) {
-			if (trade.pnl > bestTrade) bestTrade = trade.pnl
-			if (trade.pnl < worstTrade) worstTrade = trade.pnl
-		}
-	}
-
 	return {
-		medianFinalBalance: median(finalBalances),
-		meanFinalBalance: mean(finalBalances),
-		bestCaseFinalBalance: percentile(finalBalances, 95),
-		worstCaseFinalBalance: percentile(finalBalances, 5),
-		medianReturn: median(returns),
-		meanReturn: meanReturnPct,
-		bestCaseReturn: percentile(returns, 95),
-		worstCaseReturn: percentile(returns, 5),
-		medianMaxDrawdown: median(maxDrawdowns),
-		meanMaxDrawdown: mean(maxDrawdowns),
-		worstMaxDrawdown: percentile(maxDrawdowns, 95),
+		medianFinalR: median(finalRValues),
+		meanFinalR: mean(finalRValues),
+		bestCaseFinalR: percentile(finalRValues, 95),
+		worstCaseFinalR: percentile(finalRValues, 5),
+		medianMaxRDrawdown: median(maxDrawdowns),
+		meanMaxRDrawdown: mean(maxDrawdowns),
+		worstMaxRDrawdown: percentile(maxDrawdowns, 95),
 		profitablePct: (profitableRuns / runs.length) * 100,
-		ruinPct: (ruinRuns / runs.length) * 100,
 		sharpeRatio,
 		sortinoRatio,
-		calmarRatio,
-		profitFactor,
-		expectedValuePerTrade: expectedValue,
+		expectedRPerTrade: meanRPerTrade,
 		expectedMaxWinStreak: avgMaxWinStreak,
 		expectedMaxLossStreak: avgMaxLossStreak,
 		avgWinStreak: allWinStreaks.length > 0 ? mean(allWinStreaks) : 0,
@@ -250,10 +207,8 @@ const aggregateStatistics = (
 		kellyQuarter,
 		kellyRecommendation,
 		kellyLevel,
+		profitFactor,
 		avgRecoveryTrades: 0,
-		avgUnderwaterPercent: avgUnderwaterPct,
-		bestTrade,
-		worstTrade,
 	}
 }
 
@@ -301,16 +256,18 @@ export const calculateKellyCriterion = (
 	}
 }
 
+/**
+ * Bucket by final cumulative R ranges
+ */
 const calculateDistribution = (
-	runs: SimulationRun[],
-	_initialBalance: number
+	runs: SimulationRun[]
 ): DistributionBucket[] => {
-	const finalBalances = runs.map((r) => r.finalBalance)
+	const finalRValues = runs.map((r) => r.finalCumulativeR)
 	let min = Infinity
 	let max = -Infinity
-	for (const balance of finalBalances) {
-		if (balance < min) min = balance
-		if (balance > max) max = balance
+	for (const rValue of finalRValues) {
+		if (rValue < min) min = rValue
+		if (rValue > max) max = rValue
 	}
 	const bucketCount = 20
 	const bucketSize = (max - min) / bucketCount || 1
@@ -322,8 +279,8 @@ const calculateDistribution = (
 		const rangeEnd = min + (i + 1) * bucketSize
 		const isLastBucket = i === bucketCount - 1
 
-		const count = finalBalances.filter(
-			(b) => b >= rangeStart && (isLastBucket ? b <= rangeEnd : b < rangeEnd)
+		const count = finalRValues.filter(
+			(r) => r >= rangeStart && (isLastBucket ? r <= rangeEnd : r < rangeEnd)
 		).length
 
 		buckets.push({
@@ -346,18 +303,34 @@ const calculateStdDev = (values: number[]): number => {
 	return Math.sqrt(avgSquaredDiff)
 }
 
+/**
+ * Downside deviation for Sortino ratio.
+ * Measures volatility of returns below the target (typically 0).
+ * Uses ALL values in the denominator, not just the negative ones.
+ *
+ * DD = sqrt( (1/N) * Σ min(0, r_i - target)^2 )
+ */
+const calculateDownsideDeviation = (values: number[], target: number): number => {
+	if (values.length === 0) return 0
+	const sumSquaredDownside = values.reduce((sum, v) => {
+		const diff = v - target
+		return diff < 0 ? sum + diff * diff : sum
+	}, 0)
+	return Math.sqrt(sumSquaredDownside / values.length)
+}
+
 interface AnalysisInsights {
 	profitabilityQuality: "robust" | "moderate" | "risky"
 	riskAssessment: "excellent" | "good" | "moderate" | "concerning"
 	psychologyWarning: string | null
-	commissionAssessment: "good" | "moderate" | "high"
+	commissionAssessment: "negligible" | "moderate" | "high"
 	improvementSuggestions: string[]
 }
 
 export const generateAnalysisInsights = (
 	result: MonteCarloResult
 ): AnalysisInsights => {
-	const { statistics: stats, params, sampleRun } = result
+	const { statistics: stats, params } = result
 
 	const getProfitabilityQuality = (): "robust" | "moderate" | "risky" => {
 		if (stats.profitablePct >= 70) return "robust"
@@ -370,10 +343,10 @@ export const generateAnalysisInsights = (
 		| "good"
 		| "moderate"
 		| "concerning" => {
-		if (stats.sharpeRatio >= 2 && stats.medianMaxDrawdown <= 10)
+		if (stats.sharpeRatio >= 0.5 && stats.medianMaxRDrawdown <= 3)
 			return "excellent"
-		if (stats.sharpeRatio >= 1 && stats.medianMaxDrawdown <= 20) return "good"
-		if (stats.sharpeRatio >= 0.5 && stats.medianMaxDrawdown <= 30)
+		if (stats.sharpeRatio >= 0.3 && stats.medianMaxRDrawdown <= 5) return "good"
+		if (stats.sharpeRatio >= 0.1 && stats.medianMaxRDrawdown <= 8)
 			return "moderate"
 		return "concerning"
 	}
@@ -389,30 +362,26 @@ export const generateAnalysisInsights = (
 		return null
 	}
 
-	const getCommissionAssessment = (): "good" | "moderate" | "high" => {
-		const impact = sampleRun.totalCommission / sampleRun.totalReturn
-		if (Number.isNaN(impact) || impact <= 0.1) return "good"
-		if (impact <= 0.25) return "moderate"
+	const getCommissionAssessment = (): "negligible" | "moderate" | "high" => {
+		if (params.commissionImpactR <= 1) return "negligible"
+		if (params.commissionImpactR <= 5) return "moderate"
 		return "high"
 	}
 
 	const suggestions: string[] = []
-	if (stats.avgUnderwaterPercent > 50) {
-		suggestions.push(
-			"Reduce Underwater Time: Look for better entry/exit criteria"
-		)
-	}
 	if (params.rewardRiskRatio < 1.5) {
-		suggestions.push("Improve Reward/Risk: Focus on letting winners run longer")
+		suggestions.push(
+			"Improve Reward/Risk: Focus on letting winners run longer"
+		)
 	}
 	if (params.winRate < 50) {
 		suggestions.push(
 			"Improve Win Rate: Review entry criteria and market selection"
 		)
 	}
-	if (stats.medianMaxDrawdown > 20) {
+	if (stats.medianMaxRDrawdown > 5) {
 		suggestions.push(
-			"Reduce Drawdown: Consider smaller position sizes or tighter stops"
+			"High R-Drawdown: The strategy may test psychological limits during losing streaks"
 		)
 	}
 
