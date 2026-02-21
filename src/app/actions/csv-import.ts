@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { assets, strategies, tags, timeframes, tradingAccounts } from "@/db/schema"
+import { assets, strategies, tags, timeframes } from "@/db/schema"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
 import type { ActionResponse } from "@/types"
 import type { CsvTradeInput } from "@/lib/csv-parser"
@@ -135,7 +135,7 @@ export const validateCsvTrades = async (
 	trades: CsvTradeInput[]
 ): Promise<ActionResponse<CsvValidationResult>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		const account = await getCurrentAccount()
 		if (!account) {
 			return { status: "error", message: "Account not found" }
@@ -169,17 +169,17 @@ export const validateCsvTrades = async (
 			feesMap.set(asset.symbol.toUpperCase(), fees)
 		}
 
-		// Get strategies, timeframes, and tags for the UI
+		// Get strategies, timeframes, and tags for the UI (tags & strategies are user-level, not account-level)
 		const [accountStrategies, accountTimeframes, accountTags] = await Promise.all([
 			db.query.strategies.findMany({
-				where: eq(strategies.accountId, accountId),
+				where: eq(strategies.userId, userId),
 				orderBy: (s, { asc }) => [asc(s.name)],
 			}),
 			db.query.timeframes.findMany({
 				orderBy: (t, { asc }) => [asc(t.name)],
 			}),
 			db.query.tags.findMany({
-				where: eq(tags.accountId, accountId),
+				where: eq(tags.userId, userId),
 				orderBy: (t, { asc }) => [asc(t.name)],
 			}),
 		])
@@ -276,6 +276,57 @@ export const validateCsvTrades = async (
 				})
 			}
 
+			// Pre-populate edits from CSV data by matching against DB records
+			if (trade.strategyCode) {
+				const csvStrategy = trade.strategyCode.toLowerCase()
+				const matchedStrategy = accountStrategies.find(
+					(s) =>
+						s.code.toLowerCase() === csvStrategy ||
+						s.name.toLowerCase() === csvStrategy
+				)
+				if (matchedStrategy) {
+					processed.edits.strategyId = matchedStrategy.id
+				}
+			}
+
+			if (trade.timeframeCode) {
+				const csvTimeframe = trade.timeframeCode.toLowerCase()
+				const matchedTimeframe = accountTimeframes.find(
+					(tf) =>
+						tf.code.toLowerCase() === csvTimeframe ||
+						tf.name.toLowerCase() === csvTimeframe
+				)
+				if (matchedTimeframe) {
+					processed.edits.timeframeId = matchedTimeframe.id
+				}
+			}
+
+			if (trade.tagNames?.length) {
+				const matchedTagIds = trade.tagNames
+					.map((name) =>
+						accountTags.find(
+							(tag) => tag.name.toLowerCase() === name.toLowerCase()
+						)
+					)
+					.filter((tag): tag is Tag => !!tag)
+					.map((tag) => tag.id)
+				if (matchedTagIds.length > 0) {
+					processed.edits.tagIds = matchedTagIds
+				}
+			}
+
+			if (trade.followedPlan !== undefined && trade.followedPlan !== null) {
+				processed.edits.followedPlan = trade.followedPlan
+			}
+
+			// Pre-populate risk fields from CSV data
+			if (trade.stopLoss !== undefined && trade.stopLoss !== null) {
+				processed.edits.stopLoss = Number(trade.stopLoss)
+			}
+			if (trade.takeProfit !== undefined && trade.takeProfit !== null) {
+				processed.edits.takeProfit = Number(trade.takeProfit)
+			}
+
 			// Check for warnings
 			if (processed.warnings.length > 0) {
 				processed.status = "warning"
@@ -327,7 +378,7 @@ export const importCsvTrades = async (
 	trades: ProcessedCsvTrade[]
 ): Promise<ActionResponse<CsvImportResult>> => {
 	try {
-		await requireAuth()
+		const { accountId, userId } = await requireAuth()
 
 		// Filter to only valid/warning trades (not skipped)
 		const validTrades = trades.filter((t) => t.status !== "skipped" && t.assetFound)
@@ -339,14 +390,64 @@ export const importCsvTrades = async (
 			}
 		}
 
+		// Collect strategy/tag IDs from edits so we can resolve them to codes/names
+		const editedStrategyIds = [
+			...new Set(
+				validTrades
+					.map((t) => t.edits.strategyId)
+					.filter((id): id is string => !!id)
+			),
+		]
+		const editedTagIds = [
+			...new Set(
+				validTrades.flatMap((t) => t.edits.tagIds || [])
+			),
+		]
+
+		// Batch lookup strategies and tags by ID for resolving edits (user-level, not account-level)
+		const strategyIdMap = new Map<string, string>() // id → code
+		if (editedStrategyIds.length > 0) {
+			const foundStrategies = await db.query.strategies.findMany({
+				where: and(
+					eq(strategies.userId, userId),
+					inArray(strategies.id, editedStrategyIds)
+				),
+			})
+			for (const s of foundStrategies) {
+				strategyIdMap.set(s.id, s.code || s.name)
+			}
+		}
+
+		const tagIdMap = new Map<string, string>() // id → name
+		if (editedTagIds.length > 0) {
+			const foundTags = await db.query.tags.findMany({
+				where: and(
+					eq(tags.userId, userId),
+					inArray(tags.id, editedTagIds)
+				),
+			})
+			for (const t of foundTags) {
+				tagIdMap.set(t.id, t.name)
+			}
+		}
+
 		// Convert ProcessedCsvTrade to CsvTradeInput with edits applied
 		const tradesForImport: CsvTradeInput[] = validTrades.map((t) => {
 			const base = { ...t.originalData }
 
-			// Apply edits
+			// Apply edits — resolve IDs back to codes/names for bulkCreateTrades
 			if (t.edits.strategyId) {
-				// Note: bulkCreateTrades doesn't support strategyId directly,
-				// but we can set it via strategyCode lookup (handled in bulkCreateTrades)
+				const strategyCode = strategyIdMap.get(t.edits.strategyId)
+				if (strategyCode) base.strategyCode = strategyCode
+			}
+			if (t.edits.timeframeId) {
+				base.timeframeId = t.edits.timeframeId
+			}
+			if (t.edits.tagIds?.length) {
+				const tagNames = t.edits.tagIds
+					.map((id) => tagIdMap.get(id))
+					.filter((name): name is string => !!name)
+				if (tagNames.length > 0) base.tagNames = tagNames
 			}
 			if (t.edits.preTradeThoughts) base.preTradeThoughts = t.edits.preTradeThoughts
 			if (t.edits.postTradeReflection) base.postTradeReflection = t.edits.postTradeReflection

@@ -23,17 +23,19 @@ export const buildProfileForSim = (
 
 	// Pre-compute loss recovery step risk amounts in absolute cents.
 	// Uses reduce to track previous step's risk for "sameAsPrevious" resolution.
+	// Also computes riskMultiplier (relative to base) for dynamic sizing modes.
+	const baseRiskCents = tree.baseTrade.riskCents
 	const lossRecoverySteps = tree.lossRecovery.sequence.reduce<
-		Array<{ riskCents: number }>
+		Array<{ riskCents: number; riskMultiplier: number }>
 	>((acc, step) => {
 		let riskCents: number
 		const previousRisk = acc.length > 0
 			? acc[acc.length - 1].riskCents
-			: tree.baseTrade.riskCents
+			: baseRiskCents
 
 		switch (step.riskCalculation.type) {
 			case "percentOfBase":
-				riskCents = Math.round(tree.baseTrade.riskCents * step.riskCalculation.percent / 100)
+				riskCents = Math.round(baseRiskCents * step.riskCalculation.percent / 100)
 				break
 			case "sameAsPrevious":
 				riskCents = previousRisk
@@ -43,7 +45,8 @@ export const buildProfileForSim = (
 				break
 		}
 
-		acc.push({ riskCents })
+		const riskMultiplier = baseRiskCents > 0 ? riskCents / baseRiskCents : 1
+		acc.push({ riskCents, riskMultiplier })
 		return acc
 	}, [])
 
@@ -57,9 +60,23 @@ export const buildProfileForSim = (
 
 	const dailyTargetCents = tree.gainMode.dailyTargetCents ?? profile.dailyProfitTargetCents
 
+	// Read dynamic risk sizing fields (all optional on tree, defaults for backward compat)
+	const riskSizing = tree.riskSizing ?? { type: "fixed" as const }
+	const limitMode = tree.limitMode ?? "fixedCents"
+
+	const riskSizingMode = riskSizing.type
+	const riskPercent = riskSizing.type === "percentOfBalance" ? riskSizing.riskPercent : null
+	const fixedRatioDeltaCents = riskSizing.type === "fixedRatio" ? riskSizing.deltaCents : null
+	const fixedRatioBaseContractRiskCents = riskSizing.type === "fixedRatio" ? riskSizing.baseContractRiskCents : null
+	const kellyDivisor = riskSizing.type === "kellyFractional" ? riskSizing.divisor : null
+
+	const drawdownTiers = tree.drawdownControl?.tiers ?? []
+	const drawdownRecoveryPercent = tree.drawdownControl?.recoveryThresholdPercent ?? 50
+	const consecutiveLossRules = tree.consecutiveLossRules ?? []
+
 	return {
 		name: profile.name,
-		baseRiskCents: tree.baseTrade.riskCents,
+		baseRiskCents,
 		rewardRiskRatio: overrides.rewardRiskRatio,
 		winRate: overrides.winRate,
 		breakevenRate: overrides.breakevenRate ?? 0,
@@ -75,5 +92,28 @@ export const buildProfileForSim = (
 		tradingDaysPerMonth: overrides.tradingDaysPerMonth ?? 22,
 		tradingDaysPerWeek: overrides.tradingDaysPerWeek ?? 5,
 		commissionPerTradeCents: overrides.commissionPerTradeCents ?? 0,
+
+		// Dynamic risk sizing
+		riskSizingMode,
+		riskPercent,
+		fixedRatioDeltaCents,
+		fixedRatioBaseContractRiskCents,
+		kellyDivisor,
+
+		// Limit mode
+		limitMode,
+		dailyLossPercent: tree.limitsPercent?.daily ?? null,
+		weeklyLossPercent: tree.limitsPercent?.weekly ?? null,
+		monthlyLossPercent: tree.limitsPercent?.monthly ?? null,
+		dailyLossR: tree.limitsR?.daily ?? null,
+		weeklyLossR: tree.limitsR?.weekly ?? null,
+		monthlyLossR: tree.limitsR?.monthly ?? null,
+
+		// Drawdown control
+		drawdownTiers,
+		drawdownRecoveryPercent,
+
+		// Consecutive loss rules
+		consecutiveLossRules,
 	}
 }

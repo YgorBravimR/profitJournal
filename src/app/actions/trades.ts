@@ -713,6 +713,31 @@ export const bulkCreateTrades = async (
 			}
 		}
 
+		// Collect all unique timeframe codes from the inputs
+		const timeframeCodes = [
+			...new Set(
+				inputs
+					.map((i) => i.timeframeCode)
+					.filter((code): code is string => !!code)
+			),
+		]
+
+		// Look up timeframes by code or name (case-insensitive)
+		const timeframeMap = new Map<string, string>()
+		if (timeframeCodes.length > 0) {
+			const allTimeframes = await db.query.timeframes.findMany()
+			for (const tf of allTimeframes) {
+				for (const code of timeframeCodes) {
+					if (
+						tf.code.toLowerCase() === code.toLowerCase() ||
+						tf.name.toLowerCase() === code.toLowerCase()
+					) {
+						timeframeMap.set(code, tf.id)
+					}
+				}
+			}
+		}
+
 		// Collect all unique tag names from CSV inputs and build lookup map
 		const allTagNames = [
 			...new Set(
@@ -776,14 +801,19 @@ export const bulkCreateTrades = async (
 				const globalIndex = inputs.indexOf(input)
 
 				try {
-					// Extract strategyCode and tagNames before validation (not part of CreateTradeInput)
-					const { strategyCode, tagNames: inputTagNames, ...tradeInput } = input
+					// Extract CSV-only fields before validation (not part of CreateTradeInput)
+					const { strategyCode, timeframeCode, tagNames: inputTagNames, ...tradeInput } = input
 					const validated = createTradeSchema.parse(tradeInput)
 					const { tagIds, ...tradeData } = validated
 
 					// Look up strategy ID from code or name
 					const strategyId = strategyCode
 						? strategyMap.get(strategyCode) || null
+						: null
+
+					// Look up timeframe ID from code or name
+					const timeframeId = timeframeCode
+						? timeframeMap.get(timeframeCode) || null
 						: null
 
 					// Calculate derived fields
@@ -869,7 +899,7 @@ export const bulkCreateTrades = async (
 						accountId,
 						asset: tradeData.asset,
 						direction: tradeData.direction,
-						timeframeId: tradeData.timeframeId || null,
+						timeframeId: timeframeId || tradeData.timeframeId || null,
 						entryDate: tradeData.entryDate,
 						exitDate: tradeData.exitDate,
 						entryPrice: tradeData.entryPrice.toString(),

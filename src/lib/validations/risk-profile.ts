@@ -42,9 +42,57 @@ const gainModeSchema = z.discriminatedUnion("type", [
 	}),
 ])
 
+// ==========================================
+// DYNAMIC RISK SIZING SCHEMAS (Phase 2)
+// ==========================================
+
+const riskSizingModeSchema = z.discriminatedUnion("type", [
+	z.object({ type: z.literal("fixed") }),
+	z.object({
+		type: z.literal("percentOfBalance"),
+		riskPercent: z.number().min(0.1).max(10),
+	}),
+	z.object({
+		type: z.literal("fixedRatio"),
+		deltaCents: z.number().int().positive(),
+		baseContractRiskCents: z.number().int().positive(),
+	}),
+	z.object({
+		type: z.literal("kellyFractional"),
+		divisor: z.number().min(1).max(10),
+	}),
+])
+
+const drawdownTierSchema = z.object({
+	drawdownPercent: z.number().min(1).max(99),
+	action: z.enum(["reduceRisk", "pause"]),
+	reducePercent: z.number().min(0).max(100),
+})
+
+const consecutiveLossRuleSchema = z.object({
+	consecutiveDays: z.number().int().min(1).max(20),
+	action: z.enum(["reduceRisk", "stopDay", "pauseWeek"]),
+	reducePercent: z.number().min(0).max(100),
+})
+
+const limitModeSchema = z.enum(["fixedCents", "percentOfInitial", "rMultiples"])
+
+const limitsPercentSchema = z.object({
+	daily: z.number().min(0.1).max(100),
+	weekly: z.number().min(0.1).max(100).nullable(),
+	monthly: z.number().min(0.1).max(100),
+})
+
+const limitsRSchema = z.object({
+	daily: z.number().min(0.1).max(100),
+	weekly: z.number().min(0.1).max(100).nullable(),
+	monthly: z.number().min(0.1).max(100),
+})
+
 /**
  * Full decision tree configuration schema.
  * Validated when creating/updating a risk management profile.
+ * All Phase 2 fields are optional for backward compatibility.
  */
 const decisionTreeConfigSchema = z.object({
 	baseTrade: z.object({
@@ -70,6 +118,16 @@ const decisionTreeConfigSchema = z.object({
 		operatingHoursStart: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
 		operatingHoursEnd: z.string().regex(/^\d{2}:\d{2}$/).nullable(),
 	}),
+	// Dynamic risk sizing (optional — backward compatible)
+	riskSizing: riskSizingModeSchema.optional(),
+	limitMode: limitModeSchema.optional(),
+	drawdownControl: z.object({
+		tiers: z.array(drawdownTierSchema).max(5),
+		recoveryThresholdPercent: z.number().min(0).max(100),
+	}).optional(),
+	consecutiveLossRules: z.array(consecutiveLossRuleSchema).max(5).optional(),
+	limitsPercent: limitsPercentSchema.optional(),
+	limitsR: limitsRSchema.optional(),
 })
 
 /**
@@ -94,6 +152,9 @@ export {
 	decisionTreeConfigSchema,
 	riskCalculationSchema,
 	gainModeSchema,
+	riskSizingModeSchema,
+	drawdownTierSchema,
+	consecutiveLossRuleSchema,
 }
 
 export type { RiskProfileSchemaInput, DecisionTreeConfigInput }

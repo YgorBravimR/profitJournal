@@ -67,6 +67,14 @@ const V2ResultsSummary = ({ params, onRunAgain }: V2ResultsSummaryProps) => {
 					{profile.tradingDaysPerMonth}
 				</span>
 			</div>
+			{params.monthsToTrade > 1 && (
+				<div className="gap-s-200 flex items-center">
+					<span className="text-txt-300 text-small">{t("months")}:</span>
+					<span className="text-acc-100 font-medium">
+						{params.monthsToTrade}
+					</span>
+				</div>
+			)}
 			<Button
 				id="monte-carlo-v2-run-again"
 				variant="outline"

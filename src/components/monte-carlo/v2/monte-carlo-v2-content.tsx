@@ -18,6 +18,9 @@ import { ModeDistributionChart } from "./mode-distribution-chart"
 import { V2DistributionHistogram } from "./v2-distribution-histogram"
 import { getSimulationStats, runSimulationV2 } from "@/app/actions/monte-carlo"
 import { buildProfileForSim } from "@/lib/risk-profile"
+import { toCents } from "@/lib/money"
+import { V2_SIMULATION_BUDGET_CAP } from "@/lib/validations/monte-carlo"
+import { cn } from "@/lib/utils"
 import type { RiskManagementProfile } from "@/types/risk-profile"
 import type {
 	DataSource,
@@ -48,9 +51,11 @@ const MonteCarloV2Content = ({
 	const [breakevenRate, setBreakevenRate] = useState("0")
 	const [simulationCount, setSimulationCount] = useState("5000")
 	const [initialBalance, setInitialBalance] = useState("50000")
+	const [monthsToTrade, setMonthsToTrade] = useState("1")
 	const [tradingDaysPerMonth, setTradingDaysPerMonth] = useState("22")
 	const [tradingDaysPerWeek, setTradingDaysPerWeek] = useState("5")
 	const [commissionPerTrade, setCommissionPerTrade] = useState("0")
+	const [ruinThreshold, setRuinThreshold] = useState("50")
 
 	// Data source state (auto-populate from strategy)
 	const [inputMode, setInputMode] = useState<"auto" | "manual">("auto")
@@ -124,6 +129,18 @@ const MonteCarloV2Content = ({
 		return (wr * effectiveRR) / (1 - wr)
 	}, [winRate, effectiveRR])
 
+	// Budget cap computation
+	const budgetInfo = useMemo(() => {
+		const maxTradesPerDay = 50
+		const days = parseInt(tradingDaysPerMonth, 10) || 22
+		const months = parseInt(monthsToTrade, 10) || 1
+		const sims = parseInt(simulationCount, 10) || 0
+		const totalIterations = maxTradesPerDay * days * months * sims
+		const budgetUsage = totalIterations / V2_SIMULATION_BUDGET_CAP
+		const isOverBudget = totalIterations > V2_SIMULATION_BUDGET_CAP
+		return { totalIterations, budgetUsage, isOverBudget }
+	}, [tradingDaysPerMonth, monthsToTrade, simulationCount])
+
 	// Results state
 	const [result, setResult] = useState<MonteCarloResultV2 | null>(null)
 	const [isRunning, setIsRunning] = useState(false)
@@ -143,7 +160,7 @@ const MonteCarloV2Content = ({
 			winRate: wr,
 			rewardRiskRatio: effectiveRR,
 			breakevenRate: parseFloat(breakevenRate) || 0,
-			commissionPerTradeCents: Math.round(parseFloat(commissionPerTrade) || 0),
+			commissionPerTradeCents: toCents(commissionPerTrade),
 			tradingDaysPerMonth: parseInt(tradingDaysPerMonth, 10) || 22,
 			tradingDaysPerWeek: parseInt(tradingDaysPerWeek, 10) || 5,
 		})
@@ -168,11 +185,14 @@ const MonteCarloV2Content = ({
 		try {
 			const balance = Math.round(parseFloat(initialBalance) * 100) // to cents
 			const simCount = parseInt(simulationCount, 10) || 5000
+			const months = parseInt(monthsToTrade, 10) || 1
 
 			const response = await runSimulationV2({
 				profile: simProfile,
 				simulationCount: simCount,
 				initialBalance: balance,
+				monthsToTrade: months,
+				ruinThresholdPercent: parseInt(ruinThreshold, 10) || 50,
 			})
 
 			if (response.status === "success" && response.data) {
@@ -192,6 +212,8 @@ const MonteCarloV2Content = ({
 		simProfile,
 		initialBalance,
 		simulationCount,
+		monthsToTrade,
+		ruinThreshold,
 		showLoading,
 		hideLoading,
 		tOverlay,
@@ -204,7 +226,8 @@ const MonteCarloV2Content = ({
 	const isValid =
 		!!simProfile &&
 		parseFloat(initialBalance) > 0 &&
-		parseInt(simulationCount, 10) > 0
+		parseInt(simulationCount, 10) > 0 &&
+		!budgetInfo.isOverBudget
 
 	return (
 		<div className="space-y-m-500">
@@ -433,7 +456,7 @@ const MonteCarloV2Content = ({
 							<Input
 								id="v2-commission"
 								type="number"
-								step="1"
+								step="0.01"
 								min="0"
 								value={commissionPerTrade}
 								onChange={(e) => setCommissionPerTrade(e.target.value)}
@@ -441,7 +464,68 @@ const MonteCarloV2Content = ({
 								aria-label={t("params.commissionPerTrade")}
 							/>
 						</div>
+						<div>
+							<label className="mb-s-200 text-small text-txt-200 block">
+								{t("params.monthsToTrade")}
+							</label>
+							<Input
+								id="v2-months-to-trade"
+								type="number"
+								step="1"
+								min="1"
+								max="48"
+								value={monthsToTrade}
+								onChange={(e) => setMonthsToTrade(e.target.value)}
+								placeholder="1"
+								aria-label={t("params.monthsToTrade")}
+							/>
+						</div>
+						<div>
+							<label className="mb-s-200 text-small text-txt-200 block">
+								{t("params.ruinThreshold")}
+							</label>
+							<div className="relative">
+								<Input
+									id="v2-ruin-threshold"
+									type="number"
+									step="5"
+									min="1"
+									max="99"
+									value={ruinThreshold}
+									onChange={(e) => setRuinThreshold(e.target.value)}
+									placeholder="50"
+									className="pr-8"
+									aria-label={t("params.ruinThreshold")}
+								/>
+								<span className="text-tiny text-txt-300 absolute top-1/2 right-3 -translate-y-1/2">
+									%
+								</span>
+							</div>
+						</div>
 					</div>
+
+					{/* Budget Indicator */}
+					<div className="mt-m-400 flex items-center justify-between text-small">
+						<span className="text-txt-300">
+							{t("params.totalIterations")}: {budgetInfo.totalIterations.toLocaleString()} / {V2_SIMULATION_BUDGET_CAP.toLocaleString()}
+						</span>
+						<span
+							className={cn(
+								budgetInfo.isOverBudget
+									? "text-fb-error font-semibold"
+									: budgetInfo.budgetUsage > 0.8
+										? "text-fb-warning"
+										: "text-txt-300"
+							)}
+						>
+							{(budgetInfo.budgetUsage * 100).toFixed(0)}%
+						</span>
+					</div>
+					{budgetInfo.isOverBudget && (
+						<p className="mt-s-200 text-caption text-fb-error">
+							{t("params.budgetExceeded")}
+						</p>
+					)}
 
 					{/* Error Message */}
 					{error && (
@@ -483,13 +567,17 @@ const MonteCarloV2Content = ({
 
 					{/* Charts Row */}
 					<div className="gap-m-500 grid lg:grid-cols-2">
-						<DailyPnlChart days={result.sampleRun.days} />
+						<DailyPnlChart days={result.sampleRun.days} monthsToTrade={result.params.monthsToTrade} />
 						<ModeDistributionChart statistics={result.statistics} />
 					</div>
 
-					{/* Distribution - Full width */}
+					{/* Distribution - Full width (convert buckets from cents-P&L to currency-finalBalance) */}
 					<V2DistributionHistogram
-						buckets={result.distributionBuckets}
+						buckets={result.distributionBuckets.map((b) => ({
+							...b,
+							rangeStart: result.params.initialBalance / 100 + b.rangeStart / 100,
+							rangeEnd: result.params.initialBalance / 100 + b.rangeEnd / 100,
+						}))}
 						medianBalance={
 							result.params.initialBalance / 100 +
 							result.statistics.medianMonthlyPnl / 100
@@ -501,6 +589,7 @@ const MonteCarloV2Content = ({
 					<V2MetricsCards
 						statistics={result.statistics}
 						initialBalance={result.params.initialBalance}
+						monthsToTrade={result.params.monthsToTrade}
 					/>
 				</div>
 			)}

@@ -29,14 +29,14 @@ export const getDataSourceOptions = async (): Promise<
 	ActionResponse<DataSourceOption[]>
 > => {
 	try {
-		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 
 		const options: DataSourceOption[] = []
 
-		// Get strategies for current account
+		// Get strategies for current user (strategies are user-level, not account-level)
 		const accountStrategies = await db.query.strategies.findMany({
 			where: and(
-				eq(strategies.accountId, accountId),
+				eq(strategies.userId, userId),
 				eq(strategies.isActive, true)
 			),
 			orderBy: [desc(strategies.name)],
@@ -124,7 +124,7 @@ export const getSimulationStats = async (
 ): Promise<ActionResponse<SourceStats>> => {
 	try {
 		const validated = dataSourceSchema.parse(source)
-		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 
 		let tradesList: Array<{
 			outcome: string | null
@@ -175,7 +175,7 @@ export const getSimulationStats = async (
 			sourceName = "All Strategies"
 
 			const accountStrategies = await db.query.strategies.findMany({
-				where: eq(strategies.accountId, accountId),
+				where: eq(strategies.userId, userId),
 			})
 			strategiesCount = accountStrategies.length
 
@@ -210,7 +210,7 @@ export const getSimulationStats = async (
 			accountsCount = allAccountIds.length
 
 			const allStrategies = await db.query.strategies.findMany({
-				where: inArray(strategies.accountId, allAccountIds),
+				where: eq(strategies.userId, userId),
 			})
 			strategiesCount = allStrategies.length
 
@@ -436,12 +436,11 @@ export const runComparisonSimulation = async (
 	}>
 > => {
 	try {
-		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+		const { userId } = await requireAuth()
 
-		const strategyIds = showAllAccounts ? allAccountIds : [accountId]
 		const allStrategies = await db.query.strategies.findMany({
 			where: and(
-				inArray(strategies.accountId, strategyIds),
+				eq(strategies.userId, userId),
 				eq(strategies.isActive, true)
 			),
 		})

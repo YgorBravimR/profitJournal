@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { drawdownTierSchema, consecutiveLossRuleSchema } from "@/lib/validations/risk-profile"
 
 /** Maximum allowed total iterations (trades × simulations) */
 export const SIMULATION_BUDGET_CAP = 3_000_000
@@ -83,7 +84,10 @@ const riskManagementProfileForSimSchema = z.object({
 	dailyTargetCents: z.number().int().positive().nullable(),
 	dailyLossLimitCents: z.number().int().positive(),
 	lossRecoverySteps: z.array(
-		z.object({ riskCents: z.number().int().positive() })
+		z.object({
+			riskCents: z.number().int().positive(),
+			riskMultiplier: z.number().min(0).default(1),
+		})
 	).max(10),
 	executeAllRegardless: z.boolean(),
 	stopAfterSequence: z.boolean(),
@@ -94,6 +98,29 @@ const riskManagementProfileForSimSchema = z.object({
 	tradingDaysPerMonth: z.number().int().min(1).max(31),
 	tradingDaysPerWeek: z.number().int().min(1).max(7),
 	commissionPerTradeCents: z.number().min(0),
+
+	// Dynamic risk sizing
+	riskSizingMode: z.enum(["fixed", "percentOfBalance", "fixedRatio", "kellyFractional"]).default("fixed"),
+	riskPercent: z.number().min(0.1).max(10).nullable().default(null),
+	fixedRatioDeltaCents: z.number().int().positive().nullable().default(null),
+	fixedRatioBaseContractRiskCents: z.number().int().positive().nullable().default(null),
+	kellyDivisor: z.number().min(1).max(10).nullable().default(null),
+
+	// Limit mode
+	limitMode: z.enum(["fixedCents", "percentOfInitial", "rMultiples"]).default("fixedCents"),
+	dailyLossPercent: z.number().min(0.1).max(100).nullable().default(null),
+	weeklyLossPercent: z.number().min(0.1).max(100).nullable().default(null),
+	monthlyLossPercent: z.number().min(0.1).max(100).nullable().default(null),
+	dailyLossR: z.number().min(0.1).max(100).nullable().default(null),
+	weeklyLossR: z.number().min(0.1).max(100).nullable().default(null),
+	monthlyLossR: z.number().min(0.1).max(100).nullable().default(null),
+
+	// Drawdown control
+	drawdownTiers: z.array(drawdownTierSchema).max(5).default([]),
+	drawdownRecoveryPercent: z.number().min(0).max(100).default(50),
+
+	// Consecutive loss rules
+	consecutiveLossRules: z.array(consecutiveLossRuleSchema).max(5).default([]),
 })
 
 export const simulationParamsV2Schema = z
@@ -101,16 +128,21 @@ export const simulationParamsV2Schema = z
 		profile: riskManagementProfileForSimSchema,
 		simulationCount: z.number().int().min(100).max(50000),
 		initialBalance: z.number().int().positive(),
+		monthsToTrade: z.number().int().min(1).max(48),
+		ruinThresholdPercent: z.number().min(1).max(99).default(50),
 	})
 	.superRefine((data, ctx) => {
-		// Budget cap: ~50 trades/day × days × simulations
+		// Budget cap: ~50 trades/day × days/month × months × simulations
 		const maxTradesPerDay = 50
 		const totalIterations =
-			maxTradesPerDay * data.profile.tradingDaysPerMonth * data.simulationCount
+			maxTradesPerDay *
+			data.profile.tradingDaysPerMonth *
+			data.monthsToTrade *
+			data.simulationCount
 		if (totalIterations > V2_SIMULATION_BUDGET_CAP) {
 			ctx.addIssue({
 				code: z.ZodIssueCode.custom,
-				message: `Estimated iterations (${totalIterations.toLocaleString()}) exceeds the cap of ${V2_SIMULATION_BUDGET_CAP.toLocaleString()}. Reduce simulations or trading days.`,
+				message: `Estimated iterations (${totalIterations.toLocaleString()}) exceeds the cap of ${V2_SIMULATION_BUDGET_CAP.toLocaleString()}. Reduce simulations, trading days, or months.`,
 				path: ["simulationCount"],
 			})
 		}

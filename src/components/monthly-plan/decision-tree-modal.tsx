@@ -17,6 +17,7 @@ import {
 	TabsTrigger,
 	AnimatedTabsContent,
 } from "@/components/ui/tabs"
+import { RecoveryPathsTree } from "./recovery-paths-tree"
 import type { RiskManagementProfile } from "@/types/risk-profile"
 import type { LossRecoveryStep, DecisionTreeConfig } from "@/types/risk-profile"
 
@@ -68,32 +69,33 @@ interface TradeSituation {
 
 const computeTradeSituations = (
 	decisionTree: DecisionTreeConfig,
+	effectiveBaseRiskCents: number,
 	profile: RiskManagementProfile,
 	t: (key: string, values?: Record<string, string | number>) => string
 ): TradeSituation[] => {
 	const { baseTrade, lossRecovery } = decisionTree
 	const situations: TradeSituation[] = []
 
-	// T1 — base trade
+	// T1 — base trade (using effective risk, respecting dynamic sizing)
 	situations.push({
 		tradeNumber: 1,
 		isBaseTrade: true,
-		riskCents: baseTrade.riskCents,
+		riskCents: effectiveBaseRiskCents,
 		maxContracts: baseTrade.maxContracts,
 		minStopPoints: baseTrade.minStopPoints,
 		riskLabel: null,
 		cumulativeLossBefore: 0,
-		worstCaseTotalCents: baseTrade.riskCents,
+		worstCaseTotalCents: effectiveBaseRiskCents,
 	})
 
-	// T2+ — recovery sequence
-	let cumulativeLoss = baseTrade.riskCents
-	let previousRiskCents = baseTrade.riskCents
+	// T2+ — recovery sequence (percentages computed against effective base)
+	let cumulativeLoss = effectiveBaseRiskCents
+	let previousRiskCents = effectiveBaseRiskCents
 
 	for (const step of lossRecovery.sequence) {
 		const riskCents = computeStepRisk(
 			step,
-			baseTrade.riskCents,
+			effectiveBaseRiskCents,
 			previousRiskCents
 		)
 		const tradeNumber = situations.length + 1
@@ -350,11 +352,12 @@ const RecoverySequence = ({
 
 interface GainModeCardProps {
 	gainMode: RiskManagementProfile["decisionTree"]["gainMode"]
+	baseRiskCents: number
 	formatCurrency: (value: number) => string
 	t: (key: string, values?: Record<string, string | number>) => string
 }
 
-const GainModeCard = ({ gainMode, formatCurrency, t }: GainModeCardProps) => (
+const GainModeCard = ({ gainMode, baseRiskCents, formatCurrency, t }: GainModeCardProps) => (
 	<div className="space-y-s-200">
 		<p className="text-tiny text-trade-buy text-center font-semibold">
 			{t("gainMode")}
@@ -395,7 +398,7 @@ const GainModeCard = ({ gainMode, formatCurrency, t }: GainModeCardProps) => (
 					</p>
 					<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
 						<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
-						{t("bankTheDay")}
+						{t("tradesToTarget", { count: Math.ceil(gainMode.dailyTargetCents / (baseRiskCents * 2)) })}
 					</p>
 					<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
 						<span className="text-tiny text-txt-300">{t("dailyTarget")}:</span>
@@ -679,6 +682,7 @@ interface TradeSituationTabProps {
 	situations: TradeSituation[]
 	decisionTree: DecisionTreeConfig
 	dailyLossCents: number
+	gainMode: DecisionTreeConfig["gainMode"]
 	formatCurrency: (value: number) => string
 	t: (key: string, values?: Record<string, string | number>) => string
 }
@@ -688,6 +692,7 @@ const TradeSituationTab = ({
 	situations,
 	decisionTree,
 	dailyLossCents,
+	gainMode,
 	formatCurrency,
 	t,
 }: TradeSituationTabProps) => {
@@ -787,7 +792,7 @@ const TradeSituationTab = ({
 					<div className="space-y-s-200">
 						<p className="text-tiny text-txt-300">{t("outcome.next")}</p>
 						{situation.isBaseTrade ? (
-							<WinOutcomeBaseTrade gainMode={decisionTree.gainMode} t={t} />
+							<WinOutcomeBaseTrade gainMode={gainMode} t={t} />
 						) : (
 							<WinOutcomeRecovery
 								isLastTrade={isLastTrade}
@@ -816,9 +821,11 @@ const TradeSituationTab = ({
 						) : isLastTrade ? (
 							<div className="space-y-s-200">
 								<p className="text-tiny text-trade-sell font-medium">
-									{t("outcome.maxLossReached", {
-										amount: formatCurrency(fromCents(dailyLossCents)),
-									})}
+									{situation.worstCaseTotalCents >= dailyLossCents
+										? t("outcome.maxLossReached", {
+												amount: formatCurrency(fromCents(dailyLossCents)),
+											})
+										: t("outcome.sequenceExhausted")}
 								</p>
 								<StopBadge label={t("stop")} variant="loss" />
 							</div>
@@ -918,33 +925,70 @@ const WinOutcomeRecovery = ({
 	)
 }
 
+// ─── Effective Values ────────────────────────────────────────
+
+/**
+ * Balance-resolved values that override the stored profile absolutes.
+ * When a profile uses dynamic sizing (percentOfBalance, rMultiples, etc.),
+ * these reflect the actual values for the user's current account balance.
+ */
+interface EffectiveValues {
+	riskCents: number
+	dailyLossCents: number
+	weeklyLossCents: number | null
+	monthlyLossCents: number
+	dailyProfitTargetCents: number | null
+}
+
 // ─── Main Component ─────────────────────────────────────────
 
 interface DecisionTreeModalProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
 	profile: RiskManagementProfile
+	effectiveValues?: EffectiveValues | null
 }
 
 const DecisionTreeModal = ({
 	open,
 	onOpenChange,
 	profile,
+	effectiveValues,
 }: DecisionTreeModalProps) => {
 	const t = useTranslations("commandCenter.plan.decisionTree")
 	const { formatCurrency, formatCurrencyWithSign } = useFormatting()
 	const { decisionTree } = profile
 
+	// Resolve effective values (fall back to stored when no overrides)
+	const baseRiskCents = effectiveValues?.riskCents ?? decisionTree.baseTrade.riskCents
+	const dailyLossCents = effectiveValues?.dailyLossCents ?? profile.dailyLossCents
+	const weeklyLossCents = effectiveValues?.weeklyLossCents ?? decisionTree.cascadingLimits.weeklyLossCents
+	const monthlyLossCents = effectiveValues?.monthlyLossCents ?? decisionTree.cascadingLimits.monthlyLossCents
+	const dailyTargetCents = effectiveValues?.dailyProfitTargetCents ?? profile.dailyProfitTargetCents
+
+	// Build resolved gain mode with effective daily target
+	const resolvedGainMode = useMemo(() => {
+		if (dailyTargetCents == null) return decisionTree.gainMode
+		return { ...decisionTree.gainMode, dailyTargetCents }
+	}, [decisionTree.gainMode, dailyTargetCents])
+
+	// Build resolved cascading limits with effective values
+	const resolvedCascadingLimits = useMemo(() => ({
+		...decisionTree.cascadingLimits,
+		weeklyLossCents,
+		monthlyLossCents,
+	}), [decisionTree.cascadingLimits, weeklyLossCents, monthlyLossCents])
+
 	const situations = useMemo(
-		() => computeTradeSituations(decisionTree, profile, t),
-		[decisionTree, profile, t]
+		() => computeTradeSituations(decisionTree, baseRiskCents, profile, t),
+		[decisionTree, baseRiskCents, profile, t]
 	)
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
 				id="decision-tree-modal"
-				className="max-h-[85vh] max-w-4xl overflow-y-auto"
+				className="max-h-[85vh] max-w-[92vw] overflow-y-auto"
 			>
 				<DialogHeader>
 					<DialogTitle>
@@ -955,6 +999,7 @@ const DecisionTreeModal = ({
 				<Tabs defaultValue="overview">
 					<TabsList variant="line" className="w-full">
 						<TabsTrigger value="overview">{t("tabs.overview")}</TabsTrigger>
+						<TabsTrigger value="paths">{t("tabs.paths")}</TabsTrigger>
 						{situations.map((situation) => (
 							<TabsTrigger
 								key={situation.tradeNumber}
@@ -971,7 +1016,7 @@ const DecisionTreeModal = ({
 							{/* Base Trade */}
 							<div className="w-full max-w-sm">
 								<BaseTradeNode
-									riskCents={decisionTree.baseTrade.riskCents}
+									riskCents={baseRiskCents}
 									maxContracts={decisionTree.baseTrade.maxContracts}
 									minStopPoints={decisionTree.baseTrade.minStopPoints}
 									formatCurrency={formatCurrency}
@@ -997,8 +1042,8 @@ const DecisionTreeModal = ({
 									<VerticalConnector className="bg-trade-sell/50" />
 									<RecoverySequence
 										steps={decisionTree.lossRecovery.sequence}
-										baseRiskCents={decisionTree.baseTrade.riskCents}
-										dailyLossCents={profile.dailyLossCents}
+										baseRiskCents={baseRiskCents}
+										dailyLossCents={dailyLossCents}
 										executeAllRegardless={
 											decisionTree.lossRecovery.executeAllRegardless
 										}
@@ -1014,7 +1059,8 @@ const DecisionTreeModal = ({
 								<div className="flex flex-col">
 									<VerticalConnector className="bg-trade-buy/50" />
 									<GainModeCard
-										gainMode={decisionTree.gainMode}
+										gainMode={resolvedGainMode}
+										baseRiskCents={baseRiskCents}
 										formatCurrency={formatCurrency}
 										t={t}
 									/>
@@ -1027,7 +1073,7 @@ const DecisionTreeModal = ({
 							{/* Cascading Limits & Constraints */}
 							<div className="w-full">
 								<LimitsSection
-									cascadingLimits={decisionTree.cascadingLimits}
+									cascadingLimits={resolvedCascadingLimits}
 									executionConstraints={decisionTree.executionConstraints}
 									formatCurrency={formatCurrency}
 									t={t}
@@ -1038,7 +1084,7 @@ const DecisionTreeModal = ({
 							<div className="w-full">
 								<FullDayProgression
 									situations={situations}
-									dailyLossCents={profile.dailyLossCents}
+									dailyLossCents={dailyLossCents}
 									formatCurrency={formatCurrency}
 									t={t}
 								/>
@@ -1048,13 +1094,29 @@ const DecisionTreeModal = ({
 							<div className="w-full">
 								<ScenarioExamples
 									situations={situations}
-									dailyLossCents={profile.dailyLossCents}
-									gainMode={decisionTree.gainMode}
+									dailyLossCents={dailyLossCents}
+									gainMode={resolvedGainMode}
 									formatCurrency={formatCurrency}
 									formatCurrencyWithSign={formatCurrencyWithSign}
 									t={t}
 								/>
 							</div>
+						</div>
+					</AnimatedTabsContent>
+
+					{/* Paths tab — SVG binary tree */}
+					<AnimatedTabsContent value="paths">
+						<div className="pt-s-200">
+							<RecoveryPathsTree
+								situations={situations}
+								executeAllRegardless={decisionTree.lossRecovery.executeAllRegardless}
+								rewardRatio={RISK_REWARD_RATIO}
+								formatCurrency={formatCurrency}
+								t={t}
+								gainMode={resolvedGainMode}
+								baseRiskCents={baseRiskCents}
+								stopAfterSequence={decisionTree.lossRecovery.stopAfterSequence}
+							/>
 						</div>
 					</AnimatedTabsContent>
 
@@ -1068,7 +1130,8 @@ const DecisionTreeModal = ({
 								situation={situation}
 								situations={situations}
 								decisionTree={decisionTree}
-								dailyLossCents={profile.dailyLossCents}
+								dailyLossCents={dailyLossCents}
+								gainMode={resolvedGainMode}
 								formatCurrency={formatCurrency}
 								t={t}
 							/>
@@ -1080,4 +1143,5 @@ const DecisionTreeModal = ({
 	)
 }
 
-export { DecisionTreeModal }
+export { DecisionTreeModal, RISK_REWARD_RATIO }
+export type { TradeSituation }

@@ -228,6 +228,8 @@ export interface TimeHeatmapCell {
 	hour: number
 	hourLabel: string
 	totalTrades: number
+	wins: number
+	losses: number
 	totalPnl: number
 	winRate: number
 	avgR: number

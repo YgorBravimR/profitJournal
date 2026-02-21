@@ -149,6 +149,8 @@ export interface DataSourceOption {
  * Flat config derived from a risk profile for the V2 simulation engine.
  * Avoids deep nesting so the simulation loop stays readable.
  */
+import type { DrawdownTier, ConsecutiveLossRule } from "@/types/risk-profile"
+
 export interface RiskManagementProfileForSim {
 	name: string
 	baseRiskCents: number
@@ -159,6 +161,7 @@ export interface RiskManagementProfileForSim {
 	dailyLossLimitCents: number
 	lossRecoverySteps: Array<{
 		riskCents: number // pre-computed absolute cents for this step
+		riskMultiplier: number // relative to base (for dynamic modes: step / base)
 	}>
 	executeAllRegardless: boolean // run all recovery trades even if earlier ones win
 	stopAfterSequence: boolean // stop trading for the day after recovery sequence completes
@@ -169,12 +172,37 @@ export interface RiskManagementProfileForSim {
 	tradingDaysPerMonth: number // typically 22
 	tradingDaysPerWeek: number // typically 5
 	commissionPerTradeCents: number
+
+	// Dynamic risk sizing (Phase 2)
+	riskSizingMode: "fixed" | "percentOfBalance" | "fixedRatio" | "kellyFractional"
+	riskPercent: number | null // for percentOfBalance mode
+	fixedRatioDeltaCents: number | null // for fixedRatio mode
+	fixedRatioBaseContractRiskCents: number | null // for fixedRatio mode
+	kellyDivisor: number | null // for kellyFractional mode
+
+	// Limit mode
+	limitMode: "fixedCents" | "percentOfInitial" | "rMultiples"
+	dailyLossPercent: number | null
+	weeklyLossPercent: number | null
+	monthlyLossPercent: number | null
+	dailyLossR: number | null
+	weeklyLossR: number | null
+	monthlyLossR: number | null
+
+	// Drawdown control
+	drawdownTiers: DrawdownTier[]
+	drawdownRecoveryPercent: number
+
+	// Consecutive loss rules
+	consecutiveLossRules: ConsecutiveLossRule[]
 }
 
 export interface SimulationParamsV2 {
 	profile: RiskManagementProfileForSim
 	simulationCount: number
 	initialBalance: number // cents
+	monthsToTrade: number // 1-48
+	ruinThresholdPercent: number // 0-100, default 50 — account loss % that constitutes "ruin"
 }
 
 /** The mode a trade was executed under within a simulated day. */
@@ -220,6 +248,8 @@ export interface SimulationRunV2 {
 	maxDrawdownPercent: number
 	finalBalance: number
 	totalReturnPercent: number
+	minBalance: number // lowest balance reached at any point (cents)
+	reachedRuin: boolean // true if minBalance <= initialBalance * (1 - ruinThreshold/100)
 }
 
 export interface SimulationStatisticsV2 {
@@ -242,6 +272,8 @@ export interface SimulationStatisticsV2 {
 	sharpeRatio: number
 	sortinoRatio: number
 	expectedDailyPnl: number
+	riskOfRuinPercent: number // % of runs that reached ruin
+	medianMinBalancePercent: number // median of (minBalance / initialBalance * 100)
 }
 
 export interface MonteCarloResultV2 {

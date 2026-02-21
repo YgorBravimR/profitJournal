@@ -4,10 +4,12 @@ import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { Trophy } from "lucide-react"
 import type { SessionAssetPerformance, TradingSession } from "@/types"
-import { formatBrlCompactWithSign } from "@/lib/formatting"
+import { formatBrlCompactWithSign, formatR } from "@/lib/formatting"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 interface SessionAssetTableProps {
 	data: SessionAssetPerformance[]
+	expectancyMode: ExpectancyMode
 }
 
 /**
@@ -16,9 +18,11 @@ interface SessionAssetTableProps {
  *
  * @param data - Array of asset performance data with session breakdowns
  */
-export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
+export const SessionAssetTable = ({ data, expectancyMode }: SessionAssetTableProps) => {
 	const t = useTranslations("analytics")
 	const tLabels = useTranslations("analytics.session.labels")
+
+	const isRMode = expectancyMode === "edge"
 
 	// Translate session labels
 	const getSessionLabel = (session: TradingSession): string => {
@@ -110,6 +114,7 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 									}
 
 									const isBest = asset.bestSession === session
+									const metricValue = isRMode ? sessionData.avgR : sessionData.pnl
 									return (
 										<td key={session} className="py-s-200 text-center">
 											<div
@@ -119,12 +124,12 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 											>
 												<span
 													className={`text-caption font-medium ${
-														sessionData.pnl >= 0
+														metricValue >= 0
 															? "text-trade-buy"
 															: "text-trade-sell"
 													}`}
 												>
-													{formatBrlCompactWithSign(sessionData.pnl)}
+													{isRMode ? formatR(metricValue) : formatBrlCompactWithSign(metricValue)}
 												</span>
 												<span className="text-txt-300 text-[10px]">
 													{sessionData.winRate.toFixed(0)}% •{" "}
@@ -145,13 +150,32 @@ export const SessionAssetTable = ({ data }: SessionAssetTableProps) => {
 									)}
 								</td>
 								<td className="py-s-200 text-right">
-									<span
-										className={`text-small font-semibold ${
-											asset.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
-										}`}
-									>
-										{formatBrlCompactWithSign(asset.totalPnl)}
-									</span>
+									{(() => {
+										if (isRMode) {
+											const totalTrades = asset.sessions.reduce((s, sess) => s + sess.trades, 0)
+											const weightedR = totalTrades > 0
+												? asset.sessions.reduce((s, sess) => s + sess.avgR * sess.trades, 0) / totalTrades
+												: 0
+											return (
+												<span
+													className={`text-small font-semibold ${
+														weightedR >= 0 ? "text-trade-buy" : "text-trade-sell"
+													}`}
+												>
+													{formatR(weightedR)}
+												</span>
+											)
+										}
+										return (
+											<span
+												className={`text-small font-semibold ${
+													asset.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
+												}`}
+											>
+												{formatBrlCompactWithSign(asset.totalPnl)}
+											</span>
+										)
+									})()}
 								</td>
 							</tr>
 						))}

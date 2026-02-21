@@ -10,8 +10,7 @@ import { UserProfileSettings } from "./user-profile-settings"
 import { AccountSettings } from "./account-settings"
 import type { AssetWithType } from "@/app/actions/assets"
 import type { AssetType, Timeframe } from "@/db/schema"
-import { User, Briefcase, Coins, Clock, Tag, Shield } from "lucide-react"
-import { RiskProfilesTab } from "./risk-profiles-tab"
+import { User, Briefcase, Coins, Clock, Tag } from "lucide-react"
 
 interface SettingsContentProps {
 	assets: AssetWithType[]
@@ -29,7 +28,7 @@ export const SettingsContent = ({
 	const t = useTranslations("settings.tabs")
 	const searchParams = useSearchParams()
 
-	const validTabs = ["profile", "account", "tags", "assets", "timeframes", "riskProfiles"]
+	const validTabs = ["profile", "account", "tags", "assets", "timeframes"]
 	const tabFromUrl = searchParams.get("tab") ?? ""
 	const defaultTab = validTabs.includes(tabFromUrl) ? tabFromUrl : "profile"
 
@@ -58,10 +57,6 @@ export const SettingsContent = ({
 							<Clock className="h-4 w-4" />
 							{t("timeframes")}
 						</TabsTrigger>
-						<TabsTrigger value="riskProfiles" className="gap-s-200">
-							<Shield className="h-4 w-4" />
-							{t("riskProfiles")}
-						</TabsTrigger>
 					</>
 				)}
 			</TabsList>
@@ -86,10 +81,6 @@ export const SettingsContent = ({
 
 					<AnimatedTabsContent value="timeframes">
 						<TimeframeList timeframes={timeframes} />
-					</AnimatedTabsContent>
-
-					<AnimatedTabsContent value="riskProfiles">
-						<RiskProfilesTab />
 					</AnimatedTabsContent>
 				</>
 			)}

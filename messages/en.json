@@ -251,7 +251,9 @@
 				"selectProfile": "Select a risk profile",
 				"custom": "Custom",
 				"fromPlan": "From Monthly Plan",
-				"noProfiles": "No risk profiles available"
+				"noProfiles": "No risk profiles available",
+				"builtInGroup": "Professional Models",
+				"customGroup": "Custom Profiles"
 			},
 			"params": {
 				"winRate": "Win Rate (%)",
@@ -265,7 +267,11 @@
 				"initialBalance": "Initial Balance",
 				"tradingDaysPerMonth": "Trading Days/Month",
 				"tradingDaysPerWeek": "Trading Days/Week",
-				"commissionPerTrade": "Commission/Trade (cents)",
+				"commissionPerTrade": "Commission/Trade",
+				"monthsToTrade": "Months to Trade",
+				"ruinThreshold": "Ruin Threshold (%)",
+				"totalIterations": "Total iterations",
+				"budgetExceeded": "Budget exceeded. Reduce simulations, trading days, or months.",
 				"calculate": "Run Simulation"
 			},
 			"results": {
@@ -276,10 +282,14 @@
 				"profitFactor": "PF",
 				"breakevenRate": "BE Rate",
 				"profileName": "Profile",
-				"runAgain": "Run Again"
+				"runAgain": "Run Again",
+				"months": "Months"
 			},
 			"metrics": {
 				"monthlyPnl": "Monthly P&L",
+				"periodPnl": "{months}-Month P&L",
+				"profitablePeriods": "Profitable Periods",
+				"periodReturn": "{months}-Month Return",
 				"median": "Median",
 				"mean": "Mean",
 				"bestCase": "Best Case (95th)",
@@ -297,6 +307,8 @@
 				"drawdown": "Drawdown",
 				"medianMaxDrawdown": "Median Max Drawdown",
 				"worstMaxDrawdown": "Worst Max Drawdown",
+				"riskOfRuin": "Risk of Ruin",
+				"medianMinBalance": "Median Lowest Balance",
 				"riskAdjusted": "Risk-Adjusted",
 				"sharpeRatio": "Sharpe Ratio",
 				"sortinoRatio": "Sortino Ratio",
@@ -305,6 +317,7 @@
 			},
 			"charts": {
 				"dailyPnl": "Daily P&L (Sample Month)",
+				"dailyPnlPeriod": "Daily P&L ({months}-Month Sample)",
 				"modeDistribution": "Mode Distribution",
 				"monthlyDistribution": "Monthly P&L Distribution",
 				"lossRecovery": "Loss Recovery",
@@ -323,7 +336,17 @@
 				"gainMode": "Gain Mode",
 				"steps": "steps",
 				"compounding": "Compounding",
-				"singleTarget": "Single Target"
+				"singleTarget": "Single Target",
+				"ofBalance": "of Balance",
+				"fixedRatioLabel": "Fixed Ratio",
+				"fixedCentsLabel": "Fixed Cents",
+				"percentOfInitial": "% of Initial",
+				"rMultiplesLabel": "R-Multiples",
+				"limitMode": "Limit Mode",
+				"drawdownControl": "Drawdown Control",
+				"tiers": "tiers",
+				"lossRules": "Loss Rules",
+				"rules": "rules"
 			}
 		},
 		"analysis": {
@@ -394,7 +417,9 @@
 			"profitableSimulations": "Percentage of Monte Carlo runs ending in profit. Above 80% = robust edge. 60-80% = moderate confidence. Below 60% = strategy may not be reliable.",
 			"profitableMonths": "Percentage of simulated months ending positive. Above 70% = consistent. 50-70% = moderate. Below 50% suggests frequent losing months.",
 			"monthlyLimitHit": "How often the monthly loss limit was triggered. Below 10% = well-managed risk. Above 20% = strategy frequently hits safety stops.",
-			"expectedDailyPnl": "Average daily profit/loss across all simulations. Accounts for position sizing, commission costs, and the compression cycle from your risk profile."
+			"expectedDailyPnl": "Average daily profit/loss across all simulations. Accounts for position sizing, commission costs, and the compression cycle from your risk profile.",
+			"riskOfRuin": "Percentage of simulations where balance dropped to or below the ruin threshold. Lower is better.",
+			"ruinThreshold": "Account loss percentage that constitutes 'ruin'. E.g., 50% means ruin if balance drops to half of starting capital."
 		}
 	},
 	"commandCenter": {
@@ -631,6 +656,8 @@
 				"riskProfileModeProfile": "Use Risk Profile",
 				"riskProfileSelect": "Risk Profile",
 				"riskProfileSelectPlaceholder": "Select a risk profile...",
+				"builtInGroup": "Professional Models",
+				"customGroup": "Custom Profiles",
 				"riskProfileSummary": "Profile Summary",
 				"weeklyLoss": "Weekly Loss Limit",
 				"weeklyLossHelp": "Maximum loss allowed per week (% of balance)",
@@ -666,7 +693,7 @@
 				"stopOnFirstLoss": "Stop on first loss",
 				"singleTarget": "Single Target",
 				"dailyTarget": "Daily Target",
-				"bankTheDay": "1 winning trade = daily goal",
+				"tradesToTarget": "{count, plural, =1 {1 winning trade = daily goal} other {~# winning trades = daily goal}}",
 				"cascadingLimits": "Cascading Limits",
 				"weeklyLoss": "Weekly Loss",
 				"monthlyLoss": "Monthly Loss",
@@ -678,7 +705,24 @@
 				"operatingHours": "Operating Hours",
 				"noLimit": "No limit",
 			"tabs": {
-				"overview": "Overview"
+				"overview": "Overview",
+				"paths": "Paths"
+			},
+			"paths": {
+				"ariaLabel": "Complete decision tree showing all possible trade outcomes",
+				"tradeRoot": "TRADE {number}",
+				"trade": "TRADE {number}",
+				"risk": "Risk: {amount}",
+				"loss": "LOSS {amount}",
+				"gain": "GAIN {amount}",
+				"noRecovery": "No recovery steps configured for this profile.",
+				"probability": "P = {value}",
+				"assumedWinRate": "Assuming 50% win rate",
+				"target": "TARGET",
+				"exit": "EXIT",
+				"continues": "continues...",
+				"stop": "STOP",
+				"accGains": "acc = {amount}"
 			},
 			"progression": {
 				"title": "Full Day Progression (Worst Case)",
@@ -708,6 +752,7 @@
 				"recoveryComplete": "Recovery sequence complete",
 				"continueRecovery": "Continue recovery — execute Trade {nextNumber}",
 				"maxLossReached": "Max daily loss of {amount} reached — stop trading",
+				"sequenceExhausted": "Recovery sequence exhausted — stop trading",
 				"stopForDay": "Stop trading for the day"
 			},
 			"cumulative": {
@@ -1141,6 +1186,11 @@
 		"description": "Analyze your performance and identify patterns",
 		"noData": "No data available",
 		"updating": "Updating analytics...",
+		"expectancyToggle": "View mode",
+		"expectancyTooltipTitle": "R vs $ View Modes",
+		"expectancyTooltipR": "Edge Expectancy — measures strategy quality in R-multiples. Account-size independent: 1R is 1R whether your account is $10K or $1M. Use this to evaluate your trading edge objectively.",
+		"expectancyTooltipCapital": "Capital Expectancy — shows actual dollar P&L impact. Depends on position sizing: same edge produces different $ results at different risk levels.",
+		"expectancyTooltipDiffer": "A strategy with great R performance but small position sizes will look strong in R but modest in $. Large positions amplify $ results even with a mediocre R edge.",
 		"tableHeaders": {
 			"trades": "Trades",
 			"pnl": "P&L",
@@ -1206,6 +1256,13 @@
 			"worstSlotAction": "Consider reducing exposure",
 			"bestSlotPlaceholder": "Keep trading to find your best window",
 			"worstSlotPlaceholder": "Keep trading to identify risk areas",
+			"bestWindow": "Best Trading Window",
+			"worstWindow": "Worst Trading Window",
+			"bestWindowPlaceholder": "Keep trading to find your best window",
+			"worstWindowPlaceholder": "Keep trading to identify risk areas",
+			"windowSlot": "Slot",
+			"windowHour": "Hour",
+			"windowDay": "Day",
 			"totalTrades": "{count} trades",
 			"heatmapSubtitle": "Identify your most and least profitable trading windows",
 			"heatmapDays": {
@@ -1677,18 +1734,42 @@
 			"activate": "Activate",
 			"name": "Name",
 			"descriptionField": "Description",
-			"baseRisk": "Base Risk (cents)",
-			"dailyLoss": "Daily Loss Limit (cents)",
-			"weeklyLoss": "Weekly Loss Limit (cents)",
-			"monthlyLoss": "Monthly Loss Limit (cents)",
-			"dailyTarget": "Daily Target (cents)",
+			"baseRisk": "Base Risk",
+			"dailyLoss": "Daily Loss Limit",
+			"weeklyLoss": "Weekly Loss Limit",
+			"monthlyLoss": "Monthly Loss Limit",
+			"dailyTarget": "Daily Target",
 			"decisionTree": "Decision Tree Configuration",
 			"noProfiles": "No risk profiles yet",
 			"confirmDeactivate": "Are you sure you want to deactivate this profile?",
 			"active": "Active",
 			"inactive": "Inactive",
 			"save": "Save Profile",
-			"cancel": "Cancel"
+			"cancel": "Cancel",
+			"templates": {
+				"title": "Start from Template",
+				"blankProfile": "Blank Profile",
+				"fixedFractional": {
+					"name": "Fixed Fractional",
+					"description": "Risk a fixed % of current balance per trade. Conservative position sizing with drawdown protection."
+				},
+				"fixedRatio": {
+					"name": "Fixed Ratio",
+					"description": "Scale position size based on accumulated profit. Aggressive non-linear growth."
+				},
+				"institutional": {
+					"name": "Institutional",
+					"description": "Conservative risk with 3-tier drawdown controls. Extremely stable."
+				},
+				"rMultiples": {
+					"name": "R-Multiples",
+					"description": "Clean R-based risk framework. Fixed risk per trade measured in R units."
+				},
+				"kellyFractional": {
+					"name": "Kelly Fractional",
+					"description": "Mathematically optimal sizing divided by safety factor. Maximum theoretical growth."
+				}
+			}
 		},
 		"goToSettings": "Settings → {section}"
 	},
