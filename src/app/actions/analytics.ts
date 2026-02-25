@@ -428,9 +428,10 @@ export const getDailyPnL = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		// Construct dates on the server to avoid client/server timezone serialization issues
-		const startOfMonth = new Date(year, monthIndex, 1)
-		const endOfMonth = new Date(year, monthIndex + 1, 0, 23, 59, 59, 999)
+		// Use timezone-aware boundaries (BRT) to correctly match trade dates
+		const refDate = new Date(year, monthIndex, 15) // day 15 avoids timezone edge at month boundaries
+		const startOfMonth = getStartOfMonth(refDate)
+		const endOfMonth = getEndOfMonth(refDate)
 
 		const result = await db.query.trades.findMany({
 			where: and(
@@ -1214,6 +1215,8 @@ export const getTimeHeatmap = async (
 				hour,
 				hourLabel: `${hour.toString().padStart(2, "0")}:00`,
 				totalTrades: data.totalTrades,
+				wins: data.wins,
+				losses: data.losses,
 				totalPnl: data.totalPnl,
 				winRate: calculateWinRate(data.wins, data.wins + data.losses),
 				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,

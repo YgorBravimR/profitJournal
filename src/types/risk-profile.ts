@@ -36,11 +36,41 @@ type GainMode =
 			dailyTargetCents: number
 	  }
 
+// ==========================================
+// DYNAMIC RISK SIZING TYPES (Phase 2)
+// ==========================================
+
+/** How the base risk per trade is calculated. */
+type RiskSizingMode =
+	| { type: "fixed" }
+	| { type: "percentOfBalance"; riskPercent: number } // 0.1-10.0
+	| { type: "fixedRatio"; deltaCents: number; baseContractRiskCents: number }
+	| { type: "kellyFractional"; divisor: number } // 4 = quarter Kelly, 8 = eighth Kelly
+
+/** How cascading limits are expressed. */
+type LimitMode = "fixedCents" | "percentOfInitial" | "rMultiples"
+
+/** Drawdown-tiered risk adjustment. */
+interface DrawdownTier {
+	drawdownPercent: number // trigger at X% DD from peak
+	action: "reduceRisk" | "pause"
+	reducePercent: number // reduce risk by X% (0 for pause)
+}
+
+/** Consecutive losing day rule. */
+interface ConsecutiveLossRule {
+	consecutiveDays: number
+	action: "reduceRisk" | "stopDay" | "pauseWeek"
+	reducePercent: number // reduce risk by X% (0 for stopDay/pauseWeek)
+}
+
 /**
  * Full decision tree configuration stored as JSON in the riskManagementProfiles table.
  *
  * This governs day-level behavior: what happens on T1 loss (recovery sequence),
  * what happens on T1 win (gain mode), and when to stop trading (cascading limits).
+ *
+ * All Phase 2 fields are optional for backward compatibility — existing JSON parses unchanged.
  *
  * @see docs/riskManagement/risk-management-flowchart.md
  */
@@ -68,6 +98,17 @@ interface DecisionTreeConfig {
 		operatingHoursStart: string | null // "09:01"
 		operatingHoursEnd: string | null // "17:00"
 	}
+	// Dynamic risk sizing (optional — defaults to "fixed" mode)
+	riskSizing?: RiskSizingMode
+	limitMode?: LimitMode
+	drawdownControl?: {
+		tiers: DrawdownTier[]
+		recoveryThresholdPercent: number // resume normal after recovering X% of DD
+	}
+	consecutiveLossRules?: ConsecutiveLossRule[]
+	// Percent/R limit overrides (used when limitMode !== "fixedCents")
+	limitsPercent?: { daily: number; weekly: number | null; monthly: number }
+	limitsR?: { daily: number; weekly: number | null; monthly: number }
 }
 
 /**
@@ -107,6 +148,10 @@ export type {
 	RiskCalculation,
 	LossRecoveryStep,
 	GainMode,
+	RiskSizingMode,
+	LimitMode,
+	DrawdownTier,
+	ConsecutiveLossRule,
 	DecisionTreeConfig,
 	RiskManagementProfile,
 	RiskProfileInput,

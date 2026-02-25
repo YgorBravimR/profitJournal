@@ -3,10 +3,12 @@
 import { Tag } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { TagStats, TagType } from "@/types"
-import { formatCompactCurrencyWithSign } from "@/lib/formatting"
+import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 interface TagCloudProps {
 	data: TagStats[]
+	expectancyMode: ExpectancyMode
 }
 
 const getTagTypeColor = (type: TagType): string => {
@@ -22,9 +24,15 @@ const getTagTypeColor = (type: TagType): string => {
 	}
 }
 
-export const TagCloud = ({ data }: TagCloudProps) => {
+export const TagCloud = ({ data, expectancyMode }: TagCloudProps) => {
 	const t = useTranslations("analytics.tagCloud")
 	const tHeaders = useTranslations("analytics.tableHeaders")
+
+	const isRMode = expectancyMode === "edge"
+	const formatMetric = (value: number): string =>
+		isRMode ? formatR(value) : formatCompactCurrencyWithSign(value)
+	const getMetric = (tag: TagStats): number =>
+		isRMode ? tag.avgR : tag.totalPnl
 
 	const getTagTypeLabel = (type: TagType): string => {
 		switch (type) {
@@ -93,14 +101,30 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							{/* Tooltip on hover */}
 							<div className="absolute bottom-full left-1/2 z-10 mb-s-200 hidden -translate-x-1/2 rounded-lg border border-bg-300 bg-bg-200 p-s-300 shadow-lg group-hover:block">
 								<div className="whitespace-nowrap text-tiny">
-									<p className={tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-										{tHeaders("pnl")}: {formatCompactCurrencyWithSign(tag.totalPnl)}
-									</p>
-									<p className="text-txt-200">{tHeaders("winRate")}: {tag.winRate.toFixed(1)}%</p>
-									{tag.avgR !== 0 && (
-										<p className={tag.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}>
-											{tHeaders("avgR")}: {tag.avgR >= 0 ? "+" : ""}{tag.avgR.toFixed(2)}R
-										</p>
+									{isRMode ? (
+										<>
+											{tag.avgR !== 0 && (
+												<p className={tag.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}>
+													{tHeaders("avgR")}: {formatR(tag.avgR)}
+												</p>
+											)}
+											<p className="text-txt-200">{tHeaders("winRate")}: {tag.winRate.toFixed(1)}%</p>
+											<p className={tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
+												{tHeaders("pnl")}: {formatCompactCurrencyWithSign(tag.totalPnl)}
+											</p>
+										</>
+									) : (
+										<>
+											<p className={tag.totalPnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
+												{tHeaders("pnl")}: {formatCompactCurrencyWithSign(tag.totalPnl)}
+											</p>
+											<p className="text-txt-200">{tHeaders("winRate")}: {tag.winRate.toFixed(1)}%</p>
+											{tag.avgR !== 0 && (
+												<p className={tag.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}>
+													{tHeaders("avgR")}: {formatR(tag.avgR)}
+												</p>
+											)}
+										</>
 									)}
 								</div>
 							</div>
@@ -122,10 +146,13 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 		)
 	}
 
-	// Calculate mistake cost
-	const totalMistakeCost = mistakeTags.reduce((sum, tag) => sum + Math.abs(Math.min(0, tag.totalPnl)), 0)
-	const bestSetup = setupTags.reduce((best, tag) =>
-		(!best || tag.totalPnl > best.totalPnl) ? tag : best,
+	// Calculate mistake cost and best setup based on current mode
+	const totalMistakeCost = mistakeTags.reduce(
+		(sum, tag) => sum + Math.abs(Math.min(0, getMetric(tag))),
+		0
+	)
+	const bestSetup = setupTags.reduce(
+		(best, tag) => (!best || getMetric(tag) > getMetric(best)) ? tag : best,
 		null as TagStats | null
 	)
 
@@ -146,7 +173,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							{bestSetup.tagName}
 						</p>
 						<p className="text-tiny text-txt-200">
-							{formatCompactCurrencyWithSign(bestSetup.totalPnl)}
+							{formatMetric(getMetric(bestSetup))}
 						</p>
 					</div>
 				)}
@@ -154,7 +181,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 					<div className="rounded-lg bg-bg-100 p-s-300 text-center">
 						<p className="text-tiny text-txt-300">{t("mistakeCost")}</p>
 						<p className="mt-s-100 text-small font-bold text-trade-sell">
-							{formatCompactCurrencyWithSign(-totalMistakeCost)}
+							{formatMetric(-totalMistakeCost)}
 						</p>
 					</div>
 				)}
@@ -200,7 +227,7 @@ export const TagCloud = ({ data }: TagCloudProps) => {
 							<tbody>
 								{data
 									.filter((tag) => tag.tradeCount > 0)
-									.toSorted((a, b) => b.totalPnl - a.totalPnl)
+									.toSorted((a, b) => getMetric(b) - getMetric(a))
 									.map((tag) => (
 										<tr key={tag.tagId} className="border-b border-bg-300/50">
 											<td className="px-s-300 py-s-200 text-small font-medium text-txt-100">

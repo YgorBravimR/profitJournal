@@ -13,6 +13,39 @@ interface RiskProfileSelectorProps {
 	simProfile: RiskManagementProfileForSim | null
 }
 
+/** Maps risk sizing mode to display label */
+const getRiskSizingLabel = (
+	mode: string,
+	profile: RiskManagementProfileForSim,
+	t: ReturnType<typeof useTranslations>
+): string => {
+	switch (mode) {
+		case "percentOfBalance":
+			return `${profile.riskPercent ?? 0}% ${t("profileSummary.ofBalance")}`
+		case "fixedRatio":
+			return t("profileSummary.fixedRatioLabel")
+		case "kellyFractional":
+			return `Kelly ÷${profile.kellyDivisor ?? 4}`
+		default:
+			return formatCompactCurrency(fromCents(profile.baseRiskCents))
+	}
+}
+
+/** Maps limit mode to display label */
+const getLimitModeLabel = (
+	mode: string,
+	t: ReturnType<typeof useTranslations>
+): string => {
+	switch (mode) {
+		case "percentOfInitial":
+			return t("profileSummary.percentOfInitial")
+		case "rMultiples":
+			return t("profileSummary.rMultiplesLabel")
+		default:
+			return t("profileSummary.fixedCentsLabel")
+	}
+}
+
 const RiskProfileSelector = ({
 	profiles,
 	selectedProfileId,
@@ -33,11 +66,34 @@ const RiskProfileSelector = ({
 				aria-label={t("profileSelector.title")}
 			>
 				<option value="">{t("profileSelector.selectProfile")}</option>
-				{profiles.map((profile) => (
-					<option key={profile.id} value={profile.id}>
-						{profile.name}
-					</option>
-				))}
+				{(() => {
+					const builtInNames = ["Fixed Fractional", "Fixed Ratio", "Institutional", "R-Multiples", "Kelly Fractional"]
+					const isBuiltIn = (p: RiskManagementProfile) => builtInNames.some((n) => p.name.includes(n))
+					const builtIn = profiles.filter(isBuiltIn)
+					const custom = profiles.filter((p) => !isBuiltIn(p))
+					return (
+						<>
+							{builtIn.length > 0 && (
+								<optgroup label={t("profileSelector.builtInGroup")}>
+									{builtIn.map((profile) => (
+										<option key={profile.id} value={profile.id}>
+											{profile.name}
+										</option>
+									))}
+								</optgroup>
+							)}
+							{custom.length > 0 && (
+								<optgroup label={t("profileSelector.customGroup")}>
+									{custom.map((profile) => (
+										<option key={profile.id} value={profile.id}>
+											{profile.name}
+										</option>
+									))}
+								</optgroup>
+							)}
+						</>
+					)
+				})()}
 			</select>
 
 			{/* Profile Summary */}
@@ -46,7 +102,7 @@ const RiskProfileSelector = ({
 					<div className="grid grid-cols-2 gap-s-200 text-tiny">
 						<span className="text-txt-300">{t("profileSummary.baseRisk")}:</span>
 						<span className="text-txt-100 font-medium">
-							{formatCompactCurrency(fromCents(simProfile.baseRiskCents))}
+							{getRiskSizingLabel(simProfile.riskSizingMode, simProfile, t)}
 						</span>
 						<span className="text-txt-300">{t("profileSummary.dailyLossLimit")}:</span>
 						<span className="text-txt-100 font-medium">
@@ -82,6 +138,32 @@ const RiskProfileSelector = ({
 								? `${t("profileSummary.compounding")} (${simProfile.compoundingRiskPercent}%)`
 								: t("profileSummary.singleTarget")}
 						</span>
+
+						{/* Enhanced summary for dynamic risk profiles */}
+						{simProfile.riskSizingMode !== "fixed" && (
+							<>
+								<span className="text-txt-300">{t("profileSummary.limitMode")}:</span>
+								<span className="text-txt-100 font-medium">
+									{getLimitModeLabel(simProfile.limitMode, t)}
+								</span>
+							</>
+						)}
+						{simProfile.drawdownTiers.length > 0 && (
+							<>
+								<span className="text-txt-300">{t("profileSummary.drawdownControl")}:</span>
+								<span className="text-txt-100 font-medium">
+									{simProfile.drawdownTiers.length} {t("profileSummary.tiers")}
+								</span>
+							</>
+						)}
+						{simProfile.consecutiveLossRules.length > 0 && (
+							<>
+								<span className="text-txt-300">{t("profileSummary.lossRules")}:</span>
+								<span className="text-txt-100 font-medium">
+									{simProfile.consecutiveLossRules.length} {t("profileSummary.rules")}
+								</span>
+							</>
+						)}
 					</div>
 				</div>
 			)}

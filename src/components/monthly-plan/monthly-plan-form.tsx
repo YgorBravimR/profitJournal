@@ -126,22 +126,77 @@ const MonthlyPlanForm = ({
 	const selectedProfile = riskProfiles.find((p) => p.id === selectedProfileId)
 	const isProfileMode = planMode === "profile" && !!selectedProfile
 
-	const profileDerivedPercents = useMemo(() => {
+	// Resolve effective risk + limits from decision tree when profile uses dynamic sizing
+	const effectiveProfile = useMemo(() => {
 		if (!selectedProfile) return null
+		const balanceCents = toCents(accountBalance)
+		const { decisionTree } = selectedProfile
+
+		// Effective risk per trade based on riskSizing mode
+		let riskCents = selectedProfile.baseRiskCents
+		if (balanceCents > 0) {
+			if (decisionTree.riskSizing?.type === "percentOfBalance") {
+				riskCents = Math.round(balanceCents * decisionTree.riskSizing.riskPercent / 100)
+			} else if (decisionTree.riskSizing?.type === "fixedRatio") {
+				riskCents = decisionTree.riskSizing.baseContractRiskCents
+			}
+			// kellyFractional + fixed/undefined: use baseRiskCents as fallback
+		}
+
+		// Effective limits based on limitMode
+		let dailyLossCents = selectedProfile.dailyLossCents
+		let weeklyLossCents = selectedProfile.weeklyLossCents
+		let monthlyLossCents = selectedProfile.monthlyLossCents
+
+		if (balanceCents > 0) {
+			if (decisionTree.limitMode === "percentOfInitial" && decisionTree.limitsPercent) {
+				dailyLossCents = Math.round(balanceCents * decisionTree.limitsPercent.daily / 100)
+				weeklyLossCents = decisionTree.limitsPercent.weekly != null
+					? Math.round(balanceCents * decisionTree.limitsPercent.weekly / 100)
+					: null
+				monthlyLossCents = Math.round(balanceCents * decisionTree.limitsPercent.monthly / 100)
+			} else if (decisionTree.limitMode === "rMultiples" && decisionTree.limitsR) {
+				dailyLossCents = Math.round(riskCents * decisionTree.limitsR.daily)
+				weeklyLossCents = decisionTree.limitsR.weekly != null
+					? Math.round(riskCents * decisionTree.limitsR.weekly)
+					: null
+				monthlyLossCents = Math.round(riskCents * decisionTree.limitsR.monthly)
+			}
+		}
+
+		// Scale daily target proportionally when risk sizing is dynamic
+		// e.g. stored target R$3,000 at stored risk R$500 = 6R → effective R$300 × 6 = R$1,800
+		const dailyProfitTargetCents = selectedProfile.dailyProfitTargetCents != null
+			&& selectedProfile.baseRiskCents > 0
+			&& riskCents !== selectedProfile.baseRiskCents
+			? Math.round(riskCents * selectedProfile.dailyProfitTargetCents / selectedProfile.baseRiskCents)
+			: selectedProfile.dailyProfitTargetCents
+
+		return {
+			riskCents,
+			dailyLossCents,
+			weeklyLossCents,
+			monthlyLossCents,
+			dailyProfitTargetCents,
+		}
+	}, [selectedProfile, accountBalance])
+
+	const profileDerivedPercents = useMemo(() => {
+		if (!effectiveProfile) return null
 		const balanceCents = toCents(accountBalance)
 		if (balanceCents <= 0) return null
 		return {
-			riskPerTrade: (selectedProfile.baseRiskCents / balanceCents * 100).toFixed(2),
-			dailyLoss: (selectedProfile.dailyLossCents / balanceCents * 100).toFixed(2),
-			weeklyLoss: selectedProfile.weeklyLossCents
-				? (selectedProfile.weeklyLossCents / balanceCents * 100).toFixed(2)
+			riskPerTrade: (effectiveProfile.riskCents / balanceCents * 100).toFixed(2),
+			dailyLoss: (effectiveProfile.dailyLossCents / balanceCents * 100).toFixed(2),
+			weeklyLoss: effectiveProfile.weeklyLossCents != null
+				? (effectiveProfile.weeklyLossCents / balanceCents * 100).toFixed(2)
 				: null,
-			monthlyLoss: (selectedProfile.monthlyLossCents / balanceCents * 100).toFixed(2),
-			dailyTarget: selectedProfile.dailyProfitTargetCents
-				? (selectedProfile.dailyProfitTargetCents / balanceCents * 100).toFixed(2)
+			monthlyLoss: (effectiveProfile.monthlyLossCents / balanceCents * 100).toFixed(2),
+			dailyTarget: effectiveProfile.dailyProfitTargetCents
+				? (effectiveProfile.dailyProfitTargetCents / balanceCents * 100).toFixed(2)
 				: null,
 		}
-	}, [selectedProfile, accountBalance])
+	}, [effectiveProfile, accountBalance])
 
 	// UI state
 	const [showAdvanced, setShowAdvanced] = useState(false)
@@ -226,41 +281,41 @@ const MonthlyPlanForm = ({
 		weeklyLossPercent,
 	])
 
-	// Live preview computation (profile mode — absolute cents from profile)
+	// Live preview computation (profile mode — resolved from decision tree)
 	const profilePreview = useMemo(() => {
-		if (planMode !== "profile" || !selectedProfile) return null
+		if (planMode !== "profile" || !effectiveProfile) return null
 		const balanceCents = toCents(accountBalance)
 		if (balanceCents <= 0) return null
 		return {
-			riskPerTradeCents: selectedProfile.baseRiskCents,
-			dailyLossCents: selectedProfile.dailyLossCents,
-			monthlyLossCents: selectedProfile.monthlyLossCents,
-			dailyProfitTargetCents: selectedProfile.dailyProfitTargetCents,
-			weeklyLossCents: selectedProfile.weeklyLossCents,
-			derivedMaxDailyTrades: selectedProfile.baseRiskCents > 0
-				? Math.floor(selectedProfile.dailyLossCents / selectedProfile.baseRiskCents)
+			riskPerTradeCents: effectiveProfile.riskCents,
+			dailyLossCents: effectiveProfile.dailyLossCents,
+			monthlyLossCents: effectiveProfile.monthlyLossCents,
+			dailyProfitTargetCents: effectiveProfile.dailyProfitTargetCents,
+			weeklyLossCents: effectiveProfile.weeklyLossCents,
+			derivedMaxDailyTrades: effectiveProfile.riskCents > 0
+				? Math.floor(effectiveProfile.dailyLossCents / effectiveProfile.riskCents)
 				: null,
 		}
-	}, [planMode, selectedProfile, accountBalance])
+	}, [planMode, effectiveProfile, accountBalance])
 
 	const activePreview = isProfileMode ? profilePreview : preview
 
 	const handleSave = useCallback(async () => {
 		setSaving(true)
 		try {
-			if (isProfileMode && selectedProfile) {
+			if (isProfileMode && selectedProfile && effectiveProfile) {
 				const balanceCents = toCents(accountBalance)
 				const balance = fromCents(balanceCents)
 
-				// Derive percentages from profile's absolute values
-				const riskPct = balance > 0 ? fromCents(selectedProfile.baseRiskCents) / balance * 100 : 0
-				const dailyLossPct = balance > 0 ? fromCents(selectedProfile.dailyLossCents) / balance * 100 : 0
-				const monthlyLossPct = balance > 0 ? fromCents(selectedProfile.monthlyLossCents) / balance * 100 : 0
-				const dailyTargetPct = selectedProfile.dailyProfitTargetCents && balance > 0
-					? fromCents(selectedProfile.dailyProfitTargetCents) / balance * 100
+				// Derive percentages from effective values (respects dynamic sizing)
+				const riskPct = balance > 0 ? fromCents(effectiveProfile.riskCents) / balance * 100 : 0
+				const dailyLossPct = balance > 0 ? fromCents(effectiveProfile.dailyLossCents) / balance * 100 : 0
+				const monthlyLossPct = balance > 0 ? fromCents(effectiveProfile.monthlyLossCents) / balance * 100 : 0
+				const dailyTargetPct = effectiveProfile.dailyProfitTargetCents && balance > 0
+					? fromCents(effectiveProfile.dailyProfitTargetCents) / balance * 100
 					: null
-				const weeklyLossPct = selectedProfile.weeklyLossCents && balance > 0
-					? fromCents(selectedProfile.weeklyLossCents) / balance * 100
+				const weeklyLossPct = effectiveProfile.weeklyLossCents != null && balance > 0
+					? fromCents(effectiveProfile.weeklyLossCents) / balance * 100
 					: null
 
 				// Derive behavioral flags from decision tree
@@ -268,7 +323,7 @@ const MonthlyPlanForm = ({
 				const firstStep = decisionTree.lossRecovery.sequence[0]
 				const hasRiskReduction = decisionTree.lossRecovery.sequence.some((step) => {
 					if (step.riskCalculation.type === "percentOfBase") return step.riskCalculation.percent < 100
-					if (step.riskCalculation.type === "fixedCents") return step.riskCalculation.amountCents < selectedProfile.baseRiskCents
+					if (step.riskCalculation.type === "fixedCents") return step.riskCalculation.amountCents < effectiveProfile.riskCents
 					return false
 				})
 
@@ -276,8 +331,8 @@ const MonthlyPlanForm = ({
 				if (hasRiskReduction && firstStep) {
 					if (firstStep.riskCalculation.type === "percentOfBase") {
 						reductionFactor = firstStep.riskCalculation.percent / 100
-					} else if (firstStep.riskCalculation.type === "fixedCents" && selectedProfile.baseRiskCents > 0) {
-						reductionFactor = firstStep.riskCalculation.amountCents / selectedProfile.baseRiskCents
+					} else if (firstStep.riskCalculation.type === "fixedCents" && effectiveProfile.riskCents > 0) {
+						reductionFactor = firstStep.riskCalculation.amountCents / effectiveProfile.riskCents
 					}
 				}
 
@@ -346,6 +401,7 @@ const MonthlyPlanForm = ({
 		accountBalance,
 		isProfileMode,
 		selectedProfile,
+		effectiveProfile,
 		selectedProfileId,
 		notes,
 		riskPerTradePercent,
@@ -429,11 +485,34 @@ const MonthlyPlanForm = ({
 											aria-label={t("form.riskProfileSelect")}
 										>
 											<option value="">{t("form.riskProfileSelectPlaceholder")}</option>
-											{riskProfiles.map((profile) => (
-												<option key={profile.id} value={profile.id}>
-													{profile.name}
-												</option>
-											))}
+											{(() => {
+												const builtInNames = ["Fixed Fractional", "Fixed Ratio", "Institutional", "R-Multiples", "Kelly Fractional"]
+												const isBuiltIn = (p: RiskManagementProfile) => builtInNames.some((n) => p.name.includes(n))
+												const builtIn = riskProfiles.filter(isBuiltIn)
+												const custom = riskProfiles.filter((p) => !isBuiltIn(p))
+												return (
+													<>
+														{builtIn.length > 0 && (
+															<optgroup label={t("form.builtInGroup")}>
+																{builtIn.map((profile) => (
+																	<option key={profile.id} value={profile.id}>
+																		{profile.name}
+																	</option>
+																))}
+															</optgroup>
+														)}
+														{custom.length > 0 && (
+															<optgroup label={t("form.customGroup")}>
+																{custom.map((profile) => (
+																	<option key={profile.id} value={profile.id}>
+																		{profile.name}
+																	</option>
+																))}
+															</optgroup>
+														)}
+													</>
+												)
+											})()}
 										</select>
 									</div>
 
@@ -484,12 +563,12 @@ const MonthlyPlanForm = ({
 								</p>
 							</div>
 
-							{/* Absolute values with derived percentages */}
+							{/* Effective values with derived percentages */}
 							<div className="grid grid-cols-[1fr_auto] gap-x-m-300 gap-y-s-200 text-tiny">
 								<span className="text-txt-300">{t("preview.riskPerTrade")}:</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(selectedProfile.baseRiskCents))}
+										{formatCurrency(fromCents(effectiveProfile?.riskCents ?? selectedProfile.baseRiskCents))}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -501,7 +580,7 @@ const MonthlyPlanForm = ({
 								<span className="text-txt-300">{t("preview.dailyLossLimit")}:</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(selectedProfile.dailyLossCents))}
+										{formatCurrency(fromCents(effectiveProfile?.dailyLossCents ?? selectedProfile.dailyLossCents))}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -510,12 +589,12 @@ const MonthlyPlanForm = ({
 									)}
 								</div>
 
-								{selectedProfile.weeklyLossCents && (
+								{(effectiveProfile?.weeklyLossCents ?? selectedProfile.weeklyLossCents) != null && (
 									<>
 										<span className="text-txt-300">{t("form.weeklyLoss")}:</span>
 										<div className="text-right">
 											<span className="text-txt-100 font-medium">
-												{formatCurrency(fromCents(selectedProfile.weeklyLossCents))}
+												{formatCurrency(fromCents(effectiveProfile?.weeklyLossCents ?? selectedProfile.weeklyLossCents ?? 0))}
 											</span>
 											{profileDerivedPercents?.weeklyLoss && (
 												<span className="text-txt-300 ml-s-200">
@@ -529,7 +608,7 @@ const MonthlyPlanForm = ({
 								<span className="text-txt-300">{t("preview.monthlyLossLimit")}:</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(selectedProfile.monthlyLossCents))}
+										{formatCurrency(fromCents(effectiveProfile?.monthlyLossCents ?? selectedProfile.monthlyLossCents))}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -538,12 +617,12 @@ const MonthlyPlanForm = ({
 									)}
 								</div>
 
-								{selectedProfile.dailyProfitTargetCents && (
+								{(effectiveProfile?.dailyProfitTargetCents ?? selectedProfile.dailyProfitTargetCents) != null && (
 									<>
 										<span className="text-txt-300">{t("form.dailyTarget")}:</span>
 										<div className="text-right">
 											<span className="text-txt-100 font-medium">
-												{formatCurrency(fromCents(selectedProfile.dailyProfitTargetCents))}
+												{formatCurrency(fromCents(effectiveProfile?.dailyProfitTargetCents ?? selectedProfile.dailyProfitTargetCents ?? 0))}
 											</span>
 											{profileDerivedPercents?.dailyTarget && (
 												<span className="text-txt-300 ml-s-200">
@@ -1064,6 +1143,7 @@ const MonthlyPlanForm = ({
 					open={showDecisionTree}
 					onOpenChange={setShowDecisionTree}
 					profile={selectedProfile}
+					effectiveValues={effectiveProfile}
 				/>
 			)}
 		</div>

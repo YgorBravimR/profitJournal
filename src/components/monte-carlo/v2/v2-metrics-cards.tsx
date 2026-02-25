@@ -18,6 +18,7 @@ import type { SimulationStatisticsV2 } from "@/types/monte-carlo"
 interface V2MetricsCardsProps {
 	statistics: SimulationStatisticsV2
 	initialBalance: number // cents
+	monthsToTrade?: number
 }
 
 interface MetricCardProps {
@@ -71,16 +72,18 @@ const MetricRow = ({ label, value, valueClass, tooltip }: MetricRowProps) => (
 const V2MetricsCards = ({
 	statistics,
 	initialBalance,
+	monthsToTrade = 1,
 }: V2MetricsCardsProps) => {
 	const t = useTranslations("monteCarlo.v2.metrics")
 	const tTooltips = useTranslations("monteCarlo.tooltips")
 
+	const isMultiMonth = monthsToTrade > 1
 	const medianPnlFromCents = statistics.medianMonthlyPnl / 100
 
 	return (
 		<div className="gap-m-400 grid md:grid-cols-2 lg:grid-cols-3">
-			{/* Monthly P&L */}
-			<MetricCard title={t("monthlyPnl")}>
+			{/* Monthly / Period P&L */}
+			<MetricCard title={isMultiMonth ? t("periodPnl", { months: monthsToTrade }) : t("monthlyPnl")}>
 				<MetricRow
 					label={t("median")}
 					value={formatCompactCurrency(medianPnlFromCents)}
@@ -111,8 +114,8 @@ const V2MetricsCards = ({
 				/>
 			</MetricCard>
 
-			{/* Profitable Months & Limits */}
-			<MetricCard title={t("profitableMonths")}>
+			{/* Profitable Months/Periods & Limits */}
+			<MetricCard title={isMultiMonth ? t("profitablePeriods") : t("profitableMonths")}>
 				<MetricRow
 					label={t("profitableMonths")}
 					value={formatChartPercent(statistics.profitableMonthsPct, false)}
@@ -181,6 +184,29 @@ const V2MetricsCards = ({
 					value={formatChartPercent(statistics.worstMaxDrawdownPercent, false)}
 					valueClass="text-trade-sell"
 				/>
+				<MetricRow
+					label={t("riskOfRuin")}
+					value={formatChartPercent(statistics.riskOfRuinPercent, false)}
+					valueClass={
+						statistics.riskOfRuinPercent <= 5
+							? "text-trade-buy"
+							: statistics.riskOfRuinPercent <= 20
+								? "text-fb-warning"
+								: "text-trade-sell"
+					}
+					tooltip={tTooltips("riskOfRuin")}
+				/>
+				<MetricRow
+					label={t("medianMinBalance")}
+					value={formatChartPercent(statistics.medianMinBalancePercent, false)}
+					valueClass={
+						statistics.medianMinBalancePercent >= 80
+							? "text-trade-buy"
+							: statistics.medianMinBalancePercent >= 60
+								? "text-fb-warning"
+								: "text-trade-sell"
+					}
+				/>
 			</MetricCard>
 
 			{/* Risk-Adjusted */}
@@ -214,7 +240,7 @@ const V2MetricsCards = ({
 			</MetricCard>
 
 			{/* Return */}
-			<MetricCard title={t("monthlyReturn")}>
+			<MetricCard title={isMultiMonth ? t("periodReturn", { months: monthsToTrade }) : t("monthlyReturn")}>
 				<MetricRow
 					label={t("median")}
 					value={formatChartPercent(statistics.medianReturnPercent)}

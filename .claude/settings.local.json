@@ -77,7 +77,11 @@
       "Bash(git restore:*)",
       "Bash(npx drizzle-kit migrate:*)",
       "Bash(npx drizzle-kit push:*)",
-      "Bash(npx tsx:*)"
+      "Bash(npx tsx:*)",
+      "Bash(/tmp/replace_block.py:*)",
+      "Bash(\"@auth|\"drizzle)",
+      "Bash(\"neon|\"crypto)",
+      "Bash(\"jose|DATABASE|AUTH_SECRET|NEXTAUTH\" /Users/ygorbravim/personal/projects/profitJournal/package.json)"
     ],
     "deny": [],
     "ask": []

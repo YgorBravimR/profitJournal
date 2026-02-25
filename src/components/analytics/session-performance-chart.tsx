@@ -11,13 +11,15 @@ import {
 	Cell,
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
-import { formatCompactCurrencyWithSign } from "@/lib/formatting"
+import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
 import { cn } from "@/lib/utils"
 import { InsightCard, InsightCardPlaceholder } from "@/components/analytics/insight-card"
 import type { SessionPerformance } from "@/types"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 interface SessionPerformanceChartProps {
 	data: SessionPerformance[]
+	expectancyMode: ExpectancyMode
 }
 
 interface CustomTooltipProps {
@@ -146,12 +148,17 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
  * with session stat cards and actionable insights.
  *
  * @param data - Array of session performance data
+ * @param expectancyMode - Whether to display R-multiples or $ P&L
  */
 export const SessionPerformanceChart = ({
 	data,
+	expectancyMode,
 }: SessionPerformanceChartProps) => {
 	const t = useTranslations("analytics")
 	const tLabels = useTranslations("analytics.session.labels")
+
+	const isRMode = expectancyMode === "edge"
+	const metricKey = isRMode ? "avgR" : "totalPnl"
 
 	const translateSessionLabel = (label: string): string => {
 		const key = getSessionKey(label) as
@@ -162,23 +169,36 @@ export const SessionPerformanceChart = ({
 		return tLabels(key)
 	}
 
+	const formatMetric = (value: number): string =>
+		isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
+
 	// Filter out sessions with no trades
 	const sessionsWithTrades = data.filter((s) => s.totalTrades > 0)
 
 	// Calculate domain with padding
-	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.totalPnl)), 100)
-	const domainMax = Math.ceil(maxAbsPnl * 1.1)
+	const maxAbsMetric = Math.max(
+		...data.map((d) => Math.abs(d[metricKey])),
+		isRMode ? 0.5 : 100
+	)
+	const domainMax = isRMode
+		? Math.ceil(maxAbsMetric * 1.2 * 100) / 100
+		: Math.ceil(maxAbsMetric * 1.1)
 
 	// Find best and worst sessions
-	const sortedByPnl = sessionsWithTrades.toSorted(
-		(a, b) => b.totalPnl - a.totalPnl
+	const sortedByMetric = sessionsWithTrades.toSorted(
+		(a, b) => b[metricKey] - a[metricKey]
 	)
-	const bestSession = sortedByPnl[0]
-	const worstSession = sortedByPnl[sortedByPnl.length - 1]
+	const bestSession = sortedByMetric[0]
+	const worstSession = sortedByMetric[sortedByMetric.length - 1]
 
 	// Totals
 	const totalPnl = data.reduce((sum, s) => sum + s.totalPnl, 0)
 	const totalTrades = data.reduce((sum, s) => sum + s.totalTrades, 0)
+
+	// Weighted average R for header display
+	const weightedAvgR = totalTrades > 0
+		? data.reduce((sum, s) => sum + s.avgR * s.totalTrades, 0) / totalTrades
+		: 0
 
 	if (sessionsWithTrades.length === 0) {
 		return (
@@ -192,6 +212,8 @@ export const SessionPerformanceChart = ({
 			</div>
 		)
 	}
+
+	const headerMetricValue = isRMode ? weightedAvgR : totalPnl
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
@@ -209,12 +231,12 @@ export const SessionPerformanceChart = ({
 					<p
 						className={cn(
 							"text-body font-semibold",
-							totalPnl >= 0
+							headerMetricValue >= 0
 								? "text-trade-buy"
 								: "text-trade-sell"
 						)}
 					>
-						{formatCompactCurrencyWithSign(totalPnl, "R$")}
+						{formatMetric(headerMetricValue)}
 					</p>
 					<p className="text-caption text-txt-300">
 						{t("session.totalTrades", { count: totalTrades })}
@@ -246,7 +268,7 @@ export const SessionPerformanceChart = ({
 						/>
 						<YAxis
 							tickFormatter={(value: number) =>
-								formatCompactCurrencyWithSign(value, "R$")
+								isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
 							}
 							stroke="var(--color-txt-300)"
 							tick={{
@@ -265,12 +287,12 @@ export const SessionPerformanceChart = ({
 								opacity: 0.3,
 							}}
 						/>
-						<Bar dataKey="totalPnl" radius={[4, 4, 0, 0]}>
+						<Bar dataKey={metricKey} radius={[4, 4, 0, 0]}>
 							{data.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
 									fill={
-										entry.totalPnl >= 0
+										entry[metricKey] >= 0
 											? "var(--color-trade-buy)"
 											: "var(--color-trade-sell)"
 									}
@@ -286,7 +308,8 @@ export const SessionPerformanceChart = ({
 			{/* Session Stats Cards */}
 			<div className="mt-m-400 grid grid-cols-2 gap-s-300 sm:grid-cols-4">
 				{data.map((session) => {
-					const isProfit = session.totalPnl >= 0
+					const metricValue = session[metricKey]
+					const isPositive = metricValue >= 0
 					const hasTrades = session.totalTrades > 0
 					return (
 						<div
@@ -294,7 +317,7 @@ export const SessionPerformanceChart = ({
 							className={cn(
 								"rounded-lg border px-m-400 py-s-300",
 								hasTrades
-									? isProfit
+									? isPositive
 										? "border-trade-buy/20 bg-trade-buy/5"
 										: "border-trade-sell/20 bg-trade-sell/5"
 									: "border-bg-300/50 bg-bg-300/20"
@@ -307,17 +330,14 @@ export const SessionPerformanceChart = ({
 								className={cn(
 									"text-small font-semibold",
 									hasTrades
-										? isProfit
+										? isPositive
 											? "text-trade-buy"
 											: "text-trade-sell"
 										: "text-txt-300"
 								)}
 							>
 								{hasTrades
-									? formatCompactCurrencyWithSign(
-											session.totalPnl,
-											"R$"
-										)
+									? formatMetric(metricValue)
 									: "—"}
 							</p>
 							{hasTrades && (
@@ -336,8 +356,8 @@ export const SessionPerformanceChart = ({
 			{/* Actionable Insights */}
 			{bestSession && worstSession && (() => {
 				const isSameSession = bestSession === worstSession
-				const showBestAsReal = !isSameSession || bestSession.totalPnl >= 0
-				const showWorstAsReal = !isSameSession || worstSession.totalPnl < 0
+				const showBestAsReal = !isSameSession || bestSession[metricKey] >= 0
+				const showWorstAsReal = !isSameSession || worstSession[metricKey] < 0
 
 				return (
 					<div className="mt-m-400 grid grid-cols-1 gap-s-300 sm:grid-cols-2">
@@ -346,7 +366,7 @@ export const SessionPerformanceChart = ({
 								type="best"
 								label={t("session.bestSession")}
 								title={translateSessionLabel(bestSession.sessionLabel)}
-								detail={`${bestSession.winRate.toFixed(0)}% WR · ${formatCompactCurrencyWithSign(bestSession.totalPnl, "R$")} · ${t("session.totalTrades", { count: bestSession.totalTrades })}`}
+								detail={`${bestSession.winRate.toFixed(0)}% WR · ${formatMetric(bestSession[metricKey])} · ${t("session.totalTrades", { count: bestSession.totalTrades })}`}
 								action={t("session.bestSessionAction")}
 							/>
 						) : (
@@ -361,7 +381,7 @@ export const SessionPerformanceChart = ({
 								type="worst"
 								label={t("session.worstSession")}
 								title={translateSessionLabel(worstSession.sessionLabel)}
-								detail={`${worstSession.winRate.toFixed(0)}% WR · ${formatCompactCurrencyWithSign(worstSession.totalPnl, "R$")} · ${t("session.totalTrades", { count: worstSession.totalTrades })}`}
+								detail={`${worstSession.winRate.toFixed(0)}% WR · ${formatMetric(worstSession[metricKey])} · ${t("session.totalTrades", { count: worstSession.totalTrades })}`}
 								action={t("session.worstSessionAction")}
 							/>
 						) : (

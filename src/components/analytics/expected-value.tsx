@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import { Calculator, TrendingUp, TrendingDown, Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 import {
@@ -8,9 +7,9 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
 import type { ExpectedValueData } from "@/types"
 import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 const StatLabel = ({
 	label,
@@ -36,18 +35,14 @@ const StatLabel = ({
 	</Tooltip>
 )
 
-type ExpectancyMode = "edge" | "capital"
-
 interface ExpectedValueProps {
 	data: ExpectedValueData | null
+	mode: ExpectancyMode
 }
 
 const EdgeExpectancyDisplay = ({ data }: { data: ExpectedValueData }) => {
 	const t = useTranslations("analytics.expectedValue")
 	const isPositiveR = data.expectedR >= 0
-	const rWinRate = data.rSampleSize > 0
-		? (data.avgWinR > 0 ? data.avgWinR : 0) // for formula display we use the win rate from the main data
-		: 0
 
 	return (
 		<>
@@ -303,9 +298,8 @@ const CapitalExpectancyDisplay = ({ data }: { data: ExpectedValueData }) => {
 	)
 }
 
-export const ExpectedValue = ({ data }: ExpectedValueProps) => {
+export const ExpectedValue = ({ data, mode }: ExpectedValueProps) => {
 	const t = useTranslations("analytics.expectedValue")
-	const [mode, setMode] = useState<ExpectancyMode>("edge")
 
 	if (!data || data.sampleSize === 0) {
 		return (
@@ -334,39 +328,9 @@ export const ExpectedValue = ({ data }: ExpectedValueProps) => {
 						{mode === "edge" ? t("edgeTitle") : t("capitalTitle")}
 					</h3>
 				</div>
-				<div className="flex items-center gap-s-300">
-					<div className="flex rounded-md border border-bg-300 bg-bg-100">
-						<button
-							type="button"
-							tabIndex={0}
-							aria-label={t("edgeTitle")}
-							className={cn(
-								"px-s-300 py-s-100 text-tiny rounded-l-md transition-colors",
-								mode === "edge" ? "bg-acc-100 text-bg-100" : "text-txt-300 hover:text-txt-100"
-							)}
-							onClick={() => setMode("edge")}
-							onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setMode("edge") }}
-						>
-							R
-						</button>
-						<button
-							type="button"
-							tabIndex={0}
-							aria-label={t("capitalTitle")}
-							className={cn(
-								"px-s-300 py-s-100 text-tiny rounded-r-md transition-colors",
-								mode === "capital" ? "bg-acc-100 text-bg-100" : "text-txt-300 hover:text-txt-100"
-							)}
-							onClick={() => setMode("capital")}
-							onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setMode("capital") }}
-						>
-							$
-						</button>
-					</div>
-					<span className="text-tiny text-txt-300">
-						{t("basedOn", { count: mode === "edge" ? data.rSampleSize : data.sampleSize })}
-					</span>
-				</div>
+				<span className="text-tiny text-txt-300">
+					{t("basedOn", { count: mode === "edge" ? data.rSampleSize : data.sampleSize })}
+				</span>
 			</div>
 
 			{mode === "edge" ? (

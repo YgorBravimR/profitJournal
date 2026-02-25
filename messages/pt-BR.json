@@ -251,7 +251,9 @@
 				"selectProfile": "Selecione um perfil de risco",
 				"custom": "Personalizado",
 				"fromPlan": "Do Plano Mensal",
-				"noProfiles": "Nenhum perfil de risco disponivel"
+				"noProfiles": "Nenhum perfil de risco disponivel",
+				"builtInGroup": "Modelos Profissionais",
+				"customGroup": "Perfis Personalizados"
 			},
 			"params": {
 				"winRate": "Taxa de Acerto (%)",
@@ -265,7 +267,11 @@
 				"initialBalance": "Saldo Inicial",
 				"tradingDaysPerMonth": "Dias Operando/Mes",
 				"tradingDaysPerWeek": "Dias Operando/Semana",
-				"commissionPerTrade": "Comissao/Trade (centavos)",
+				"commissionPerTrade": "Comissao/Trade",
+				"monthsToTrade": "Meses para Operar",
+				"ruinThreshold": "Limiar de Ruina (%)",
+				"totalIterations": "Total de iteracoes",
+				"budgetExceeded": "Orcamento excedido. Reduza simulacoes, dias ou meses.",
 				"calculate": "Executar Simulacao"
 			},
 			"results": {
@@ -276,10 +282,14 @@
 				"profitFactor": "PF",
 				"breakevenRate": "Taxa BE",
 				"profileName": "Perfil",
-				"runAgain": "Simular Novamente"
+				"runAgain": "Simular Novamente",
+				"months": "Meses"
 			},
 			"metrics": {
 				"monthlyPnl": "P&L Mensal",
+				"periodPnl": "P&L de {months} Meses",
+				"profitablePeriods": "Periodos Lucrativos",
+				"periodReturn": "Retorno de {months} Meses",
 				"median": "Mediana",
 				"mean": "Media",
 				"bestCase": "Melhor Caso (95o)",
@@ -297,6 +307,8 @@
 				"drawdown": "Drawdown",
 				"medianMaxDrawdown": "Drawdown Max Mediano",
 				"worstMaxDrawdown": "Pior Drawdown Max",
+				"riskOfRuin": "Risco de Ruina",
+				"medianMinBalance": "Saldo Minimo Mediano",
 				"riskAdjusted": "Ajustado ao Risco",
 				"sharpeRatio": "Indice Sharpe",
 				"sortinoRatio": "Indice Sortino",
@@ -305,6 +317,7 @@
 			},
 			"charts": {
 				"dailyPnl": "P&L Diario (Mes Exemplo)",
+				"dailyPnlPeriod": "P&L Diario (Amostra de {months} Meses)",
 				"modeDistribution": "Distribuicao de Modos",
 				"monthlyDistribution": "Distribuicao P&L Mensal",
 				"lossRecovery": "Recuperacao",
@@ -323,7 +336,17 @@
 				"gainMode": "Modo de Ganho",
 				"steps": "passos",
 				"compounding": "Composicao",
-				"singleTarget": "Meta Unica"
+				"singleTarget": "Meta Unica",
+				"ofBalance": "do Saldo",
+				"fixedRatioLabel": "Ratio Fixo",
+				"fixedCentsLabel": "Centavos Fixos",
+				"percentOfInitial": "% do Inicial",
+				"rMultiplesLabel": "R-Multiplos",
+				"limitMode": "Modo de Limite",
+				"drawdownControl": "Controle de Drawdown",
+				"tiers": "niveis",
+				"lossRules": "Regras de Perda",
+				"rules": "regras"
 			}
 		},
 		"analysis": {
@@ -394,7 +417,9 @@
 			"profitableSimulations": "Porcentagem de simulacoes Monte Carlo que terminaram em lucro. Acima de 80% = edge robusto. 60-80% = confianca moderada. Abaixo de 60% = estrategia pode nao ser confiavel.",
 			"profitableMonths": "Porcentagem de meses simulados que terminaram positivos. Acima de 70% = consistente. 50-70% = moderado. Abaixo de 50% sugere meses de perda frequentes.",
 			"monthlyLimitHit": "Frequencia com que o limite mensal de perda foi acionado. Abaixo de 10% = risco bem gerenciado. Acima de 20% = estrategia frequentemente atinge os stops de seguranca.",
-			"expectedDailyPnl": "Lucro/prejuizo diario medio em todas as simulacoes. Considera dimensionamento de posicao, custos de corretagem e o ciclo de compressao do seu perfil de risco."
+			"expectedDailyPnl": "Lucro/prejuizo diario medio em todas as simulacoes. Considera dimensionamento de posicao, custos de corretagem e o ciclo de compressao do seu perfil de risco.",
+			"riskOfRuin": "Porcentagem de simulacoes em que o saldo caiu ate ou abaixo do limiar de ruina. Quanto menor, melhor.",
+			"ruinThreshold": "Porcentagem de perda da conta que constitui 'ruina'. Ex: 50% significa ruina se o saldo cair para metade do capital inicial."
 		}
 	},
 	"commandCenter": {
@@ -631,6 +656,8 @@
 				"riskProfileModeProfile": "Usar Perfil de Risco",
 				"riskProfileSelect": "Perfil de Risco",
 				"riskProfileSelectPlaceholder": "Selecione um perfil de risco...",
+				"builtInGroup": "Modelos Profissionais",
+				"customGroup": "Perfis Personalizados",
 				"riskProfileSummary": "Resumo do Perfil",
 				"weeklyLoss": "Limite de Perda Semanal",
 				"weeklyLossHelp": "Perda maxima permitida por semana (% do saldo)",
@@ -666,7 +693,7 @@
 				"stopOnFirstLoss": "Parar no primeiro loss",
 				"singleTarget": "Meta Única",
 				"dailyTarget": "Meta Diária",
-				"bankTheDay": "1 trade vencedor = meta diária",
+				"tradesToTarget": "{count, plural, =1 {1 trade vencedor = meta diária} other {~# trades vencedores = meta diária}}",
 				"cascadingLimits": "Limites em Cascata",
 				"weeklyLoss": "Perda Semanal",
 				"monthlyLoss": "Perda Mensal",
@@ -678,7 +705,24 @@
 				"operatingHours": "Horário de Operação",
 				"noLimit": "Sem limite",
 			"tabs": {
-				"overview": "Visão Geral"
+				"overview": "Visão Geral",
+				"paths": "Caminhos"
+			},
+			"paths": {
+				"ariaLabel": "Árvore de decisão completa mostrando todos os possíveis resultados",
+				"tradeRoot": "TRADE {number}",
+				"trade": "TRADE {number}",
+				"risk": "Risco: {amount}",
+				"loss": "LOSS {amount}",
+				"gain": "GAIN {amount}",
+				"noRecovery": "Nenhum passo de recuperação configurado para este perfil.",
+				"probability": "P = {value}",
+				"assumedWinRate": "Assumindo 50% de taxa de acerto",
+				"target": "META",
+				"exit": "SAÍDA",
+				"continues": "continua...",
+				"stop": "STOP",
+				"accGains": "acc = {amount}"
 			},
 			"progression": {
 				"title": "Progressão do Dia (Pior Cenário)",
@@ -708,6 +752,7 @@
 				"recoveryComplete": "Sequência de recuperação completa",
 				"continueRecovery": "Continuar recuperação — executar Trade {nextNumber}",
 				"maxLossReached": "Perda diária máxima de {amount} alcançada — parar de operar",
+				"sequenceExhausted": "Sequência de recuperação esgotada — parar de operar",
 				"stopForDay": "Parar de operar hoje"
 			},
 			"cumulative": {
@@ -1141,6 +1186,11 @@
 		"description": "Analise seu desempenho e identifique padrões",
 		"noData": "Nenhum dado disponível",
 		"updating": "Atualizando análises...",
+		"expectancyToggle": "Modo de visualização",
+		"expectancyTooltipTitle": "Modos de Visualização R vs $",
+		"expectancyTooltipR": "Expectativa de Edge — mede a qualidade da estratégia em R-múltiplos. Independente do tamanho da conta: 1R é 1R seja sua conta de R$10K ou R$1M. Use para avaliar sua edge objetivamente.",
+		"expectancyTooltipCapital": "Expectativa de Capital — mostra o impacto real em reais. Depende do tamanho da posição: a mesma edge produz resultados diferentes em $ conforme o nível de risco.",
+		"expectancyTooltipDiffer": "Uma estratégia com ótimo R mas posições pequenas parecerá forte em R mas modesta em $. Posições maiores amplificam o resultado em $ mesmo com uma edge mediana em R.",
 		"tableHeaders": {
 			"trades": "Trades",
 			"pnl": "P&L",
@@ -1206,6 +1256,13 @@
 			"worstSlotAction": "Considere reduzir exposição",
 			"bestSlotPlaceholder": "Continue operando para encontrar sua melhor janela",
 			"worstSlotPlaceholder": "Continue operando para identificar áreas de risco",
+			"bestWindow": "Melhor Janela de Operação",
+			"worstWindow": "Pior Janela de Operação",
+			"bestWindowPlaceholder": "Continue operando para encontrar sua melhor janela",
+			"worstWindowPlaceholder": "Continue operando para identificar áreas de risco",
+			"windowSlot": "Horário",
+			"windowHour": "Hora",
+			"windowDay": "Dia",
 			"totalTrades": "{count} trades",
 			"heatmapSubtitle": "Identifique suas janelas de operação mais e menos lucrativas",
 			"heatmapDays": {
@@ -1677,18 +1734,42 @@
 			"activate": "Ativar",
 			"name": "Nome",
 			"descriptionField": "Descricao",
-			"baseRisk": "Risco Base (centavos)",
-			"dailyLoss": "Limite Diario (centavos)",
-			"weeklyLoss": "Limite Semanal (centavos)",
-			"monthlyLoss": "Limite Mensal (centavos)",
-			"dailyTarget": "Meta Diaria (centavos)",
+			"baseRisk": "Risco Base",
+			"dailyLoss": "Limite Diario",
+			"weeklyLoss": "Limite Semanal",
+			"monthlyLoss": "Limite Mensal",
+			"dailyTarget": "Meta Diaria",
 			"decisionTree": "Configuracao da Arvore de Decisao",
 			"noProfiles": "Nenhum perfil de risco ainda",
 			"confirmDeactivate": "Tem certeza que deseja desativar este perfil?",
 			"active": "Ativo",
 			"inactive": "Inativo",
 			"save": "Salvar Perfil",
-			"cancel": "Cancelar"
+			"cancel": "Cancelar",
+			"templates": {
+				"title": "Iniciar a partir de Template",
+				"blankProfile": "Perfil em Branco",
+				"fixedFractional": {
+					"name": "Fracionario Fixo",
+					"description": "Arrisque uma % fixa do saldo atual por trade. Dimensionamento conservador com protecao contra drawdown."
+				},
+				"fixedRatio": {
+					"name": "Ratio Fixo",
+					"description": "Escale o tamanho da posicao com base no lucro acumulado. Crescimento nao-linear agressivo."
+				},
+				"institutional": {
+					"name": "Institucional",
+					"description": "Risco conservador com 3 niveis de controle de drawdown. Extremamente estavel."
+				},
+				"rMultiples": {
+					"name": "R-Multiplos",
+					"description": "Framework de risco baseado em R. Risco fixo por trade medido em unidades R."
+				},
+				"kellyFractional": {
+					"name": "Kelly Fracionario",
+					"description": "Dimensionamento matematicamente otimo dividido por fator de seguranca. Crescimento teorico maximo."
+				}
+			}
 		},
 		"goToSettings": "Configurações → {section}"
 	},

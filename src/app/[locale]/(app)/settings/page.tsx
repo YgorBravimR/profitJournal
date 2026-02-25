@@ -3,6 +3,7 @@ import { SettingsContent } from "@/components/settings"
 import { getAssets, getAssetTypes } from "@/app/actions/assets"
 import { getTimeframes } from "@/app/actions/timeframes"
 import { getCurrentUser } from "@/app/actions/auth"
+import { seedBuiltInRiskProfiles } from "@/app/actions/seed-risk-profiles"
 
 // Force dynamic rendering to ensure account-specific data
 export const dynamic = "force-dynamic"
@@ -21,6 +22,9 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 		getTimeframes(),
 		getCurrentUser(),
 	])
+
+	// Idempotent: seeds the 5 professional risk models if they don't exist yet
+	await seedBuiltInRiskProfiles()
 
 	return (
 		<div className="flex h-full flex-col">

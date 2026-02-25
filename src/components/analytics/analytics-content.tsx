@@ -16,6 +16,7 @@ import {
 	SessionAssetTable,
 	type FilterState,
 } from "@/components/analytics"
+import { ExpectancyModeToggle, type ExpectancyMode } from "./expectancy-mode-toggle"
 import { LoadingSpinner } from "@/components/shared"
 import {
 	getPerformanceByVariable,
@@ -103,6 +104,8 @@ export const AnalyticsContent = ({
 	const [groupBy, setGroupBy] = useState<
 		"asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
 	>("asset")
+
+	const [expectancyMode, setExpectancyMode] = useState<ExpectancyMode>("edge")
 
 	const [performance, setPerformance] =
 		useState<PerformanceByGroup[]>(initialPerformance)
@@ -216,13 +219,24 @@ export const AnalyticsContent = ({
 
 	return (
 		<div className="space-y-m-600">
-			{/* Filter Panel */}
-			<FilterPanel
-				filters={filters}
-				onFiltersChange={setFilters}
-				availableAssets={availableAssets}
-				availableTimeframes={availableTimeframes}
-			/>
+			{/* Filter Panel + Expectancy Mode Toggle */}
+			<div className="flex flex-col gap-m-400 sm:flex-row sm:items-start sm:justify-between">
+				<div className="flex-1">
+					<FilterPanel
+						filters={filters}
+						onFiltersChange={setFilters}
+						availableAssets={availableAssets}
+						availableTimeframes={availableTimeframes}
+					/>
+				</div>
+				<div className="flex items-center gap-s-200">
+					<span className="text-tiny text-txt-300">{t("expectancyToggle")}:</span>
+					<ExpectancyModeToggle
+						mode={expectancyMode}
+						onModeChange={setExpectancyMode}
+					/>
+				</div>
+			</div>
 
 			{/* Loading Indicator */}
 			{isPending && (
@@ -242,14 +256,17 @@ export const AnalyticsContent = ({
 			{/* Two Column Grid */}
 			<div className="gap-m-600 grid grid-cols-1 lg:grid-cols-2">
 				{/* Expected Value */}
-				<ExpectedValue data={expectedValue} />
+				<ExpectedValue
+					data={expectedValue}
+					mode={expectancyMode}
+				/>
 
 				{/* R Distribution */}
 				<RDistribution data={rDistribution} />
 			</div>
 
 			{/* Tag Cloud - Full Width */}
-			<TagCloud data={tagStats} />
+			<TagCloud data={tagStats} expectancyMode={expectancyMode} />
 
 			{/* Time-Based Analysis Section */}
 			<div className="mt-m-600">
@@ -259,22 +276,22 @@ export const AnalyticsContent = ({
 
 				{/* Heatmap + Session: stacked on small/medium, side-by-side on xl+ */}
 				<div className="gap-m-600 grid grid-cols-1 xl:grid-cols-2">
-					<TimeHeatmap data={timeHeatmap} />
-					<SessionPerformanceChart data={sessionPerformance} />
+					<TimeHeatmap data={timeHeatmap} expectancyMode={expectancyMode} />
+					<SessionPerformanceChart data={sessionPerformance} expectancyMode={expectancyMode} />
 				</div>
 
 				{/* Session Asset Table - Full Width */}
 				<div className="mt-m-600">
-					<SessionAssetTable data={sessionAssetPerformance} />
+					<SessionAssetTable data={sessionAssetPerformance} expectancyMode={expectancyMode} />
 				</div>
 
 				{/* Two Column Grid for Charts */}
 				<div className="mt-m-600 gap-m-600 grid grid-cols-1 lg:grid-cols-2">
 					{/* Hourly Performance */}
-					<HourlyPerformanceChart data={hourlyPerformance} />
+					<HourlyPerformanceChart data={hourlyPerformance} expectancyMode={expectancyMode} />
 
 					{/* Day of Week Performance */}
-					<DayOfWeekChart data={dayOfWeekPerformance} />
+					<DayOfWeekChart data={dayOfWeekPerformance} expectancyMode={expectancyMode} />
 				</div>
 			</div>
 		</div>

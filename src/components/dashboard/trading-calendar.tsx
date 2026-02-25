@@ -88,7 +88,9 @@ export const TradingCalendar = memo(
 			onMonthChange(new Date(year, monthIndex + 1, 1))
 		}, [onMonthChange, year, monthIndex])
 
-		const monthName = month.toLocaleDateString(
+		// Use day 15 to avoid timezone edge at month boundaries
+		// (midnight UTC on day 1 can shift to previous month in BRT during SSR)
+		const monthName = new Date(year, monthIndex, 15).toLocaleDateString(
 			locale === "pt-BR" ? "pt-BR" : "en-US",
 			{ month: "long", year: "numeric", timeZone: APP_TIMEZONE }
 		)

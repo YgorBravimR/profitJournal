@@ -11,11 +11,13 @@ import {
 	Cell,
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
-import { formatCompactCurrencyWithSign } from "@/lib/formatting"
+import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
 import type { HourlyPerformance } from "@/types"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 interface HourlyPerformanceChartProps {
 	data: HourlyPerformance[]
+	expectancyMode: ExpectancyMode
 }
 
 interface CustomTooltipProps {
@@ -68,17 +70,28 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	)
 }
 
-export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) => {
+export const HourlyPerformanceChart = ({ data, expectancyMode }: HourlyPerformanceChartProps) => {
 	const t = useTranslations("analytics")
 
-	// Calculate domain with padding
-	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.totalPnl)), 100)
-	const domainMax = Math.ceil(maxAbsPnl * 1.1)
+	const isRMode = expectancyMode === "edge"
+	const metricKey = isRMode ? "avgR" : "totalPnl"
 
-	// Find best and worst hours (using toSorted for immutability)
-	const sortedByPnl = data.toSorted((a, b) => b.totalPnl - a.totalPnl)
-	const bestHour = sortedByPnl[0]
-	const worstHour = sortedByPnl[sortedByPnl.length - 1]
+	// Calculate domain with padding
+	const maxAbsMetric = Math.max(
+		...data.map((d) => Math.abs(d[metricKey])),
+		isRMode ? 0.5 : 100
+	)
+	const domainMax = isRMode
+		? Math.ceil(maxAbsMetric * 1.2 * 100) / 100
+		: Math.ceil(maxAbsMetric * 1.1)
+
+	// Find best and worst hours
+	const sortedByMetric = data.toSorted((a, b) => b[metricKey] - a[metricKey])
+	const bestHour = sortedByMetric[0]
+	const worstHour = sortedByMetric[sortedByMetric.length - 1]
+
+	const formatMetric = (value: number): string =>
+		isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
 
 	if (data.length === 0) {
 		return (
@@ -114,7 +127,9 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 							interval={1}
 						/>
 						<YAxis
-							tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
+							tickFormatter={(value: number) =>
+								isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
+							}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
@@ -123,11 +138,11 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 							width={65}
 						/>
 						<Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--color-bg-300)", opacity: 0.3 }} />
-						<Bar dataKey="totalPnl" radius={[4, 4, 0, 0]}>
+						<Bar dataKey={metricKey} radius={[4, 4, 0, 0]}>
 							{data.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
-									fill={entry.totalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"}
+									fill={entry[metricKey] >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"}
 								/>
 							))}
 						</Bar>
@@ -138,13 +153,13 @@ export const HourlyPerformanceChart = ({ data }: HourlyPerformanceChartProps) =>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.bestHour")}</p>
 					<p className="text-small font-medium text-trade-buy">
-						{bestHour?.hourLabel} ({bestHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(bestHour?.totalPnl ?? 0, "R$")}, {bestHour?.totalTrades} {t("time.trades").toLowerCase()})
+						{bestHour?.hourLabel} ({bestHour?.winRate.toFixed(0)}% WR, {formatMetric(bestHour?.[metricKey] ?? 0)}, {bestHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>
 				</div>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.worstHour")}</p>
 					<p className="text-small font-medium text-trade-sell">
-						{worstHour?.hourLabel} ({worstHour?.winRate.toFixed(0)}% WR, {formatCompactCurrencyWithSign(worstHour?.totalPnl ?? 0, "R$")}, {worstHour?.totalTrades} {t("time.trades").toLowerCase()})
+						{worstHour?.hourLabel} ({worstHour?.winRate.toFixed(0)}% WR, {formatMetric(worstHour?.[metricKey] ?? 0)}, {worstHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>
 				</div>
 			</div>

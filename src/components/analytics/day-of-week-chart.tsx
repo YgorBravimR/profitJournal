@@ -11,11 +11,13 @@ import {
 	Cell,
 } from "recharts"
 import { ChartContainer } from "@/components/ui/chart-container"
-import { formatCompactCurrencyWithSign } from "@/lib/formatting"
+import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
 import type { DayOfWeekPerformance } from "@/types"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 
 interface DayOfWeekChartProps {
 	data: DayOfWeekPerformance[]
+	expectancyMode: ExpectancyMode
 }
 
 interface CustomTooltipProps {
@@ -78,22 +80,33 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	)
 }
 
-export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
+export const DayOfWeekChart = ({ data, expectancyMode }: DayOfWeekChartProps) => {
 	const t = useTranslations("analytics")
 	const tDays = useTranslations("analytics.time.heatmapDays")
 	const tDayNames = useTranslations("analytics.time.dayNames")
+
+	const isRMode = expectancyMode === "edge"
+	const metricKey = isRMode ? "avgR" : "totalPnl"
 
 	// Filter only trading days (Monday-Friday usually)
 	const tradingDays = data.filter((d) => d.totalTrades > 0)
 
 	// Calculate domain with padding
-	const maxAbsPnl = Math.max(...tradingDays.map((d) => Math.abs(d.totalPnl)), 100)
-	const domainMax = Math.ceil(maxAbsPnl * 1.1)
+	const maxAbsMetric = Math.max(
+		...tradingDays.map((d) => Math.abs(d[metricKey])),
+		isRMode ? 0.5 : 100
+	)
+	const domainMax = isRMode
+		? Math.ceil(maxAbsMetric * 1.2 * 100) / 100
+		: Math.ceil(maxAbsMetric * 1.1)
 
-	// Find best and worst days (using toSorted for immutability)
-	const sortedByPnl = tradingDays.toSorted((a, b) => b.totalPnl - a.totalPnl)
-	const bestDay = sortedByPnl[0]
-	const worstDay = sortedByPnl[sortedByPnl.length - 1]
+	// Find best and worst days
+	const sortedByMetric = tradingDays.toSorted((a, b) => b[metricKey] - a[metricKey])
+	const bestDay = sortedByMetric[0]
+	const worstDay = sortedByMetric[sortedByMetric.length - 1]
+
+	const formatMetric = (value: number): string =>
+		isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
 
 	if (tradingDays.length === 0) {
 		return (
@@ -148,7 +161,9 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 							axisLine={{ stroke: "var(--color-bg-300)" }}
 						/>
 						<YAxis
-							tickFormatter={(value: number) => formatCompactCurrencyWithSign(value, "R$")}
+							tickFormatter={(value: number) =>
+								isRMode ? formatR(value) : formatCompactCurrencyWithSign(value, "R$")
+							}
 							stroke="var(--color-txt-300)"
 							tick={{ fill: "var(--color-txt-300)", fontSize: 11 }}
 							tickLine={false}
@@ -157,11 +172,11 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 							width={65}
 						/>
 						<Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--color-bg-300)", opacity: 0.3 }} />
-						<Bar dataKey="totalPnl" radius={[4, 4, 0, 0]}>
+						<Bar dataKey={metricKey} radius={[4, 4, 0, 0]}>
 							{tradingDays.map((entry, index) => (
 								<Cell
 									key={`cell-${index}`}
-									fill={entry.totalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"}
+									fill={entry[metricKey] >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"}
 								/>
 							))}
 						</Bar>
@@ -172,13 +187,13 @@ export const DayOfWeekChart = ({ data }: DayOfWeekChartProps) => {
 				<div>
 					<p className="text-caption text-txt-300">{t("time.bestDay")}</p>
 					<p className="text-small font-medium text-trade-buy">
-						{bestDay ? getTranslatedDayName(bestDay.dayName) : ""} ({bestDay?.winRate.toFixed(0)}% WR, {bestDay?.avgR.toFixed(1)}R avg)
+						{bestDay ? getTranslatedDayName(bestDay.dayName) : ""} ({bestDay?.winRate.toFixed(0)}% WR, {formatMetric(bestDay?.[metricKey] ?? 0)})
 					</p>
 				</div>
 				<div>
 					<p className="text-caption text-txt-300">{t("time.worstDay")}</p>
 					<p className="text-small font-medium text-trade-sell">
-						{worstDay ? getTranslatedDayName(worstDay.dayName) : ""} ({worstDay?.winRate.toFixed(0)}% WR, {worstDay?.avgR.toFixed(1)}R avg)
+						{worstDay ? getTranslatedDayName(worstDay.dayName) : ""} ({worstDay?.winRate.toFixed(0)}% WR, {formatMetric(worstDay?.[metricKey] ?? 0)})
 					</p>
 				</div>
 			</div>
