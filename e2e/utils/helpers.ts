@@ -164,3 +164,42 @@ export const formatCurrency = (value: number): string => {
 export const parseCurrency = (str: string): number => {
 	return parseFloat(str.replace(/[R$\s.]/g, "").replace(",", "."))
 }
+
+/**
+ * Click a tab trigger by its visible text
+ */
+export const clickTab = async (page: Page, tabName: string | RegExp) => {
+	const tab = page.getByRole("tab", { name: tabName })
+	await tab.click()
+	await page.waitForTimeout(300)
+}
+
+/**
+ * Wait for Suspense/lazy-loaded content to finish loading
+ */
+export const waitForSuspenseLoad = async (page: Page, timeout = 15000) => {
+	const spinner = page.locator(".animate-spin, [data-loading]")
+	if (await spinner.isVisible().catch(() => false)) {
+		await expect(spinner).toBeHidden({ timeout })
+	}
+	await page.waitForLoadState("networkidle")
+}
+
+/**
+ * Clear and fill a number input field by its label or id
+ */
+export const fillNumberInput = async (page: Page, labelOrId: string | RegExp, value: string) => {
+	const field = typeof labelOrId === "string" && labelOrId.startsWith("#")
+		? page.locator(labelOrId)
+		: page.getByLabel(labelOrId)
+	await field.clear()
+	await field.fill(value)
+}
+
+/**
+ * Verify a metric card or labeled value is visible on the page
+ */
+export const verifyCardMetric = async (page: Page, label: string | RegExp) => {
+	const element = page.getByText(label).first()
+	await expect(element).toBeVisible({ timeout: 5000 })
+}

@@ -5,10 +5,15 @@ import { db } from "@/db/drizzle"
 import { trades, tradeExecutions, assets } from "@/db/schema"
 import type { Trade, TradeExecution } from "@/db/schema"
 import type { ActionResponse } from "@/types"
-import { eq, asc } from "drizzle-orm"
-import { calculateAssetPnL, calculateRMultiple, determineOutcome } from "@/lib/calculations"
+import { eq } from "drizzle-orm"
+import {
+	calculateAssetPnL,
+	calculateRMultiple,
+	determineOutcome,
+} from "@/lib/calculations"
 import { fromCents, toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getBreakevenTicks } from "@/app/actions/accounts"
 import { z } from "zod"
 
@@ -29,7 +34,9 @@ const ocrImportSchema = z.object({
 	direction: z.enum(["long", "short"]),
 	entryDate: z.coerce.date(),
 	exitDate: z.coerce.date().optional(),
-	executions: z.array(ocrExecutionSchema).min(1, "At least one execution is required"),
+	executions: z
+		.array(ocrExecutionSchema)
+		.min(1, "At least one execution is required"),
 	strategyId: z.string().uuid().optional(),
 	timeframeId: z.string().uuid().optional(),
 	preTradeThoughts: z.string().max(2000).optional(),
@@ -49,12 +56,15 @@ const calculateExecutionValue = (price: number, quantity: number): number => {
 }
 
 /**
- * Calculate weighted average price from executions
+ * Calculate weighted average price from executions of a given type
  */
 const calculateAvgPrice = (
-	executions: Array<{ price: number; quantity: number }>,
 	type: "entry" | "exit",
-	allExecutions: Array<{ executionType: string; price: number; quantity: number }>
+	allExecutions: Array<{
+		executionType: string
+		price: number
+		quantity: number
+	}>
 ): number => {
 	const filtered = allExecutions.filter((e) => e.executionType === type)
 	if (filtered.length === 0) return 0
@@ -109,30 +119,42 @@ export const createTradeFromOcr = async (
 		const validated = ocrImportSchema.parse(input)
 
 		// Look up asset configuration
-		const assetConfig = await findAsset(validated.asset, validated.originalContractCode)
+		const assetConfig = await findAsset(
+			validated.asset,
+			validated.originalContractCode
+		)
 
 		// Calculate aggregates from executions
-		const entries = validated.executions.filter((e) => e.executionType === "entry")
+		const entries = validated.executions.filter(
+			(e) => e.executionType === "entry"
+		)
 		const exits = validated.executions.filter((e) => e.executionType === "exit")
 
 		const totalEntryQuantity = entries.reduce((sum, e) => sum + e.quantity, 0)
 		const totalExitQuantity = exits.reduce((sum, e) => sum + e.quantity, 0)
 
-		const avgEntryPrice = calculateAvgPrice(entries, "entry", validated.executions)
-		const avgExitPrice = exits.length > 0
-			? calculateAvgPrice(exits, "exit", validated.executions)
-			: null
+		const avgEntryPrice = calculateAvgPrice("entry", validated.executions)
+		const avgExitPrice =
+			exits.length > 0 ? calculateAvgPrice("exit", validated.executions) : null
 
 		// Sort executions by date to get first entry and last exit dates
 		const sortedExecutions = [...validated.executions].sort(
-			(a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+			(a, b) =>
+				new Date(a.executionDate).getTime() -
+				new Date(b.executionDate).getTime()
 		)
 
 		const firstEntry = sortedExecutions.find((e) => e.executionType === "entry")
-		const lastExit = [...sortedExecutions].reverse().find((e) => e.executionType === "exit")
+		const lastExit = [...sortedExecutions]
+			.reverse()
+			.find((e) => e.executionType === "exit")
 
-		const entryDate = firstEntry ? new Date(firstEntry.executionDate) : validated.entryDate
-		const exitDate = lastExit ? new Date(lastExit.executionDate) : validated.exitDate
+		const entryDate = firstEntry
+			? new Date(firstEntry.executionDate)
+			: validated.entryDate
+		const exitDate = lastExit
+			? new Date(lastExit.executionDate)
+			: validated.exitDate
 
 		// Calculate PnL if we have exits
 		let pnl: number | undefined
@@ -158,9 +180,10 @@ export const createTradeFromOcr = async (
 				ticksGained = result.ticksGained
 			} else {
 				// Simple calculation
-				const priceDiff = validated.direction === "long"
-					? avgExitPrice - avgEntryPrice
-					: avgEntryPrice - avgExitPrice
+				const priceDiff =
+					validated.direction === "long"
+						? avgExitPrice - avgEntryPrice
+						: avgEntryPrice - avgExitPrice
 				pnl = priceDiff * Math.min(totalEntryQuantity, totalExitQuantity)
 			}
 
@@ -191,7 +214,7 @@ export const createTradeFromOcr = async (
 				entryPrice: avgEntryPrice.toString(),
 				exitPrice: avgExitPrice?.toString() ?? null,
 				positionSize: totalEntryQuantity.toString(),
-				pnl: pnl !== undefined ? toCents(pnl) : null,
+				pnl: pnl !== undefined ? toCents(pnl).toString() : null,
 				outcome,
 				preTradeThoughts,
 				// Scaled trade fields
@@ -213,10 +236,10 @@ export const createTradeFromOcr = async (
 			price: ex.price.toString(),
 			quantity: ex.quantity.toString(),
 			orderType: "market" as const,
-			commission: 0,
-			fees: 0,
-			slippage: 0,
-			executionValue: calculateExecutionValue(ex.price, ex.quantity),
+			commission: "0",
+			fees: "0",
+			slippage: "0",
+			executionValue: calculateExecutionValue(ex.price, ex.quantity).toString(),
 		}))
 
 		const createdExecutions = await db
@@ -248,11 +271,15 @@ export const createTradeFromOcr = async (
 			}
 		}
 
-		console.error("OCR import error:", error)
 		return {
 			status: "error",
 			message: "Failed to import trade from OCR data",
-			errors: [{ code: "IMPORT_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "IMPORT_FAILED",
+					detail: toSafeErrorMessage(error, "createTradeFromOcr"),
+				},
+			],
 		}
 	}
 }
@@ -300,30 +327,51 @@ export const bulkCreateTradesFromOcr = async (
 				const validated = ocrImportSchema.parse(input)
 
 				// Look up asset configuration
-				const assetConfig = await findAsset(validated.asset, validated.originalContractCode)
+				const assetConfig = await findAsset(
+					validated.asset,
+					validated.originalContractCode
+				)
 
 				// Calculate aggregates from executions
-				const entries = validated.executions.filter((e) => e.executionType === "entry")
-				const exits = validated.executions.filter((e) => e.executionType === "exit")
+				const entries = validated.executions.filter(
+					(e) => e.executionType === "entry"
+				)
+				const exits = validated.executions.filter(
+					(e) => e.executionType === "exit"
+				)
 
-				const totalEntryQuantity = entries.reduce((sum, e) => sum + e.quantity, 0)
+				const totalEntryQuantity = entries.reduce(
+					(sum, e) => sum + e.quantity,
+					0
+				)
 				const totalExitQuantity = exits.reduce((sum, e) => sum + e.quantity, 0)
 
-				const avgEntryPrice = calculateAvgPrice(entries, "entry", validated.executions)
-				const avgExitPrice = exits.length > 0
-					? calculateAvgPrice(exits, "exit", validated.executions)
-					: null
+				const avgEntryPrice = calculateAvgPrice("entry", validated.executions)
+				const avgExitPrice =
+					exits.length > 0
+						? calculateAvgPrice("exit", validated.executions)
+						: null
 
 				// Sort executions by date
 				const sortedExecutions = [...validated.executions].sort(
-					(a, b) => new Date(a.executionDate).getTime() - new Date(b.executionDate).getTime()
+					(a, b) =>
+						new Date(a.executionDate).getTime() -
+						new Date(b.executionDate).getTime()
 				)
 
-				const firstEntry = sortedExecutions.find((e) => e.executionType === "entry")
-				const lastExit = [...sortedExecutions].reverse().find((e) => e.executionType === "exit")
+				const firstEntry = sortedExecutions.find(
+					(e) => e.executionType === "entry"
+				)
+				const lastExit = [...sortedExecutions]
+					.reverse()
+					.find((e) => e.executionType === "exit")
 
-				const entryDate = firstEntry ? new Date(firstEntry.executionDate) : validated.entryDate
-				const exitDate = lastExit ? new Date(lastExit.executionDate) : validated.exitDate
+				const entryDate = firstEntry
+					? new Date(firstEntry.executionDate)
+					: validated.entryDate
+				const exitDate = lastExit
+					? new Date(lastExit.executionDate)
+					: validated.exitDate
 
 				// Calculate PnL if we have exits
 				let pnl: number | undefined
@@ -347,9 +395,10 @@ export const bulkCreateTradesFromOcr = async (
 						pnl = calcResult.netPnl
 						ticksGained = calcResult.ticksGained
 					} else {
-						const priceDiff = validated.direction === "long"
-							? avgExitPrice - avgEntryPrice
-							: avgEntryPrice - avgExitPrice
+						const priceDiff =
+							validated.direction === "long"
+								? avgExitPrice - avgEntryPrice
+								: avgEntryPrice - avgExitPrice
 						pnl = priceDiff * Math.min(totalEntryQuantity, totalExitQuantity)
 					}
 
@@ -380,7 +429,7 @@ export const bulkCreateTradesFromOcr = async (
 						entryPrice: avgEntryPrice.toString(),
 						exitPrice: avgExitPrice?.toString() ?? null,
 						positionSize: totalEntryQuantity.toString(),
-						pnl: pnl !== undefined ? toCents(pnl) : null,
+						pnl: pnl !== undefined ? toCents(pnl).toString() : null,
 						outcome,
 						preTradeThoughts,
 						executionMode: "scaled",
@@ -388,8 +437,12 @@ export const bulkCreateTradesFromOcr = async (
 						totalExitQuantity: totalExitQuantity.toString(),
 						avgEntryPrice: avgEntryPrice.toString(),
 						avgExitPrice: avgExitPrice?.toString() ?? null,
-						remainingQuantity: (totalEntryQuantity - totalExitQuantity).toString(),
-						contractsExecuted: (totalEntryQuantity + totalExitQuantity).toString(),
+						remainingQuantity: (
+							totalEntryQuantity - totalExitQuantity
+						).toString(),
+						contractsExecuted: (
+							totalEntryQuantity + totalExitQuantity
+						).toString(),
 					})
 					.returning()
 
@@ -401,10 +454,13 @@ export const bulkCreateTradesFromOcr = async (
 					price: ex.price.toString(),
 					quantity: ex.quantity.toString(),
 					orderType: "market" as const,
-					commission: 0,
-					fees: 0,
-					slippage: 0,
-					executionValue: calculateExecutionValue(ex.price, ex.quantity),
+					commission: "0",
+					fees: "0",
+					slippage: "0",
+					executionValue: calculateExecutionValue(
+						ex.price,
+						ex.quantity
+					).toString(),
 				}))
 
 				const createdExecutions = await db
@@ -423,7 +479,7 @@ export const bulkCreateTradesFromOcr = async (
 				result.errors.push({
 					index: i,
 					asset: input.asset,
-					message: error instanceof Error ? error.message : String(error),
+					message: toSafeErrorMessage(error, "bulkCreateTradesFromOcr"),
 				})
 			}
 		}
@@ -431,9 +487,10 @@ export const bulkCreateTradesFromOcr = async (
 		// Revalidate pages
 		revalidatePath("/journal")
 
-		const message = result.failedCount === 0
-			? `Successfully imported ${result.successCount} trade(s)`
-			: `Imported ${result.successCount} trade(s), ${result.failedCount} failed`
+		const message =
+			result.failedCount === 0
+				? `Successfully imported ${result.successCount} trade(s)`
+				: `Imported ${result.successCount} trade(s), ${result.failedCount} failed`
 
 		return {
 			status: result.failedCount === inputs.length ? "error" : "success",
@@ -441,11 +498,15 @@ export const bulkCreateTradesFromOcr = async (
 			data: result,
 		}
 	} catch (error) {
-		console.error("Bulk OCR import error:", error)
 		return {
 			status: "error",
 			message: "Failed to import trades from OCR data",
-			errors: [{ code: "IMPORT_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "IMPORT_FAILED",
+					detail: toSafeErrorMessage(error, "bulkCreateTradesFromOcr"),
+				},
+			],
 		}
 	}
 }
@@ -455,7 +516,9 @@ export const bulkCreateTradesFromOcr = async (
  */
 export const validateAsset = async (
 	symbol: string
-): Promise<ActionResponse<{ exists: boolean; asset: typeof assets.$inferSelect | null }>> => {
+): Promise<
+	ActionResponse<{ exists: boolean; asset: typeof assets.$inferSelect | null }>
+> => {
 	try {
 		await requireAuth()
 
@@ -472,11 +535,15 @@ export const validateAsset = async (
 			},
 		}
 	} catch (error) {
-		console.error("Validate asset error:", error)
 		return {
 			status: "error",
 			message: "Failed to validate asset",
-			errors: [{ code: "VALIDATION_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "VALIDATION_FAILED",
+					detail: toSafeErrorMessage(error, "validateAsset"),
+				},
+			],
 		}
 	}
 }
@@ -493,23 +560,28 @@ import {
 	type TradeExtractionResult,
 } from "@/lib/vision"
 import { normalizeB3Asset, parseProfitChartOcr } from "@/lib/ocr"
-import type { OcrParseResult, OcrRawResult, ParsedTrade, ProfitChartSummary, ProfitChartExecution } from "@/lib/ocr"
+import type {
+	OcrParseResult,
+	OcrRawResult,
+	ParsedTrade,
+	ProfitChartSummary,
+	ProfitChartExecution,
+} from "@/lib/ocr"
 
 /**
  * Get status of all vision providers
  */
-export const getVisionProvidersStatus = async (): Promise<ActionResponse<{ providers: ProviderStatus[]; hasAI: boolean }>> => {
+export const getVisionProvidersStatus = async (): Promise<
+	ActionResponse<{ providers: ProviderStatus[]; hasAI: boolean }>
+> => {
 	const providers = getProvidersStatus()
 	const hasAI = hasAIVisionProvider()
 
-	console.log("[OCR SERVER] Vision providers status:")
-	for (const p of providers) {
-		console.log(`[OCR SERVER]   ${p.available ? "✅" : "❌"} ${p.name} (${p.envVar})`)
-	}
-
 	return {
 		status: "success",
-		message: hasAI ? "AI Vision available" : "No AI Vision configured - using Tesseract",
+		message: hasAI
+			? "AI Vision available"
+			: "No AI Vision configured - using Tesseract",
 		data: { providers, hasAI },
 	}
 }
@@ -517,13 +589,15 @@ export const getVisionProvidersStatus = async (): Promise<ActionResponse<{ provi
 /**
  * Check if any AI Vision is available (legacy compatibility)
  */
-export const checkVisionAvailability = async (): Promise<ActionResponse<{ available: boolean }>> => {
+export const checkVisionAvailability = async (): Promise<
+	ActionResponse<{ available: boolean }>
+> => {
 	const hasAI = hasAIVisionProvider()
-	console.log("[OCR SERVER] Checking Vision availability...")
-	console.log("[OCR SERVER] Any AI provider available:", hasAI)
 	return {
 		status: "success",
-		message: hasAI ? "AI Vision available" : "No AI Vision - will use Tesseract",
+		message: hasAI
+			? "AI Vision available"
+			: "No AI Vision - will use Tesseract",
 		data: { available: hasAI },
 	}
 }
@@ -531,16 +605,16 @@ export const checkVisionAvailability = async (): Promise<ActionResponse<{ availa
 /**
  * Convert cascade result to OcrParseResult format
  */
-const cascadeResultToParseResult = (result: TradeExtractionResult): OcrParseResult => {
+const cascadeResultToParseResult = (
+	result: TradeExtractionResult
+): OcrParseResult => {
 	// If Google Vision returned raw text (no trades), parse it with the OCR parser
-	if (result.provider === "google" && result.trades.length === 0 && result.rawText) {
-		console.log("[OCR SERVER] Google returned raw text, parsing with OCR parser...")
-		console.log("[OCR SERVER] Raw text length:", result.rawText.length)
-		console.log("[OCR SERVER] Raw text preview:", result.rawText.substring(0, 300))
-
+	if (
+		result.provider === "google" &&
+		result.trades.length === 0 &&
+		result.rawText
+	) {
 		const lines = result.rawText.split("\n").filter((l) => l.trim())
-		console.log("[OCR SERVER] Split into", lines.length, "lines")
-		console.log("[OCR SERVER] First 15 lines:", lines.slice(0, 15))
 
 		const ocrRawResult: OcrRawResult = {
 			text: result.rawText,
@@ -548,12 +622,6 @@ const cascadeResultToParseResult = (result: TradeExtractionResult): OcrParseResu
 			lines,
 		}
 		const parsed = parseProfitChartOcr(ocrRawResult)
-		console.log("[OCR SERVER] Parsed result:", {
-			trades: parsed.trades.length,
-			success: parsed.success,
-			errors: parsed.errors,
-			warnings: parsed.warnings,
-		})
 		return parsed
 	}
 
@@ -616,38 +684,34 @@ export const extractTradesWithVision = async (
 	imageBase64: string,
 	mimeType: string = "image/png"
 ): Promise<ActionResponse<OcrParseResult & { provider: string }>> => {
-	console.log("[OCR SERVER] extractTradesWithVision called (cascade)")
-	console.log("[OCR SERVER] mimeType:", mimeType)
-	console.log("[OCR SERVER] base64 length:", imageBase64.length)
-
 	try {
 		await requireAuth()
-		console.log("[OCR SERVER] Auth passed")
 
 		if (!hasAIVisionProvider()) {
-			console.log("[OCR SERVER] ❌ No AI Vision provider available - will use Tesseract on client")
 			return {
 				status: "error",
-				message: "No AI Vision provider configured. Add API keys to .env (OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY)",
-				errors: [{ code: "NO_VISION_PROVIDER", detail: "Configure at least one AI vision provider" }],
+				message:
+					"No AI Vision provider configured. Add API keys to .env (OPENAI_API_KEY, ANTHROPIC_API_KEY, or GROQ_API_KEY)",
+				errors: [
+					{
+						code: "NO_VISION_PROVIDER",
+						detail: "Configure at least one AI vision provider",
+					},
+				],
 			}
 		}
 
-		console.log("[OCR SERVER] ✨ Starting cascade extraction...")
 		const result = await extractTradesWithCascade(imageBase64, mimeType)
 
 		if (result.trades.length === 0 && result.provider === "tesseract") {
-			console.log("[OCR SERVER] ⚠️ All AI providers failed, returning for Tesseract fallback")
 			return {
 				status: "error",
 				message: "AI extraction failed, falling back to Tesseract",
-				errors: [{ code: "AI_EXTRACTION_FAILED", detail: "All AI providers failed" }],
+				errors: [
+					{ code: "AI_EXTRACTION_FAILED", detail: "All AI providers failed" },
+				],
 			}
 		}
-
-		console.log(`[OCR SERVER] ✅ Extraction success via ${result.provider}`)
-		console.log("[OCR SERVER] Trades found:", result.trades.length)
-		console.log("[OCR SERVER] Confidence:", result.confidence)
 
 		const parseResult = cascadeResultToParseResult(result)
 
@@ -657,11 +721,15 @@ export const extractTradesWithVision = async (
 			data: { ...parseResult, provider: result.provider },
 		}
 	} catch (error) {
-		console.error("[OCR SERVER] ❌ Vision OCR error:", error)
 		return {
 			status: "error",
 			message: "Failed to extract trades from image",
-			errors: [{ code: "VISION_FAILED", detail: error instanceof Error ? error.message : String(error) }],
+			errors: [
+				{
+					code: "VISION_FAILED",
+					detail: toSafeErrorMessage(error, "extractTradesWithVision"),
+				},
+			],
 		}
 	}
 }

@@ -3,13 +3,14 @@
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
 import { tags, tradeTags, trades } from "@/db/schema"
-import type { Tag, NewTag } from "@/db/schema"
+import type { Tag } from "@/db/schema"
 import type { ActionResponse, TagStats, TagType, TradeFilters } from "@/types"
-import { eq, and, asc, sql, inArray } from "drizzle-orm"
+import { eq, and, asc, inArray } from "drizzle-orm"
 import { z } from "zod"
 import { calculateWinRate } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 
 // Validation schema for creating a tag
 const createTagSchema = z.object({
@@ -75,11 +76,15 @@ export const createTag = async (
 			}
 		}
 
-		console.error("Create tag error:", error)
 		return {
 			status: "error",
 			message: "Failed to create tag",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "CREATE_FAILED",
+					detail: toSafeErrorMessage(error, "createTag"),
+				},
+			],
 		}
 	}
 }
@@ -112,7 +117,9 @@ export const updateTag = async (
 				...(input.name && { name: input.name }),
 				...(input.type && { type: input.type }),
 				...(input.color !== undefined && { color: input.color }),
-				...(input.description !== undefined && { description: input.description }),
+				...(input.description !== undefined && {
+					description: input.description,
+				}),
 			})
 			.where(and(eq(tags.id, id), eq(tags.userId, userId)))
 			.returning()
@@ -127,11 +134,15 @@ export const updateTag = async (
 			data: tag,
 		}
 	} catch (error) {
-		console.error("Update tag error:", error)
 		return {
 			status: "error",
 			message: "Failed to update tag",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "UPDATE_FAILED",
+					detail: toSafeErrorMessage(error, "updateTag"),
+				},
+			],
 		}
 	}
 }
@@ -161,11 +172,12 @@ export const getTags = async (
 			data: result,
 		}
 	} catch (error) {
-		console.error("Get tags error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve tags",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTags") },
+			],
 		}
 	}
 }
@@ -216,12 +228,35 @@ export const getTagStats = async (
 						? authContext.allAccountIds.includes(trade.accountId)
 						: trade.accountId === authContext.accountId
 					if (!accountMatch) return false
-					if (filters?.dateFrom && trade.entryDate < filters.dateFrom) return false
+					if (filters?.dateFrom && trade.entryDate < filters.dateFrom)
+						return false
 					if (filters?.dateTo && trade.entryDate > filters.dateTo) return false
-					if (filters?.assets && filters.assets.length > 0 && !filters.assets.includes(trade.asset)) return false
-					if (filters?.directions && filters.directions.length > 0 && !filters.directions.includes(trade.direction)) return false
-					if (filters?.outcomes && filters.outcomes.length > 0 && trade.outcome && !filters.outcomes.includes(trade.outcome)) return false
-					if (filters?.timeframeIds && filters.timeframeIds.length > 0 && trade.timeframeId && !filters.timeframeIds.includes(trade.timeframeId)) return false
+					if (
+						filters?.assets &&
+						filters.assets.length > 0 &&
+						!filters.assets.includes(trade.asset)
+					)
+						return false
+					if (
+						filters?.directions &&
+						filters.directions.length > 0 &&
+						!filters.directions.includes(trade.direction)
+					)
+						return false
+					if (
+						filters?.outcomes &&
+						filters.outcomes.length > 0 &&
+						trade.outcome &&
+						!filters.outcomes.includes(trade.outcome)
+					)
+						return false
+					if (
+						filters?.timeframeIds &&
+						filters.timeframeIds.length > 0 &&
+						trade.timeframeId &&
+						!filters.timeframeIds.includes(trade.timeframeId)
+					)
+						return false
 					return true
 				})
 
@@ -269,7 +304,9 @@ export const getTagStats = async (
 		}
 
 		// Sort by trade count descending (using toSorted for immutability)
-		const sortedTagStats = tagStats.toSorted((a, b) => b.tradeCount - a.tradeCount)
+		const sortedTagStats = tagStats.toSorted(
+			(a, b) => b.tradeCount - a.tradeCount
+		)
 
 		return {
 			status: "success",
@@ -277,11 +314,15 @@ export const getTagStats = async (
 			data: sortedTagStats,
 		}
 	} catch (error) {
-		console.error("Get tag stats error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve tag stats",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getTagStats"),
+				},
+			],
 		}
 	}
 }
@@ -317,11 +358,15 @@ export const deleteTag = async (id: string): Promise<ActionResponse<void>> => {
 			message: "Tag deleted successfully",
 		}
 	} catch (error) {
-		console.error("Delete tag error:", error)
 		return {
 			status: "error",
 			message: "Failed to delete tag",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "DELETE_FAILED",
+					detail: toSafeErrorMessage(error, "deleteTag"),
+				},
+			],
 		}
 	}
 }

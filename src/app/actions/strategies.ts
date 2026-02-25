@@ -5,7 +5,7 @@ import { db } from "@/db/drizzle"
 import { strategies, trades } from "@/db/schema"
 import type { Strategy } from "@/db/schema"
 import type { ActionResponse } from "@/types"
-import { eq, and, desc, asc, isNull, or, inArray } from "drizzle-orm"
+import { eq, and, desc, inArray } from "drizzle-orm"
 import { z } from "zod"
 import {
 	createStrategySchema,
@@ -16,6 +16,7 @@ import {
 import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 
 export interface StrategyWithStats extends Strategy {
 	tradeCount: number
@@ -91,15 +92,24 @@ export const createStrategy = async (
 			return {
 				status: "error",
 				message: "A strategy with this code already exists",
-				errors: [{ code: "DUPLICATE_STRATEGY", detail: "Strategy code must be unique" }],
+				errors: [
+					{
+						code: "DUPLICATE_STRATEGY",
+						detail: "Strategy code must be unique",
+					},
+				],
 			}
 		}
 
-		console.error("Create strategy error:", error)
 		return {
 			status: "error",
 			message: "Failed to create strategy",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "CREATE_FAILED",
+					detail: toSafeErrorMessage(error, "createStrategy"),
+				},
+			],
 		}
 	}
 }
@@ -133,15 +143,33 @@ export const updateStrategy = async (
 			.set({
 				...(validated.code !== undefined && { code: validated.code }),
 				...(validated.name !== undefined && { name: validated.name }),
-				...(validated.description !== undefined && { description: validated.description || null }),
-				...(validated.entryCriteria !== undefined && { entryCriteria: validated.entryCriteria || null }),
-				...(validated.exitCriteria !== undefined && { exitCriteria: validated.exitCriteria || null }),
-				...(validated.riskRules !== undefined && { riskRules: validated.riskRules || null }),
-				...(validated.targetRMultiple !== undefined && { targetRMultiple: validated.targetRMultiple?.toString() || null }),
-				...(validated.maxRiskPercent !== undefined && { maxRiskPercent: validated.maxRiskPercent?.toString() || null }),
-				...(validated.screenshotUrl !== undefined && { screenshotUrl: validated.screenshotUrl || null }),
-				...(validated.notes !== undefined && { notes: validated.notes || null }),
-				...(validated.isActive !== undefined && { isActive: validated.isActive }),
+				...(validated.description !== undefined && {
+					description: validated.description || null,
+				}),
+				...(validated.entryCriteria !== undefined && {
+					entryCriteria: validated.entryCriteria || null,
+				}),
+				...(validated.exitCriteria !== undefined && {
+					exitCriteria: validated.exitCriteria || null,
+				}),
+				...(validated.riskRules !== undefined && {
+					riskRules: validated.riskRules || null,
+				}),
+				...(validated.targetRMultiple !== undefined && {
+					targetRMultiple: validated.targetRMultiple?.toString() || null,
+				}),
+				...(validated.maxRiskPercent !== undefined && {
+					maxRiskPercent: validated.maxRiskPercent?.toString() || null,
+				}),
+				...(validated.screenshotUrl !== undefined && {
+					screenshotUrl: validated.screenshotUrl || null,
+				}),
+				...(validated.notes !== undefined && {
+					notes: validated.notes || null,
+				}),
+				...(validated.isActive !== undefined && {
+					isActive: validated.isActive,
+				}),
 				updatedAt: new Date(),
 			})
 			.where(and(eq(strategies.id, id), eq(strategies.userId, userId)))
@@ -167,11 +195,15 @@ export const updateStrategy = async (
 			}
 		}
 
-		console.error("Update strategy error:", error)
 		return {
 			status: "error",
 			message: "Failed to update strategy",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "UPDATE_FAILED",
+					detail: toSafeErrorMessage(error, "updateStrategy"),
+				},
+			],
 		}
 	}
 }
@@ -200,7 +232,9 @@ export const deleteStrategy = async (
 
 		if (hardDelete) {
 			// Note: trades referencing this strategy will have strategyId set to null (onDelete: "set null")
-			await db.delete(strategies).where(and(eq(strategies.id, id), eq(strategies.userId, userId)))
+			await db
+				.delete(strategies)
+				.where(and(eq(strategies.id, id), eq(strategies.userId, userId)))
 		} else {
 			// Soft delete - just deactivate
 			await db
@@ -214,15 +248,94 @@ export const deleteStrategy = async (
 
 		return {
 			status: "success",
-			message: hardDelete ? "Strategy deleted permanently" : "Strategy deactivated",
+			message: hardDelete
+				? "Strategy deleted permanently"
+				: "Strategy deactivated",
 		}
 	} catch (error) {
-		console.error("Delete strategy error:", error)
 		return {
 			status: "error",
 			message: "Failed to delete strategy",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "DELETE_FAILED",
+					detail: toSafeErrorMessage(error, "deleteStrategy"),
+				},
+			],
 		}
+	}
+}
+
+/**
+ * Calculate stats from a list of trades for a strategy.
+ * Shared between getStrategies and getStrategy to avoid duplication.
+ */
+interface StrategyTradeStats {
+	tradeCount: number
+	winCount: number
+	lossCount: number
+	compliance: number
+	totalPnl: number
+	winRate: number
+	profitFactor: number
+	avgR: number
+}
+
+const calculateStrategyStats = (
+	strategyTrades: Array<{
+		pnl: number | string | null
+		outcome: string | null
+		realizedRMultiple: string | null
+		followedPlan: boolean | null
+	}>
+): StrategyTradeStats => {
+	let winCount = 0
+	let lossCount = 0
+	let totalPnl = 0
+	let totalR = 0
+	let rCount = 0
+	let followedPlanCount = 0
+	let trackedPlanCount = 0
+	let grossProfit = 0
+	let grossLoss = 0
+
+	for (const trade of strategyTrades) {
+		const pnl = fromCents(trade.pnl)
+		totalPnl += pnl
+
+		if (trade.outcome === "win") {
+			winCount++
+			grossProfit += pnl
+		} else if (trade.outcome === "loss") {
+			lossCount++
+			grossLoss += Math.abs(pnl)
+		}
+
+		if (trade.realizedRMultiple) {
+			totalR += Number(trade.realizedRMultiple)
+			rCount++
+		}
+
+		if (trade.followedPlan !== null) {
+			trackedPlanCount++
+			if (trade.followedPlan) {
+				followedPlanCount++
+			}
+		}
+	}
+
+	const compliance =
+		trackedPlanCount > 0 ? (followedPlanCount / trackedPlanCount) * 100 : 0
+
+	return {
+		tradeCount: strategyTrades.length,
+		winCount,
+		lossCount,
+		compliance,
+		totalPnl,
+		winRate: calculateWinRate(winCount, winCount + lossCount),
+		profitFactor: calculateProfitFactor(grossProfit, grossLoss),
+		avgR: rCount > 0 ? totalR / rCount : 0,
 	}
 }
 
@@ -269,56 +382,7 @@ export const getStrategies = async (
 					),
 				})
 
-				let winCount = 0
-				let lossCount = 0
-				let totalPnl = 0
-				let totalR = 0
-				let rCount = 0
-				let followedPlanCount = 0
-				let trackedPlanCount = 0
-				let grossProfit = 0
-				let grossLoss = 0
-
-				for (const trade of strategyTrades) {
-					const pnl = fromCents(trade.pnl)
-					totalPnl += pnl
-
-					if (trade.outcome === "win") {
-						winCount++
-						grossProfit += pnl
-					} else if (trade.outcome === "loss") {
-						lossCount++
-						grossLoss += Math.abs(pnl)
-					}
-
-					if (trade.realizedRMultiple) {
-						totalR += Number(trade.realizedRMultiple)
-						rCount++
-					}
-
-					if (trade.followedPlan !== null) {
-						trackedPlanCount++
-						if (trade.followedPlan) {
-							followedPlanCount++
-						}
-					}
-				}
-
-				const compliance = trackedPlanCount > 0
-					? (followedPlanCount / trackedPlanCount) * 100
-					: 0
-
-				return {
-					...strategy,
-					tradeCount: strategyTrades.length,
-					winCount,
-					lossCount,
-					compliance,
-					totalPnl,
-					winRate: calculateWinRate(winCount, winCount + lossCount),
-					profitFactor: calculateProfitFactor(grossProfit, grossLoss),
-					avgR: rCount > 0 ? totalR / rCount : 0,
-				}
+				return { ...strategy, ...calculateStrategyStats(strategyTrades) }
 			})
 		)
 
@@ -328,11 +392,15 @@ export const getStrategies = async (
 			data: strategiesWithStats,
 		}
 	} catch (error) {
-		console.error("Get strategies error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve strategies",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getStrategies"),
+				},
+			],
 		}
 	}
 }
@@ -351,7 +419,10 @@ export const getStrategy = async (
 			: eq(trades.accountId, authContext.accountId)
 
 		const strategy = await db.query.strategies.findFirst({
-			where: and(eq(strategies.id, id), eq(strategies.userId, authContext.userId)),
+			where: and(
+				eq(strategies.id, id),
+				eq(strategies.userId, authContext.userId)
+			),
 		})
 
 		if (!strategy) {
@@ -371,66 +442,21 @@ export const getStrategy = async (
 			),
 		})
 
-		let winCount = 0
-		let lossCount = 0
-		let totalPnl = 0
-		let totalR = 0
-		let rCount = 0
-		let followedPlanCount = 0
-		let trackedPlanCount = 0
-		let grossProfit = 0
-		let grossLoss = 0
-
-		for (const trade of strategyTrades) {
-			const pnl = fromCents(trade.pnl)
-			totalPnl += pnl
-
-			if (trade.outcome === "win") {
-				winCount++
-				grossProfit += pnl
-			} else if (trade.outcome === "loss") {
-				lossCount++
-				grossLoss += Math.abs(pnl)
-			}
-
-			if (trade.realizedRMultiple) {
-				totalR += Number(trade.realizedRMultiple)
-				rCount++
-			}
-
-			if (trade.followedPlan !== null) {
-				trackedPlanCount++
-				if (trade.followedPlan) {
-					followedPlanCount++
-				}
-			}
-		}
-
-		const compliance = trackedPlanCount > 0
-			? (followedPlanCount / trackedPlanCount) * 100
-			: 0
-
 		return {
 			status: "success",
 			message: "Strategy retrieved successfully",
-			data: {
-				...strategy,
-				tradeCount: strategyTrades.length,
-				winCount,
-				lossCount,
-				compliance,
-				totalPnl,
-				winRate: calculateWinRate(winCount, winCount + lossCount),
-				profitFactor: calculateProfitFactor(grossProfit, grossLoss),
-				avgR: rCount > 0 ? totalR / rCount : 0,
-			},
+			data: { ...strategy, ...calculateStrategyStats(strategyTrades) },
 		}
 	} catch (error) {
-		console.error("Get strategy error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve strategy",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getStrategy"),
+				},
+			],
 		}
 	}
 }
@@ -438,7 +464,9 @@ export const getStrategy = async (
 /**
  * Get overall compliance overview
  */
-export const getComplianceOverview = async (): Promise<ActionResponse<ComplianceOverview>> => {
+export const getComplianceOverview = async (): Promise<
+	ActionResponse<ComplianceOverview>
+> => {
 	try {
 		const authContext = await requireAuth()
 		// Strategies are user-level
@@ -456,27 +484,39 @@ export const getComplianceOverview = async (): Promise<ActionResponse<Compliance
 
 		// Get all non-archived trades for this account
 		const allTrades = await db.query.trades.findMany({
-			where: and(
-				tradesAccountCondition,
-				eq(trades.isArchived, false)
-			),
+			where: and(tradesAccountCondition, eq(trades.isArchived, false)),
 		})
 
 		// Calculate overall compliance
 		const trackedTrades = allTrades.filter((t) => t.followedPlan !== null)
-		const followedPlanCount = trackedTrades.filter((t) => t.followedPlan === true).length
-		const notFollowedCount = trackedTrades.filter((t) => t.followedPlan === false).length
-		const overallCompliance = trackedTrades.length > 0
-			? (followedPlanCount / trackedTrades.length) * 100
-			: 0
+		const followedPlanCount = trackedTrades.filter(
+			(t) => t.followedPlan === true
+		).length
+		const notFollowedCount = trackedTrades.filter(
+			(t) => t.followedPlan === false
+		).length
+		const overallCompliance =
+			trackedTrades.length > 0
+				? (followedPlanCount / trackedTrades.length) * 100
+				: 0
 
 		// Calculate per-strategy compliance for finding top/needs attention
-		const strategyCompliances: Array<{ name: string; compliance: number; tradeCount: number }> = []
+		const strategyCompliances: Array<{
+			name: string
+			compliance: number
+			tradeCount: number
+		}> = []
 
 		for (const strategy of allStrategies) {
-			const strategyTrades = allTrades.filter((t) => t.strategyId === strategy.id)
-			const strategyTracked = strategyTrades.filter((t) => t.followedPlan !== null)
-			const strategyFollowed = strategyTracked.filter((t) => t.followedPlan === true).length
+			const strategyTrades = allTrades.filter(
+				(t) => t.strategyId === strategy.id
+			)
+			const strategyTracked = strategyTrades.filter(
+				(t) => t.followedPlan !== null
+			)
+			const strategyFollowed = strategyTracked.filter(
+				(t) => t.followedPlan === true
+			).length
 
 			if (strategyTracked.length > 0) {
 				strategyCompliances.push({
@@ -488,17 +528,30 @@ export const getComplianceOverview = async (): Promise<ActionResponse<Compliance
 		}
 
 		// Find top performing (highest compliance with at least 3 trades) - using toSorted for immutability
-		const qualifiedStrategies = strategyCompliances.filter((s) => s.tradeCount >= 3)
-		const sortedByCompliance = qualifiedStrategies.toSorted((a, b) => b.compliance - a.compliance)
+		const qualifiedStrategies = strategyCompliances.filter(
+			(s) => s.tradeCount >= 3
+		)
+		const sortedByCompliance = qualifiedStrategies.toSorted(
+			(a, b) => b.compliance - a.compliance
+		)
 
-		const topPerformingStrategy = sortedByCompliance.length > 0
-			? { name: sortedByCompliance[0].name, compliance: sortedByCompliance[0].compliance }
-			: null
+		const topPerformingStrategy =
+			sortedByCompliance.length > 0
+				? {
+						name: sortedByCompliance[0].name,
+						compliance: sortedByCompliance[0].compliance,
+					}
+				: null
 
 		// Find needs attention (lowest compliance with at least 3 trades)
-		const needsAttentionStrategy = sortedByCompliance.length > 0
-			? { name: sortedByCompliance[sortedByCompliance.length - 1].name, compliance: sortedByCompliance[sortedByCompliance.length - 1].compliance }
-			: null
+		const needsAttentionStrategy =
+			sortedByCompliance.length > 0
+				? {
+						name: sortedByCompliance[sortedByCompliance.length - 1].name,
+						compliance:
+							sortedByCompliance[sortedByCompliance.length - 1].compliance,
+					}
+				: null
 
 		return {
 			status: "success",
@@ -510,17 +563,23 @@ export const getComplianceOverview = async (): Promise<ActionResponse<Compliance
 				notFollowedCount,
 				strategiesCount: allStrategies.length,
 				topPerformingStrategy,
-				needsAttentionStrategy: needsAttentionStrategy?.compliance !== topPerformingStrategy?.compliance
-					? needsAttentionStrategy
-					: null,
+				needsAttentionStrategy:
+					needsAttentionStrategy?.compliance !==
+					topPerformingStrategy?.compliance
+						? needsAttentionStrategy
+						: null,
 			},
 		}
 	} catch (error) {
-		console.error("Get compliance overview error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve compliance overview",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getComplianceOverview"),
+				},
+			],
 		}
 	}
 }

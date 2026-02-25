@@ -10,8 +10,29 @@ import {
 	type CreateTimeframeInput,
 	type UpdateTimeframeInput,
 } from "@/lib/validations/timeframe"
+import { auth } from "@/auth"
+
+const requireSession = async (): Promise<string> => {
+	const session = await auth()
+	if (!session?.user?.id) {
+		throw new Error("Unauthorized")
+	}
+	return session.user.id
+}
+
+const requireAdmin = async (): Promise<string> => {
+	const session = await auth()
+	if (!session?.user?.id) {
+		throw new Error("Unauthorized")
+	}
+	if (!session.user.isAdmin) {
+		throw new Error("Unauthorized")
+	}
+	return session.user.id
+}
 
 export const getTimeframes = async (): Promise<Timeframe[]> => {
+	await requireSession()
 	const result = await db.query.timeframes.findMany({
 		orderBy: [asc(timeframes.sortOrder), asc(timeframes.code)],
 	})
@@ -19,6 +40,7 @@ export const getTimeframes = async (): Promise<Timeframe[]> => {
 }
 
 export const getActiveTimeframes = async (): Promise<Timeframe[]> => {
+	await requireSession()
 	const result = await db.query.timeframes.findMany({
 		where: eq(timeframes.isActive, true),
 		orderBy: [asc(timeframes.sortOrder), asc(timeframes.code)],
@@ -29,6 +51,7 @@ export const getActiveTimeframes = async (): Promise<Timeframe[]> => {
 export const getTimeframesByType = async (
 	type: "time_based" | "renko"
 ): Promise<Timeframe[]> => {
+	await requireSession()
 	const result = await db.query.timeframes.findMany({
 		where: eq(timeframes.type, type),
 		orderBy: [asc(timeframes.sortOrder), asc(timeframes.code)],
@@ -37,6 +60,7 @@ export const getTimeframesByType = async (
 }
 
 export const getTimeframe = async (id: string): Promise<Timeframe | null> => {
+	await requireSession()
 	const result = await db.query.timeframes.findFirst({
 		where: eq(timeframes.id, id),
 	})
@@ -46,6 +70,7 @@ export const getTimeframe = async (id: string): Promise<Timeframe | null> => {
 export const getTimeframeByCode = async (
 	code: string
 ): Promise<Timeframe | null> => {
+	await requireSession()
 	const result = await db.query.timeframes.findFirst({
 		where: eq(timeframes.code, code.toUpperCase()),
 	})
@@ -55,6 +80,7 @@ export const getTimeframeByCode = async (
 export const createTimeframe = async (
 	data: CreateTimeframeInput
 ): Promise<{ success: boolean; data?: Timeframe; error?: string }> => {
+	await requireAdmin()
 	const validated = createTimeframeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -86,6 +112,7 @@ export const createTimeframe = async (
 export const updateTimeframe = async (
 	data: UpdateTimeframeInput
 ): Promise<{ success: boolean; data?: Timeframe; error?: string }> => {
+	await requireAdmin()
 	const validated = updateTimeframeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -128,6 +155,7 @@ export const updateTimeframe = async (
 export const deleteTimeframe = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	await db.delete(timeframes).where(eq(timeframes.id, id))
 
 	revalidatePath("/settings")
@@ -140,6 +168,7 @@ export const toggleTimeframeActive = async (
 	id: string,
 	isActive: boolean
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	await db
 		.update(timeframes)
 		.set({ isActive })
@@ -154,6 +183,7 @@ export const toggleTimeframeActive = async (
 export const reorderTimeframes = async (
 	orderedIds: string[]
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	for (let i = 0; i < orderedIds.length; i++) {
 		await db
 			.update(timeframes)

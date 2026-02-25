@@ -9,7 +9,9 @@ test.describe("Reports", () => {
 		})
 
 		test("should display page header", async ({ page }) => {
-			await expect(page.getByRole("heading", { name: /reports|relatórios/i })).toBeVisible()
+			// Page has no h1 heading; verify by checking the active sidebar link
+			const activeNav = page.locator('a[aria-current="page"]:has-text("Reports")')
+			await expect(activeNav).toBeVisible()
 		})
 
 		test("should display week selector", async ({ page }) => {
@@ -127,7 +129,9 @@ test.describe("Reports", () => {
 		})
 
 		test("should display page header", async ({ page }) => {
-			await expect(page.getByRole("heading", { name: /monthly|mensal/i })).toBeVisible()
+			// Monthly page has no h1 heading; verify by checking the active sidebar link
+			const activeNav = page.locator('a[aria-current="page"]:has-text("Monthly")')
+			await expect(activeNav).toBeVisible()
 		})
 
 		test("should display month selector", async ({ page }) => {
@@ -327,8 +331,9 @@ test.describe("Reports", () => {
 			await page.goto(ROUTES.reports)
 			await page.waitForLoadState("networkidle")
 
-			// Content should be visible
-			await expect(page.getByRole("heading", { name: /reports|relatórios/i })).toBeVisible()
+			// On mobile, the sidebar is hidden behind a sheet menu; verify page-specific content is visible
+			// The Weekly Report card heading should be present
+			await expect(page.getByRole("heading", { name: /weekly report/i })).toBeVisible()
 		})
 
 		test("should stack cards vertically on mobile", async ({ page }) => {

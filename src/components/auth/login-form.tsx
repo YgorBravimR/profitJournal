@@ -11,7 +11,12 @@ import Image from "next/image"
 import { Loader2, Eye, EyeOff, Building2, User, ArrowLeft } from "lucide-react"
 import { loginUser } from "@/app/actions/auth"
 import { cn } from "@/lib/utils"
-import type { TradingAccount } from "@/db/schema"
+interface AccountPickerItem {
+	id: string
+	name: string
+	accountType: string
+	isDefault: boolean
+}
 
 interface LoginFormProps {
 	callbackUrl?: string
@@ -29,7 +34,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 
 	// Multi-step form state
 	const [step, setStep] = useState<FormStep>("credentials")
-	const [accounts, setAccounts] = useState<TradingAccount[]>([])
+	const [accounts, setAccounts] = useState<AccountPickerItem[]>([])
 	const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
 	const [formData, setFormData] = useState({
@@ -167,15 +172,8 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 
 							<div className="flex-1">
 								<p className="font-medium text-txt-100">{account.name}</p>
-								{account.accountType === "prop" && account.propFirmName && (
-									<p className="text-tiny text-txt-300">
-										{account.propFirmName}
-									</p>
-								)}
-								<p className="text-tiny text-txt-300">
-									{tSelect("profitShare", {
-										percentage: account.profitSharePercentage,
-									})}
+								<p className="text-tiny capitalize text-txt-300">
+									{account.accountType}
 								</p>
 							</div>
 

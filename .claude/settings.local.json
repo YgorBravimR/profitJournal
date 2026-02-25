@@ -81,7 +81,12 @@
       "Bash(/tmp/replace_block.py:*)",
       "Bash(\"@auth|\"drizzle)",
       "Bash(\"neon|\"crypto)",
-      "Bash(\"jose|DATABASE|AUTH_SECRET|NEXTAUTH\" /Users/ygorbravim/personal/projects/profitJournal/package.json)"
+      "Bash(\"jose|DATABASE|AUTH_SECRET|NEXTAUTH\" /Users/ygorbravim/personal/projects/profitJournal/package.json)",
+      "Bash(pnpm why:*)",
+      "Bash(pnpm info:*)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm dev:*)",
+      "Bash(npx playwright:*2)"
     ],
     "deny": [],
     "ask": []

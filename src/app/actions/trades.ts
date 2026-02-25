@@ -30,6 +30,8 @@ import { fromCents } from "@/lib/money"
 import { getStartOfDay, getEndOfDay, formatDateKey, APP_TIMEZONE } from "@/lib/dates"
 import { toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getUserDek, encryptTradeFields, decryptTradeFields } from "@/lib/user-crypto"
 
 // Type for trade with relations
 export interface TradeWithRelations extends Trade {
@@ -48,7 +50,7 @@ export const createTrade = async (
 	input: CreateTradeInput
 ): Promise<ActionResponse<Trade>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		const validated = createTradeSchema.parse(input)
 		const { tagIds, ...tradeData } = validated
 
@@ -135,37 +137,60 @@ export const createTrade = async (
 			realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 		}
 
-		// Insert trade - money fields (pnl, plannedRiskAmount) stored as cents
-		const [trade] = await db
-			.insert(trades)
-			.values({
-				accountId,
-				asset: tradeData.asset,
-				direction: tradeData.direction,
-				timeframeId: tradeData.timeframeId || null,
-				entryDate: tradeData.entryDate,
-				exitDate: tradeData.exitDate,
+		// Insert trade - money fields (pnl, plannedRiskAmount) stored as cents in text columns
+		const insertValues: Record<string, unknown> = {
+			accountId,
+			asset: tradeData.asset,
+			direction: tradeData.direction,
+			timeframeId: tradeData.timeframeId || null,
+			entryDate: tradeData.entryDate,
+			exitDate: tradeData.exitDate,
+			entryPrice: tradeData.entryPrice.toString(),
+			exitPrice: tradeData.exitPrice?.toString(),
+			positionSize: tradeData.positionSize.toString(),
+			stopLoss: tradeData.stopLoss?.toString(),
+			takeProfit: tradeData.takeProfit?.toString(),
+			plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount).toString() : null,
+			plannedRMultiple: plannedRMultiple?.toString(),
+			pnl: pnl !== undefined ? toCents(pnl).toString() : null,
+			outcome,
+			realizedRMultiple: realizedR?.toString(),
+			mfe: tradeData.mfe?.toString(),
+			mae: tradeData.mae?.toString(),
+			// contractsExecuted defaults to positionSize * 2 (entry + exit) if not provided
+			contractsExecuted: tradeData.contractsExecuted?.toString() ?? (tradeData.positionSize * 2).toString(),
+			followedPlan: tradeData.followedPlan,
+			strategyId: tradeData.strategyId || null,
+			preTradeThoughts: tradeData.preTradeThoughts,
+			postTradeReflection: tradeData.postTradeReflection,
+			lessonLearned: tradeData.lessonLearned,
+			disciplineNotes: tradeData.disciplineNotes,
+		}
+
+		// Encrypt sensitive fields if user has a DEK
+		const dek = await getUserDek(userId)
+		if (dek) {
+			Object.assign(insertValues, encryptTradeFields({
+				pnl: pnl !== undefined ? toCents(pnl) : null,
+				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
+				commission: undefined,
+				fees: undefined,
 				entryPrice: tradeData.entryPrice.toString(),
 				exitPrice: tradeData.exitPrice?.toString(),
 				positionSize: tradeData.positionSize.toString(),
 				stopLoss: tradeData.stopLoss?.toString(),
 				takeProfit: tradeData.takeProfit?.toString(),
-				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
 				plannedRMultiple: plannedRMultiple?.toString(),
-				pnl: pnl !== undefined ? toCents(pnl) : null,
-				outcome,
-				realizedRMultiple: realizedR?.toString(),
-				mfe: tradeData.mfe?.toString(),
-				mae: tradeData.mae?.toString(),
-				// contractsExecuted defaults to positionSize * 2 (entry + exit) if not provided
-				contractsExecuted: tradeData.contractsExecuted?.toString() ?? (tradeData.positionSize * 2).toString(),
-				followedPlan: tradeData.followedPlan,
-				strategyId: tradeData.strategyId || null,
 				preTradeThoughts: tradeData.preTradeThoughts,
 				postTradeReflection: tradeData.postTradeReflection,
 				lessonLearned: tradeData.lessonLearned,
 				disciplineNotes: tradeData.disciplineNotes,
-			})
+			}, dek))
+		}
+
+		const [trade] = await db
+			.insert(trades)
+			.values(insertValues as typeof trades.$inferInsert)
 			.returning()
 
 		// Insert tag associations
@@ -195,11 +220,10 @@ export const createTrade = async (
 			}
 		}
 
-		console.error("Create trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to create trade",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [{ code: "CREATE_FAILED", detail: toSafeErrorMessage(error, "createTrade") }],
 		}
 	}
 }
@@ -212,12 +236,12 @@ export const updateTrade = async (
 	input: UpdateTradeInput
 ): Promise<ActionResponse<Trade>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		const validated = updateTradeSchema.parse(input)
 		const { tagIds, ...tradeData } = validated
 
 		// Get existing trade to merge data (verify ownership)
-		const existing = await db.query.trades.findFirst({
+		let existing = await db.query.trades.findFirst({
 			where: and(eq(trades.id, id), eq(trades.accountId, accountId)),
 		})
 
@@ -229,6 +253,12 @@ export const updateTrade = async (
 			}
 		}
 
+		// Decrypt existing trade fields before merging
+		const dek = await getUserDek(userId)
+		if (dek) {
+			existing = decryptTradeFields(existing, dek)
+		}
+
 		// Merge existing data with updates
 		const exitPrice = tradeData.exitPrice ?? (existing.exitPrice ? Number(existing.exitPrice) : undefined)
 		const entryPrice = tradeData.entryPrice ?? Number(existing.entryPrice)
@@ -236,7 +266,7 @@ export const updateTrade = async (
 		const direction = tradeData.direction ?? existing.direction
 		const stopLoss = tradeData.stopLoss ?? (existing.stopLoss ? Number(existing.stopLoss) : undefined)
 		const takeProfit = tradeData.takeProfit ?? (existing.takeProfit ? Number(existing.takeProfit) : undefined)
-		const riskAmount = tradeData.riskAmount ?? (existing.plannedRiskAmount ? existing.plannedRiskAmount / 100 : undefined)
+		const riskAmount = tradeData.riskAmount ?? (existing.plannedRiskAmount ? Number(existing.plannedRiskAmount) / 100 : undefined)
 
 		// Calculate plannedRiskAmount: use manual riskAmount if provided, otherwise calculate from stopLoss
 		let plannedRiskAmount: number | undefined
@@ -346,21 +376,47 @@ export const updateTrade = async (
 		if (tradeData.disciplineNotes !== undefined) updateData.disciplineNotes = tradeData.disciplineNotes
 
 		// Always include calculated fields when we have exit data
-		// Money fields (pnl, plannedRiskAmount) stored as cents
+		// Money fields (pnl, plannedRiskAmount) stored as cents in text columns
 		if (exitPrice) {
-			updateData.pnl = pnl !== undefined ? toCents(pnl) : null
+			updateData.pnl = pnl !== undefined ? toCents(pnl).toString() : null
 			updateData.outcome = outcome
 			updateData.realizedRMultiple = realizedR?.toString() ?? null
 		}
 		if (plannedRiskAmount !== undefined) {
-			updateData.plannedRiskAmount = toCents(plannedRiskAmount)
+			updateData.plannedRiskAmount = toCents(plannedRiskAmount).toString()
+		}
+
+		// Encrypt sensitive fields if user has a DEK
+		if (dek) {
+			const fieldsToEncrypt: Record<string, unknown> = {}
+			if (updateData.pnl !== undefined) fieldsToEncrypt.pnl = pnl !== undefined ? toCents(pnl) : null
+			if (updateData.plannedRiskAmount !== undefined) fieldsToEncrypt.plannedRiskAmount = plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null
+			if (updateData.entryPrice !== undefined) fieldsToEncrypt.entryPrice = updateData.entryPrice
+			if (updateData.exitPrice !== undefined) fieldsToEncrypt.exitPrice = updateData.exitPrice
+			if (updateData.positionSize !== undefined) fieldsToEncrypt.positionSize = updateData.positionSize
+			if (updateData.stopLoss !== undefined) fieldsToEncrypt.stopLoss = updateData.stopLoss
+			if (updateData.takeProfit !== undefined) fieldsToEncrypt.takeProfit = updateData.takeProfit
+			if (updateData.plannedRMultiple !== undefined) fieldsToEncrypt.plannedRMultiple = updateData.plannedRMultiple
+			if (updateData.preTradeThoughts !== undefined) fieldsToEncrypt.preTradeThoughts = updateData.preTradeThoughts
+			if (updateData.postTradeReflection !== undefined) fieldsToEncrypt.postTradeReflection = updateData.postTradeReflection
+			if (updateData.lessonLearned !== undefined) fieldsToEncrypt.lessonLearned = updateData.lessonLearned
+			if (updateData.disciplineNotes !== undefined) fieldsToEncrypt.disciplineNotes = updateData.disciplineNotes
+			Object.assign(updateData, encryptTradeFields(fieldsToEncrypt as Parameters<typeof encryptTradeFields>[0], dek))
 		}
 
 		const [trade] = await db
 			.update(trades)
 			.set(updateData)
-			.where(eq(trades.id, id))
+			.where(and(eq(trades.id, id), eq(trades.accountId, accountId)))
 			.returning()
+
+		if (!trade) {
+			return {
+				status: "error",
+				message: "Trade not found",
+				errors: [{ code: "NOT_FOUND", detail: "Trade does not exist or does not belong to this account" }],
+			}
+		}
 
 		// Update tag associations if provided
 		if (tagIds !== undefined) {
@@ -388,11 +444,10 @@ export const updateTrade = async (
 			data: trade,
 		}
 	} catch (error) {
-		console.error("Update trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to update trade",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [{ code: "UPDATE_FAILED", detail: toSafeErrorMessage(error, "updateTrade") }],
 		}
 	}
 }
@@ -428,11 +483,10 @@ export const deleteTrade = async (id: string): Promise<ActionResponse<void>> => 
 			message: "Trade archived successfully",
 		}
 	} catch (error) {
-		console.error("Delete trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to archive trade",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [{ code: "DELETE_FAILED", detail: toSafeErrorMessage(error, "deleteTrade") }],
 		}
 	}
 }
@@ -444,8 +498,8 @@ export const getTrade = async (
 	id: string
 ): Promise<ActionResponse<TradeWithRelations>> => {
 	try {
-		const { accountId } = await requireAuth()
-		const trade = await db.query.trades.findFirst({
+		const { accountId, userId } = await requireAuth()
+		let trade = await db.query.trades.findFirst({
 			where: and(
 				eq(trades.id, id),
 				eq(trades.accountId, accountId),
@@ -471,17 +525,22 @@ export const getTrade = async (
 			}
 		}
 
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		if (dek) {
+			trade = decryptTradeFields(trade, dek)
+		}
+
 		return {
 			status: "success",
 			message: "Trade retrieved successfully",
 			data: trade,
 		}
 	} catch (error) {
-		console.error("Get trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve trade",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTrade") }],
 		}
 	}
 }
@@ -494,7 +553,7 @@ export const getTrades = async (
 	pagination?: PaginationParams
 ): Promise<ActionResponse<PaginatedResponse<TradeWithRelations>>> => {
 	try {
-		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 		const validatedFilters = filters ? tradeFiltersSchema.parse(filters) : {}
 		const validatedPagination = pagination
 			? paginationSchema.parse(pagination)
@@ -568,11 +627,15 @@ export const getTrades = async (
 
 		const total = countResult[0]?.count ?? 0
 
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		const decryptedResult = dek ? result.map((t) => decryptTradeFields(t, dek)) : result
+
 		return {
 			status: "success",
 			message: "Trades retrieved successfully",
 			data: {
-				items: result,
+				items: decryptedResult,
 				pagination: {
 					total,
 					limit,
@@ -582,11 +645,10 @@ export const getTrades = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get trades error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve trades",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTrades") }],
 		}
 	}
 }
@@ -598,7 +660,7 @@ export const getTradesForDate = async (
 	date: Date
 ): Promise<ActionResponse<Trade[]>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		const startOfDay = getStartOfDay(date)
 		const endOfDay = getEndOfDay(date)
 
@@ -612,17 +674,20 @@ export const getTradesForDate = async (
 			orderBy: [asc(trades.entryDate)],
 		})
 
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		const decryptedResult = dek ? result.map((t) => decryptTradeFields(t, dek)) : result
+
 		return {
 			status: "success",
 			message: "Trades retrieved successfully",
-			data: result,
+			data: decryptedResult,
 		}
 	} catch (error) {
-		console.error("Get trades for date error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve trades",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTradesForDate") }],
 		}
 	}
 }
@@ -645,11 +710,10 @@ export const getUniqueAssets = async (): Promise<ActionResponse<string[]>> => {
 			data: result.map((r) => r.asset),
 		}
 	} catch (error) {
-		console.error("Get unique assets error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve assets",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getUniqueAssets") }],
 		}
 	}
 }
@@ -686,11 +750,11 @@ export const bulkCreateTrades = async (
 			),
 		]
 
-		// Look up strategies by code
+		// Look up strategies by code (scoped to current user)
 		const strategyMap = new Map<string, string>()
 		if (strategyCodes.length > 0) {
 			const foundStrategies = await db.query.strategies.findMany({
-				where: inArray(strategies.code, strategyCodes),
+				where: and(inArray(strategies.code, strategyCodes), eq(strategies.userId, userId)),
 			})
 			for (const strategy of foundStrategies) {
 				strategyMap.set(strategy.code, strategy.id)
@@ -699,7 +763,9 @@ export const bulkCreateTrades = async (
 			// Second pass: try matching unmatched codes by name (case-insensitive)
 			const unmatchedCodes = strategyCodes.filter((code) => !strategyMap.has(code))
 			if (unmatchedCodes.length > 0) {
-				const allStrategies = await db.query.strategies.findMany()
+				const allStrategies = await db.query.strategies.findMany({
+					where: eq(strategies.userId, userId),
+				})
 				for (const strategy of allStrategies) {
 					for (const code of unmatchedCodes) {
 						if (
@@ -783,6 +849,9 @@ export const bulkCreateTrades = async (
 				})
 			}
 		}
+
+		// Get DEK for encryption
+		const dek = await getUserDek(userId)
 
 		// Process trades in batches to avoid overwhelming the database
 		const BATCH_SIZE = 50
@@ -895,7 +964,7 @@ export const bulkCreateTrades = async (
 					const totalCommission = commission * contractsExecuted
 					const totalFees = fees * contractsExecuted
 
-					tradeValues.push({
+					const tradeInsertValues: Record<string, unknown> = {
 						accountId,
 						asset: tradeData.asset,
 						direction: tradeData.direction,
@@ -907,16 +976,16 @@ export const bulkCreateTrades = async (
 						positionSize: tradeData.positionSize.toString(),
 						stopLoss: tradeData.stopLoss?.toString(),
 						takeProfit: tradeData.takeProfit?.toString(),
-						plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
+						plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount).toString() : null,
 						plannedRMultiple: plannedRMultiple?.toString(),
-						pnl: pnl !== undefined ? toCents(pnl) : null,
+						pnl: pnl !== undefined ? toCents(pnl).toString() : null,
 						outcome,
 						realizedRMultiple: realizedR?.toString(),
 						mfe: tradeData.mfe?.toString(),
 						mae: tradeData.mae?.toString(),
 						// Fees stored in cents (commission/fees are already in cents from getAssetFees)
-						commission: totalCommission,
-						fees: totalFees,
+						commission: totalCommission.toString(),
+						fees: totalFees.toString(),
 						// contractsExecuted defaults to positionSize * 2 (entry + exit)
 						contractsExecuted: contractsExecuted.toString(),
 						followedPlan: tradeData.followedPlan,
@@ -925,13 +994,35 @@ export const bulkCreateTrades = async (
 						postTradeReflection: tradeData.postTradeReflection,
 						lessonLearned: tradeData.lessonLearned,
 						disciplineNotes: tradeData.disciplineNotes,
-					})
+					}
+
+					// Encrypt sensitive fields if user has a DEK
+					if (dek) {
+						Object.assign(tradeInsertValues, encryptTradeFields({
+							pnl: pnl !== undefined ? toCents(pnl) : null,
+							plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
+							commission: totalCommission,
+							fees: totalFees,
+							entryPrice: tradeData.entryPrice.toString(),
+							exitPrice: tradeData.exitPrice?.toString(),
+							positionSize: tradeData.positionSize.toString(),
+							stopLoss: tradeData.stopLoss?.toString(),
+							takeProfit: tradeData.takeProfit?.toString(),
+							plannedRMultiple: plannedRMultiple?.toString(),
+							preTradeThoughts: tradeData.preTradeThoughts,
+							postTradeReflection: tradeData.postTradeReflection,
+							lessonLearned: tradeData.lessonLearned,
+							disciplineNotes: tradeData.disciplineNotes,
+						}, dek))
+					}
+
+					tradeValues.push(tradeInsertValues as typeof trades.$inferInsert)
 					batchTagNames.push(inputTagNames)
 				} catch (error) {
 					result.failedCount++
 					result.errors.push({
 						index: globalIndex,
-						message: error instanceof Error ? error.message : String(error),
+						message: toSafeErrorMessage(error, "bulkCreateTrades"),
 					})
 				}
 			}
@@ -973,11 +1064,10 @@ export const bulkCreateTrades = async (
 			data: result,
 		}
 	} catch (error) {
-		console.error("Bulk create trades error:", error)
 		return {
 			status: "error",
 			message: "Failed to import trades",
-			errors: [{ code: "BULK_CREATE_FAILED", detail: String(error) }],
+			errors: [{ code: "BULK_CREATE_FAILED", detail: toSafeErrorMessage(error, "bulkCreateTrades") }],
 		}
 	}
 }
@@ -1017,7 +1107,7 @@ export const createScaledTrade = async (
 	input: CreateScaledTradeInput
 ): Promise<ActionResponse<Trade>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 		const { executions, tagIds, ...tradeData } = input
 
 		if (!executions || executions.length === 0) {
@@ -1158,34 +1248,55 @@ export const createScaledTrade = async (
 		}
 
 		// Insert trade with execution_mode = 'scaled'
-		const [trade] = await db
-			.insert(trades)
-			.values({
-				accountId,
-				asset: tradeData.asset.toUpperCase(),
-				direction: tradeData.direction,
-				timeframeId: tradeData.timeframeId || null,
-				entryDate,
-				exitDate,
+		const scaledInsertValues: Record<string, unknown> = {
+			accountId,
+			asset: tradeData.asset.toUpperCase(),
+			direction: tradeData.direction,
+			timeframeId: tradeData.timeframeId || null,
+			entryDate,
+			exitDate,
+			entryPrice: avgEntryPrice.toString(),
+			exitPrice: avgExitPrice?.toString(),
+			positionSize: totalEntryQty.toString(),
+			stopLoss: tradeData.stopLoss?.toString(),
+			takeProfit: tradeData.takeProfit?.toString(),
+			plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount).toString() : null,
+			plannedRMultiple: plannedRMultiple?.toString(),
+			pnl: pnl !== undefined ? toCents(pnl).toString() : null,
+			outcome,
+			realizedRMultiple: realizedR?.toString(),
+			contractsExecuted: contractsExecuted.toString(),
+			executionMode: "scaled",
+			followedPlan: tradeData.followedPlan,
+			strategyId: tradeData.strategyId || null,
+			preTradeThoughts: tradeData.preTradeThoughts,
+			postTradeReflection: tradeData.postTradeReflection,
+			lessonLearned: tradeData.lessonLearned,
+			disciplineNotes: tradeData.disciplineNotes,
+		}
+
+		// Encrypt sensitive fields if user has a DEK
+		const dek = await getUserDek(userId)
+		if (dek) {
+			Object.assign(scaledInsertValues, encryptTradeFields({
+				pnl: pnl !== undefined ? toCents(pnl) : null,
+				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
 				entryPrice: avgEntryPrice.toString(),
 				exitPrice: avgExitPrice?.toString(),
 				positionSize: totalEntryQty.toString(),
 				stopLoss: tradeData.stopLoss?.toString(),
 				takeProfit: tradeData.takeProfit?.toString(),
-				plannedRiskAmount: plannedRiskAmount !== undefined ? toCents(plannedRiskAmount) : null,
 				plannedRMultiple: plannedRMultiple?.toString(),
-				pnl: pnl !== undefined ? toCents(pnl) : null,
-				outcome,
-				realizedRMultiple: realizedR?.toString(),
-				contractsExecuted: contractsExecuted.toString(),
-				executionMode: "scaled",
-				followedPlan: tradeData.followedPlan,
-				strategyId: tradeData.strategyId || null,
 				preTradeThoughts: tradeData.preTradeThoughts,
 				postTradeReflection: tradeData.postTradeReflection,
 				lessonLearned: tradeData.lessonLearned,
 				disciplineNotes: tradeData.disciplineNotes,
-			})
+			}, dek))
+		}
+
+		const [trade] = await db
+			.insert(trades)
+			.values(scaledInsertValues as typeof trades.$inferInsert)
 			.returning()
 
 		// Insert all executions
@@ -1197,11 +1308,11 @@ export const createScaledTrade = async (
 					executionDate: exec.executionDate,
 					price: exec.price.toString(),
 					quantity: exec.quantity.toString(),
-					commission: exec.commission ? toCents(exec.commission) : 0,
-					fees: exec.fees ? toCents(exec.fees) : 0,
+					commission: exec.commission ? toCents(exec.commission).toString() : "0",
+					fees: exec.fees ? toCents(exec.fees).toString() : "0",
 					notes: exec.notes,
 					// executionValue is quantity * price in cents
-					executionValue: toCents(exec.price * exec.quantity),
+					executionValue: toCents(exec.price * exec.quantity).toString(),
 				}))
 			)
 		}
@@ -1225,11 +1336,10 @@ export const createScaledTrade = async (
 			data: trade,
 		}
 	} catch (error) {
-		console.error("Create scaled trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to create scaled trade",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [{ code: "CREATE_FAILED", detail: toSafeErrorMessage(error, "createScaledTrade") }],
 		}
 	}
 }
@@ -1243,7 +1353,7 @@ export const getTradesGroupedByDay = async (
 	dateTo?: Date
 ): Promise<ActionResponse<TradesByDay[]>> => {
 	try {
-		const { accountId, showAllAccounts, allAccountIds } = await requireAuth()
+		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 
 		// Build where conditions
 		const accountCondition = showAllAccounts
@@ -1258,7 +1368,7 @@ export const getTradesGroupedByDay = async (
 			conditions.push(lte(trades.entryDate, dateTo))
 		}
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 			with: {
 				strategy: true,
@@ -1266,6 +1376,10 @@ export const getTradesGroupedByDay = async (
 			},
 			orderBy: [desc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		const result = dek ? rawResult.map((t) => decryptTradeFields(t, dek)) : rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1305,10 +1419,10 @@ export const getTradesGroupedByDay = async (
 				grossLoss: 0,
 			}
 
-			// P&L is stored in cents, convert to dollars
-			const pnl = trade.pnl ? trade.pnl / 100 : 0
-			const commission = trade.commission ? trade.commission / 100 : 0
-			const fees = trade.fees ? trade.fees / 100 : 0
+			// P&L is stored in cents, convert to dollars (fields are text, use fromCents for safe conversion)
+			const pnl = fromCents(trade.pnl)
+			const commission = fromCents(trade.commission)
+			const fees = fromCents(trade.fees)
 
 			existing.trades.push(trade)
 			existing.netPnl += pnl
@@ -1384,7 +1498,7 @@ export const getTradesGroupedByDay = async (
 						direction: trade.direction as "long" | "short",
 						timeframeName: trade.timeframe?.name || null,
 						strategyName: trade.strategy?.name || null,
-						pnl: trade.pnl ? trade.pnl / 100 : 0,
+						pnl: fromCents(trade.pnl),
 						rMultiple: trade.realizedRMultiple ? Number(trade.realizedRMultiple) : null,
 						outcome: trade.outcome as "win" | "loss" | "breakeven" | null,
 					}))
@@ -1404,11 +1518,10 @@ export const getTradesGroupedByDay = async (
 			data: tradesByDay,
 		}
 	} catch (error) {
-		console.error("Get trades grouped by day error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve trades grouped by day",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTradesGroupedByDay") }],
 		}
 	}
 }
@@ -1421,10 +1534,14 @@ export const recalculateRValues = async (): Promise<
 	ActionResponse<{ updatedCount: number }>
 > => {
 	try {
-		const { accountId } = await requireAuth()
-		const allTrades = await db.query.trades.findMany({
+		const { accountId, userId } = await requireAuth()
+		const rawTrades = await db.query.trades.findMany({
 			where: and(eq(trades.accountId, accountId), eq(trades.isArchived, false)),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		const allTrades = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 
 		// Build asset config map upfront to avoid per-trade DB queries
 		const uniqueAssets = [...new Set(allTrades.map((t) => t.asset))]
@@ -1481,13 +1598,22 @@ export const recalculateRValues = async (): Promise<
 				realizedR = calculateRMultiple(pnl, plannedRiskAmount)
 			}
 
+			const recalcUpdateData: Record<string, unknown> = {
+				plannedRiskAmount: toCents(plannedRiskAmount).toString(),
+				plannedRMultiple: plannedRMultiple?.toString() ?? null,
+				realizedRMultiple: realizedR?.toString() ?? null,
+			}
+
+			if (dek) {
+				Object.assign(recalcUpdateData, encryptTradeFields({
+					plannedRiskAmount: toCents(plannedRiskAmount),
+					plannedRMultiple: plannedRMultiple?.toString(),
+				}, dek))
+			}
+
 			await db
 				.update(trades)
-				.set({
-					plannedRiskAmount: toCents(plannedRiskAmount),
-					plannedRMultiple: plannedRMultiple?.toString() ?? null,
-					realizedRMultiple: realizedR?.toString() ?? null,
-				})
+				.set(recalcUpdateData)
 				.where(eq(trades.id, trade.id))
 
 			updatedCount++
@@ -1503,11 +1629,10 @@ export const recalculateRValues = async (): Promise<
 			data: { updatedCount },
 		}
 	} catch (error) {
-		console.error("Recalculate R values error:", error)
 		return {
 			status: "error",
 			message: "Failed to recalculate R values",
-			errors: [{ code: "RECALCULATE_FAILED", detail: String(error) }],
+			errors: [{ code: "RECALCULATE_FAILED", detail: toSafeErrorMessage(error, "recalculateRValues") }],
 		}
 	}
 }
@@ -1521,12 +1646,16 @@ export const recalculateAllTradesPnL = async (): Promise<
 	ActionResponse<{ updatedCount: number }>
 > => {
 	try {
-		const { accountId } = await requireAuth()
+		const { accountId, userId } = await requireAuth()
 
 		// Get all non-archived trades that have an exit price (closed trades)
-		const allTrades = await db.query.trades.findMany({
+		const rawTrades = await db.query.trades.findMany({
 			where: and(eq(trades.accountId, accountId), eq(trades.isArchived, false)),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(userId)
+		const allTrades = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 
 		const closedTrades = allTrades.filter((t) => t.exitPrice !== null)
 
@@ -1625,14 +1754,23 @@ export const recalculateAllTradesPnL = async (): Promise<
 					? calculateRMultiple(pnl, plannedRiskAmount)
 					: null
 
+			const pnlUpdateData: Record<string, unknown> = {
+				pnl: toCents(pnl).toString(),
+				outcome,
+				plannedRiskAmount: plannedRiskAmount !== null ? toCents(plannedRiskAmount).toString() : trade.plannedRiskAmount,
+				realizedRMultiple: realizedRMultiple?.toString() ?? null,
+			}
+
+			if (dek) {
+				Object.assign(pnlUpdateData, encryptTradeFields({
+					pnl: toCents(pnl),
+					plannedRiskAmount: plannedRiskAmount !== null ? toCents(plannedRiskAmount) : null,
+				}, dek))
+			}
+
 			await db
 				.update(trades)
-				.set({
-					pnl: toCents(pnl),
-					outcome,
-					plannedRiskAmount: plannedRiskAmount !== null ? toCents(plannedRiskAmount) : trade.plannedRiskAmount,
-					realizedRMultiple: realizedRMultiple?.toString() ?? null,
-				})
+				.set(pnlUpdateData)
 				.where(eq(trades.id, trade.id))
 
 			updatedCount++
@@ -1648,11 +1786,10 @@ export const recalculateAllTradesPnL = async (): Promise<
 			data: { updatedCount },
 		}
 	} catch (error) {
-		console.error("Recalculate all trades P&L error:", error)
 		return {
 			status: "error",
 			message: "Failed to recalculate P&L",
-			errors: [{ code: "RECALCULATE_PNL_FAILED", detail: String(error) }],
+			errors: [{ code: "RECALCULATE_PNL_FAILED", detail: toSafeErrorMessage(error, "recalculateAllTradesPnL") }],
 		}
 	}
 }

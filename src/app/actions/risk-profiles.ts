@@ -11,6 +11,7 @@ import { z } from "zod"
 import { riskProfileSchema } from "@/lib/validations/risk-profile"
 import type { RiskProfileSchemaInput } from "@/lib/validations/risk-profile"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 
 // ==========================================
 // HELPERS
@@ -73,7 +74,7 @@ const listActiveRiskProfiles = async (): Promise<ActionResponse<RiskManagementPr
 		return {
 			status: "error",
 			message: "Failed to get risk profiles",
-			errors: [{ code: "FETCH_ERROR", detail: String(error) }],
+			errors: [{ code: "FETCH_ERROR", detail: toSafeErrorMessage(error, "listActiveRiskProfiles") }],
 		}
 	}
 }
@@ -106,7 +107,7 @@ const getRiskProfile = async (id: string): Promise<ActionResponse<RiskManagement
 		return {
 			status: "error",
 			message: "Failed to get risk profile",
-			errors: [{ code: "FETCH_ERROR", detail: String(error) }],
+			errors: [{ code: "FETCH_ERROR", detail: toSafeErrorMessage(error, "getRiskProfile") }],
 		}
 	}
 }
@@ -166,7 +167,7 @@ const createRiskProfile = async (
 		return {
 			status: "error",
 			message: "Failed to create risk profile",
-			errors: [{ code: "CREATE_ERROR", detail: String(error) }],
+			errors: [{ code: "CREATE_ERROR", detail: toSafeErrorMessage(error, "createRiskProfile") }],
 		}
 	}
 }
@@ -236,7 +237,7 @@ const updateRiskProfile = async (
 		return {
 			status: "error",
 			message: "Failed to update risk profile",
-			errors: [{ code: "UPDATE_ERROR", detail: String(error) }],
+			errors: [{ code: "UPDATE_ERROR", detail: toSafeErrorMessage(error, "updateRiskProfile") }],
 		}
 	}
 }
@@ -271,7 +272,7 @@ const deactivateRiskProfile = async (id: string): Promise<ActionResponse<null>> 
 		return {
 			status: "error",
 			message: "Failed to deactivate risk profile",
-			errors: [{ code: "DEACTIVATE_ERROR", detail: String(error) }],
+			errors: [{ code: "DEACTIVATE_ERROR", detail: toSafeErrorMessage(error, "deactivateRiskProfile") }],
 		}
 	}
 }

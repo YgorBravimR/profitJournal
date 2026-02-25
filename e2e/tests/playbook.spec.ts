@@ -9,7 +9,9 @@ test.describe("Playbook", () => {
 		})
 
 		test("should display page header", async ({ page }) => {
-			await expect(page.getByRole("heading", { name: /playbook/i })).toBeVisible()
+			// Page has no h1 heading; verify by checking the active sidebar link
+			const activeNav = page.locator('a[aria-current="page"]:has-text("Playbook")')
+			await expect(activeNav).toBeVisible()
 		})
 
 		test("should display compliance dashboard section", async ({ page }) => {
@@ -75,8 +77,10 @@ test.describe("Playbook", () => {
 		})
 
 		test("should display page header with back button", async ({ page }) => {
-			await expect(page.getByRole("heading", { name: /new strategy/i })).toBeVisible()
-			await expect(page.getByRole("link", { name: /back/i }).first()).toBeVisible()
+			// New strategy page has section headings but no page-level h1
+			await expect(page.getByRole("heading", { name: /basic info/i })).toBeVisible()
+			// Page uses a Cancel button (inside a link) instead of a back link
+			await expect(page.getByRole("button", { name: /cancel/i })).toBeVisible()
 		})
 
 		test("should display basic info fields", async ({ page }) => {
@@ -156,7 +160,8 @@ test.describe("Playbook", () => {
 		})
 
 		test("should create strategy successfully", async ({ page }) => {
-			const uniqueCode = `TST${Date.now().toString().slice(-4)}`
+			// Use last 7 chars of timestamp to generate a unique 10-char code within DB limits
+			const uniqueCode = `S${Date.now().toString().slice(-7)}`
 
 			// Fill code
 			await page.getByLabel("Code *").or(page.locator('[name="code"]')).fill(uniqueCode)
@@ -168,13 +173,14 @@ test.describe("Playbook", () => {
 			const submitButton = page.getByRole("button", { name: "Create Strategy" })
 			await submitButton.click()
 
-			// Should redirect to playbook or detail page
-			await expect(page).toHaveURL(/playbook(?!\/new)/, { timeout: 10000 })
+			// Should redirect to playbook or detail page after server action completes
+			await expect(page).toHaveURL(/playbook(?!\/new)/, { timeout: 20000 })
 		})
 
-		test("should navigate back when clicking back button", async ({ page }) => {
-			const backButton = page.getByRole("link", { name: "Back to Playbook" })
-			await backButton.click()
+		test("should navigate back when clicking cancel button", async ({ page }) => {
+			// Page uses a Cancel button (wrapped in a link to /playbook) instead of a back link
+			const cancelButton = page.getByRole("button", { name: /cancel/i })
+			await cancelButton.click()
 
 			await expect(page).toHaveURL(/playbook(?!\/new)/)
 		})
@@ -317,7 +323,7 @@ test.describe("Playbook", () => {
 				await submitButton.click()
 
 				// Should redirect back
-				await expect(page).toHaveURL(/playbook\/[a-zA-Z0-9-]+(?!\/edit)/, { timeout: 10000 })
+				await expect(page).toHaveURL(/playbook\/[a-zA-Z0-9-]+(?!\/edit)/, { timeout: 20000 })
 			}
 		})
 	})

@@ -1,0 +1,48 @@
+# Backend Post-Mortem Log
+
+---
+
+## [BUG-2026-02-25] Encryption works in dev but all decrypted values return null/zero in production
+
+**Date:** 2026-02-25
+**Severity:** Critical
+**Affected Area:** `src/lib/crypto.ts`, `src/lib/user-crypto.ts`, `next.config.ts`, all server actions using encryption
+
+### Cause
+Two compounding issues:
+
+1. **Module resolution:** `import { ... } from "crypto"` (bare specifier) is ambiguous to Turbopack in production builds. The `node:` prefix was missing, causing the bundler to potentially shim or polyfill the module instead of resolving to Node.js built-in `crypto`. This works in `next dev` because development mode has different module resolution behavior.
+
+2. **Silent error swallowing:** The `decrypt()` function in `crypto.ts` had a bare `catch { return null }` block. When `createDecipheriv` or related functions failed (due to the shim not implementing full AES-256-GCM), the error was silently swallowed. This `null` propagated through `decryptDek` -> `getUserDek` -> every server action, causing all encrypted fields to remain as ciphertext.
+
+The cascading failure path:
+- `getUserDek` returns `null` (DEK decryption failed silently)
+- Server actions check `if (dek)` and skip decryption
+- Raw encrypted ciphertext passes through to `fromCents()` which calls `parseInt` on it
+- `parseInt("FqIGpqLxnA3aU8PA:...")` returns `NaN`, which falls back to `0`
+- User sees R$0 for all monetary values and encrypted gibberish for text fields
+
+### Effect
+- All monetary displays (Gross P&L, Net P&L, Avg Win/Loss) show as R$0
+- User name shows as encrypted ciphertext instead of readable name
+- Profit Factor and other derived metrics show as 0.00
+- Calendar cells show R$0 instead of colored +/- values
+- The app appears functional but displays entirely wrong data
+
+### Solution
+1. Changed `import { ... } from "crypto"` to `import { ... } from "node:crypto"` in `src/lib/crypto.ts`
+2. Added `console.error` logging in the `catch` block of `decrypt()` so failures are visible in server logs
+3. Added diagnostic logging in `getUserDek()` when DEK decryption returns null
+4. Added `serverExternalPackages: ["bcryptjs"]` in `next.config.ts` to prevent Turbopack from incorrectly bundling native modules
+
+### Prevention
+- See general knowledge post-mortem in `~/.claude/post-mortems/nextjs.md` for the `node:` prefix rule
+- All future Node.js built-in imports MUST use the `node:` prefix
+- Never use bare `catch { return null }` in security-critical code paths
+- Add a build-time smoke test that verifies encrypt/decrypt round-trip
+
+### Related Files
+- `src/lib/crypto.ts`
+- `src/lib/user-crypto.ts`
+- `next.config.ts`
+- All server actions in `src/app/actions/` (consumers of encryption)

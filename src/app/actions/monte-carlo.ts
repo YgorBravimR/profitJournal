@@ -24,6 +24,8 @@ import {
 import { runMonteCarloSimulation } from "@/lib/monte-carlo"
 import { runMonteCarloV2 } from "@/lib/monte-carlo-v2"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
 
 export const getDataSourceOptions = async (): Promise<
 	ActionResponse<DataSourceOption[]>
@@ -114,7 +116,7 @@ export const getDataSourceOptions = async (): Promise<
 		return {
 			status: "error",
 			message: "Failed to get data sources",
-			errors: [{ code: "FETCH_ERROR", detail: String(error) }],
+			errors: [{ code: "FETCH_ERROR", detail: toSafeErrorMessage(error, "getDataSourceOptions") }],
 		}
 	}
 }
@@ -126,13 +128,15 @@ export const getSimulationStats = async (
 		const validated = dataSourceSchema.parse(source)
 		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 
+		// After decryption, pnl/plannedRiskAmount/commission/fees are numbers (from decryptNumericField)
+		// For non-encrypted users, these come back as strings from text columns and need Number() conversion
 		let tradesList: Array<{
 			outcome: string | null
-			pnl: number | null
+			pnl: number | string | null
 			realizedRMultiple: string | null
-			plannedRiskAmount: number | null
-			commission: number | null
-			fees: number | null
+			plannedRiskAmount: number | string | null
+			commission: number | string | null
+			fees: number | string | null
 			strategyId: string | null
 			entryDate: Date
 		}> = []
@@ -140,9 +144,12 @@ export const getSimulationStats = async (
 		let strategiesCount = 0
 		let accountsCount = 1
 
+		// Get DEK for decryption
+		const dek = await getUserDek(userId)
+
 		if (validated.type === "strategy") {
 			const strategy = await db.query.strategies.findFirst({
-				where: eq(strategies.id, validated.strategyId),
+				where: and(eq(strategies.id, validated.strategyId), eq(strategies.userId, userId)),
 			})
 			if (!strategy) {
 				return {
@@ -154,7 +161,7 @@ export const getSimulationStats = async (
 			sourceName = strategy.name
 			strategiesCount = 1
 
-			tradesList = await db.query.trades.findMany({
+			const rawTrades = await db.query.trades.findMany({
 				where: and(
 					eq(trades.strategyId, validated.strategyId),
 					isNotNull(trades.outcome)
@@ -171,6 +178,7 @@ export const getSimulationStats = async (
 					entryDate: true,
 				},
 			})
+			tradesList = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 		} else if (validated.type === "all_strategies") {
 			sourceName = "All Strategies"
 
@@ -179,7 +187,7 @@ export const getSimulationStats = async (
 			})
 			strategiesCount = accountStrategies.length
 
-			tradesList = await db.query.trades.findMany({
+			const rawTrades = await db.query.trades.findMany({
 				where: and(eq(trades.accountId, accountId), isNotNull(trades.outcome)),
 				orderBy: [desc(trades.entryDate)],
 				columns: {
@@ -193,6 +201,7 @@ export const getSimulationStats = async (
 					entryDate: true,
 				},
 			})
+			tradesList = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 		} else if (validated.type === "universal") {
 			if (!showAllAccounts) {
 				return {
@@ -214,7 +223,7 @@ export const getSimulationStats = async (
 			})
 			strategiesCount = allStrategies.length
 
-			tradesList = await db.query.trades.findMany({
+			const rawTrades = await db.query.trades.findMany({
 				where: and(
 					inArray(trades.accountId, allAccountIds),
 					isNotNull(trades.outcome)
@@ -231,6 +240,7 @@ export const getSimulationStats = async (
 					entryDate: true,
 				},
 			})
+			tradesList = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 		}
 
 		if (tradesList.length === 0) {
@@ -269,7 +279,7 @@ export const getSimulationStats = async (
 		const avgRewardRiskRatio = avgWinR / avgLossR || 1
 
 		const totalCommission = tradesList.reduce(
-			(sum, t) => sum + (t.commission || 0) + (t.fees || 0),
+			(sum, t) => sum + (Number(t.commission) || 0) + (Number(t.fees) || 0),
 			0
 		)
 		const avgCommissionPerTradeCents =
@@ -280,15 +290,15 @@ export const getSimulationStats = async (
 		const breakevenRate =
 			tradesList.length > 0 ? (breakevenCount / tradesList.length) * 100 : 0
 		const totalRisk = tradesList.reduce(
-			(sum, t) => sum + (t.plannedRiskAmount || 0),
+			(sum, t) => sum + (Number(t.plannedRiskAmount) || 0),
 			0
 		)
 		const commissionImpactR =
 			totalRisk > 0 ? (totalCommission / totalRisk) * 100 : 0
 
 		// Profit factor uses PnL values (consistent with dashboard), not R-multiples
-		const grossProfit = wins.reduce((sum, t) => sum + (t.pnl ?? 0), 0)
-		const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (t.pnl ?? 0), 0))
+		const grossProfit = wins.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0)
+		const grossLoss = Math.abs(losses.reduce((sum, t) => sum + (Number(t.pnl) || 0), 0))
 		const profitFactor =
 			grossLoss > 0 ? grossProfit / grossLoss : grossProfit > 0 ? Infinity : 0
 
@@ -389,7 +399,7 @@ export const getSimulationStats = async (
 		return {
 			status: "error",
 			message: "Failed to get simulation stats",
-			errors: [{ code: "FETCH_ERROR", detail: String(error) }],
+			errors: [{ code: "FETCH_ERROR", detail: toSafeErrorMessage(error, "getSimulationStats") }],
 		}
 	}
 }
@@ -422,7 +432,7 @@ export const runSimulation = async (
 		return {
 			status: "error",
 			message: "Failed to run simulation",
-			errors: [{ code: "SIMULATION_ERROR", detail: String(error) }],
+			errors: [{ code: "SIMULATION_ERROR", detail: toSafeErrorMessage(error, "runSimulation") }],
 		}
 	}
 }
@@ -537,7 +547,7 @@ export const runComparisonSimulation = async (
 		return {
 			status: "error",
 			message: "Failed to run comparison",
-			errors: [{ code: "COMPARISON_ERROR", detail: String(error) }],
+			errors: [{ code: "COMPARISON_ERROR", detail: toSafeErrorMessage(error, "runComparisonSimulation") }],
 		}
 	}
 }
@@ -577,7 +587,7 @@ export const runSimulationV2 = async (
 		return {
 			status: "error",
 			message: "Failed to run V2 simulation",
-			errors: [{ code: "SIMULATION_V2_ERROR", detail: String(error) }],
+			errors: [{ code: "SIMULATION_V2_ERROR", detail: toSafeErrorMessage(error, "runSimulationV2") }],
 		}
 	}
 }

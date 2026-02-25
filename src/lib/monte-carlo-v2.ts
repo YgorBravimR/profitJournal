@@ -14,12 +14,6 @@ import type {
 // MONTE CARLO V2 — DAY-AWARE SIMULATION
 // ==========================================
 
-/** Cents → display string, e.g. 50000 → "R$500.00" */
-const c = (cents: number): string => {
-	const sign = cents >= 0 ? "+" : ""
-	return `${sign}R$${(cents / 100).toFixed(2)}`
-}
-
 // ==========================================
 // DYNAMIC RISK SIZING HELPERS
 // ==========================================
@@ -47,11 +41,17 @@ const computeEffectiveBaseRisk = (
 
 		case "percentOfBalance": {
 			if (!profile.riskPercent) return profile.baseRiskCents
-			return Math.max(1, Math.round(currentBalance * profile.riskPercent / 100))
+			return Math.max(
+				1,
+				Math.round((currentBalance * profile.riskPercent) / 100)
+			)
 		}
 
 		case "fixedRatio": {
-			if (!profile.fixedRatioDeltaCents || !profile.fixedRatioBaseContractRiskCents) {
+			if (
+				!profile.fixedRatioDeltaCents ||
+				!profile.fixedRatioBaseContractRiskCents
+			) {
 				return profile.baseRiskCents
 			}
 			// Ralph Vince formula: N = floor((-1 + sqrt(1 + 8*P/Δ)) / 2) + 1
@@ -100,13 +100,13 @@ const computeEffectiveLimits = (
 		case "percentOfInitial":
 			return {
 				daily: profile.dailyLossPercent
-					? Math.round(initialBalance * profile.dailyLossPercent / 100)
+					? Math.round((initialBalance * profile.dailyLossPercent) / 100)
 					: profile.dailyLossLimitCents,
 				weekly: profile.weeklyLossPercent
-					? Math.round(initialBalance * profile.weeklyLossPercent / 100)
+					? Math.round((initialBalance * profile.weeklyLossPercent) / 100)
 					: profile.weeklyLossLimitCents,
 				monthly: profile.monthlyLossPercent
-					? Math.round(initialBalance * profile.monthlyLossPercent / 100)
+					? Math.round((initialBalance * profile.monthlyLossPercent) / 100)
 					: profile.monthlyLossLimitCents,
 			}
 
@@ -168,8 +168,15 @@ const applyDrawdownAdjustment = (
 const applyConsecutiveLossRules = (
 	profile: RiskManagementProfileForSim,
 	consecutiveLosingDays: number
-): { riskMultiplier: number; shouldStopDay: boolean; shouldPauseWeek: boolean } => {
-	if (profile.consecutiveLossRules.length === 0 || consecutiveLosingDays === 0) {
+): {
+	riskMultiplier: number
+	shouldStopDay: boolean
+	shouldPauseWeek: boolean
+} => {
+	if (
+		profile.consecutiveLossRules.length === 0 ||
+		consecutiveLosingDays === 0
+	) {
 		return { riskMultiplier: 1, shouldStopDay: false, shouldPauseWeek: false }
 	}
 
@@ -215,26 +222,9 @@ const applyConsecutiveLossRules = (
 const runMonteCarloV2 = (params: SimulationParamsV2): MonteCarloResultV2 => {
 	const runs: SimulationRunV2[] = []
 
-	// Log first run for debugging
-	const LOG_FIRST_RUN = true
-
 	const months = params.monthsToTrade
 
 	for (let i = 0; i < params.simulationCount; i++) {
-		const log = LOG_FIRST_RUN && i === 0
-		if (log) {
-			const p = params.profile
-			console.log(`\n[MC-V2] ════════════════════════════════════════════`)
-			console.log(`[MC-V2] SIMULATION SAMPLE (Run 1/${params.simulationCount}) — ${months} month(s)`)
-			console.log(`[MC-V2] Profile: ${p.name} | WR: ${p.winRate}% | R:R: ${p.rewardRiskRatio} | BE: ${p.breakevenRate}%`)
-			console.log(`[MC-V2] Implied PF: ${((p.winRate / 100 * p.rewardRiskRatio) / (1 - p.winRate / 100)).toFixed(2)}`)
-			console.log(`[MC-V2] Base Risk: ${c(p.baseRiskCents).replace("+", "")} | Daily Limit: ${c(p.dailyLossLimitCents).replace("+", "")} | Recovery: ${p.lossRecoverySteps.length} steps [${p.lossRecoverySteps.map((s) => c(s.riskCents).replace("+", "")).join(", ")}]`)
-			console.log(`[MC-V2] executeAllRegardless: ${p.executeAllRegardless} | stopAfterSequence: ${p.stopAfterSequence}`)
-			console.log(`[MC-V2] Compounding: ${p.compoundingRiskPercent}% | stopOnFirstLoss: ${p.stopOnFirstLoss} | Target: ${p.dailyTargetCents ? c(p.dailyTargetCents).replace("+", "") : "none"}`)
-			console.log(`[MC-V2] RiskSizing: ${p.riskSizingMode} | LimitMode: ${p.limitMode} | DDTiers: ${p.drawdownTiers.length} | LossRules: ${p.consecutiveLossRules.length}`)
-			console.log(`[MC-V2] ────────────────────────────────────────────`)
-		}
-
 		// Chain months: each month starts with the previous month's ending balance
 		let balance = params.initialBalance
 		let peakBalance = balance
@@ -259,8 +249,7 @@ const runMonteCarloV2 = (params: SimulationParamsV2): MonteCarloResultV2 => {
 				params.profile,
 				params.initialBalance,
 				balance,
-				accumulatedProfit,
-				log
+				accumulatedProfit
 			)
 
 			// Re-number days sequentially across months so DailyPnlChart works
@@ -300,7 +289,8 @@ const runMonteCarloV2 = (params: SimulationParamsV2): MonteCarloResultV2 => {
 			}
 		}
 
-		const ruinLevel = params.initialBalance * (1 - params.ruinThresholdPercent / 100)
+		const ruinLevel =
+			params.initialBalance * (1 - params.ruinThresholdPercent / 100)
 
 		runs.push({
 			days: combinedDays,
@@ -317,7 +307,8 @@ const runMonteCarloV2 = (params: SimulationParamsV2): MonteCarloResultV2 => {
 			maxDrawdown: combinedMaxDrawdown,
 			maxDrawdownPercent: combinedMaxDrawdownPercent,
 			finalBalance: balance,
-			totalReturnPercent: ((balance - params.initialBalance) / params.initialBalance) * 100,
+			totalReturnPercent:
+				((balance - params.initialBalance) / params.initialBalance) * 100,
 			minBalance: runMinBalance,
 			reachedRuin: runMinBalance <= ruinLevel,
 		})
@@ -351,8 +342,7 @@ const simulateMonth = (
 	profile: RiskManagementProfileForSim,
 	simInitialBalance: number,
 	monthStartBalance: number,
-	accumulatedProfit: number,
-	log = false
+	accumulatedProfit: number
 ): SimulationRunV2 => {
 	let balance = monthStartBalance
 	let peakBalance = balance
@@ -405,15 +395,16 @@ const simulateMonth = (
 			monthlyLimitHit = true
 			days.push(makeSkippedDay(dayNum, weekNumber, "monthlyLimit"))
 			daysSkippedMonthlyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): SKIPPED — monthly limit (${c(monthlyPnl)})`)
 			continue
 		}
 
 		// Check weekly loss limit
-		if (effectiveLimits.weekly !== null && weeklyPnl <= -effectiveLimits.weekly) {
+		if (
+			effectiveLimits.weekly !== null &&
+			weeklyPnl <= -effectiveLimits.weekly
+		) {
 			days.push(makeSkippedDay(dayNum, weekNumber, "weeklyLimit"))
 			daysSkippedWeeklyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): SKIPPED — weekly limit (${c(weeklyPnl)})`)
 			continue
 		}
 
@@ -421,36 +412,41 @@ const simulateMonth = (
 		if (weekPausedUntil >= weekNumber) {
 			days.push(makeSkippedDay(dayNum, weekNumber, "weeklyLimit"))
 			daysSkippedWeeklyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): SKIPPED — consecutive loss pause`)
 			continue
 		}
 
 		// 3. Drawdown-tiered risk adjustment
-		const currentDrawdownPercent = peakBalance > 0
-			? ((peakBalance - balance) / peakBalance) * 100
-			: 0
+		const currentDrawdownPercent =
+			peakBalance > 0 ? ((peakBalance - balance) / peakBalance) * 100 : 0
 		// Check if recovered past recovery threshold
 		const drawdownFromPeak = peakBalance - balance
-		const hasRecovered = profile.drawdownTiers.length > 0 &&
+		const hasRecovered =
+			profile.drawdownTiers.length > 0 &&
 			drawdownFromPeak > 0 &&
-			currentDrawdownPercent < (profile.drawdownRecoveryPercent / 100) *
-				Math.max(...profile.drawdownTiers.map((t) => t.drawdownPercent))
-		const ddAdjustment = applyDrawdownAdjustment(profile, currentDrawdownPercent, hasRecovered)
+			currentDrawdownPercent <
+				(profile.drawdownRecoveryPercent / 100) *
+					Math.max(...profile.drawdownTiers.map((t) => t.drawdownPercent))
+		const ddAdjustment = applyDrawdownAdjustment(
+			profile,
+			currentDrawdownPercent,
+			hasRecovered
+		)
 
 		if (ddAdjustment.shouldPause) {
 			days.push(makeSkippedDay(dayNum, weekNumber, "monthlyLimit"))
 			daysSkippedMonthlyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): PAUSED — drawdown tier (${currentDrawdownPercent.toFixed(1)}%)`)
 			continue
 		}
 
 		// 4. Consecutive loss rule adjustment
-		const lossRuleAdj = applyConsecutiveLossRules(profile, consecutiveLosingDays)
+		const lossRuleAdj = applyConsecutiveLossRules(
+			profile,
+			consecutiveLosingDays
+		)
 
 		if (lossRuleAdj.shouldStopDay) {
 			days.push(makeSkippedDay(dayNum, weekNumber, "weeklyLimit"))
 			daysSkippedWeeklyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): STOPPED — consecutive loss rule (${consecutiveLosingDays} days)`)
 			continue
 		}
 
@@ -458,13 +454,16 @@ const simulateMonth = (
 			weekPausedUntil = weekNumber
 			days.push(makeSkippedDay(dayNum, weekNumber, "weeklyLimit"))
 			daysSkippedWeeklyLimit++
-			if (log) console.log(`[MC-V2] Day ${dayNum} (W${weekNumber}): PAUSED WEEK — consecutive loss rule (${consecutiveLosingDays} days)`)
 			continue
 		}
 
 		// 5. Combine risk multipliers
-		const combinedMultiplier = ddAdjustment.riskMultiplier * lossRuleAdj.riskMultiplier
-		const adjustedBaseRisk = Math.max(1, Math.round(effectiveBaseRisk * combinedMultiplier))
+		const combinedMultiplier =
+			ddAdjustment.riskMultiplier * lossRuleAdj.riskMultiplier
+		const adjustedBaseRisk = Math.max(
+			1,
+			Math.round(effectiveBaseRisk * combinedMultiplier)
+		)
 
 		// 6. Scale recovery step risks relative to effective base
 		const effectiveRecoveryRisks = profile.lossRecoverySteps.map((step) =>
@@ -479,8 +478,7 @@ const simulateMonth = (
 			weekNumber,
 			adjustedBaseRisk,
 			effectiveLimits.daily,
-			effectiveRecoveryRisks,
-			log
+			effectiveRecoveryRisks
 		)
 		days.push(day)
 
@@ -523,13 +521,6 @@ const simulateMonth = (
 		}
 	}
 
-	if (log) {
-		console.log(`[MC-V2] ────────────────────────────────────────────`)
-		console.log(`[MC-V2] MONTH TOTAL: ${c(monthlyPnl)} | Trades: ${totalTrades} | Trading Days: ${days.filter((d) => !d.skipped).length}`)
-		console.log(`[MC-V2] Recovery: ${daysInLossRecovery}d | Compounding: ${daysInGainCompounding}d | Target Hit: ${daysTargetHit}d | Skipped(W): ${daysSkippedWeeklyLimit}d | Skipped(M): ${daysSkippedMonthlyLimit}d`)
-		console.log(`[MC-V2] ════════════════════════════════════════════\n`)
-	}
-
 	return {
 		days,
 		totalPnl: monthlyPnl,
@@ -545,7 +536,8 @@ const simulateMonth = (
 		maxDrawdown,
 		maxDrawdownPercent,
 		finalBalance: balance,
-		totalReturnPercent: ((balance - monthStartBalance) / monthStartBalance) * 100,
+		totalReturnPercent:
+			((balance - monthStartBalance) / monthStartBalance) * 100,
 		minBalance,
 		reachedRuin: false, // will be set by runMonteCarloV2 with cross-month tracking
 	}
@@ -574,8 +566,7 @@ const simulateDay = (
 	weekNumber: number,
 	effectiveBaseRisk: number,
 	effectiveDailyLimit: number,
-	effectiveRecoveryRisks: number[],
-	log = false
+	effectiveRecoveryRisks: number[]
 ): SimulatedDay => {
 	const trades: SimulatedTradeV2[] = []
 	let dayPnl = 0
@@ -595,40 +586,21 @@ const simulateDay = (
 	trades.push(t1)
 	dayPnl += t1.pnl
 
-	const tradeLabel = (t: { isWin: boolean; isBreakeven: boolean }): string =>
-		t.isBreakeven ? "BE" : t.isWin ? "WIN" : "LOSS"
-	const t1RiskLabel = c(effectiveBaseRisk).replace("+", "")
-	const t1WinAmount = c(Math.round(effectiveBaseRisk * profile.rewardRiskRatio))
-
-	if (log) {
-		console.log(
-			`[MC-V2] Day ${dayNumber} (W${weekNumber}): T1 ${tradeLabel(t1)} | risk: ${t1RiskLabel} | R:R win: ${t1WinAmount} | pnl: ${c(t1.pnl)} | dayPnl: ${c(dayPnl)}`
-		)
-	}
-
 	if (t1.isBreakeven) {
-		// ── BREAKEVEN — day ends with just T1 ──
-		dayMode = "gainCompounding" // no recovery needed
-		if (log) console.log(`[MC-V2]   ○ Breakeven — day ends`)
+		// Breakeven -- day ends with just T1
+		dayMode = "gainCompounding"
 	} else if (!t1.isWin) {
-		// ── LOSS RECOVERY MODE ──
+		// Loss recovery mode
 		dayMode = "lossRecovery"
 
 		for (let i = 0; i < effectiveRecoveryRisks.length; i++) {
 			// Check daily loss limit before each recovery trade
-			if (dayPnl <= -effectiveDailyLimit) {
-				if (log) console.log(`[MC-V2]   ⛔ Daily limit reached (${c(dayPnl)}), stop recovery`)
-				break
-			}
+			if (dayPnl <= -effectiveDailyLimit) break
 
 			const stepRisk = effectiveRecoveryRisks[i]
 			// Cap risk to remaining budget before hitting daily loss limit
 			const remainingBudget = effectiveDailyLimit + dayPnl // dayPnl is negative
 			const cappedRisk = Math.min(stepRisk, Math.max(0, remainingBudget))
-
-			if (log && cappedRisk < stepRisk) {
-				console.log(`[MC-V2]   ⚠ T${i + 2} risk capped: ${c(stepRisk).replace("+", "")} → ${c(cappedRisk).replace("+", "")} (remaining budget: ${c(remainingBudget).replace("+", "")})`)
-			}
 
 			const recoveryTrade = simulateTrade({
 				profile,
@@ -642,30 +614,21 @@ const simulateDay = (
 			trades.push(recoveryTrade)
 			dayPnl += recoveryTrade.pnl
 
-			if (log) {
-				const winAmount = c(Math.round(cappedRisk * profile.rewardRiskRatio))
-				console.log(
-					`[MC-V2]   T${i + 2} ${tradeLabel(recoveryTrade)} | risk: ${c(cappedRisk).replace("+", "")} | R:R win: ${winAmount} | pnl: ${c(recoveryTrade.pnl)} | dayPnl: ${c(dayPnl)}`
-				)
-			}
-
 			// If the recovery trade won and profile does NOT require executing all
 			// remaining steps regardless, stop the recovery sequence early
-			if (recoveryTrade.isWin && !profile.executeAllRegardless) {
-				if (log) console.log(`[MC-V2]   ✓ Recovery win — stop (executeAllRegardless=${profile.executeAllRegardless})`)
-				break
-			}
+			if (recoveryTrade.isWin && !profile.executeAllRegardless) break
 		}
 	} else {
-		// ── GAIN COMPOUNDING MODE ──
+		// Gain compounding mode
 		dayMode = "gainCompounding"
 
 		// Single target mode: first win = done
 		if (profile.compoundingRiskPercent === 0) {
-			// Check if daily target met
-			if (profile.dailyTargetCents !== null && dayPnl >= profile.dailyTargetCents) {
+			if (
+				profile.dailyTargetCents !== null &&
+				dayPnl >= profile.dailyTargetCents
+			) {
 				targetHit = true
-				if (log) console.log(`[MC-V2]   🎯 Single target hit: ${c(dayPnl)}`)
 			}
 		} else {
 			// Compounding: risk % of accumulated gains
@@ -674,9 +637,11 @@ const simulateDay = (
 
 			for (let ci = 0; ci < MAX_COMPOUNDING_TRADES; ci++) {
 				// Check daily target
-				if (profile.dailyTargetCents !== null && dayPnl >= profile.dailyTargetCents) {
+				if (
+					profile.dailyTargetCents !== null &&
+					dayPnl >= profile.dailyTargetCents
+				) {
 					targetHit = true
-					if (log) console.log(`[MC-V2]   🎯 Daily target hit: ${c(dayPnl)} >= ${c(profile.dailyTargetCents)}`)
 					break
 				}
 
@@ -686,16 +651,10 @@ const simulateDay = (
 				)
 
 				// Need meaningful risk to continue
-				if (compoundingRisk <= 0) {
-					if (log) console.log(`[MC-V2]   ⛔ Compounding risk = 0, stop`)
-					break
-				}
+				if (compoundingRisk <= 0) break
 
 				// Check daily loss limit (protect against giving back more than limit)
-				if (dayPnl - compoundingRisk < -effectiveDailyLimit) {
-					if (log) console.log(`[MC-V2]   ⛔ Compounding would breach daily limit, stop`)
-					break
-				}
+				if (dayPnl - compoundingRisk < -effectiveDailyLimit) break
 
 				const compoundTrade = simulateTrade({
 					profile,
@@ -709,22 +668,13 @@ const simulateDay = (
 				trades.push(compoundTrade)
 				dayPnl += compoundTrade.pnl
 
-				if (log) {
-					const winAmount = c(Math.round(compoundingRisk * profile.rewardRiskRatio))
-					console.log(
-						`[MC-V2]   C${ci + 1} ${tradeLabel(compoundTrade)} | risk: ${c(compoundingRisk).replace("+", "")} (${profile.compoundingRiskPercent}% of ${c(accumulatedGain)}) | R:R win: ${winAmount} | pnl: ${c(compoundTrade.pnl)} | dayPnl: ${c(dayPnl)}`
-					)
-				}
-
 				if (compoundTrade.isBreakeven) {
 					// Breakeven in compounding: no gain to compound, but not a "loss"
 					// Accumulated gain doesn't change, compound off same base next iteration
-					if (log) console.log(`[MC-V2]   ○ Compound breakeven — continue`)
 					continue
 				} else if (compoundTrade.isWin) {
 					accumulatedGain = dayPnl
 				} else if (profile.stopOnFirstLoss) {
-					if (log) console.log(`[MC-V2]   ✗ Compound loss — stop (stopOnFirstLoss=true)`)
 					break
 				} else {
 					// Loss in compounding: recalculate accumulated gain from current day P&L
@@ -734,16 +684,14 @@ const simulateDay = (
 			}
 
 			// Check target one more time after loop
-			if (!targetHit && profile.dailyTargetCents !== null && dayPnl >= profile.dailyTargetCents) {
+			if (
+				!targetHit &&
+				profile.dailyTargetCents !== null &&
+				dayPnl >= profile.dailyTargetCents
+			) {
 				targetHit = true
 			}
 		}
-	}
-
-	if (log) {
-		const modeLabel = dayMode === "lossRecovery" ? "RECOVERY" : "COMPOUNDING"
-		const targetLabel = targetHit ? " 🎯" : ""
-		console.log(`[MC-V2]   → Day ${dayNumber} end: ${modeLabel} | ${trades.length} trades | dayPnl: ${c(dayPnl)}${targetLabel}`)
 	}
 
 	return {
@@ -787,7 +735,10 @@ const simulateTrade = ({
 	// breakevenRate is % of ALL trades; winRate is % of decisive (non-BE) trades
 	const roll = Math.random() * 100
 	const isBreakeven = roll < profile.breakevenRate
-	const isWin = !isBreakeven && (roll - profile.breakevenRate) / (100 - profile.breakevenRate) * 100 < profile.winRate
+	const isWin =
+		!isBreakeven &&
+		((roll - profile.breakevenRate) / (100 - profile.breakevenRate)) * 100 <
+			profile.winRate
 
 	const pnl = isBreakeven
 		? -commission // breakeven: no gain/loss, just commission
@@ -837,8 +788,12 @@ const aggregateStatisticsV2 = (
 	params: SimulationParamsV2
 ): SimulationStatisticsV2 => {
 	const pnls = runs.map((r) => r.totalPnl).toSorted((a, b) => a - b)
-	const returns = runs.map((r) => r.totalReturnPercent).toSorted((a, b) => a - b)
-	const drawdowns = runs.map((r) => r.maxDrawdownPercent).toSorted((a, b) => a - b)
+	const returns = runs
+		.map((r) => r.totalReturnPercent)
+		.toSorted((a, b) => a - b)
+	const drawdowns = runs
+		.map((r) => r.maxDrawdownPercent)
+		.toSorted((a, b) => a - b)
 
 	const median = (arr: number[]): number => {
 		const mid = Math.floor(arr.length / 2)
@@ -867,12 +822,13 @@ const aggregateStatisticsV2 = (
 	const returnStdDev = stdDev(returns)
 
 	// Downside deviation: sqrt( (1/N) * Σ min(0, r_i)^2 ) using target = 0
-	const downsideDev = returns.length > 0
-		? Math.sqrt(
-				returns.reduce((sum, r) => (r < 0 ? sum + r * r : sum), 0) /
-					returns.length
-			)
-		: 0
+	const downsideDev =
+		returns.length > 0
+			? Math.sqrt(
+					returns.reduce((sum, r) => (r < 0 ? sum + r * r : sum), 0) /
+						returns.length
+				)
+			: 0
 
 	const sharpeRatio = returnStdDev > 0 ? meanReturn / returnStdDev : 0
 	const sortinoRatio = downsideDev > 0 ? meanReturn / downsideDev : 0
@@ -905,7 +861,9 @@ const aggregateStatisticsV2 = (
 		avgDaysInGainCompounding: mean(runs.map((r) => r.daysInGainCompounding)),
 		avgDaysTargetHit: mean(runs.map((r) => r.daysTargetHit)),
 		avgDaysSkippedWeeklyLimit: mean(runs.map((r) => r.daysSkippedWeeklyLimit)),
-		avgDaysSkippedMonthlyLimit: mean(runs.map((r) => r.daysSkippedMonthlyLimit)),
+		avgDaysSkippedMonthlyLimit: mean(
+			runs.map((r) => r.daysSkippedMonthlyLimit)
+		),
 		avgTradesPerMonth: mean(runs.map((r) => r.totalTrades)),
 		medianMaxDrawdownPercent: median(drawdowns),
 		worstMaxDrawdownPercent: percentile(drawdowns, 95),
@@ -921,7 +879,9 @@ const aggregateStatisticsV2 = (
 // DISTRIBUTION (reuse V1's bucket approach)
 // ==========================================
 
-const calculateDistributionV2 = (runs: SimulationRunV2[]): DistributionBucket[] => {
+const calculateDistributionV2 = (
+	runs: SimulationRunV2[]
+): DistributionBucket[] => {
 	const pnls = runs.map((r) => r.totalPnl)
 	let min = Infinity
 	let max = -Infinity

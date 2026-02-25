@@ -10,6 +10,8 @@ import { z } from "zod"
 import { monthlyPlanSchema, type MonthlyPlanInput } from "@/lib/validations/monthly-plan"
 import { deriveMonthlyPlanValues } from "@/lib/monthly-plan"
 import { requireAuth } from "@/app/actions/auth"
+import { getUserDek, encryptMonthlyPlanFields, decryptMonthlyPlanFields } from "@/lib/user-crypto"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 
 // ==========================================
@@ -22,7 +24,7 @@ import { getServerEffectiveNow } from "@/lib/effective-date"
  */
 export const getActiveMonthlyPlan = async (): Promise<ActionResponse<MonthlyPlan | null>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		const effectiveNow = await getServerEffectiveNow()
 		const year = effectiveNow.getFullYear()
@@ -36,17 +38,22 @@ export const getActiveMonthlyPlan = async (): Promise<ActionResponse<MonthlyPlan
 			),
 		})
 
+		// Decrypt financial fields if DEK is available
+		const dek = await getUserDek(userId)
+		const decryptedPlan = plan && dek
+			? decryptMonthlyPlanFields(plan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+			: plan
+
 		return {
 			status: "success",
 			message: plan ? "Active monthly plan retrieved successfully" : "No active monthly plan found",
-			data: plan ?? null,
+			data: decryptedPlan ?? null,
 		}
 	} catch (error) {
-		console.error("Get active monthly plan error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve active monthly plan",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getActiveMonthlyPlan") }],
 		}
 	}
 }
@@ -62,7 +69,7 @@ export const getMonthlyPlan = async ({
 	month: number
 }): Promise<ActionResponse<MonthlyPlan | null>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		const plan = await db.query.monthlyPlans.findFirst({
 			where: and(
@@ -72,17 +79,22 @@ export const getMonthlyPlan = async ({
 			),
 		})
 
+		// Decrypt financial fields if DEK is available
+		const dek = await getUserDek(userId)
+		const decryptedPlan = plan && dek
+			? decryptMonthlyPlanFields(plan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+			: plan
+
 		return {
 			status: "success",
 			message: plan ? "Monthly plan retrieved successfully" : "No monthly plan found",
-			data: plan ?? null,
+			data: decryptedPlan ?? null,
 		}
 	} catch (error) {
-		console.error("Get monthly plan error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve monthly plan",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getMonthlyPlan") }],
 		}
 	}
 }
@@ -95,7 +107,7 @@ export const upsertMonthlyPlan = async (
 	input: MonthlyPlanInput
 ): Promise<ActionResponse<MonthlyPlan>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 		const validated = monthlyPlanSchema.parse(input)
 
 		// Compute derived cent values from percentage inputs
@@ -119,7 +131,7 @@ export const upsertMonthlyPlan = async (
 		})
 
 		const planFields = {
-			accountBalance: validated.accountBalance,
+			accountBalance: String(validated.accountBalance),
 			riskPerTradePercent: String(validated.riskPerTradePercent),
 			dailyLossPercent: String(validated.dailyLossPercent),
 			monthlyLossPercent: String(validated.monthlyLossPercent),
@@ -145,14 +157,18 @@ export const upsertMonthlyPlan = async (
 			weeklyLossPercent: validated.weeklyLossPercent != null
 				? String(validated.weeklyLossPercent)
 				: null,
-			weeklyLossCents: derived.weeklyLossCents,
-			// Derived fields
-			riskPerTradeCents: derived.riskPerTradeCents,
-			dailyLossCents: derived.dailyLossCents,
-			monthlyLossCents: derived.monthlyLossCents,
+			weeklyLossCents: derived.weeklyLossCents != null ? String(derived.weeklyLossCents) : null,
+			// Derived fields (stored as text for encryption)
+			riskPerTradeCents: String(derived.riskPerTradeCents),
+			dailyLossCents: String(derived.dailyLossCents),
+			monthlyLossCents: String(derived.monthlyLossCents),
 			dailyProfitTargetCents: derived.dailyProfitTargetCents,
 			derivedMaxDailyTrades: derived.derivedMaxDailyTrades,
 		}
+
+		// Encrypt financial fields if DEK is available
+		const dek = await getUserDek(userId)
+		const encryptedFields = dek ? encryptMonthlyPlanFields(planFields as Record<string, unknown>, dek) : {}
 
 		if (existing) {
 			// Update existing plan
@@ -160,6 +176,7 @@ export const upsertMonthlyPlan = async (
 				.update(monthlyPlans)
 				.set({
 					...planFields,
+					...encryptedFields,
 					updatedAt: new Date(),
 				})
 				.where(eq(monthlyPlans.id, existing.id))
@@ -167,10 +184,15 @@ export const upsertMonthlyPlan = async (
 
 			revalidatePath("/command-center")
 
+			// Decrypt before returning
+			const decryptedPlan = dek
+				? decryptMonthlyPlanFields(updatedPlan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+				: updatedPlan
+
 			return {
 				status: "success",
 				message: "Monthly plan updated successfully",
-				data: updatedPlan,
+				data: decryptedPlan,
 			}
 		}
 
@@ -182,15 +204,21 @@ export const upsertMonthlyPlan = async (
 				year: validated.year,
 				month: validated.month,
 				...planFields,
+				...encryptedFields,
 			})
 			.returning()
 
 		revalidatePath("/command-center")
 
+		// Decrypt before returning
+		const decryptedNewPlan = dek
+			? decryptMonthlyPlanFields(newPlan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+			: newPlan
+
 		return {
 			status: "success",
 			message: "Monthly plan created successfully",
-			data: newPlan,
+			data: decryptedNewPlan,
 		}
 	} catch (error) {
 		if (error instanceof z.ZodError) {
@@ -204,11 +232,10 @@ export const upsertMonthlyPlan = async (
 			}
 		}
 
-		console.error("Upsert monthly plan error:", error)
 		return {
 			status: "error",
 			message: "Failed to save monthly plan",
-			errors: [{ code: "SAVE_FAILED", detail: String(error) }],
+			errors: [{ code: "SAVE_FAILED", detail: toSafeErrorMessage(error, "upsertMonthlyPlan") }],
 		}
 	}
 }
@@ -224,7 +251,7 @@ export const rolloverMonthlyPlan = async (
 	adjustedBalance?: number | null
 ): Promise<ActionResponse<MonthlyPlan>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		const effectiveNow = await getServerEffectiveNow()
 		const currentYear = effectiveNow.getFullYear()
@@ -234,14 +261,18 @@ export const rolloverMonthlyPlan = async (
 		const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1
 		const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear
 
-		// Fetch previous month's plan
-		const previousPlan = await db.query.monthlyPlans.findFirst({
+		// Fetch previous month's plan and decrypt if needed
+		const dek = await getUserDek(userId)
+		const rawPreviousPlan = await db.query.monthlyPlans.findFirst({
 			where: and(
 				eq(monthlyPlans.accountId, accountId),
 				eq(monthlyPlans.year, prevYear),
 				eq(monthlyPlans.month, prevMonth)
 			),
 		})
+		const previousPlan = rawPreviousPlan && dek
+			? decryptMonthlyPlanFields(rawPreviousPlan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+			: rawPreviousPlan
 
 		if (!previousPlan) {
 			return {
@@ -272,11 +303,11 @@ export const rolloverMonthlyPlan = async (
 			})
 
 			const netPnLCents = monthlyTrades.reduce(
-				(sum, trade) => sum + (trade.pnl ?? 0),
+				(sum, trade) => sum + (Number(trade.pnl) || 0),
 				0
 			)
 
-			newBalanceCents = previousPlan.accountBalance + netPnLCents
+			newBalanceCents = Number(previousPlan.accountBalance) + netPnLCents
 		}
 
 		// Ensure balance is at least 1 cent (positive)
@@ -309,7 +340,7 @@ export const rolloverMonthlyPlan = async (
 
 		// Build the new plan fields (copy everything from previous plan except balance + derived)
 		const rolloverFields = {
-			accountBalance: newBalanceCents,
+			accountBalance: String(newBalanceCents),
 			riskPerTradePercent: String(riskPerTradePercent),
 			dailyLossPercent: String(dailyLossPercent),
 			monthlyLossPercent: String(monthlyLossPercent),
@@ -328,14 +359,17 @@ export const rolloverMonthlyPlan = async (
 			// Risk profile + weekly loss (carried forward)
 			riskProfileId: previousPlan.riskProfileId,
 			weeklyLossPercent: previousPlan.weeklyLossPercent,
-			weeklyLossCents: derived.weeklyLossCents,
-			// Derived fields (recomputed with new balance)
-			riskPerTradeCents: derived.riskPerTradeCents,
-			dailyLossCents: derived.dailyLossCents,
-			monthlyLossCents: derived.monthlyLossCents,
+			weeklyLossCents: derived.weeklyLossCents != null ? String(derived.weeklyLossCents) : null,
+			// Derived fields (recomputed with new balance, stored as text for encryption)
+			riskPerTradeCents: String(derived.riskPerTradeCents),
+			dailyLossCents: String(derived.dailyLossCents),
+			monthlyLossCents: String(derived.monthlyLossCents),
 			dailyProfitTargetCents: derived.dailyProfitTargetCents,
 			derivedMaxDailyTrades: derived.derivedMaxDailyTrades,
 		}
+
+		// Encrypt financial fields if DEK is available
+		const encryptedRolloverFields = dek ? encryptMonthlyPlanFields(rolloverFields as Record<string, unknown>, dek) : {}
 
 		// Check if a plan already exists for the current month (upsert behavior)
 		const existingCurrentPlan = await db.query.monthlyPlans.findFirst({
@@ -351,6 +385,7 @@ export const rolloverMonthlyPlan = async (
 				.update(monthlyPlans)
 				.set({
 					...rolloverFields,
+					...encryptedRolloverFields,
 					updatedAt: new Date(),
 				})
 				.where(eq(monthlyPlans.id, existingCurrentPlan.id))
@@ -358,10 +393,14 @@ export const rolloverMonthlyPlan = async (
 
 			revalidatePath("/command-center")
 
+			const decryptedUpdatedPlan = dek
+				? decryptMonthlyPlanFields(updatedPlan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+				: updatedPlan
+
 			return {
 				status: "success",
 				message: "Monthly plan rolled over successfully (existing plan updated)",
-				data: updatedPlan,
+				data: decryptedUpdatedPlan,
 			}
 		}
 
@@ -372,22 +411,26 @@ export const rolloverMonthlyPlan = async (
 				year: currentYear,
 				month: currentMonth,
 				...rolloverFields,
+				...encryptedRolloverFields,
 			})
 			.returning()
 
 		revalidatePath("/command-center")
 
+		const decryptedNewPlan = dek
+			? decryptMonthlyPlanFields(newPlan as unknown as Record<string, unknown>, dek) as unknown as MonthlyPlan
+			: newPlan
+
 		return {
 			status: "success",
 			message: "Monthly plan rolled over successfully",
-			data: newPlan,
+			data: decryptedNewPlan,
 		}
 	} catch (error) {
-		console.error("Rollover monthly plan error:", error)
 		return {
 			status: "error",
 			message: "Failed to roll over monthly plan",
-			errors: [{ code: "ROLLOVER_FAILED", detail: String(error) }],
+			errors: [{ code: "ROLLOVER_FAILED", detail: toSafeErrorMessage(error, "rolloverMonthlyPlan") }],
 		}
 	}
 }

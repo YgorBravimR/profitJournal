@@ -59,8 +59,8 @@ export const MonthlyPlanSummary = ({ plan, profileName }: MonthlyPlanSummaryProp
 	const balance = fromCents(plan.accountBalance)
 
 	const maxTrades = plan.maxDailyTrades ?? plan.derivedMaxDailyTrades
-	const maxLosingDays = plan.riskPerTradeCents > 0 && plan.dailyLossCents > 0
-		? Math.floor(plan.monthlyLossCents / plan.dailyLossCents)
+	const maxLosingDays = Number(plan.riskPerTradeCents) > 0 && Number(plan.dailyLossCents) > 0
+		? Math.floor(Number(plan.monthlyLossCents) / Number(plan.dailyLossCents))
 		: null
 
 	return (

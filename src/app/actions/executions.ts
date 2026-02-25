@@ -14,6 +14,8 @@ import {
 import { eq, asc, and } from "drizzle-orm"
 import { toCents, fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { getUserDek, encryptExecutionFields, decryptExecutionFields } from "@/lib/user-crypto"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 import { calculateAssetPnL, determineOutcome } from "@/lib/calculations"
 import { assets } from "@/db/schema"
 import { getBreakevenTicks } from "@/app/actions/accounts"
@@ -82,10 +84,10 @@ const calculateExecutionSummary = (
 	const avgExitPrice = calculateAvgPrice(executions, "exit")
 
 	const totalCommission = executions.reduce(
-		(sum, e) => sum + (e.commission ?? 0),
+		(sum, e) => sum + (Number(e.commission) || 0),
 		0
 	)
-	const totalFees = executions.reduce((sum, e) => sum + (e.fees ?? 0), 0)
+	const totalFees = executions.reduce((sum, e) => sum + (Number(e.fees) || 0), 0)
 
 	return {
 		totalEntryQuantity,
@@ -105,11 +107,16 @@ const calculateExecutionSummary = (
  * Update trade aggregates from executions, including P&L recalculation.
  * Called after every create/update/delete on executions to keep trade in sync.
  */
-const updateTradeAggregates = async (tradeId: string): Promise<void> => {
-	const executions = await db.query.tradeExecutions.findMany({
+const updateTradeAggregates = async (tradeId: string, dek: string | null): Promise<void> => {
+	const rawExecutions = await db.query.tradeExecutions.findMany({
 		where: eq(tradeExecutions.tradeId, tradeId),
 		orderBy: [asc(tradeExecutions.executionDate)],
 	})
+
+	// Decrypt execution fields if DEK is available
+	const executions = dek
+		? rawExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+		: rawExecutions
 
 	if (executions.length === 0) {
 		// No executions, reset aggregates
@@ -157,10 +164,10 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 
 	// Aggregate commission and fees from all executions
 	const totalCommission = executions.reduce(
-		(sum, e) => sum + (e.commission ?? 0), 0
+		(sum, e) => sum + (Number(e.commission) || 0), 0
 	)
 	const totalFees = executions.reduce(
-		(sum, e) => sum + (e.fees ?? 0), 0
+		(sum, e) => sum + (Number(e.fees) || 0), 0
 	)
 
 	// Calculate P&L when we have exits
@@ -233,12 +240,12 @@ const updateTradeAggregates = async (tradeId: string): Promise<void> => {
 			positionSize: summary.totalEntryQuantity.toString(),
 			contractsExecuted: (summary.totalEntryQuantity + summary.totalExitQuantity).toString(),
 			// P&L and outcome recalculation
-			pnl,
+			pnl: pnl != null ? String(pnl) : null,
 			outcome,
 			realizedRMultiple,
 			// Aggregated costs from executions
-			commission: totalCommission,
-			fees: totalFees,
+			commission: String(totalCommission),
+			fees: String(totalFees),
 			// Dates from executions
 			entryDate: earliestEntryDate,
 			exitDate: latestExitDate,
@@ -254,7 +261,7 @@ export const createExecution = async (
 	input: CreateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 		const validated = createExecutionSchema.parse(input)
 
 		// Verify trade exists and belongs to the current account
@@ -273,11 +280,19 @@ export const createExecution = async (
 			}
 		}
 
+		// Get DEK for encryption/decryption
+		const dek = await getUserDek(userId)
+
 		// Validate exit quantity: total exits cannot exceed total entries
 		if (validated.executionType === "exit") {
-			const existingExecutions = await db.query.tradeExecutions.findMany({
+			const rawExistingExecutions = await db.query.tradeExecutions.findMany({
 				where: eq(tradeExecutions.tradeId, validated.tradeId),
 			})
+
+			// Decrypt to get numeric quantity values
+			const existingExecutions = dek
+				? rawExistingExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+				: rawExistingExecutions
 
 			const totalEntryQty = existingExecutions
 				.filter((e) => e.executionType === "entry")
@@ -313,8 +328,18 @@ export const createExecution = async (
 			validated.price,
 			validated.quantity
 		)
+		const encryptedFields = dek
+			? encryptExecutionFields({
+				price: validated.price,
+				quantity: validated.quantity,
+				commission: validated.commission,
+				fees: validated.fees,
+				slippage: validated.slippage,
+				executionValue,
+			}, dek)
+			: {}
 
-		// Insert execution
+		// Insert execution (convert numeric fields to text for DB storage)
 		const [execution] = await db
 			.insert(tradeExecutions)
 			.values({
@@ -325,24 +350,30 @@ export const createExecution = async (
 				quantity: validated.quantity.toString(),
 				orderType: validated.orderType,
 				notes: validated.notes,
-				commission: validated.commission,
-				fees: validated.fees,
-				slippage: validated.slippage,
-				executionValue,
+				commission: validated.commission?.toString() ?? null,
+				fees: validated.fees?.toString() ?? null,
+				slippage: validated.slippage?.toString() ?? null,
+				executionValue: executionValue.toString(),
+				...encryptedFields,
 			})
 			.returning()
 
 		// Update trade aggregates
-		await updateTradeAggregates(validated.tradeId)
+		await updateTradeAggregates(validated.tradeId, dek)
 
 		// Revalidate pages
 		revalidatePath("/journal")
 		revalidatePath(`/journal/${validated.tradeId}`)
 
+		// Decrypt before returning
+		const decryptedExecution = dek
+			? decryptExecutionFields(execution as unknown as Record<string, unknown>, dek) as unknown as TradeExecution
+			: execution
+
 		return {
 			status: "success",
 			message: "Execution created successfully",
-			data: execution,
+			data: decryptedExecution,
 		}
 	} catch (error) {
 		if (error instanceof Error && error.name === "ZodError") {
@@ -353,11 +384,10 @@ export const createExecution = async (
 			}
 		}
 
-		console.error("Create execution error:", error)
 		return {
 			status: "error",
 			message: "Failed to create execution",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [{ code: "CREATE_FAILED", detail: toSafeErrorMessage(error, "createExecution") }],
 		}
 	}
 }
@@ -370,16 +400,19 @@ export const updateExecution = async (
 	input: UpdateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 		const validated = updateExecutionSchema.parse(input)
 
+		// Get DEK for encryption/decryption
+		const dek = await getUserDek(userId)
+
 		// Get existing execution with trade verification
-		const existing = await db.query.tradeExecutions.findFirst({
+		const rawExisting = await db.query.tradeExecutions.findFirst({
 			where: eq(tradeExecutions.id, id),
 			with: { trade: true },
 		})
 
-		if (!existing || existing.trade?.accountId !== accountId) {
+		if (!rawExisting || rawExisting.trade?.accountId !== accountId) {
 			return {
 				status: "error",
 				message: "Execution not found",
@@ -387,14 +420,24 @@ export const updateExecution = async (
 			}
 		}
 
+		// Decrypt existing execution fields to get numeric values for calculation
+		const existing = dek
+			? { ...decryptExecutionFields(rawExisting as unknown as Record<string, unknown>, dek) as unknown as typeof rawExisting, trade: rawExisting.trade }
+			: rawExisting
+
 		// Validate exit quantity if the result would be an exit execution
 		const resultType = validated.executionType ?? existing.executionType
 		const resultQuantity = validated.quantity ?? Number(existing.quantity)
 
 		if (resultType === "exit") {
-			const allExecutions = await db.query.tradeExecutions.findMany({
+			const rawAllExecutions = await db.query.tradeExecutions.findMany({
 				where: eq(tradeExecutions.tradeId, existing.tradeId),
 			})
+
+			// Decrypt all executions for quantity calculations
+			const allExecutions = dek
+				? rawAllExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+				: rawAllExecutions
 
 			const totalEntryQty = allExecutions
 				.filter((e) => e.executionType === "entry")
@@ -423,9 +466,9 @@ export const updateExecution = async (
 		const quantity = validated.quantity ?? Number(existing.quantity)
 		const executionValue = calculateExecutionValue(price, quantity)
 
-		// Build update data
+		// Build update data (convert numeric fields to text for DB storage)
 		const updateData: Record<string, unknown> = {
-			executionValue,
+			executionValue: executionValue.toString(),
 			updatedAt: new Date(),
 		}
 
@@ -441,35 +484,51 @@ export const updateExecution = async (
 			updateData.orderType = validated.orderType
 		if (validated.notes !== undefined) updateData.notes = validated.notes
 		if (validated.commission !== undefined)
-			updateData.commission = validated.commission
-		if (validated.fees !== undefined) updateData.fees = validated.fees
+			updateData.commission = validated.commission?.toString() ?? null
+		if (validated.fees !== undefined) updateData.fees = validated.fees?.toString() ?? null
 		if (validated.slippage !== undefined)
-			updateData.slippage = validated.slippage
+			updateData.slippage = validated.slippage?.toString() ?? null
+
+		// Encrypt financial fields if DEK is available
+		const encryptedFields = dek
+			? encryptExecutionFields({
+				price: validated.price,
+				quantity: validated.quantity,
+				commission: validated.commission,
+				fees: validated.fees,
+				slippage: validated.slippage,
+				executionValue,
+			}, dek)
+			: {}
 
 		const [execution] = await db
 			.update(tradeExecutions)
-			.set(updateData)
+			.set({ ...updateData, ...encryptedFields })
 			.where(eq(tradeExecutions.id, id))
 			.returning()
 
 		// Update trade aggregates
-		await updateTradeAggregates(existing.tradeId)
+		await updateTradeAggregates(existing.tradeId, dek)
 
 		// Revalidate pages
 		revalidatePath("/journal")
 		revalidatePath(`/journal/${existing.tradeId}`)
 
+		// Decrypt before returning
+		const decryptedExecution = dek
+			? decryptExecutionFields(execution as unknown as Record<string, unknown>, dek) as unknown as TradeExecution
+			: execution
+
 		return {
 			status: "success",
 			message: "Execution updated successfully",
-			data: execution,
+			data: decryptedExecution,
 		}
 	} catch (error) {
-		console.error("Update execution error:", error)
 		return {
 			status: "error",
 			message: "Failed to update execution",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [{ code: "UPDATE_FAILED", detail: toSafeErrorMessage(error, "updateExecution") }],
 		}
 	}
 }
@@ -481,7 +540,7 @@ export const deleteExecution = async (
 	id: string
 ): Promise<ActionResponse<void>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		// Get existing execution with trade verification
 		const existing = await db.query.tradeExecutions.findFirst({
@@ -503,7 +562,8 @@ export const deleteExecution = async (
 		await db.delete(tradeExecutions).where(eq(tradeExecutions.id, id))
 
 		// Update trade aggregates
-		await updateTradeAggregates(tradeId)
+		const dek = await getUserDek(userId)
+		await updateTradeAggregates(tradeId, dek)
 
 		// Check if there are any executions left
 		const remainingExecutions = await db.query.tradeExecutions.findMany({
@@ -527,11 +587,10 @@ export const deleteExecution = async (
 			message: "Execution deleted successfully",
 		}
 	} catch (error) {
-		console.error("Delete execution error:", error)
 		return {
 			status: "error",
 			message: "Failed to delete execution",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [{ code: "DELETE_FAILED", detail: toSafeErrorMessage(error, "deleteExecution") }],
 		}
 	}
 }
@@ -543,7 +602,7 @@ export const getExecutions = async (
 	tradeId: string
 ): Promise<ActionResponse<TradeExecution[]>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		// Verify trade ownership
 		const trade = await db.query.trades.findFirst({
@@ -558,10 +617,16 @@ export const getExecutions = async (
 			}
 		}
 
-		const executions = await db.query.tradeExecutions.findMany({
+		const rawExecutions = await db.query.tradeExecutions.findMany({
 			where: eq(tradeExecutions.tradeId, tradeId),
 			orderBy: [asc(tradeExecutions.executionDate)],
 		})
+
+		// Decrypt execution fields if DEK is available
+		const dek = await getUserDek(userId)
+		const executions = dek
+			? rawExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+			: rawExecutions
 
 		return {
 			status: "success",
@@ -569,11 +634,10 @@ export const getExecutions = async (
 			data: executions,
 		}
 	} catch (error) {
-		console.error("Get executions error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve executions",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getExecutions") }],
 		}
 	}
 }
@@ -585,7 +649,7 @@ export const getExecutionSummary = async (
 	tradeId: string
 ): Promise<ActionResponse<ExecutionSummary>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		// Verify trade ownership
 		const trade = await db.query.trades.findFirst({
@@ -600,10 +664,16 @@ export const getExecutionSummary = async (
 			}
 		}
 
-		const executions = await db.query.tradeExecutions.findMany({
+		const rawExecutions = await db.query.tradeExecutions.findMany({
 			where: eq(tradeExecutions.tradeId, tradeId),
 			orderBy: [asc(tradeExecutions.executionDate)],
 		})
+
+		// Decrypt execution fields if DEK is available
+		const dek = await getUserDek(userId)
+		const executions = dek
+			? rawExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+			: rawExecutions
 
 		const summary = calculateExecutionSummary(executions)
 
@@ -613,11 +683,10 @@ export const getExecutionSummary = async (
 			data: summary,
 		}
 	} catch (error) {
-		console.error("Get execution summary error:", error)
 		return {
 			status: "error",
 			message: "Failed to calculate execution summary",
-			errors: [{ code: "CALCULATION_FAILED", detail: String(error) }],
+			errors: [{ code: "CALCULATION_FAILED", detail: toSafeErrorMessage(error, "getExecutionSummary") }],
 		}
 	}
 }
@@ -629,7 +698,7 @@ export const convertToScaledMode = async (
 	tradeId: string
 ): Promise<ActionResponse<TradeExecution[]>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		const trade = await db.query.trades.findFirst({
 			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
@@ -654,6 +723,7 @@ export const convertToScaledMode = async (
 		}
 
 		const createdExecutions: TradeExecution[] = []
+		const dek = await getUserDek(userId)
 
 		// Create entry execution from existing trade data
 		const entryPrice = Number(trade.entryPrice)
@@ -661,20 +731,37 @@ export const convertToScaledMode = async (
 
 		const entryValue = calculateExecutionValue(entryPrice, positionSize)
 
-		const [entryExecution] = await db
-			.insert(tradeExecutions)
-			.values({
-				tradeId,
-				executionType: "entry",
-				executionDate: trade.entryDate,
-				price: trade.entryPrice,
-				quantity: trade.positionSize,
-				orderType: "market",
-				commission: trade.commission ? Number(trade.commission) : 0,
-				fees: trade.fees ? Number(trade.fees) : 0,
+		const entryCommission = trade.commission ? Number(trade.commission) : 0
+		const entryFees = trade.fees ? Number(trade.fees) : 0
+
+		const entryInsertValues = {
+			tradeId,
+			executionType: "entry" as const,
+			executionDate: trade.entryDate,
+			price: trade.entryPrice,
+			quantity: trade.positionSize,
+			orderType: "market" as const,
+			commission: String(entryCommission),
+			fees: String(entryFees),
+			slippage: "0",
+			executionValue: String(entryValue),
+		}
+
+		// Encrypt financial fields if DEK is available
+		const entryEncryptedFields = dek
+			? encryptExecutionFields({
+				price: entryPrice,
+				quantity: positionSize,
+				commission: entryCommission,
+				fees: entryFees,
 				slippage: 0,
 				executionValue: entryValue,
-			})
+			}, dek)
+			: {}
+
+		const [entryExecution] = await db
+			.insert(tradeExecutions)
+			.values({ ...entryInsertValues, ...entryEncryptedFields })
 			.returning()
 
 		createdExecutions.push(entryExecution)
@@ -684,20 +771,33 @@ export const convertToScaledMode = async (
 			const exitPrice = Number(trade.exitPrice)
 			const exitValue = calculateExecutionValue(exitPrice, positionSize)
 
-			const [exitExecution] = await db
-				.insert(tradeExecutions)
-				.values({
-					tradeId,
-					executionType: "exit",
-					executionDate: trade.exitDate,
-					price: trade.exitPrice,
-					quantity: trade.positionSize,
-					orderType: "market",
+			const exitInsertValues = {
+				tradeId,
+				executionType: "exit" as const,
+				executionDate: trade.exitDate,
+				price: trade.exitPrice,
+				quantity: trade.positionSize,
+				orderType: "market" as const,
+				commission: "0",
+				fees: "0",
+				slippage: "0",
+				executionValue: String(exitValue),
+			}
+
+			const exitEncryptedFields = dek
+				? encryptExecutionFields({
+					price: exitPrice,
+					quantity: positionSize,
 					commission: 0,
 					fees: 0,
 					slippage: 0,
 					executionValue: exitValue,
-				})
+				}, dek)
+				: {}
+
+			const [exitExecution] = await db
+				.insert(tradeExecutions)
+				.values({ ...exitInsertValues, ...exitEncryptedFields })
 				.returning()
 
 			createdExecutions.push(exitExecution)
@@ -710,7 +810,7 @@ export const convertToScaledMode = async (
 			.where(eq(trades.id, tradeId))
 
 		// Update aggregates
-		await updateTradeAggregates(tradeId)
+		await updateTradeAggregates(tradeId, dek)
 
 		// Revalidate pages
 		revalidatePath("/journal")
@@ -722,11 +822,10 @@ export const convertToScaledMode = async (
 			data: createdExecutions,
 		}
 	} catch (error) {
-		console.error("Convert to scaled mode error:", error)
 		return {
 			status: "error",
 			message: "Failed to convert trade to scaled mode",
-			errors: [{ code: "CONVERT_FAILED", detail: String(error) }],
+			errors: [{ code: "CONVERT_FAILED", detail: toSafeErrorMessage(error, "convertToScaledMode") }],
 		}
 	}
 }
@@ -739,7 +838,7 @@ export const recalculateTradeFromExecutions = async (
 	tradeId: string
 ): Promise<ActionResponse<ExecutionSummary>> => {
 	try {
-		const { accountId } = await requireAuth()
+		const { userId, accountId } = await requireAuth()
 
 		const trade = await db.query.trades.findFirst({
 			where: and(eq(trades.id, tradeId), eq(trades.accountId, accountId)),
@@ -766,11 +865,17 @@ export const recalculateTradeFromExecutions = async (
 			}
 		}
 
-		await updateTradeAggregates(tradeId)
+		const dek = await getUserDek(userId)
+		await updateTradeAggregates(tradeId, dek)
 
-		const executions = await db.query.tradeExecutions.findMany({
+		const rawExecutions = await db.query.tradeExecutions.findMany({
 			where: eq(tradeExecutions.tradeId, tradeId),
 		})
+
+		// Decrypt execution fields if DEK is available
+		const executions = dek
+			? rawExecutions.map((ex) => decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution)
+			: rawExecutions
 
 		const summary = calculateExecutionSummary(executions)
 
@@ -784,11 +889,10 @@ export const recalculateTradeFromExecutions = async (
 			data: summary,
 		}
 	} catch (error) {
-		console.error("Recalculate trade error:", error)
 		return {
 			status: "error",
 			message: "Failed to recalculate trade from executions",
-			errors: [{ code: "RECALCULATE_FAILED", detail: String(error) }],
+			errors: [{ code: "RECALCULATE_FAILED", detail: toSafeErrorMessage(error, "recalculateTradeFromExecutions") }],
 		}
 	}
 }

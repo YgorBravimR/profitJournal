@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
 
 /**
- * Error boundary for main dashboard
+ * Error boundary for main dashboard.
+ * Shows a generic error message to prevent leaking internal error details to users.
+ * The error digest (a safe hash) is shown for support reference.
  */
 const Error = (props: {
 	error: Error & { digest?: string }
@@ -35,10 +37,10 @@ const Error = (props: {
 						temporary issue.
 					</p>
 
-					{error.message && (
+					{error.digest && (
 						<div className="mt-m-500 bg-bg-300 p-m-400 w-full rounded-lg">
 							<p className="text-small text-txt-300">
-								<strong>Error:</strong> {error.message}
+								Reference: {error.digest}
 							</p>
 						</div>
 					)}

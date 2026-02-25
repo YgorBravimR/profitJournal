@@ -1,26 +1,31 @@
 import { NextResponse } from "next/server"
 import NextAuth from "next-auth"
-import createMiddleware from "next-intl/middleware"
+import createIntlMiddleware from "next-intl/middleware"
 import { routing } from "@/i18n/routing"
 import { authConfig } from "@/auth.config"
 
-// Create the i18n proxy handler
-const intlProxy = createMiddleware(routing)
+/**
+ * Next.js 16 proxy — composes NextAuth (route protection) with next-intl (locale routing).
+ *
+ * Flow: request → auth check (authorized callback) → intlMiddleware (locale resolution)
+ *
+ * Next.js 16 renamed middleware.ts → proxy.ts
+ * @see https://nextjs.org/docs/messages/middleware-to-proxy
+ * @see https://authjs.dev/getting-started/session-management/protecting#nextjs-middleware
+ */
+const intlMiddleware = createIntlMiddleware(routing)
 
-// Create auth proxy with edge-compatible config (no database)
 const { auth } = NextAuth(authConfig)
 
 // Public paths that don't require authentication
-const publicPaths = ["/login", "/register", "/api/auth", "/painel", "/monitor", "/api/market"]
+const publicPaths = ["/login", "/register", "/api/auth", "/monitor", "/api/market"]
 
-// Check if a path is public
 const isPublicPath = (pathname: string): boolean => {
-	// Remove locale prefix
 	const pathWithoutLocale = pathname.replace(/^\/(en|pt-BR)/, "") || "/"
 	return publicPaths.some((path) => pathWithoutLocale.startsWith(path))
 }
 
-export default auth((req) => {
+export const proxy = auth((req) => {
 	const { pathname } = req.nextUrl
 
 	// Allow API routes to pass through
@@ -28,29 +33,22 @@ export default auth((req) => {
 		return NextResponse.next()
 	}
 
-	// If authenticated and on auth page (login/register), redirect to dashboard
+	// If authenticated and on auth page, redirect to dashboard
 	const pathWithoutLocale = pathname.replace(/^\/(en|pt-BR)/, "") || "/"
 	if (req.auth && (pathWithoutLocale === "/login" || pathWithoutLocale === "/register")) {
 		return NextResponse.redirect(new URL("/", req.url))
 	}
 
 	// If authenticated but no account selected, redirect to login
-	// This happens if user's account was deleted or session is malformed
-	if (
-		req.auth &&
-		!req.auth.user?.accountId &&
-		!isPublicPath(pathname)
-	) {
+	if (req.auth && !req.auth.user?.accountId && !isPublicPath(pathname)) {
 		return NextResponse.redirect(new URL("/login", req.url))
 	}
 
-	// Apply i18n proxy
-	return intlProxy(req)
+	// Apply i18n middleware for locale routing
+	return intlMiddleware(req)
 })
 
 export const config = {
-	// Match all pathnames except for:
-	// - API routes (handled separately above)
-	// - Static files (_next, images, favicon, etc.)
+	// Match all pathnames except static files
 	matcher: ["/((?!_next|.*\\..*).*)"],
 }

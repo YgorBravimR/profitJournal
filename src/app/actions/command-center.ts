@@ -38,6 +38,8 @@ import {
 } from "@/lib/validations/command-center"
 import { fromCents, toCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { getUserDek, encryptDailyNotesFields, decryptDailyNotesFields } from "@/lib/user-crypto"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 
 // ==========================================
@@ -66,11 +68,10 @@ export const getChecklists = async (): Promise<ActionResponse<DailyChecklist[]>>
 			data: checklists,
 		}
 	} catch (error) {
-		console.error("Get checklists error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve checklists",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getChecklists") }],
 		}
 	}
 }
@@ -115,11 +116,10 @@ export const createChecklist = async (
 			}
 		}
 
-		console.error("Create checklist error:", error)
 		return {
 			status: "error",
 			message: "Failed to create checklist",
-			errors: [{ code: "CREATE_FAILED", detail: String(error) }],
+			errors: [{ code: "CREATE_FAILED", detail: toSafeErrorMessage(error, "createChecklist") }],
 		}
 	}
 }
@@ -182,11 +182,10 @@ export const updateChecklist = async (
 			}
 		}
 
-		console.error("Update checklist error:", error)
 		return {
 			status: "error",
 			message: "Failed to update checklist",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [{ code: "UPDATE_FAILED", detail: toSafeErrorMessage(error, "updateChecklist") }],
 		}
 	}
 }
@@ -226,11 +225,10 @@ export const deleteChecklist = async (id: string): Promise<ActionResponse<void>>
 			message: "Checklist deleted successfully",
 		}
 	} catch (error) {
-		console.error("Delete checklist error:", error)
 		return {
 			status: "error",
 			message: "Failed to delete checklist",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [{ code: "DELETE_FAILED", detail: toSafeErrorMessage(error, "deleteChecklist") }],
 		}
 	}
 }
@@ -300,11 +298,10 @@ export const getTodayCompletions = async (date?: Date): Promise<ActionResponse<C
 			data: checklistsWithCompletions,
 		}
 	} catch (error) {
-		console.error("Get today completions error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve completions",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTodayCompletions") }],
 		}
 	}
 }
@@ -412,11 +409,10 @@ export const toggleChecklistItem = async (
 			}
 		}
 
-		console.error("Toggle checklist item error:", error)
 		return {
 			status: "error",
 			message: "Failed to toggle item",
-			errors: [{ code: "UPDATE_FAILED", detail: String(error) }],
+			errors: [{ code: "UPDATE_FAILED", detail: toSafeErrorMessage(error, "toggleChecklistItem") }],
 		}
 	}
 }
@@ -437,7 +433,7 @@ export const getTodayNotes = async (date?: Date): Promise<ActionResponse<DailyAc
 		const tomorrow = new Date(today)
 		tomorrow.setDate(tomorrow.getDate() + 1)
 
-		const notes = await db.query.dailyAccountNotes.findFirst({
+		const rawNotes = await db.query.dailyAccountNotes.findFirst({
 			where: and(
 				eq(dailyAccountNotes.userId, userId),
 				eq(dailyAccountNotes.accountId, accountId),
@@ -446,17 +442,22 @@ export const getTodayNotes = async (date?: Date): Promise<ActionResponse<DailyAc
 			),
 		})
 
+		// Decrypt notes fields if DEK is available
+		const dek = await getUserDek(userId)
+		const notes = rawNotes && dek
+			? decryptDailyNotesFields(rawNotes as unknown as Record<string, unknown>, dek) as unknown as DailyAccountNote
+			: rawNotes
+
 		return {
 			status: "success",
 			message: notes ? "Notes retrieved successfully" : "No notes found",
 			data: notes || null,
 		}
 	} catch (error) {
-		console.error("Get today notes error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve notes",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getTodayNotes") }],
 		}
 	}
 }
@@ -487,6 +488,15 @@ export const upsertDailyNotes = async (
 			),
 		})
 
+		// Encrypt notes fields if DEK is available
+		const dek = await getUserDek(userId)
+		const encryptedFields = dek
+			? encryptDailyNotesFields({
+				preMarketNotes: validated.preMarketNotes || null,
+				postMarketNotes: validated.postMarketNotes || null,
+			}, dek)
+			: {}
+
 		if (existing) {
 			// Update existing
 			const [notes] = await db
@@ -496,16 +506,22 @@ export const upsertDailyNotes = async (
 					postMarketNotes: validated.postMarketNotes || null,
 					mood: validated.mood || null,
 					updatedAt: new Date(),
+					...encryptedFields,
 				})
 				.where(eq(dailyAccountNotes.id, existing.id))
 				.returning()
 
 			revalidatePath("/command-center")
 
+			// Decrypt before returning
+			const decryptedNotes = dek
+				? decryptDailyNotesFields(notes as unknown as Record<string, unknown>, dek) as unknown as DailyAccountNote
+				: notes
+
 			return {
 				status: "success",
 				message: "Notes updated successfully",
-				data: notes,
+				data: decryptedNotes,
 			}
 		} else {
 			// Create new
@@ -518,15 +534,21 @@ export const upsertDailyNotes = async (
 					preMarketNotes: validated.preMarketNotes || null,
 					postMarketNotes: validated.postMarketNotes || null,
 					mood: validated.mood || null,
+					...encryptedFields,
 				})
 				.returning()
 
 			revalidatePath("/command-center")
 
+			// Decrypt before returning
+			const decryptedNotes = dek
+				? decryptDailyNotesFields(notes as unknown as Record<string, unknown>, dek) as unknown as DailyAccountNote
+				: notes
+
 			return {
 				status: "success",
 				message: "Notes created successfully",
-				data: notes,
+				data: decryptedNotes,
 			}
 		}
 	} catch (error) {
@@ -541,11 +563,10 @@ export const upsertDailyNotes = async (
 			}
 		}
 
-		console.error("Upsert daily notes error:", error)
 		return {
 			status: "error",
 			message: "Failed to save notes",
-			errors: [{ code: "SAVE_FAILED", detail: String(error) }],
+			errors: [{ code: "SAVE_FAILED", detail: toSafeErrorMessage(error, "upsertDailyNotes") }],
 		}
 	}
 }
@@ -628,11 +649,10 @@ export const getAccountAssetSettings = async (): Promise<ActionResponse<AssetSet
 			data: existingSettings as AssetSettingWithAsset[],
 		}
 	} catch (error) {
-		console.error("Get account asset settings error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve asset settings",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getAccountAssetSettings") }],
 		}
 	}
 }
@@ -718,11 +738,10 @@ export const upsertAssetSettings = async (
 			}
 		}
 
-		console.error("Upsert asset settings error:", error)
 		return {
 			status: "error",
 			message: "Failed to save asset settings",
-			errors: [{ code: "SAVE_FAILED", detail: String(error) }],
+			errors: [{ code: "SAVE_FAILED", detail: toSafeErrorMessage(error, "upsertAssetSettings") }],
 		}
 	}
 }
@@ -762,11 +781,10 @@ export const deleteAssetSettings = async (assetId: string): Promise<ActionRespon
 			message: "Asset settings deleted successfully",
 		}
 	} catch (error) {
-		console.error("Delete asset settings error:", error)
 		return {
 			status: "error",
 			message: "Failed to delete asset settings",
-			errors: [{ code: "DELETE_FAILED", detail: String(error) }],
+			errors: [{ code: "DELETE_FAILED", detail: toSafeErrorMessage(error, "deleteAssetSettings") }],
 		}
 	}
 }
@@ -814,13 +832,20 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 		const currentYear = effectiveNow.getFullYear()
 		const currentMonth = effectiveNow.getMonth() + 1 // 1-indexed
 
-		const monthlyPlan = await db.query.monthlyPlans.findFirst({
+		const rawMonthlyPlan = await db.query.monthlyPlans.findFirst({
 			where: and(
 				eq(monthlyPlans.accountId, accountId),
 				eq(monthlyPlans.year, currentYear),
 				eq(monthlyPlans.month, currentMonth)
 			),
 		})
+
+		// Decrypt monthly plan fields if DEK is available
+		const dek = await getUserDek(userId)
+		const { decryptMonthlyPlanFields } = await import("@/lib/user-crypto")
+		const monthlyPlan = rawMonthlyPlan && dek
+			? decryptMonthlyPlanFields(rawMonthlyPlan as unknown as Record<string, unknown>, dek) as unknown as typeof rawMonthlyPlan
+			: rawMonthlyPlan
 
 		// Calculate metrics
 		let dailyPnL = 0
@@ -855,13 +880,14 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 
 		// Calculate risk used today (sum of plannedRiskAmount from today's trades)
 		const riskUsedTodayCents = todaysTrades.reduce(
-			(sum, trade) => sum + (trade.plannedRiskAmount || 0),
+			(sum, trade) => sum + (Number(trade.plannedRiskAmount) || 0),
 			0
 		)
 
 		// Resolve limits from monthly plan (single source of truth)
-		const dailyLossLimitCents = monthlyPlan?.dailyLossCents ?? 0
-		const profitTargetCents = monthlyPlan?.dailyProfitTargetCents ?? 0
+		// After decryption, these values are numbers; without DEK, parse from text
+		const dailyLossLimitCents = Number(monthlyPlan?.dailyLossCents) || 0
+		const profitTargetCents = Number(monthlyPlan?.dailyProfitTargetCents) || 0
 		const maxTradesValue = monthlyPlan?.maxDailyTrades ?? monthlyPlan?.derivedMaxDailyTrades ?? null
 		const maxConsecutiveLossesValue = monthlyPlan?.maxConsecutiveLosses ?? null
 
@@ -888,7 +914,7 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 		)
 
 		// Monthly loss limit (plan-only)
-		const monthlyLossLimitCents = monthlyPlan?.monthlyLossCents ?? 0
+		const monthlyLossLimitCents = Number(monthlyPlan?.monthlyLossCents) || 0
 		const remainingMonthlyCents =
 			monthlyLossLimitCents > 0
 				? Math.max(0, monthlyLossLimitCents - Math.abs(Math.min(0, toCents(monthlyPnL))))
@@ -897,7 +923,7 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			monthlyLossLimitCents > 0 && monthlyPnL <= -fromCents(monthlyLossLimitCents)
 
 		// Calculate recommended risk (plan-only)
-		let recommendedRiskCents = monthlyPlan?.riskPerTradeCents ?? 0
+		let recommendedRiskCents = Number(monthlyPlan?.riskPerTradeCents) || 0
 
 		// Risk reduction after consecutive losses
 		const shouldReduceRisk = monthlyPlan?.reduceRiskAfterLoss ?? false
@@ -918,15 +944,17 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			if (monthlyPlan.increaseRiskAfterWin) {
 				// INCREASE: add % of last win's profit to base risk
 				const lastTrade = sortedTrades.at(-1)
-				if (lastTrade?.outcome === "win" && lastTrade.pnl && lastTrade.pnl > 0) {
-					const bonusCents = Math.round(lastTrade.pnl * reinvestmentPercent / 100)
+				const lastPnl = Number(lastTrade?.pnl) || 0
+				if (lastTrade?.outcome === "win" && lastPnl > 0) {
+					const bonusCents = Math.round(lastPnl * reinvestmentPercent / 100)
 					recommendedRiskCents = recommendedRiskCents + bonusCents
 				}
 			} else if (monthlyPlan.capRiskAfterWin) {
 				// CAP: find first winning trade of the day, cap risk to min(base, profit * %)
-				const firstWin = sortedTrades.find(t => t.outcome === "win" && t.pnl && t.pnl > 0)
-				if (firstWin?.pnl && sortedTrades.length > 1) {
-					const capCents = Math.round(firstWin.pnl * reinvestmentPercent / 100)
+				const firstWin = sortedTrades.find(t => t.outcome === "win" && t.pnl && Number(t.pnl) > 0)
+				const firstWinPnl = Number(firstWin?.pnl) || 0
+				if (firstWinPnl > 0 && sortedTrades.length > 1) {
+					const capCents = Math.round(firstWinPnl * reinvestmentPercent / 100)
 					recommendedRiskCents = Math.min(recommendedRiskCents, capCents)
 				}
 			}
@@ -1007,11 +1035,10 @@ export const getCircuitBreakerStatus = async (date?: Date): Promise<ActionRespon
 			},
 		}
 	} catch (error) {
-		console.error("Get circuit breaker status error:", error)
 		return {
 			status: "error",
 			message: "Failed to get circuit breaker status",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getCircuitBreakerStatus") }],
 		}
 	}
 }
@@ -1088,11 +1115,10 @@ export const getDailySummary = async (date?: Date): Promise<ActionResponse<Daily
 			},
 		}
 	} catch (error) {
-		console.error("Get daily summary error:", error)
 		return {
 			status: "error",
 			message: "Failed to get daily summary",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [{ code: "FETCH_FAILED", detail: toSafeErrorMessage(error, "getDailySummary") }],
 		}
 	}
 }

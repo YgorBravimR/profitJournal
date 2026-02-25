@@ -12,9 +12,8 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Link } from "@/i18n/routing"
-import { logoutUser, getCurrentUser } from "@/app/actions/auth"
+import { logoutUser, getCurrentUser, type SafeUser } from "@/app/actions/auth"
 import { cn } from "@/lib/utils"
-import type { User } from "@/db/schema"
 
 interface UserMenuProps {
 	isCollapsed: boolean
@@ -25,7 +24,7 @@ export const UserMenu = ({ isCollapsed }: UserMenuProps) => {
 	const [isOpen, setIsOpen] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [isLoading, setIsLoading] = useState(true)
-	const [user, setUser] = useState<User | null>(null)
+	const [user, setUser] = useState<SafeUser | null>(null)
 
 	useEffect(() => {
 		const fetchUser = async () => {

@@ -15,6 +15,7 @@ import {
 	type AccountTimeframe,
 } from "@/db/schema"
 import { auth } from "@/auth"
+import { getUserDek, encryptAccountFields, decryptAccountFields } from "@/lib/user-crypto"
 
 // ==========================================
 // TYPES
@@ -105,6 +106,20 @@ export const createAccount = async (
 				? new Date(input.replayStartDate)
 				: null
 
+		// Encrypt financial fields if DEK is available
+		const dek = await getUserDek(session.user.id)
+		const encryptableValues = {
+			propFirmName: input.propFirmName,
+			profitSharePercentage: input.profitSharePercentage?.toString() ?? "100.00",
+			dayTradeTaxRate: input.dayTradeTaxRate?.toString() ?? "20.00",
+			swingTradeTaxRate: input.swingTradeTaxRate?.toString() ?? "15.00",
+			defaultCommission: input.defaultCommission ?? 0,
+			defaultFees: input.defaultFees ?? 0,
+			maxDailyLoss: input.maxDailyLoss,
+			maxMonthlyLoss: input.maxMonthlyLoss,
+		}
+		const encryptedFields = dek ? encryptAccountFields(encryptableValues, dek) : {}
+
 		const [newAccount] = await db
 			.insert(tradingAccounts)
 			.values({
@@ -117,20 +132,24 @@ export const createAccount = async (
 				dayTradeTaxRate: input.dayTradeTaxRate?.toString() ?? "20.00",
 				swingTradeTaxRate: input.swingTradeTaxRate?.toString() ?? "15.00",
 				defaultRiskPerTrade: input.defaultRiskPerTrade?.toString(),
-				maxDailyLoss: input.maxDailyLoss,
+				maxDailyLoss: input.maxDailyLoss?.toString() ?? null,
 				maxDailyTrades: input.maxDailyTrades,
 				defaultCurrency: input.defaultCurrency ?? "BRL",
-				defaultCommission: input.defaultCommission ?? 0,
-				defaultFees: input.defaultFees ?? 0,
+				defaultCommission: (input.defaultCommission ?? 0).toString(),
+				defaultFees: (input.defaultFees ?? 0).toString(),
 				showTaxEstimates: input.showTaxEstimates ?? true,
 				showPropCalculations: input.showPropCalculations ?? true,
 				...(replayCurrentDate && { replayCurrentDate }),
+				...encryptedFields,
 			})
 			.returning()
 
 		revalidatePath("/settings")
 
-		return { status: "success", data: newAccount }
+		// Decrypt fields before returning
+		const decryptedAccount = dek ? decryptAccountFields(newAccount as unknown as Record<string, unknown>, dek) as unknown as TradingAccount : newAccount
+
+		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Create account error:", error)
 		return { status: "error", error: "An error occurred" }
@@ -189,16 +208,16 @@ export const updateAccount = async (
 			updateData.swingTradeTaxRate = input.swingTradeTaxRate.toString()
 		if (input.defaultRiskPerTrade !== undefined)
 			updateData.defaultRiskPerTrade = input.defaultRiskPerTrade?.toString()
-		if (input.maxDailyLoss !== undefined) updateData.maxDailyLoss = input.maxDailyLoss
+		if (input.maxDailyLoss !== undefined) updateData.maxDailyLoss = input.maxDailyLoss?.toString() ?? null
 		if (input.maxDailyTrades !== undefined) updateData.maxDailyTrades = input.maxDailyTrades
 		if (input.defaultCurrency !== undefined) updateData.defaultCurrency = input.defaultCurrency
-		if (input.defaultCommission !== undefined) updateData.defaultCommission = input.defaultCommission
-		if (input.defaultFees !== undefined) updateData.defaultFees = input.defaultFees
+		if (input.defaultCommission !== undefined) updateData.defaultCommission = input.defaultCommission.toString()
+		if (input.defaultFees !== undefined) updateData.defaultFees = input.defaultFees.toString()
 		if (input.defaultBreakevenTicks !== undefined) updateData.defaultBreakevenTicks = input.defaultBreakevenTicks
 		if (input.showTaxEstimates !== undefined) updateData.showTaxEstimates = input.showTaxEstimates
 		if (input.showPropCalculations !== undefined)
 			updateData.showPropCalculations = input.showPropCalculations
-		if (input.maxMonthlyLoss !== undefined) updateData.maxMonthlyLoss = input.maxMonthlyLoss
+		if (input.maxMonthlyLoss !== undefined) updateData.maxMonthlyLoss = input.maxMonthlyLoss?.toString() ?? null
 		if (input.allowSecondOpAfterLoss !== undefined)
 			updateData.allowSecondOpAfterLoss = input.allowSecondOpAfterLoss
 		if (input.reduceRiskAfterLoss !== undefined)
@@ -209,15 +228,22 @@ export const updateAccount = async (
 			updateData.replayCurrentDate = new Date(input.replayStartDate)
 		}
 
+		// Encrypt financial fields if DEK is available
+		const dek = await getUserDek(session.user.id)
+		const encryptedFields = dek ? encryptAccountFields(updateData as Record<string, unknown>, dek) : {}
+
 		const [updated] = await db
 			.update(tradingAccounts)
-			.set(updateData)
+			.set({ ...updateData, ...encryptedFields })
 			.where(eq(tradingAccounts.id, accountId))
 			.returning()
 
 		revalidatePath("/settings")
 
-		return { status: "success", data: updated }
+		// Decrypt fields before returning
+		const decryptedAccount = dek ? decryptAccountFields(updated as unknown as Record<string, unknown>, dek) as unknown as TradingAccount : updated
+
+		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Update account error:", error)
 		return { status: "error", error: "An error occurred" }
@@ -357,7 +383,11 @@ export const advanceReplayDate = async (): Promise<{
 
 		revalidatePath("/command-center")
 
-		return { status: "success", data: updated }
+		// Decrypt fields before returning
+		const dek = await getUserDek(session.user.id)
+		const decryptedAccount = dek ? decryptAccountFields(updated as unknown as Record<string, unknown>, dek) as unknown as TradingAccount : updated
+
+		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Advance replay date error:", error)
 		return { status: "error", error: "An error occurred" }
@@ -689,13 +719,27 @@ export const getAssetFees = async (
 	}
 
 	// Get account defaults
-	const account = await db.query.tradingAccounts.findFirst({
+	const rawAccount = await db.query.tradingAccounts.findFirst({
 		where: eq(tradingAccounts.id, targetAccountId),
 	})
 
-	if (!account) {
+	if (!rawAccount) {
 		return { commission: 0, fees: 0 }
 	}
+
+	// Decrypt account fields to get defaultCommission and defaultFees as numbers
+	const dek = session?.user?.id ? await getUserDek(session.user.id) : null
+	const decryptedAccount = dek
+		? decryptAccountFields(rawAccount as unknown as Record<string, unknown>, dek)
+		: null
+
+	// After decryption, defaultCommission/defaultFees are numbers; without DEK, parse from text
+	const defaultCommission = decryptedAccount
+		? Number(decryptedAccount.defaultCommission) || 0
+		: Number(rawAccount.defaultCommission) || 0
+	const defaultFees = decryptedAccount
+		? Number(decryptedAccount.defaultFees) || 0
+		: Number(rawAccount.defaultFees) || 0
 
 	// Get asset
 	const asset = await db.query.assets.findFirst({
@@ -704,8 +748,8 @@ export const getAssetFees = async (
 
 	if (!asset) {
 		return {
-			commission: account.defaultCommission,
-			fees: account.defaultFees,
+			commission: defaultCommission,
+			fees: defaultFees,
 		}
 	}
 
@@ -718,7 +762,7 @@ export const getAssetFees = async (
 	})
 
 	return {
-		commission: assetConfig?.commissionOverride ?? account.defaultCommission,
-		fees: assetConfig?.feesOverride ?? account.defaultFees,
+		commission: assetConfig?.commissionOverride ?? defaultCommission,
+		fees: assetConfig?.feesOverride ?? defaultFees,
 	}
 }
