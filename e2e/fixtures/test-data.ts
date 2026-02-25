@@ -82,4 +82,20 @@ export const ROUTES = {
 	reports: "/en/reports",
 	monthly: "/en/monthly",
 	settings: "/en/settings",
+	commandCenter: "/en/command-center",
+	monteCarlo: "/en/monte-carlo",
+	monitor: "/en/monitor",
+	painel: "/en/painel",
+}
+
+export const TEST_CHECKLIST = {
+	name: "E2E Morning Routine",
+	items: ["Check economic calendar", "Review pre-market levels", "Set alerts"],
+}
+
+export const TEST_MONTHLY_PLAN = {
+	accountBalance: "50000",
+	riskPerTrade: "1",
+	dailyLoss: "3",
+	monthlyLoss: "6",
 }

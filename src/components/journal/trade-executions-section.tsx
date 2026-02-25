@@ -79,10 +79,10 @@ export const TradeExecutionsSection = ({
 				: 0
 
 		const totalCommission = executions.reduce(
-			(sum, e) => sum + (e.commission ?? 0),
+			(sum, e) => sum + (Number(e.commission) || 0),
 			0
 		)
-		const totalFees = executions.reduce((sum, e) => sum + (e.fees ?? 0), 0)
+		const totalFees = executions.reduce((sum, e) => sum + (Number(e.fees) || 0), 0)
 
 		let positionStatus: PositionStatus = "open"
 		if (totalExitQuantity === 0) positionStatus = "open"

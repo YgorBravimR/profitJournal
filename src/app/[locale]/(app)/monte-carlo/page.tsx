@@ -2,7 +2,9 @@ import { getDataSourceOptions } from "@/app/actions/monte-carlo"
 import { listActiveRiskProfiles } from "@/app/actions/risk-profiles"
 import { MonteCarloContent } from "@/components/monte-carlo"
 
-export default async function MonteCarloPage() {
+export const dynamic = "force-dynamic"
+
+const MonteCarloPage = async () => {
 	const [optionsResponse, profilesResponse] = await Promise.all([
 		getDataSourceOptions(),
 		listActiveRiskProfiles(),
@@ -19,3 +21,5 @@ export default async function MonteCarloPage() {
 		</div>
 	)
 }
+
+export default MonteCarloPage

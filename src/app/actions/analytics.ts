@@ -25,13 +25,19 @@ import type {
 	SessionPerformance,
 	SessionAssetPerformance,
 } from "@/types"
+import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
 import {
-	calculateWinRate,
-	calculateProfitFactor,
-} from "@/lib/calculations"
-import { getStartOfMonth, getEndOfMonth, getStartOfDay, getEndOfDay, formatDateKey, APP_TIMEZONE } from "@/lib/dates"
+	getStartOfMonth,
+	getEndOfMonth,
+	getStartOfDay,
+	getEndOfDay,
+	formatDateKey,
+	APP_TIMEZONE,
+} from "@/lib/dates"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
 
 interface AccountFilter {
 	accountId: string
@@ -42,16 +48,16 @@ interface AccountFilter {
 /**
  * Build filter conditions from TradeFilters
  */
-const buildFilterConditions = (authContext: AccountFilter, filters?: TradeFilters) => {
+const buildFilterConditions = (
+	authContext: AccountFilter,
+	filters?: TradeFilters
+) => {
 	// Filter by current account or all accounts based on setting
 	const accountCondition = authContext.showAllAccounts
 		? inArray(trades.accountId, authContext.allAccountIds)
 		: eq(trades.accountId, authContext.accountId)
 
-	const conditions = [
-		accountCondition,
-		eq(trades.isArchived, false),
-	]
+	const conditions = [accountCondition, eq(trades.isArchived, false)]
 
 	if (filters?.dateFrom) {
 		conditions.push(gte(trades.entryDate, filters.dateFrom))
@@ -84,27 +90,17 @@ export const getOverallStats = async (
 ): Promise<ActionResponse<OverallStats>> => {
 	try {
 		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, { dateFrom, dateTo })
 
-		// Filter by current account or all accounts based on setting
-		const accountCondition = authContext.showAllAccounts
-			? inArray(trades.accountId, authContext.allAccountIds)
-			: eq(trades.accountId, authContext.accountId)
-
-		const conditions = [
-			accountCondition,
-			eq(trades.isArchived, false),
-		]
-
-		if (dateFrom) {
-			conditions.push(gte(trades.entryDate, dateFrom))
-		}
-		if (dateTo) {
-			conditions.push(lte(trades.entryDate, dateTo))
-		}
-
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -174,8 +170,10 @@ export const getOverallStats = async (
 		const winRate = calculateWinRate(winCount, winCount + lossCount)
 		const profitFactor = calculateProfitFactor(grossProfit, grossLoss)
 		const averageR = rCount > 0 ? totalR / rCount : 0
-		const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
-		const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
+		const avgWin =
+			wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
+		const avgLoss =
+			losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
 
 		return {
 			status: "success",
@@ -196,11 +194,15 @@ export const getOverallStats = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get overall stats error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve stats",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getOverallStats"),
+				},
+			],
 		}
 	}
 }
@@ -214,44 +216,43 @@ export const getDisciplineScore = async (
 ): Promise<ActionResponse<DisciplineData>> => {
 	try {
 		const authContext = await requireAuth()
+		const conditions = buildFilterConditions(authContext, { dateFrom, dateTo })
 
-		const accountCondition = authContext.showAllAccounts
-			? inArray(trades.accountId, authContext.allAccountIds)
-			: eq(trades.accountId, authContext.accountId)
-
-		const conditions = [
-			accountCondition,
-			eq(trades.isArchived, false),
-		]
-
-		if (dateFrom) {
-			conditions.push(gte(trades.entryDate, dateFrom))
-		}
-		if (dateTo) {
-			conditions.push(lte(trades.entryDate, dateTo))
-		}
-
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 			orderBy: [desc(trades.entryDate)],
 		})
 
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
+
 		const tradesWithPlanData = result.filter((t) => t.followedPlan !== null)
-		const followedCount = tradesWithPlanData.filter((t) => t.followedPlan === true).length
+		const followedCount = tradesWithPlanData.filter(
+			(t) => t.followedPlan === true
+		).length
 		const totalTrades = tradesWithPlanData.length
 		const score = totalTrades > 0 ? (followedCount / totalTrades) * 100 : 0
 
 		// Calculate recent compliance (last 10 trades)
 		const recentTrades = tradesWithPlanData.slice(0, 10)
-		const recentFollowed = recentTrades.filter((t) => t.followedPlan === true).length
-		const recentCompliance = recentTrades.length > 0 ? (recentFollowed / recentTrades.length) * 100 : 0
+		const recentFollowed = recentTrades.filter(
+			(t) => t.followedPlan === true
+		).length
+		const recentCompliance =
+			recentTrades.length > 0 ? (recentFollowed / recentTrades.length) * 100 : 0
 
 		// Determine trend
 		let trend: "up" | "down" | "stable" = "stable"
 		if (recentTrades.length >= 5 && totalTrades >= 10) {
 			const olderTrades = tradesWithPlanData.slice(10, 20)
-			const olderFollowed = olderTrades.filter((t) => t.followedPlan === true).length
-			const olderCompliance = olderTrades.length > 0 ? (olderFollowed / olderTrades.length) * 100 : 0
+			const olderFollowed = olderTrades.filter(
+				(t) => t.followedPlan === true
+			).length
+			const olderCompliance =
+				olderTrades.length > 0 ? (olderFollowed / olderTrades.length) * 100 : 0
 
 			if (recentCompliance > olderCompliance + 5) {
 				trend = "up"
@@ -272,11 +273,15 @@ export const getDisciplineScore = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get discipline score error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve discipline score",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDisciplineScore"),
+				},
+			],
 		}
 	}
 }
@@ -312,10 +317,7 @@ export const getEquityCurve = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const conditions = [
-			accountCondition,
-			eq(trades.isArchived, false),
-		]
+		const conditions = [accountCondition, eq(trades.isArchived, false)]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -324,10 +326,16 @@ export const getEquityCurve = async (
 			conditions.push(lte(trades.entryDate, dateTo))
 		}
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 			orderBy: [asc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -405,11 +413,15 @@ export const getEquityCurve = async (
 			data: equityPoints,
 		}
 	} catch (error) {
-		console.error("Get equity curve error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve equity curve",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getEquityCurve"),
+				},
+			],
 		}
 	}
 }
@@ -433,7 +445,7 @@ export const getDailyPnL = async (
 		const startOfMonth = getStartOfMonth(refDate)
 		const endOfMonth = getEndOfMonth(refDate)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -442,6 +454,12 @@ export const getDailyPnL = async (
 			),
 			orderBy: [asc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		// Group by date using local timezone
 		const dailyMap = new Map<string, { pnl: number; count: number }>()
@@ -454,11 +472,13 @@ export const getDailyPnL = async (
 			dailyMap.set(dateKey, existing)
 		}
 
-		const dailyPnL: DailyPnL[] = Array.from(dailyMap.entries()).map(([date, data]) => ({
-			date,
-			pnl: data.pnl,
-			tradeCount: data.count,
-		}))
+		const dailyPnL: DailyPnL[] = Array.from(dailyMap.entries()).map(
+			([date, data]) => ({
+				date,
+				pnl: data.pnl,
+				tradeCount: data.count,
+			})
+		)
 
 		return {
 			status: "success",
@@ -466,11 +486,15 @@ export const getDailyPnL = async (
 			data: dailyPnL,
 		}
 	} catch (error) {
-		console.error("Get daily P&L error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve daily P&L",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDailyPnL"),
+				},
+			],
 		}
 	}
 }
@@ -489,10 +513,7 @@ export const getStreakData = async (
 			? inArray(trades.accountId, authContext.allAccountIds)
 			: eq(trades.accountId, authContext.accountId)
 
-		const conditions = [
-			accountCondition,
-			eq(trades.isArchived, false),
-		]
+		const conditions = [accountCondition, eq(trades.isArchived, false)]
 
 		if (dateFrom) {
 			conditions.push(gte(trades.entryDate, dateFrom))
@@ -501,10 +522,16 @@ export const getStreakData = async (
 			conditions.push(lte(trades.entryDate, dateTo))
 		}
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 			orderBy: [desc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -526,7 +553,12 @@ export const getStreakData = async (
 		let currentStreakType: "win" | "loss" | "none" = "none"
 
 		if (result.length > 0 && result[0].outcome) {
-			currentStreakType = result[0].outcome === "win" ? "win" : result[0].outcome === "loss" ? "loss" : "none"
+			currentStreakType =
+				result[0].outcome === "win"
+					? "win"
+					: result[0].outcome === "loss"
+						? "loss"
+						: "none"
 			for (const trade of result) {
 				if (currentStreakType === "win" && trade.outcome === "win") {
 					currentStreak++
@@ -565,7 +597,7 @@ export const getStreakData = async (
 		for (const trade of result) {
 			const dateKey = formatDateKey(trade.entryDate)
 			const existing = dailyMap.get(dateKey) || 0
-			dailyMap.set(dateKey, existing + (fromCents(trade.pnl)))
+			dailyMap.set(dateKey, existing + fromCents(trade.pnl))
 		}
 
 		let bestDay: { date: string; pnl: number } | null = null
@@ -593,11 +625,15 @@ export const getStreakData = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get streak data error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve streak data",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getStreakData"),
+				},
+			],
 		}
 	}
 }
@@ -613,13 +649,19 @@ export const getPerformanceByVariable = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 			with: {
 				strategy: true,
 				timeframe: true,
 			},
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -660,7 +702,15 @@ export const getPerformanceByVariable = async (
 					break
 				}
 				case "dayOfWeek": {
-					const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+					const days = [
+						"Sunday",
+						"Monday",
+						"Tuesday",
+						"Wednesday",
+						"Thursday",
+						"Friday",
+						"Saturday",
+					]
 					groupKey = days[trade.entryDate.getDay()]
 					break
 				}
@@ -708,7 +758,10 @@ export const getPerformanceByVariable = async (
 				group,
 				tradeCount: data.trades.length,
 				pnl: data.pnl,
-				winRate: calculateWinRate(data.winCount, data.winCount + data.lossCount),
+				winRate: calculateWinRate(
+					data.winCount,
+					data.winCount + data.lossCount
+				),
 				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
 				profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
 			}))
@@ -720,11 +773,15 @@ export const getPerformanceByVariable = async (
 			data: performanceData,
 		}
 	} catch (error) {
-		console.error("Get performance by variable error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve performance data",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getPerformanceByVariable"),
+				},
+			],
 		}
 	}
 }
@@ -739,11 +796,19 @@ export const getExpectedValue = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
 
-		const tradesWithOutcome = result.filter((t) => t.outcome === "win" || t.outcome === "loss")
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
+
+		const tradesWithOutcome = result.filter(
+			(t) => t.outcome === "win" || t.outcome === "loss"
+		)
 
 		if (tradesWithOutcome.length === 0) {
 			return {
@@ -779,8 +844,10 @@ export const getExpectedValue = async (
 		}
 
 		const winRate = wins.length / tradesWithOutcome.length
-		const avgWin = wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
-		const avgLoss = losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
+		const avgWin =
+			wins.length > 0 ? wins.reduce((a, b) => a + b, 0) / wins.length : 0
+		const avgLoss =
+			losses.length > 0 ? losses.reduce((a, b) => a + b, 0) / losses.length : 0
 
 		// EV($) = (Win Rate × Avg Win) - (Loss Rate × Avg Loss)
 		const expectedValue = winRate * avgWin - (1 - winRate) * avgLoss
@@ -807,10 +874,15 @@ export const getExpectedValue = async (
 		const rSampleSize = tradesWithR.length
 		const rDecisiveCount = rWins.length + rLosses.length
 		const rWinRate = rDecisiveCount > 0 ? rWins.length / rDecisiveCount : 0
-		const avgWinR = rWins.length > 0 ? rWins.reduce((a, b) => a + b, 0) / rWins.length : 0
-		const avgLossR = rLosses.length > 0 ? rLosses.reduce((a, b) => a + b, 0) / rLosses.length : 0
+		const avgWinR =
+			rWins.length > 0 ? rWins.reduce((a, b) => a + b, 0) / rWins.length : 0
+		const avgLossR =
+			rLosses.length > 0
+				? rLosses.reduce((a, b) => a + b, 0) / rLosses.length
+				: 0
 		// EV(R) = (Win Rate × Avg Win R) - (Loss Rate × Avg Loss R)
-		const expectedR = rDecisiveCount > 0 ? (rWinRate * avgWinR) - ((1 - rWinRate) * avgLossR) : 0
+		const expectedR =
+			rDecisiveCount > 0 ? rWinRate * avgWinR - (1 - rWinRate) * avgLossR : 0
 		const projectedR100 = expectedR * 100
 
 		return {
@@ -831,11 +903,15 @@ export const getExpectedValue = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get expected value error:", error)
 		return {
 			status: "error",
 			message: "Failed to calculate expected value",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getExpectedValue"),
+				},
+			],
 		}
 	}
 }
@@ -850,9 +926,15 @@ export const getRDistribution = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		// Filter trades with R-multiple data
 		const tradesWithR = result.filter((t) => t.realizedRMultiple !== null)
@@ -899,14 +981,21 @@ export const getRDistribution = async (
 		return {
 			status: "success",
 			message: "R-distribution calculated",
-			data: nonEmptyBuckets.length > 0 ? nonEmptyBuckets : buckets.filter((b) => b.rangeMin >= -2 && b.rangeMax <= 3),
+			data:
+				nonEmptyBuckets.length > 0
+					? nonEmptyBuckets
+					: buckets.filter((b) => b.rangeMin >= -2 && b.rangeMax <= 3),
 		}
 	} catch (error) {
-		console.error("Get R-distribution error:", error)
 		return {
 			status: "error",
 			message: "Failed to calculate R-distribution",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getRDistribution"),
+				},
+			],
 		}
 	}
 }
@@ -921,9 +1010,15 @@ export const getHourlyPerformance = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -934,17 +1029,20 @@ export const getHourlyPerformance = async (
 		}
 
 		// Group by hour
-		const hourlyMap = new Map<number, {
-			trades: typeof result
-			wins: number
-			losses: number
-			breakevens: number
-			totalPnl: number
-			totalR: number
-			rCount: number
-			grossProfit: number
-			grossLoss: number
-		}>()
+		const hourlyMap = new Map<
+			number,
+			{
+				trades: typeof result
+				wins: number
+				losses: number
+				breakevens: number
+				totalPnl: number
+				totalR: number
+				rCount: number
+				grossProfit: number
+				grossLoss: number
+			}
+		>()
 
 		for (const trade of result) {
 			const hour = trade.entryDate.getHours()
@@ -1004,11 +1102,15 @@ export const getHourlyPerformance = async (
 			data: hourlyData,
 		}
 	} catch (error) {
-		console.error("Get hourly performance error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve hourly performance",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getHourlyPerformance"),
+				},
+			],
 		}
 	}
 }
@@ -1023,9 +1125,15 @@ export const getDayOfWeekPerformance = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1035,21 +1143,32 @@ export const getDayOfWeekPerformance = async (
 			}
 		}
 
-		const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+		const dayNames = [
+			"Sunday",
+			"Monday",
+			"Tuesday",
+			"Wednesday",
+			"Thursday",
+			"Friday",
+			"Saturday",
+		]
 
 		// Group by day of week
-		const dayMap = new Map<number, {
-			trades: typeof result
-			wins: number
-			losses: number
-			breakevens: number
-			totalPnl: number
-			totalR: number
-			rCount: number
-			grossProfit: number
-			grossLoss: number
-			hourlyPnl: Map<number, number>
-		}>()
+		const dayMap = new Map<
+			number,
+			{
+				trades: typeof result
+				wins: number
+				losses: number
+				breakevens: number
+				totalPnl: number
+				totalR: number
+				rCount: number
+				grossProfit: number
+				grossLoss: number
+				hourlyPnl: Map<number, number>
+			}
+		>()
 
 		for (const trade of result) {
 			const dayOfWeek = trade.entryDate.getDay()
@@ -1118,7 +1237,8 @@ export const getDayOfWeekPerformance = async (
 					breakevens: data.breakevens,
 					winRate: calculateWinRate(data.wins, data.wins + data.losses),
 					totalPnl: data.totalPnl,
-					avgPnl: data.trades.length > 0 ? data.totalPnl / data.trades.length : 0,
+					avgPnl:
+						data.trades.length > 0 ? data.totalPnl / data.trades.length : 0,
 					avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
 					profitFactor: calculateProfitFactor(data.grossProfit, data.grossLoss),
 					bestHour: bestPnl > 0 ? bestHour : undefined,
@@ -1133,11 +1253,15 @@ export const getDayOfWeekPerformance = async (
 			data: dayData,
 		}
 	} catch (error) {
-		console.error("Get day of week performance error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve day of week performance",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDayOfWeekPerformance"),
+				},
+			],
 		}
 	}
 }
@@ -1152,9 +1276,15 @@ export const getTimeHeatmap = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1164,17 +1294,28 @@ export const getTimeHeatmap = async (
 			}
 		}
 
-		const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+		const dayNames = [
+			"Sunday",
+			"Monday",
+			"Tuesday",
+			"Wednesday",
+			"Thursday",
+			"Friday",
+			"Saturday",
+		]
 
 		// Group by day × hour
-		const cellMap = new Map<string, {
-			totalTrades: number
-			wins: number
-			losses: number
-			totalPnl: number
-			totalR: number
-			rCount: number
-		}>()
+		const cellMap = new Map<
+			string,
+			{
+				totalTrades: number
+				wins: number
+				losses: number
+				totalPnl: number
+				totalR: number
+				rCount: number
+			}
+		>()
 
 		for (const trade of result) {
 			const dayOfWeek = trade.entryDate.getDay()
@@ -1207,21 +1348,23 @@ export const getTimeHeatmap = async (
 			cellMap.set(key, existing)
 		}
 
-		const heatmapData: TimeHeatmapCell[] = Array.from(cellMap.entries()).map(([key, data]) => {
-			const [dayOfWeek, hour] = key.split("-").map(Number)
-			return {
-				dayOfWeek,
-				dayName: dayNames[dayOfWeek],
-				hour,
-				hourLabel: `${hour.toString().padStart(2, "0")}:00`,
-				totalTrades: data.totalTrades,
-				wins: data.wins,
-				losses: data.losses,
-				totalPnl: data.totalPnl,
-				winRate: calculateWinRate(data.wins, data.wins + data.losses),
-				avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+		const heatmapData: TimeHeatmapCell[] = Array.from(cellMap.entries()).map(
+			([key, data]) => {
+				const [dayOfWeek, hour] = key.split("-").map(Number)
+				return {
+					dayOfWeek,
+					dayName: dayNames[dayOfWeek],
+					hour,
+					hourLabel: `${hour.toString().padStart(2, "0")}:00`,
+					totalTrades: data.totalTrades,
+					wins: data.wins,
+					losses: data.losses,
+					totalPnl: data.totalPnl,
+					winRate: calculateWinRate(data.wins, data.wins + data.losses),
+					avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+				}
 			}
-		})
+		)
 
 		return {
 			status: "success",
@@ -1229,11 +1372,15 @@ export const getTimeHeatmap = async (
 			data: heatmapData,
 		}
 	} catch (error) {
-		console.error("Get time heatmap error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve time heatmap",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getTimeHeatmap"),
+				},
+			],
 		}
 	}
 }
@@ -1257,7 +1404,7 @@ export const getDaySummary = async (
 		const endOfDay = new Date(date)
 		endOfDay.setHours(23, 59, 59, 999)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -1265,6 +1412,12 @@ export const getDaySummary = async (
 				lte(trades.entryDate, endOfDay)
 			),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		const dateKey = formatDateKey(date)
 
@@ -1342,11 +1495,15 @@ export const getDaySummary = async (
 			},
 		}
 	} catch (error) {
-		console.error("Get day summary error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve day summary",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDaySummary"),
+				},
+			],
 		}
 	}
 }
@@ -1368,7 +1525,7 @@ export const getDayTrades = async (
 		const startOfDayBrt = getStartOfDay(date)
 		const endOfDayBrt = getEndOfDay(date)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -1377,6 +1534,12 @@ export const getDayTrades = async (
 			),
 			orderBy: [asc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		const dayTrades: DayTrade[] = result.map((trade) => ({
 			id: trade.id,
@@ -1391,7 +1554,9 @@ export const getDayTrades = async (
 			entryPrice: fromCents(trade.entryPrice),
 			exitPrice: trade.exitPrice ? fromCents(trade.exitPrice) : null,
 			pnl: fromCents(trade.pnl),
-			rMultiple: trade.realizedRMultiple ? Number(trade.realizedRMultiple) : null,
+			rMultiple: trade.realizedRMultiple
+				? Number(trade.realizedRMultiple)
+				: null,
 			outcome: trade.outcome as "win" | "loss" | "breakeven" | null,
 		}))
 
@@ -1401,11 +1566,15 @@ export const getDayTrades = async (
 			data: dayTrades,
 		}
 	} catch (error) {
-		console.error("Get day trades error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve day trades",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDayTrades"),
+				},
+			],
 		}
 	}
 }
@@ -1427,7 +1596,7 @@ export const getDayEquityCurve = async (
 		const startOfDayBrt = getStartOfDay(date)
 		const endOfDayBrt = getEndOfDay(date)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -1436,6 +1605,12 @@ export const getDayEquityCurve = async (
 			),
 			orderBy: [asc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1466,11 +1641,15 @@ export const getDayEquityCurve = async (
 			data: equityPoints,
 		}
 	} catch (error) {
-		console.error("Get day equity curve error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve day equity curve",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getDayEquityCurve"),
+				},
+			],
 		}
 	}
 }
@@ -1485,9 +1664,15 @@ export const getRadarChartData = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1540,14 +1725,19 @@ export const getRadarChartData = async (
 		const avgR = rCount > 0 ? totalR / rCount : 0
 
 		// Calculate profit factor (cap at 5 for visualization)
-		const profitFactor = Math.min(calculateProfitFactor(grossProfit, grossLoss), 5)
+		const profitFactor = Math.min(
+			calculateProfitFactor(grossProfit, grossLoss),
+			5
+		)
 
 		// Calculate discipline score (0-100)
-		const disciplineScore = planTradesCount > 0 ? (followedPlanCount / planTradesCount) * 100 : 0
+		const disciplineScore =
+			planTradesCount > 0 ? (followedPlanCount / planTradesCount) * 100 : 0
 
 		// Calculate consistency (inverse of coefficient of variation, normalized)
 		const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length
-		const variance = pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / pnls.length
+		const variance =
+			pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / pnls.length
 		const stdDev = Math.sqrt(variance)
 		const cv = mean !== 0 ? stdDev / Math.abs(mean) : 0
 		// Higher consistency = lower CV, normalize to 0-100
@@ -1594,11 +1784,15 @@ export const getRadarChartData = async (
 			data: radarData,
 		}
 	} catch (error) {
-		console.error("Get radar chart data error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve radar chart data",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getRadarChartData"),
+				},
+			],
 		}
 	}
 }
@@ -1607,7 +1801,10 @@ export const getRadarChartData = async (
  * B3 Brazilian Exchange trading session definitions
  * Sessions are defined by start/end hours (decimal format: 9.5 = 09:30)
  */
-const B3_SESSIONS: Record<TradingSession, { startHour: number; endHour: number; label: string }> = {
+const B3_SESSIONS: Record<
+	TradingSession,
+	{ startHour: number; endHour: number; label: string }
+> = {
 	preOpen: { startHour: 9, endHour: 9.5, label: "Pre-Open" },
 	morning: { startHour: 9.5, endHour: 12, label: "Morning" },
 	afternoon: { startHour: 12, endHour: 15, label: "Afternoon" },
@@ -1622,7 +1819,10 @@ const getSessionForTime = (date: Date): TradingSession | null => {
 	const minutes = date.getMinutes()
 	const decimalHour = hours + minutes / 60
 
-	for (const [session, def] of Object.entries(B3_SESSIONS) as [TradingSession, typeof B3_SESSIONS[TradingSession]][]) {
+	for (const [session, def] of Object.entries(B3_SESSIONS) as [
+		TradingSession,
+		(typeof B3_SESSIONS)[TradingSession],
+	][]) {
 		if (decimalHour >= def.startHour && decimalHour < def.endHour) {
 			return session
 		}
@@ -1640,9 +1840,15 @@ export const getSessionPerformance = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1653,17 +1859,20 @@ export const getSessionPerformance = async (
 		}
 
 		// Group by session
-		const sessionMap = new Map<TradingSession, {
-			trades: typeof result
-			wins: number
-			losses: number
-			breakevens: number
-			totalPnl: number
-			totalR: number
-			rCount: number
-			grossProfit: number
-			grossLoss: number
-		}>()
+		const sessionMap = new Map<
+			TradingSession,
+			{
+				trades: typeof result
+				wins: number
+				losses: number
+				breakevens: number
+				totalPnl: number
+				totalR: number
+				rCount: number
+				grossProfit: number
+				grossLoss: number
+			}
+		>()
 
 		// Initialize all sessions
 		for (const session of Object.keys(B3_SESSIONS) as TradingSession[]) {
@@ -1706,7 +1915,9 @@ export const getSessionPerformance = async (
 			}
 		}
 
-		const sessionData: SessionPerformance[] = (Object.keys(B3_SESSIONS) as TradingSession[]).map((session) => {
+		const sessionData: SessionPerformance[] = (
+			Object.keys(B3_SESSIONS) as TradingSession[]
+		).map((session) => {
 			const data = sessionMap.get(session)!
 			const def = B3_SESSIONS[session]
 			const totalTrades = data.trades.length
@@ -1734,11 +1945,15 @@ export const getSessionPerformance = async (
 			data: sessionData,
 		}
 	} catch (error) {
-		console.error("Get session performance error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve session performance",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getSessionPerformance"),
+				},
+			],
 		}
 	}
 }
@@ -1753,9 +1968,15 @@ export const getSessionAssetPerformance = async (
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
 
-		const result = await db.query.trades.findMany({
+		const rawResult = await db.query.trades.findMany({
 			where: and(...conditions),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const result = dek
+			? rawResult.map((t) => decryptTradeFields(t, dek))
+			: rawResult
 
 		if (result.length === 0) {
 			return {
@@ -1766,28 +1987,37 @@ export const getSessionAssetPerformance = async (
 		}
 
 		// Group by asset → session
-		const assetSessionMap = new Map<string, Map<TradingSession, {
-			wins: number
-			losses: number
-			totalPnl: number
-			totalR: number
-			rCount: number
-			tradeCount: number
-		}>>()
-
-		for (const trade of result) {
-			const session = getSessionForTime(trade.entryDate)
-			if (!session) continue
-
-			if (!assetSessionMap.has(trade.asset)) {
-				const sessionData = new Map<TradingSession, {
+		const assetSessionMap = new Map<
+			string,
+			Map<
+				TradingSession,
+				{
 					wins: number
 					losses: number
 					totalPnl: number
 					totalR: number
 					rCount: number
 					tradeCount: number
-				}>()
+				}
+			>
+		>()
+
+		for (const trade of result) {
+			const session = getSessionForTime(trade.entryDate)
+			if (!session) continue
+
+			if (!assetSessionMap.has(trade.asset)) {
+				const sessionData = new Map<
+					TradingSession,
+					{
+						wins: number
+						losses: number
+						totalPnl: number
+						totalR: number
+						rCount: number
+						tradeCount: number
+					}
+				>()
 				// Initialize all sessions for this asset
 				for (const s of Object.keys(B3_SESSIONS) as TradingSession[]) {
 					sessionData.set(s, {
@@ -1822,31 +2052,35 @@ export const getSessionAssetPerformance = async (
 		}
 
 		// Convert to SessionAssetPerformance array
-		const assetPerformance: SessionAssetPerformance[] = Array.from(assetSessionMap.entries())
+		const assetPerformance: SessionAssetPerformance[] = Array.from(
+			assetSessionMap.entries()
+		)
 			.map(([asset, sessionData]) => {
 				let totalPnl = 0
 				let bestSession: TradingSession | null = null
 				let bestPnl = -Infinity
 
-				const sessions = (Object.keys(B3_SESSIONS) as TradingSession[]).map((session) => {
-					const data = sessionData.get(session)!
-					const def = B3_SESSIONS[session]
-					totalPnl += data.totalPnl
+				const sessions = (Object.keys(B3_SESSIONS) as TradingSession[]).map(
+					(session) => {
+						const data = sessionData.get(session)!
+						const def = B3_SESSIONS[session]
+						totalPnl += data.totalPnl
 
-					if (data.tradeCount > 0 && data.totalPnl > bestPnl) {
-						bestPnl = data.totalPnl
-						bestSession = session
-					}
+						if (data.tradeCount > 0 && data.totalPnl > bestPnl) {
+							bestPnl = data.totalPnl
+							bestSession = session
+						}
 
-					return {
-						session,
-						sessionLabel: def.label,
-						pnl: data.totalPnl,
-						winRate: calculateWinRate(data.wins, data.wins + data.losses),
-						trades: data.tradeCount,
-						avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+						return {
+							session,
+							sessionLabel: def.label,
+							pnl: data.totalPnl,
+							winRate: calculateWinRate(data.wins, data.wins + data.losses),
+							trades: data.tradeCount,
+							avgR: data.rCount > 0 ? data.totalR / data.rCount : 0,
+						}
 					}
-				})
+				)
 
 				return {
 					asset,
@@ -1863,11 +2097,15 @@ export const getSessionAssetPerformance = async (
 			data: assetPerformance,
 		}
 	} catch (error) {
-		console.error("Get session asset performance error:", error)
 		return {
 			status: "error",
 			message: "Failed to retrieve session asset performance",
-			errors: [{ code: "FETCH_FAILED", detail: String(error) }],
+			errors: [
+				{
+					code: "FETCH_FAILED",
+					detail: toSafeErrorMessage(error, "getSessionAssetPerformance"),
+				},
+			],
 		}
 	}
 }

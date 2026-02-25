@@ -18,6 +18,7 @@ import { formatDateKey } from "@/lib/dates"
 import { getUserSettings, type UserSettingsData } from "./settings"
 import { requireAuth } from "@/app/actions/auth"
 import { getServerEffectiveNow } from "@/lib/effective-date"
+import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
 
 // ============================================================================
 // TYPES
@@ -118,6 +119,92 @@ export interface MistakeCostAnalysis {
 }
 
 // ============================================================================
+// SHARED SUMMARY CALCULATION
+// ============================================================================
+
+interface ReportSummaryBase {
+	totalTrades: number
+	winCount: number
+	lossCount: number
+	breakevenCount: number
+	grossPnl: number
+	netPnl: number
+	totalFees: number
+	winRate: number
+	avgWin: number
+	avgLoss: number
+	profitFactor: number
+	avgR: number
+}
+
+/**
+ * Calculate summary stats from a list of trades.
+ * Shared between weekly and monthly report generation.
+ */
+const calculateReportSummary = (
+	tradeList: Array<{
+		pnl: number | string | null
+		commission: number | string | null
+		fees: number | string | null
+		outcome: string | null
+		realizedRMultiple: string | null
+	}>
+): ReportSummaryBase => {
+	const winTrades = tradeList.filter((t) => t.outcome === "win")
+	const lossTrades = tradeList.filter((t) => t.outcome === "loss")
+	const breakevenCount = tradeList.filter(
+		(t) => t.outcome === "breakeven"
+	).length
+
+	const netPnl = tradeList.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+	const totalFees = tradeList.reduce(
+		(sum, t) => sum + fromCents(t.commission) + fromCents(t.fees),
+		0
+	)
+	const grossPnl = netPnl + totalFees
+	const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+	const grossLoss = Math.abs(
+		lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
+	)
+	const avgWin =
+		winTrades.length > 0
+			? winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+				winTrades.length
+			: 0
+	const avgLoss =
+		lossTrades.length > 0
+			? lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
+				lossTrades.length
+			: 0
+	const tradesWithR = tradeList.filter((t) => t.realizedRMultiple)
+	const avgR =
+		tradesWithR.length > 0
+			? tradesWithR.reduce(
+					(sum, t) =>
+						sum + (t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
+					0
+				) / tradesWithR.length
+			: 0
+
+	const decidedCount = winTrades.length + lossTrades.length
+
+	return {
+		totalTrades: tradeList.length,
+		winCount: winTrades.length,
+		lossCount: lossTrades.length,
+		breakevenCount,
+		grossPnl,
+		netPnl,
+		totalFees,
+		winRate: decidedCount > 0 ? (winTrades.length / decidedCount) * 100 : 0,
+		avgWin,
+		avgLoss,
+		profitFactor: grossLoss > 0 ? grossProfit / grossLoss : 0,
+		avgR,
+	}
+}
+
+// ============================================================================
 // WEEKLY REPORT
 // ============================================================================
 
@@ -139,7 +226,7 @@ export const getWeeklyReport = async (
 		const weekStart = startOfWeek(referenceDate, { weekStartsOn: 1 })
 		const weekEnd = endOfWeek(referenceDate, { weekStartsOn: 1 })
 
-		const weekTrades = await db.query.trades.findMany({
+		const rawWeekTrades = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -148,6 +235,12 @@ export const getWeeklyReport = async (
 			),
 			orderBy: [desc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const weekTrades = dek
+			? rawWeekTrades.map((t) => decryptTradeFields(t, dek))
+			: rawWeekTrades
 
 		if (weekTrades.length === 0) {
 			return {
@@ -178,42 +271,8 @@ export const getWeeklyReport = async (
 			}
 		}
 
-		// Calculate summary
-		const winTrades = weekTrades.filter((t) => t.outcome === "win")
-		const lossTrades = weekTrades.filter((t) => t.outcome === "loss")
-		const breakevenTrades = weekTrades.filter((t) => t.outcome === "breakeven")
-
-		const netPnl = weekTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		const totalFees = weekTrades.reduce(
-			(sum, t) => sum + fromCents((t.commission ?? 0) + (t.fees ?? 0)),
-			0
-		)
-		const grossPnl = netPnl + totalFees
-		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		const grossLoss = Math.abs(
-			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		)
-		const avgWin =
-			winTrades.length > 0
-				? winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
-					winTrades.length
-				: 0
-		const avgLoss =
-			lossTrades.length > 0
-				? lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
-					lossTrades.length
-				: 0
-		const avgR =
-			weekTrades.filter((t) => t.realizedRMultiple).length > 0
-				? weekTrades
-						.filter((t) => t.realizedRMultiple)
-						.reduce(
-							(sum, t) =>
-								sum +
-								(t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
-							0
-						) / weekTrades.filter((t) => t.realizedRMultiple).length
-				: 0
+		// Calculate summary using shared helper
+		const summary = calculateReportSummary(weekTrades)
 
 		const pnlValues = weekTrades
 			.map((t) => fromCents(t.pnl))
@@ -275,22 +334,7 @@ export const getWeeklyReport = async (
 				weekStart: formatDateKey(weekStart),
 				weekEnd: formatDateKey(weekEnd),
 				summary: {
-					totalTrades: weekTrades.length,
-					winCount: winTrades.length,
-					lossCount: lossTrades.length,
-					breakevenCount: breakevenTrades.length,
-					grossPnl,
-					netPnl,
-					totalFees,
-					winRate:
-						winTrades.length + lossTrades.length > 0
-							? (winTrades.length / (winTrades.length + lossTrades.length)) *
-								100
-							: 0,
-					avgWin,
-					avgLoss,
-					profitFactor: grossLoss > 0 ? grossProfit / grossLoss : 0,
-					avgR,
+					...summary,
 					bestTrade: pnlValues.length > 0 ? Math.max(...pnlValues) : 0,
 					worstTrade: pnlValues.length > 0 ? Math.min(...pnlValues) : 0,
 				},
@@ -327,7 +371,7 @@ export const getMonthlyReport = async (
 		const monthStart = startOfMonth(referenceDate)
 		const monthEnd = endOfMonth(referenceDate)
 
-		const monthTrades = await db.query.trades.findMany({
+		const rawMonthTrades = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -336,6 +380,12 @@ export const getMonthlyReport = async (
 			),
 			orderBy: [desc(trades.entryDate)],
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const monthTrades = dek
+			? rawMonthTrades.map((t) => decryptTradeFields(t, dek))
+			: rawMonthTrades
 
 		if (monthTrades.length === 0) {
 			return {
@@ -365,42 +415,8 @@ export const getMonthlyReport = async (
 			}
 		}
 
-		// Calculate summary
-		const winTrades = monthTrades.filter((t) => t.outcome === "win")
-		const lossTrades = monthTrades.filter((t) => t.outcome === "loss")
-		const breakevenTrades = monthTrades.filter((t) => t.outcome === "breakeven")
-
-		const netPnl = monthTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		const totalFees = monthTrades.reduce(
-			(sum, t) => sum + fromCents((t.commission ?? 0) + (t.fees ?? 0)),
-			0
-		)
-		const grossPnl = netPnl + totalFees
-		const grossProfit = winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		const grossLoss = Math.abs(
-			lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0)
-		)
-		const avgWin =
-			winTrades.length > 0
-				? winTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
-					winTrades.length
-				: 0
-		const avgLoss =
-			lossTrades.length > 0
-				? lossTrades.reduce((sum, t) => sum + fromCents(t.pnl), 0) /
-					lossTrades.length
-				: 0
-		const avgR =
-			monthTrades.filter((t) => t.realizedRMultiple).length > 0
-				? monthTrades
-						.filter((t) => t.realizedRMultiple)
-						.reduce(
-							(sum, t) =>
-								sum +
-								(t.realizedRMultiple ? parseFloat(t.realizedRMultiple) : 0),
-							0
-						) / monthTrades.filter((t) => t.realizedRMultiple).length
-				: 0
+		// Calculate summary using shared helper
+		const summary = calculateReportSummary(monthTrades)
 
 		// Daily P&L for best/worst day
 		const dailyPnl = new Map<string, number>()
@@ -490,22 +506,7 @@ export const getMonthlyReport = async (
 				monthStart: formatDateKey(monthStart),
 				monthEnd: formatDateKey(monthEnd),
 				summary: {
-					totalTrades: monthTrades.length,
-					winCount: winTrades.length,
-					lossCount: lossTrades.length,
-					breakevenCount: breakevenTrades.length,
-					grossPnl,
-					netPnl,
-					totalFees,
-					winRate:
-						winTrades.length + lossTrades.length > 0
-							? (winTrades.length / (winTrades.length + lossTrades.length)) *
-								100
-							: 0,
-					avgWin,
-					avgLoss,
-					profitFactor: grossLoss > 0 ? grossProfit / grossLoss : 0,
-					avgR,
+					...summary,
 					bestDay,
 					worstDay,
 				},
@@ -531,9 +532,9 @@ export const getMistakeCostAnalysis = async (): Promise<{
 	try {
 		const authContext = await requireAuth()
 
-		// Get all mistake tags
+		// Get only the current user's mistake tags
 		const mistakeTags = await db.query.tags.findMany({
-			where: eq(tags.type, "mistake"),
+			where: and(eq(tags.type, "mistake"), eq(tags.userId, authContext.userId)),
 		})
 
 		if (mistakeTags.length === 0) {
@@ -548,14 +549,23 @@ export const getMistakeCostAnalysis = async (): Promise<{
 		}
 
 		// Get all trade-tag associations for mistake tags (filtered by account through trade)
-		const tagIds = mistakeTags.map((t) => t.id)
-		const tradeTagAssociations = await db.query.tradeTags.findMany({
-			where: inArray(tradeTags.tagId, tagIds),
+		const tagIdsList = mistakeTags.map((t) => t.id)
+		const rawTradeTagAssociations = await db.query.tradeTags.findMany({
+			where: inArray(tradeTags.tagId, tagIdsList),
 			with: {
 				trade: true,
 				tag: true,
 			},
 		})
+
+		// Decrypt trade fields within associations
+		const dek = await getUserDek(authContext.userId)
+		const tradeTagAssociations = dek
+			? rawTradeTagAssociations.map((assoc) => ({
+					...assoc,
+					trade: decryptTradeFields(assoc.trade, dek),
+				}))
+			: rawTradeTagAssociations
 
 		// Filter by account (through trade relation) - support all accounts mode
 		const filteredAssociations = tradeTagAssociations.filter((assoc) => {
@@ -837,7 +847,7 @@ export const getMonthlyProjection = async (): Promise<{
 		const monthEnd = endOfMonth(now)
 
 		// Get account, user settings, and current month trades in parallel
-		const [account, settingsResult, monthTrades] = await Promise.all([
+		const [account, settingsResult, rawMonthTrades] = await Promise.all([
 			db.query.tradingAccounts.findFirst({
 				where: eq(tradingAccounts.id, authContext.accountId),
 			}),
@@ -859,6 +869,12 @@ export const getMonthlyProjection = async (): Promise<{
 		if (settingsResult.status !== "success" || !settingsResult.data) {
 			return { status: "error", message: "Failed to get user settings" }
 		}
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const monthTrades = dek
+			? rawMonthTrades.map((t) => decryptTradeFields(t, dek))
+			: rawMonthTrades
 
 		const userSettings = settingsResult.data
 		const totalTradingDays = getBusinessDaysInMonth(now)
@@ -998,7 +1014,7 @@ export const getYearlyOverview = async (
 		const yearEnd = new Date(targetYear, 11, 31, 23, 59, 59)
 
 		// Get all trades for the year
-		const yearTrades = await db.query.trades.findMany({
+		const rawYearTrades = await db.query.trades.findMany({
 			where: and(
 				accountCondition,
 				eq(trades.isArchived, false),
@@ -1006,6 +1022,12 @@ export const getYearlyOverview = async (
 				lte(trades.entryDate, yearEnd)
 			),
 		})
+
+		// Decrypt trade fields
+		const dek = await getUserDek(authContext.userId)
+		const yearTrades = dek
+			? rawYearTrades.map((t) => decryptTradeFields(t, dek))
+			: rawYearTrades
 
 		// Group by month
 		const monthlyData = new Map<

@@ -57,12 +57,15 @@ export const users = pgTable(
 	"users",
 	{
 		id: uuid("id").primaryKey().defaultRandom(),
-		name: varchar("name", { length: 255 }).notNull(),
+		name: text("name").notNull(), // encrypted
 		email: varchar("email", { length: 255 }).notNull().unique(),
 		emailVerified: timestamp("email_verified", { withTimezone: true }),
 		passwordHash: varchar("password_hash", { length: 255 }).notNull(),
 		image: varchar("image", { length: 255 }),
 		isAdmin: boolean("is_admin").default(false).notNull(),
+
+		// Encrypted Data Encryption Key (envelope encryption)
+		encryptedDek: text("encrypted_dek"),
 
 		// General user settings (not account-specific)
 		preferredLocale: varchar("preferred_locale", { length: 10 }).default("pt-BR").notNull(),
@@ -92,27 +95,21 @@ export const tradingAccounts = pgTable(
 
 		// Trading account type
 		accountType: accountTypeEnum("account_type").default("personal").notNull(),
-		propFirmName: varchar("prop_firm_name", { length: 100 }),
-		profitSharePercentage: decimal("profit_share_percentage", { precision: 5, scale: 2 })
-			.default("100.00")
-			.notNull(),
+		propFirmName: text("prop_firm_name"), // encrypted
+		profitSharePercentage: text("profit_share_percentage").default("100.00").notNull(), // encrypted
 
-		// Tax settings (per account)
-		dayTradeTaxRate: decimal("day_trade_tax_rate", { precision: 5, scale: 2 })
-			.default("20.00")
-			.notNull(),
-		swingTradeTaxRate: decimal("swing_trade_tax_rate", { precision: 5, scale: 2 })
-			.default("15.00")
-			.notNull(),
+		// Tax settings (per account, encrypted)
+		dayTradeTaxRate: text("day_trade_tax_rate").default("20.00").notNull(), // encrypted
+		swingTradeTaxRate: text("swing_trade_tax_rate").default("15.00").notNull(), // encrypted
 
 		// @deprecated Risk settings — replaced by monthlyPlans. Kept for migration compatibility.
 		defaultRiskPerTrade: decimal("default_risk_per_trade", { precision: 5, scale: 2 }),
 		/** @deprecated Use monthlyPlans.dailyLossCents instead */
-		maxDailyLoss: integer("max_daily_loss"), // cents
+		maxDailyLoss: text("max_daily_loss"), // cents (encrypted)
 		/** @deprecated Use monthlyPlans.maxDailyTrades instead */
 		maxDailyTrades: integer("max_daily_trades"),
 		/** @deprecated Use monthlyPlans.monthlyLossCents instead */
-		maxMonthlyLoss: integer("max_monthly_loss"), // cents
+		maxMonthlyLoss: text("max_monthly_loss"), // cents (encrypted)
 		/** @deprecated Use monthlyPlans.allowSecondOpAfterLoss instead */
 		allowSecondOpAfterLoss: boolean("allow_second_op_after_loss").default(true),
 		/** @deprecated Use monthlyPlans.reduceRiskAfterLoss instead */
@@ -121,9 +118,9 @@ export const tradingAccounts = pgTable(
 		riskReductionFactor: decimal("risk_reduction_factor", { precision: 5, scale: 2 }),
 		defaultCurrency: varchar("default_currency", { length: 3 }).default("BRL").notNull(),
 
-		// Global default fees for this account (user-managed)
-		defaultCommission: integer("default_commission").default(0).notNull(), // cents per contract
-		defaultFees: integer("default_fees").default(0).notNull(), // cents per contract
+		// Global default fees for this account (encrypted)
+		defaultCommission: text("default_commission").default("0").notNull(), // cents per contract (encrypted)
+		defaultFees: text("default_fees").default("0").notNull(), // cents per contract (encrypted)
 
 		// Breakeven classification: trades within ±N ticks of entry are classified as breakeven
 		defaultBreakevenTicks: integer("default_breakeven_ticks").default(2).notNull(),
@@ -368,22 +365,19 @@ export const trades = pgTable(
 		entryDate: timestamp("entry_date", { withTimezone: true }).notNull(),
 		exitDate: timestamp("exit_date", { withTimezone: true }),
 
-		// Execution (prices kept as decimal for precision)
-		entryPrice: decimal("entry_price", { precision: 18, scale: 8 }).notNull(),
-		exitPrice: decimal("exit_price", { precision: 18, scale: 8 }),
-		positionSize: decimal("position_size", {
-			precision: 18,
-			scale: 8,
-		}).notNull(),
+		// Execution (encrypted: stores ciphertext when encryption is enabled)
+		entryPrice: text("entry_price").notNull(),
+		exitPrice: text("exit_price"),
+		positionSize: text("position_size").notNull(),
 
-		// Risk Management
-		stopLoss: decimal("stop_loss", { precision: 18, scale: 8 }),
-		takeProfit: decimal("take_profit", { precision: 18, scale: 8 }),
-		plannedRiskAmount: bigint("planned_risk_amount", { mode: "number" }), // cents
-		plannedRMultiple: decimal("planned_r_multiple", { precision: 8, scale: 2 }),
+		// Risk Management (encrypted)
+		stopLoss: text("stop_loss"),
+		takeProfit: text("take_profit"),
+		plannedRiskAmount: text("planned_risk_amount"), // cents (encrypted)
+		plannedRMultiple: text("planned_r_multiple"),
 
-		// Results (pnl in cents, ratios as decimal)
-		pnl: bigint("pnl", { mode: "number" }), // cents
+		// Results (encrypted)
+		pnl: text("pnl"), // cents (encrypted)
 		pnlPercent: decimal("pnl_percent", { precision: 8, scale: 4 }),
 		realizedRMultiple: decimal("realized_r_multiple", {
 			precision: 8,
@@ -397,9 +391,9 @@ export const trades = pgTable(
 		mfeR: decimal("mfe_r", { precision: 8, scale: 2 }),
 		maeR: decimal("mae_r", { precision: 8, scale: 2 }),
 
-		// Fees (in cents)
-		commission: bigint("commission", { mode: "number" }).default(0), // cents per contract
-		fees: bigint("fees", { mode: "number" }).default(0), // cents per contract
+		// Fees (encrypted)
+		commission: text("commission"), // cents per contract (encrypted)
+		fees: text("fees"), // cents per contract (encrypted)
 		// Total contracts executed (entry + exit + any intra-trade scaling)
 		// Default is positionSize * 2 (1 entry + 1 exit per contract)
 		contractsExecuted: decimal("contracts_executed", { precision: 18, scale: 8 }),
@@ -460,20 +454,20 @@ export const tradeExecutions = pgTable(
 		// Execution details
 		executionType: executionTypeEnum("execution_type").notNull(),
 		executionDate: timestamp("execution_date", { withTimezone: true }).notNull(),
-		price: decimal("price", { precision: 20, scale: 8 }).notNull(),
-		quantity: decimal("quantity", { precision: 20, scale: 8 }).notNull(),
+		price: text("price").notNull(), // encrypted
+		quantity: text("quantity").notNull(), // encrypted
 
 		// Optional metadata
 		orderType: orderTypeEnum("order_type"),
 		notes: text("notes"),
 
-		// Costs for this specific execution (in cents)
-		commission: integer("commission").default(0),
-		fees: integer("fees").default(0),
-		slippage: integer("slippage").default(0), // difference from intended price in cents
+		// Costs for this specific execution (encrypted)
+		commission: text("commission"), // cents (encrypted)
+		fees: text("fees"), // cents (encrypted)
+		slippage: text("slippage"), // cents (encrypted)
 
-		// Calculated field (stored for performance) - quantity * price in cents
-		executionValue: bigint("execution_value", { mode: "number" }).notNull(),
+		// Calculated field (encrypted) - quantity * price in cents
+		executionValue: text("execution_value").notNull(), // encrypted
 
 		// Timestamps
 		createdAt: timestamp("created_at", { withTimezone: true })
@@ -797,7 +791,7 @@ export const monthlyPlans = pgTable(
 		month: integer("month").notNull(), // 1-12
 
 		// USER INPUTS (required)
-		accountBalance: integer("account_balance").notNull(), // cents
+		accountBalance: text("account_balance").notNull(), // cents (encrypted)
 		riskPerTradePercent: decimal("risk_per_trade_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "1.00" = 1%
 		dailyLossPercent: decimal("daily_loss_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "3.00" = 3%
 		monthlyLossPercent: decimal("monthly_loss_percent", { precision: 5, scale: 2 }).notNull(), // e.g. "10.00" = 10%
@@ -821,12 +815,12 @@ export const monthlyPlans = pgTable(
 
 		// Weekly loss limit (optional, independent of risk profile)
 		weeklyLossPercent: decimal("weekly_loss_percent", { precision: 5, scale: 2 }), // nullable
-		weeklyLossCents: integer("weekly_loss_cents"), // nullable, auto-derived
+		weeklyLossCents: text("weekly_loss_cents"), // nullable, auto-derived (encrypted)
 
-		// AUTO-DERIVED (computed on save)
-		riskPerTradeCents: integer("risk_per_trade_cents").notNull(), // round(balance * riskPercent / 100)
-		dailyLossCents: integer("daily_loss_cents").notNull(), // round(balance * dailyLossPercent / 100)
-		monthlyLossCents: integer("monthly_loss_cents").notNull(), // round(balance * monthlyLossPercent / 100)
+		// AUTO-DERIVED (computed on save, encrypted)
+		riskPerTradeCents: text("risk_per_trade_cents").notNull(), // round(balance * riskPercent / 100) (encrypted)
+		dailyLossCents: text("daily_loss_cents").notNull(), // round(balance * dailyLossPercent / 100) (encrypted)
+		monthlyLossCents: text("monthly_loss_cents").notNull(), // round(balance * monthlyLossPercent / 100) (encrypted)
 		dailyProfitTargetCents: integer("daily_profit_target_cents"), // nullable
 		derivedMaxDailyTrades: integer("derived_max_daily_trades"), // floor(dailyLossCents / riskPerTradeCents)
 

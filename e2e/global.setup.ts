@@ -13,7 +13,7 @@ setup("authenticate", async ({ page }) => {
 
 	// Fill login form
 	await page.getByLabel("Email").fill(TEST_USER.email)
-	await page.getByLabel("Password").fill(TEST_USER.password)
+	await page.locator("#password").fill(TEST_USER.password)
 	await page.getByRole("button", { name: "Sign In" }).click()
 
 	// Wait for either:
@@ -46,8 +46,8 @@ setup("authenticate", async ({ page }) => {
 		await expect(page).toHaveURL(/\/(en|pt-BR)\/?$/, { timeout: 10000 })
 	}
 
-	// Verify we're on the dashboard
-	await expect(page.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 10000 })
+	// Verify we're on the dashboard (no heading — verify via sidebar active link or metric cards)
+	await expect(page.getByText(/Gross P&L|Net P&L|Trading Calendar/i).first()).toBeVisible({ timeout: 10000 })
 
 	// Save authentication state
 	await page.context().storageState({ path: "e2e/.auth/user.json" })

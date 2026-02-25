@@ -15,12 +15,39 @@ import {
 	type UpdateAssetInput,
 } from "@/lib/validations/asset"
 import { toCents } from "@/lib/money"
+import { auth } from "@/auth"
+
+/**
+ * Require authenticated session. Returns userId or throws.
+ */
+const requireSession = async (): Promise<string> => {
+	const session = await auth()
+	if (!session?.user?.id) {
+		throw new Error("Unauthorized")
+	}
+	return session.user.id
+}
+
+/**
+ * Require admin role. Returns userId or throws.
+ */
+const requireAdmin = async (): Promise<string> => {
+	const session = await auth()
+	if (!session?.user?.id) {
+		throw new Error("Unauthorized")
+	}
+	if (!session.user.isAdmin) {
+		throw new Error("Unauthorized")
+	}
+	return session.user.id
+}
 
 // ============================================================================
 // ASSET TYPES
 // ============================================================================
 
 export const getAssetTypes = async (): Promise<AssetType[]> => {
+	await requireSession()
 	const result = await db.query.assetTypes.findMany({
 		orderBy: [asc(assetTypes.name)],
 	})
@@ -28,6 +55,7 @@ export const getAssetTypes = async (): Promise<AssetType[]> => {
 }
 
 export const getActiveAssetTypes = async (): Promise<AssetType[]> => {
+	await requireSession()
 	const result = await db.query.assetTypes.findMany({
 		where: eq(assetTypes.isActive, true),
 		orderBy: [asc(assetTypes.name)],
@@ -36,6 +64,7 @@ export const getActiveAssetTypes = async (): Promise<AssetType[]> => {
 }
 
 export const getAssetType = async (id: string): Promise<AssetType | null> => {
+	await requireSession()
 	const result = await db.query.assetTypes.findFirst({
 		where: eq(assetTypes.id, id),
 	})
@@ -45,6 +74,7 @@ export const getAssetType = async (id: string): Promise<AssetType | null> => {
 export const createAssetType = async (
 	data: CreateAssetTypeInput
 ): Promise<{ success: boolean; data?: AssetType; error?: string }> => {
+	await requireAdmin()
 	const validated = createAssetTypeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -73,6 +103,7 @@ export const updateAssetType = async (
 	id: string,
 	data: UpdateAssetTypeInput
 ): Promise<{ success: boolean; data?: AssetType; error?: string }> => {
+	await requireAdmin()
 	const validated = updateAssetTypeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -100,6 +131,7 @@ export const updateAssetType = async (
 export const deleteAssetType = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	const existingAssets = await db.query.assets.findFirst({
 		where: eq(assets.assetTypeId, id),
 	})
@@ -127,6 +159,7 @@ export interface AssetWithType extends Asset {
 }
 
 export const getAssets = async (): Promise<AssetWithType[]> => {
+	await requireSession()
 	const result = await db.query.assets.findMany({
 		with: {
 			assetType: true,
@@ -137,6 +170,7 @@ export const getAssets = async (): Promise<AssetWithType[]> => {
 }
 
 export const getActiveAssets = async (): Promise<AssetWithType[]> => {
+	await requireSession()
 	const result = await db.query.assets.findMany({
 		where: eq(assets.isActive, true),
 		with: {
@@ -148,6 +182,7 @@ export const getActiveAssets = async (): Promise<AssetWithType[]> => {
 }
 
 export const getAsset = async (id: string): Promise<AssetWithType | null> => {
+	await requireSession()
 	const result = await db.query.assets.findFirst({
 		where: eq(assets.id, id),
 		with: {
@@ -173,6 +208,7 @@ const extractB3Prefix = (symbol: string): string | null => {
 export const getAssetBySymbol = async (
 	symbol: string
 ): Promise<AssetWithType | null> => {
+	await requireSession()
 	const upper = symbol.toUpperCase()
 	const prefix = extractB3Prefix(upper)
 
@@ -200,6 +236,7 @@ export const getAssetBySymbol = async (
 export const createAsset = async (
 	data: CreateAssetInput
 ): Promise<{ success: boolean; data?: Asset; error?: string }> => {
+	await requireAdmin()
 	const validated = createAssetSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -232,6 +269,7 @@ export const createAsset = async (
 export const updateAsset = async (
 	data: UpdateAssetInput
 ): Promise<{ success: boolean; data?: Asset; error?: string }> => {
+	await requireAdmin()
 	const validated = updateAssetSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -282,6 +320,7 @@ export const updateAsset = async (
 export const deleteAsset = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	await db.delete(assets).where(eq(assets.id, id))
 
 	revalidatePath("/settings")
@@ -294,6 +333,7 @@ export const toggleAssetActive = async (
 	id: string,
 	isActive: boolean
 ): Promise<{ success: boolean; error?: string }> => {
+	await requireAdmin()
 	await db
 		.update(assets)
 		.set({ isActive, updatedAt: new Date() })

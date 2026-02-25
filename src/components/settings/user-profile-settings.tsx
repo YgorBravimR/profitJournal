@@ -11,10 +11,9 @@ import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { LanguageSwitcher } from "./language-switcher"
 import { BrandSwitcher } from "./brand-switcher"
 import { useToast } from "@/components/ui/toast"
-import { getCurrentUser, updateUserProfile, changePassword } from "@/app/actions/auth"
+import { getCurrentUser, updateUserProfile, changePassword, type SafeUser } from "@/app/actions/auth"
 import { getUserSettings, updateUserSettings } from "@/app/actions/settings"
 import { Loader2 } from "lucide-react"
-import type { User } from "@/db/schema"
 
 /**
  * User profile settings component.
@@ -28,7 +27,7 @@ const UserProfileSettings = () => {
 	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
 	const [isLoading, setIsLoading] = useState(true)
-	const [user, setUser] = useState<User | null>(null)
+	const [user, setUser] = useState<SafeUser | null>(null)
 	const [showAllAccounts, setShowAllAccounts] = useState(false)
 
 	// Profile editing

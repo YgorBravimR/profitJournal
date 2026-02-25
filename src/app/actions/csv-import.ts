@@ -10,6 +10,7 @@ import { calculateAssetPnL } from "@/lib/calculations"
 import { getAssetFees } from "./accounts"
 import { bulkCreateTrades } from "./trades"
 import { requireAuth, getCurrentAccount } from "./auth"
+import { toSafeErrorMessage } from "@/lib/error-utils"
 import { fromCents } from "@/lib/money"
 
 // ==========================================
@@ -91,7 +92,17 @@ export interface CsvImportResult {
 // ==========================================
 
 // B3 futures prefixes that should be mapped to FUT suffix
-const B3_FUT_PREFIXES = ["WIN", "WDO", "DOL", "IND", "BGI", "CCM", "ICF", "SFI", "DI1"]
+const B3_FUT_PREFIXES = [
+	"WIN",
+	"WDO",
+	"DOL",
+	"IND",
+	"BGI",
+	"CCM",
+	"ICF",
+	"SFI",
+	"DI1",
+]
 
 /**
  * Find asset by symbol, trying multiple variations:
@@ -160,7 +171,9 @@ export const validateCsvTrades = async (
 				inArray(assets.symbol, [...symbolsToLookup])
 			),
 		})
-		const assetMap = new Map(foundAssets.map((a) => [a.symbol.toUpperCase(), a]))
+		const assetMap = new Map(
+			foundAssets.map((a) => [a.symbol.toUpperCase(), a])
+		)
 
 		// Batch lookup fees for found assets
 		const feesMap = new Map<string, { commission: number; fees: number }>()
@@ -170,19 +183,20 @@ export const validateCsvTrades = async (
 		}
 
 		// Get strategies, timeframes, and tags for the UI (tags & strategies are user-level, not account-level)
-		const [accountStrategies, accountTimeframes, accountTags] = await Promise.all([
-			db.query.strategies.findMany({
-				where: eq(strategies.userId, userId),
-				orderBy: (s, { asc }) => [asc(s.name)],
-			}),
-			db.query.timeframes.findMany({
-				orderBy: (t, { asc }) => [asc(t.name)],
-			}),
-			db.query.tags.findMany({
-				where: eq(tags.userId, userId),
-				orderBy: (t, { asc }) => [asc(t.name)],
-			}),
-		])
+		const [accountStrategies, accountTimeframes, accountTags] =
+			await Promise.all([
+				db.query.strategies.findMany({
+					where: eq(strategies.userId, userId),
+					orderBy: (s, { asc }) => [asc(s.name)],
+				}),
+				db.query.timeframes.findMany({
+					orderBy: (t, { asc }) => [asc(t.name)],
+				}),
+				db.query.tags.findMany({
+					where: eq(tags.userId, userId),
+					orderBy: (t, { asc }) => [asc(t.name)],
+				}),
+			])
 
 		// Process each trade
 		const processedTrades: ProcessedCsvTrade[] = []
@@ -359,10 +373,9 @@ export const validateCsvTrades = async (
 			},
 		}
 	} catch (error) {
-		console.error("Error validating CSV trades:", error)
 		return {
 			status: "error",
-			message: error instanceof Error ? error.message : "Failed to validate trades",
+			message: toSafeErrorMessage(error, "validateCsvTrades"),
 		}
 	}
 }
@@ -381,7 +394,9 @@ export const importCsvTrades = async (
 		const { accountId, userId } = await requireAuth()
 
 		// Filter to only valid/warning trades (not skipped)
-		const validTrades = trades.filter((t) => t.status !== "skipped" && t.assetFound)
+		const validTrades = trades.filter(
+			(t) => t.status !== "skipped" && t.assetFound
+		)
 
 		if (validTrades.length === 0) {
 			return {
@@ -399,9 +414,7 @@ export const importCsvTrades = async (
 			),
 		]
 		const editedTagIds = [
-			...new Set(
-				validTrades.flatMap((t) => t.edits.tagIds || [])
-			),
+			...new Set(validTrades.flatMap((t) => t.edits.tagIds || [])),
 		]
 
 		// Batch lookup strategies and tags by ID for resolving edits (user-level, not account-level)
@@ -421,10 +434,7 @@ export const importCsvTrades = async (
 		const tagIdMap = new Map<string, string>() // id → name
 		if (editedTagIds.length > 0) {
 			const foundTags = await db.query.tags.findMany({
-				where: and(
-					eq(tags.userId, userId),
-					inArray(tags.id, editedTagIds)
-				),
+				where: and(eq(tags.userId, userId), inArray(tags.id, editedTagIds)),
 			})
 			for (const t of foundTags) {
 				tagIdMap.set(t.id, t.name)
@@ -449,11 +459,15 @@ export const importCsvTrades = async (
 					.filter((name): name is string => !!name)
 				if (tagNames.length > 0) base.tagNames = tagNames
 			}
-			if (t.edits.preTradeThoughts) base.preTradeThoughts = t.edits.preTradeThoughts
-			if (t.edits.postTradeReflection) base.postTradeReflection = t.edits.postTradeReflection
+			if (t.edits.preTradeThoughts)
+				base.preTradeThoughts = t.edits.preTradeThoughts
+			if (t.edits.postTradeReflection)
+				base.postTradeReflection = t.edits.postTradeReflection
 			if (t.edits.lessonLearned) base.lessonLearned = t.edits.lessonLearned
-			if (t.edits.followedPlan !== undefined) base.followedPlan = t.edits.followedPlan
-			if (t.edits.disciplineNotes) base.disciplineNotes = t.edits.disciplineNotes
+			if (t.edits.followedPlan !== undefined)
+				base.followedPlan = t.edits.followedPlan
+			if (t.edits.disciplineNotes)
+				base.disciplineNotes = t.edits.disciplineNotes
 			if (t.edits.stopLoss) base.stopLoss = t.edits.stopLoss
 			if (t.edits.takeProfit) base.takeProfit = t.edits.takeProfit
 
@@ -480,10 +494,9 @@ export const importCsvTrades = async (
 			},
 		}
 	} catch (error) {
-		console.error("Error importing CSV trades:", error)
 		return {
 			status: "error",
-			message: error instanceof Error ? error.message : "Failed to import trades",
+			message: toSafeErrorMessage(error, "importCsvTrades"),
 		}
 	}
 }

@@ -112,7 +112,7 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 		defaultRiskPerTrade: initialPlan?.riskPerTradeCents
 			? String(fromCents(initialPlan.riskPerTradeCents))
 			: null,
-		maxDailyLoss: initialPlan?.dailyLossCents ?? null,
+		maxDailyLoss: initialPlan?.dailyLossCents ? Number(initialPlan.dailyLossCents) : null,
 	}
 
 	return (

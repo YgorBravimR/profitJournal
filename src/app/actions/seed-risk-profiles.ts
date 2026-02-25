@@ -4,6 +4,7 @@ import { db } from "@/db/drizzle"
 import { riskManagementProfiles } from "@/db/schema"
 import { eq } from "drizzle-orm"
 import { requireAuth } from "@/app/actions/auth"
+import { auth } from "@/auth"
 import { RISK_PROFILE_TEMPLATES } from "@/lib/risk-profile-templates"
 
 // ==========================================
@@ -44,6 +45,12 @@ const TEMPLATE_DESCRIPTIONS: Record<string, string> = {
  */
 const seedBuiltInRiskProfiles = async (): Promise<string[]> => {
 	const { userId } = await requireAuth()
+
+	// Only admins can seed system-level risk profiles
+	const session = await auth()
+	if (!session?.user?.isAdmin) {
+		throw new Error("Unauthorized: admin access required")
+	}
 
 	// Fetch all existing active profile names in one query
 	const existingRows = await db.query.riskManagementProfiles.findMany({
