@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/db/drizzle"
-import { assets, strategies, tags, timeframes } from "@/db/schema"
+import { assets, strategies, tags, timeframes, trades as tradesTable } from "@/db/schema"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
 import type { ActionResponse } from "@/types"
 import type { CsvTradeInput } from "@/lib/csv-parser"
@@ -12,6 +12,7 @@ import { bulkCreateTrades } from "./trades"
 import { requireAuth, getCurrentAccount } from "./auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { fromCents } from "@/lib/money"
+import { computeTradeHash } from "@/lib/deduplication"
 
 // ==========================================
 // Types for CSV Import Processing
@@ -69,6 +70,7 @@ export interface CsvValidationResult {
 		valid: number
 		warnings: number
 		skipped: number
+		duplicates: number
 		grossPnl: number
 		netPnl: number
 		totalCosts: number
@@ -143,7 +145,7 @@ const findAssetBySymbol = (
  * Validates parsed CSV trades, looks up assets, and calculates P&L with fees
  */
 export const validateCsvTrades = async (
-	trades: CsvTradeInput[]
+	csvTrades: CsvTradeInput[]
 ): Promise<ActionResponse<CsvValidationResult>> => {
 	try {
 		const { accountId, userId } = await requireAuth()
@@ -154,7 +156,7 @@ export const validateCsvTrades = async (
 
 		// Collect unique asset symbols (normalized + original + FUT variants)
 		const symbolsToLookup = new Set<string>()
-		for (const trade of trades) {
+		for (const trade of csvTrades) {
 			const normalized = trade.normalizedAsset.toUpperCase()
 			symbolsToLookup.add(normalized)
 			symbolsToLookup.add(trade.originalAssetCode.toUpperCase())
@@ -206,9 +208,54 @@ export const validateCsvTrades = async (
 		let validCount = 0
 		let warningCount = 0
 		let skippedCount = 0
+		let duplicateCount = 0
 
-		for (let i = 0; i < trades.length; i++) {
-			const trade = trades[i]
+		// Pre-compute dedup hashes for batch lookup
+		const hashToIndex = new Map<string, number[]>()
+		for (let i = 0; i < csvTrades.length; i++) {
+			const trade = csvTrades[i]
+			if (trade.entryPrice && trade.entryDate && trade.positionSize) {
+				const hash = computeTradeHash({
+					accountId,
+					asset: trade.normalizedAsset.toUpperCase(),
+					direction: trade.direction,
+					entryDate: new Date(trade.entryDate),
+					entryPrice: Number(trade.entryPrice),
+					exitPrice: trade.exitPrice ? Number(trade.exitPrice) : null,
+					positionSize: Number(trade.positionSize),
+				})
+				const existing = hashToIndex.get(hash) || []
+				existing.push(i)
+				hashToIndex.set(hash, existing)
+			}
+		}
+
+		// Batch query existing hashes
+		const allHashes = [...hashToIndex.keys()]
+		const existingHashes = new Set<string>()
+		if (allHashes.length > 0) {
+			// Query in batches of 100 to avoid SQL parameter limits
+			const HASH_BATCH = 100
+			for (let i = 0; i < allHashes.length; i += HASH_BATCH) {
+				const batch = allHashes.slice(i, i + HASH_BATCH)
+				const found = await db
+					.select({ hash: tradesTable.deduplicationHash })
+					.from(tradesTable)
+					.where(
+						and(
+							eq(tradesTable.accountId, accountId),
+							inArray(tradesTable.deduplicationHash, batch),
+							eq(tradesTable.isArchived, false),
+						)
+					)
+				for (const row of found) {
+					if (row.hash) existingHashes.add(row.hash)
+				}
+			}
+		}
+
+		for (let i = 0; i < csvTrades.length; i++) {
+			const trade = csvTrades[i]
 			const rowNumber = i + 1
 
 			const processed: ProcessedCsvTrade = {
@@ -239,6 +286,27 @@ export const validateCsvTrades = async (
 				skippedCount++
 				processedTrades.push(processed)
 				continue
+			}
+
+			// Check for duplicates via dedup hash
+			if (trade.entryPrice && trade.entryDate && trade.positionSize) {
+				const hash = computeTradeHash({
+					accountId,
+					asset: assetConfig.symbol.toUpperCase(),
+					direction: trade.direction,
+					entryDate: new Date(trade.entryDate),
+					entryPrice: Number(trade.entryPrice),
+					exitPrice: trade.exitPrice ? Number(trade.exitPrice) : null,
+					positionSize: Number(trade.positionSize),
+				})
+				if (existingHashes.has(hash)) {
+					processed.status = "skipped"
+					processed.skipReason = "Duplicate: this trade has already been imported"
+					skippedCount++
+					duplicateCount++
+					processedTrades.push(processed)
+					continue
+				}
 			}
 
 			processed.assetFound = true
@@ -354,14 +422,15 @@ export const validateCsvTrades = async (
 
 		return {
 			status: "success",
-			message: `Validated ${trades.length} trades`,
+			message: `Validated ${csvTrades.length} trades`,
 			data: {
 				trades: processedTrades,
 				summary: {
-					total: trades.length,
+					total: csvTrades.length,
 					valid: validCount,
 					warnings: warningCount,
 					skipped: skippedCount,
+					duplicates: duplicateCount,
 					grossPnl: summaryGrossPnl,
 					netPnl: summaryNetPnl,
 					totalCosts: summaryTotalCosts,

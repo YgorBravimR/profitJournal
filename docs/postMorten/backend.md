@@ -46,3 +46,35 @@ The cascading failure path:
 - `src/lib/user-crypto.ts`
 - `next.config.ts`
 - All server actions in `src/app/actions/` (consumers of encryption)
+
+---
+
+## [BUG-2026-02-25] Non-admin users get "Unauthorized: admin access required" on Settings page
+
+**Date:** 2026-02-25
+**Severity:** High
+**Affected Area:** `src/app/[locale]/(app)/settings/page.tsx`, `src/app/actions/seed-risk-profiles.ts`
+
+### Cause
+The `seedBuiltInRiskProfiles()` server action contained a hard authorization gate that threw `new Error("Unauthorized: admin access required")` when called by a non-admin user (line 52 of `seed-risk-profiles.ts`). The Settings page server component (`settings/page.tsx`, line 27) called this function unconditionally on every render, regardless of the user's role.
+
+This is a contract mismatch: the function was written to be admin-only (fail loudly), but the call site was an all-users page that already had the `user` object with `isAdmin` available from the `getCurrentUser()` call in the same `Promise.all` block.
+
+### Effect
+Any non-admin user navigating to the Settings page received an unhandled server error: `Error: Unauthorized: admin access required`. The entire Settings page failed to render, completely blocking non-admin users from accessing their profile, account, asset, timeframe, and tag settings.
+
+### Solution
+Applied a two-layer fix (defense in depth):
+
+1. **`seed-risk-profiles.ts`**: Changed the admin check from `throw new Error(...)` to `return []`. The function now silently returns an empty array for non-admin users, making it inherently safe to call from any context. This aligns with the function's own JSDoc which describes it as "safe to call on every page load."
+
+2. **`settings/page.tsx`**: Added a conditional guard `if (user?.isAdmin)` before calling `seedBuiltInRiskProfiles()`. This prevents the unnecessary auth check and DB query for non-admin users, improving performance as a secondary benefit.
+
+### Prevention
+- Server actions that are meant to be called from shared pages should never throw on authorization checks. Use early returns instead.
+- When a page-level server component already has user role information, use it as a gatekeeper before calling role-restricted functions.
+- Review all `throw new Error("Unauthorized...")` patterns in server actions to ensure they are only reachable from appropriately guarded call sites.
+
+### Related Files
+- `src/app/[locale]/(app)/settings/page.tsx`
+- `src/app/actions/seed-risk-profiles.ts`

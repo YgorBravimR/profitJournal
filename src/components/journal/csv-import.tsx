@@ -35,6 +35,7 @@ import {
 import { APP_TIMEZONE } from "@/lib/dates"
 import { CsvImportSummary, type FilterStatus } from "./csv-import-summary"
 import { CsvTradeCard } from "./csv-trade-card"
+import { CsvSlTpGenerator } from "./csv-sl-tp-generator"
 
 export const CsvImport = () => {
 	const t = useTranslations("journal.csv")
@@ -447,6 +448,12 @@ export const CsvImport = () => {
 						selectableCount={selectableTrades.length}
 						onSelectAll={handleSelectAll}
 						allSelected={allSelected}
+					/>
+
+					{/* SL/TP Generator */}
+					<CsvSlTpGenerator
+						processedTrades={processedTrades}
+						onApply={setProcessedTrades}
 					/>
 
 					{/* Trade Cards */}

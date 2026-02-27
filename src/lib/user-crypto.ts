@@ -6,10 +6,12 @@
  */
 
 import { cache } from "react"
-import { eq } from "drizzle-orm"
-import { db } from "@/db/drizzle"
-import { users } from "@/db/schema"
-import { decryptDek, encryptField, decryptField, decryptNumericField } from "@/lib/crypto"
+// Imports preserved for re-activation of field-level encryption:
+// import { eq } from "drizzle-orm"
+// import { db } from "@/db/drizzle"
+// import { users } from "@/db/schema"
+// import { decryptDek } from "@/lib/crypto"
+import { encryptField, decryptField, decryptNumericField } from "@/lib/crypto"
 
 // ==========================================
 // DEK RETRIEVAL (cached per-request)
@@ -19,22 +21,25 @@ import { decryptDek, encryptField, decryptField, decryptNumericField } from "@/l
  * Get the decrypted DEK for a user. Cached per-request via React.cache().
  * Returns null if the user has no DEK (pre-migration user) or decryption fails.
  */
-const getUserDek = cache(async (userId: string): Promise<string | null> => {
-	const user = await db.query.users.findFirst({
-		where: eq(users.id, userId),
-		columns: { encryptedDek: true },
-	})
+const getUserDek = cache(async (_userId: string): Promise<string | null> => {
+	// Field-level encryption disabled. Infrastructure preserved for re-activation.
+	// To re-enable: uncomment original implementation below and run scripts/migrate-encrypt-existing-data.ts
+	return null
 
-	if (!user?.encryptedDek) return null
-
-	const dek = decryptDek(user.encryptedDek)
-	if (!dek) {
-		console.error(
-			`[getUserDek] Failed to decrypt DEK for user ${userId}. ` +
-			"This likely means ENCRYPTION_MASTER_KEY is missing or differs from the key used to encrypt the data."
-		)
-	}
-	return dek
+	// --- ORIGINAL IMPLEMENTATION (preserved for re-activation) ---
+	// const user = await db.query.users.findFirst({
+	// 	where: eq(users.id, userId),
+	// 	columns: { encryptedDek: true },
+	// })
+	// if (!user?.encryptedDek) return null
+	// const dek = decryptDek(user.encryptedDek)
+	// if (!dek) {
+	// 	console.error(
+	// 		`[getUserDek] Failed to decrypt DEK for user ${userId}. ` +
+	// 		"This likely means ENCRYPTION_MASTER_KEY is missing or differs from the key used to encrypt the data."
+	// 	)
+	// }
+	// return dek
 })
 
 // ==========================================

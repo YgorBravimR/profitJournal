@@ -78,6 +78,13 @@
       "when": 1771750484251,
       "tag": "0010_spotty_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1772175434987,
+      "tag": "0011_bright_solo",
+      "breakpoints": true
     }
   ]
 }

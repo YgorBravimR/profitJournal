@@ -18,7 +18,7 @@ import { formatDateKey } from "@/lib/dates"
 import { getUserSettings, type UserSettingsData } from "./settings"
 import { requireAuth } from "@/app/actions/auth"
 import { getServerEffectiveNow } from "@/lib/effective-date"
-import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
+import { getUserDek, decryptTradeFields, decryptAccountFields } from "@/lib/user-crypto"
 
 // ============================================================================
 // TYPES
@@ -786,20 +786,26 @@ export const getMonthlyResultsWithProp = async (
 		const userSettings = settingsResult.data
 		const report = reportResult.data
 
+		// Decrypt account fields before reading numeric values
+		const dek = await getUserDek(authContext.userId)
+		const decryptedAccount = dek
+			? decryptAccountFields(account as unknown as Record<string, unknown>, dek) as unknown as typeof account
+			: account
+
 		// Use account-specific settings (from tradingAccounts table)
 		// isPropAccount is determined by accountType, other settings come from account
-		const isPropAccount = account.accountType === "prop"
-		const profitSharePercentage = Number(account.profitSharePercentage)
-		const dayTradeTaxRate = Number(account.dayTradeTaxRate)
+		const isPropAccount = decryptedAccount.accountType === "prop"
+		const profitSharePercentage = Number(decryptedAccount.profitSharePercentage)
+		const dayTradeTaxRate = Number(decryptedAccount.dayTradeTaxRate)
 
 		// Build settings object for calculation using account-specific values
 		const accountSettings: UserSettingsData = {
 			...userSettings,
 			isPropAccount,
-			propFirmName: account.propFirmName,
+			propFirmName: decryptedAccount.propFirmName,
 			profitSharePercentage,
 			dayTradeTaxRate,
-			showTaxEstimates: account.showTaxEstimates,
+			showTaxEstimates: decryptedAccount.showTaxEstimates,
 		}
 
 		// Calculate prop profit breakdown using account-specific settings
@@ -814,7 +820,7 @@ export const getMonthlyResultsWithProp = async (
 				prop,
 				settings: {
 					isPropAccount,
-					propFirmName: account.propFirmName,
+					propFirmName: decryptedAccount.propFirmName,
 					profitSharePercentage,
 					dayTradeTaxRate,
 				},
@@ -870,11 +876,14 @@ export const getMonthlyProjection = async (): Promise<{
 			return { status: "error", message: "Failed to get user settings" }
 		}
 
-		// Decrypt trade fields
+		// Decrypt trade and account fields
 		const dek = await getUserDek(authContext.userId)
 		const monthTrades = dek
 			? rawMonthTrades.map((t) => decryptTradeFields(t, dek))
 			: rawMonthTrades
+		const decryptedAccount = dek
+			? decryptAccountFields(account as unknown as Record<string, unknown>, dek) as unknown as typeof account
+			: account
 
 		const userSettings = settingsResult.data
 		const totalTradingDays = getBusinessDaysInMonth(now)
@@ -895,11 +904,11 @@ export const getMonthlyProjection = async (): Promise<{
 		// Use account-specific settings for projection
 		const accountSettings: UserSettingsData = {
 			...userSettings,
-			isPropAccount: account.accountType === "prop",
-			propFirmName: account.propFirmName,
-			profitSharePercentage: Number(account.profitSharePercentage),
-			dayTradeTaxRate: Number(account.dayTradeTaxRate),
-			showTaxEstimates: account.showTaxEstimates,
+			isPropAccount: decryptedAccount.accountType === "prop",
+			propFirmName: decryptedAccount.propFirmName,
+			profitSharePercentage: Number(decryptedAccount.profitSharePercentage),
+			dayTradeTaxRate: Number(decryptedAccount.dayTradeTaxRate),
+			showTaxEstimates: decryptedAccount.showTaxEstimates,
 		}
 
 		// Calculate projected prop values using account-specific settings

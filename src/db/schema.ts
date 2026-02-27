@@ -422,6 +422,9 @@ export const trades = pgTable(
 		avgExitPrice: decimal("avg_exit_price", { precision: 20, scale: 8 }),
 		remainingQuantity: decimal("remaining_quantity", { precision: 20, scale: 8 }).default("0"),
 
+		// Deduplication (SHA-256 hash of accountId|asset|direction|entryDate|entryPrice|exitPrice|positionSize)
+		deduplicationHash: varchar("deduplication_hash", { length: 64 }),
+
 		// Metadata
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
@@ -438,6 +441,7 @@ export const trades = pgTable(
 		index("trades_outcome_idx").on(table.outcome),
 		index("trades_strategy_idx").on(table.strategyId),
 		index("trades_timeframe_idx").on(table.timeframeId),
+		index("trades_dedup_hash_idx").on(table.deduplicationHash),
 	]
 )
 
@@ -844,6 +848,32 @@ export const settings = pgTable("settings", {
 		.notNull(),
 })
 
+// Nota de Corretagem Import Audit Table
+export const notaImports = pgTable(
+	"nota_imports",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		accountId: uuid("account_id")
+			.notNull()
+			.references(() => tradingAccounts.id, { onDelete: "cascade" }),
+		fileName: varchar("file_name", { length: 255 }).notNull(),
+		fileHash: varchar("file_hash", { length: 64 }).notNull(),
+		notaDate: timestamp("nota_date", { withTimezone: true }).notNull(),
+		brokerName: varchar("broker_name", { length: 100 }),
+		totalFills: integer("total_fills").notNull().default(0),
+		matchedFills: integer("matched_fills").notNull().default(0),
+		unmatchedFills: integer("unmatched_fills").notNull().default(0),
+		tradesEnriched: integer("trades_enriched").notNull().default(0),
+		status: varchar("status", { length: 20 }).notNull().default("completed"),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [
+		index("nota_imports_account_idx").on(table.accountId),
+		index("nota_imports_file_hash_idx").on(table.fileHash),
+		index("nota_imports_date_idx").on(table.notaDate),
+	]
+)
+
 // User Settings Table (structured settings for trading account)
 export const userSettings = pgTable("user_settings", {
 	id: uuid("id").primaryKey().defaultRandom(),
@@ -918,6 +948,7 @@ export const tradingAccountsRelations = relations(tradingAccounts, ({ one, many 
 	dailyAssetSettings: many(dailyAssetSettings),
 	accountAssetSettings: many(accountAssetSettings),
 	monthlyPlans: many(monthlyPlans),
+	notaImports: many(notaImports),
 }))
 
 // Session Relations
@@ -1104,6 +1135,14 @@ export const riskManagementProfilesRelations = relations(riskManagementProfiles,
 	monthlyPlans: many(monthlyPlans),
 }))
 
+// Nota Imports Relations
+export const notaImportsRelations = relations(notaImports, ({ one }) => ({
+	account: one(tradingAccounts, {
+		fields: [notaImports.accountId],
+		references: [tradingAccounts.id],
+	}),
+}))
+
 // Monthly Plans Relations
 export const monthlyPlansRelations = relations(monthlyPlans, ({ one }) => ({
 	account: one(tradingAccounts, {
@@ -1202,3 +1241,6 @@ export type NewMonthlyPlan = typeof monthlyPlans.$inferInsert
 
 export type RiskManagementProfileRow = typeof riskManagementProfiles.$inferSelect
 export type NewRiskManagementProfileRow = typeof riskManagementProfiles.$inferInsert
+
+export type NotaImport = typeof notaImports.$inferSelect
+export type NewNotaImport = typeof notaImports.$inferInsert

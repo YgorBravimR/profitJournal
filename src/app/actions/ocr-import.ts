@@ -11,7 +11,7 @@ import {
 	calculateRMultiple,
 	determineOutcome,
 } from "@/lib/calculations"
-import { fromCents, toCents } from "@/lib/money"
+import { fromCents, toCents, toNumericString } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getBreakevenTicks } from "@/app/actions/accounts"
@@ -211,20 +211,20 @@ export const createTradeFromOcr = async (
 				strategyId: validated.strategyId ?? null,
 				entryDate,
 				exitDate,
-				entryPrice: avgEntryPrice.toString(),
-				exitPrice: avgExitPrice?.toString() ?? null,
-				positionSize: totalEntryQuantity.toString(),
-				pnl: pnl !== undefined ? toCents(pnl).toString() : null,
+				entryPrice: toNumericString(avgEntryPrice)!,
+				exitPrice: toNumericString(avgExitPrice),
+				positionSize: toNumericString(totalEntryQuantity)!,
+				pnl: pnl !== undefined ? toNumericString(toCents(pnl)) : null,
 				outcome,
 				preTradeThoughts,
 				// Scaled trade fields
 				executionMode: "scaled",
-				totalEntryQuantity: totalEntryQuantity.toString(),
-				totalExitQuantity: totalExitQuantity.toString(),
-				avgEntryPrice: avgEntryPrice.toString(),
-				avgExitPrice: avgExitPrice?.toString() ?? null,
-				remainingQuantity: (totalEntryQuantity - totalExitQuantity).toString(),
-				contractsExecuted: (totalEntryQuantity + totalExitQuantity).toString(),
+				totalEntryQuantity: toNumericString(totalEntryQuantity)!,
+				totalExitQuantity: toNumericString(totalExitQuantity)!,
+				avgEntryPrice: toNumericString(avgEntryPrice)!,
+				avgExitPrice: toNumericString(avgExitPrice),
+				remainingQuantity: toNumericString(totalEntryQuantity - totalExitQuantity)!,
+				contractsExecuted: toNumericString(totalEntryQuantity + totalExitQuantity)!,
 			})
 			.returning()
 
@@ -233,13 +233,13 @@ export const createTradeFromOcr = async (
 			tradeId: trade.id,
 			executionType: ex.executionType as "entry" | "exit",
 			executionDate: new Date(ex.executionDate),
-			price: ex.price.toString(),
-			quantity: ex.quantity.toString(),
+			price: toNumericString(ex.price)!,
+			quantity: toNumericString(ex.quantity)!,
 			orderType: "market" as const,
 			commission: "0",
 			fees: "0",
 			slippage: "0",
-			executionValue: calculateExecutionValue(ex.price, ex.quantity).toString(),
+			executionValue: toNumericString(calculateExecutionValue(ex.price, ex.quantity))!,
 		}))
 
 		const createdExecutions = await db
@@ -426,23 +426,23 @@ export const bulkCreateTradesFromOcr = async (
 						strategyId: validated.strategyId ?? null,
 						entryDate,
 						exitDate,
-						entryPrice: avgEntryPrice.toString(),
-						exitPrice: avgExitPrice?.toString() ?? null,
-						positionSize: totalEntryQuantity.toString(),
-						pnl: pnl !== undefined ? toCents(pnl).toString() : null,
+						entryPrice: toNumericString(avgEntryPrice)!,
+						exitPrice: toNumericString(avgExitPrice),
+						positionSize: toNumericString(totalEntryQuantity)!,
+						pnl: pnl !== undefined ? toNumericString(toCents(pnl)) : null,
 						outcome,
 						preTradeThoughts,
 						executionMode: "scaled",
-						totalEntryQuantity: totalEntryQuantity.toString(),
-						totalExitQuantity: totalExitQuantity.toString(),
-						avgEntryPrice: avgEntryPrice.toString(),
-						avgExitPrice: avgExitPrice?.toString() ?? null,
-						remainingQuantity: (
+						totalEntryQuantity: toNumericString(totalEntryQuantity)!,
+						totalExitQuantity: toNumericString(totalExitQuantity)!,
+						avgEntryPrice: toNumericString(avgEntryPrice)!,
+						avgExitPrice: toNumericString(avgExitPrice),
+						remainingQuantity: toNumericString(
 							totalEntryQuantity - totalExitQuantity
-						).toString(),
-						contractsExecuted: (
+						)!,
+						contractsExecuted: toNumericString(
 							totalEntryQuantity + totalExitQuantity
-						).toString(),
+						)!,
 					})
 					.returning()
 
@@ -451,16 +451,16 @@ export const bulkCreateTradesFromOcr = async (
 					tradeId: trade.id,
 					executionType: ex.executionType as "entry" | "exit",
 					executionDate: new Date(ex.executionDate),
-					price: ex.price.toString(),
-					quantity: ex.quantity.toString(),
+					price: toNumericString(ex.price)!,
+					quantity: toNumericString(ex.quantity)!,
 					orderType: "market" as const,
 					commission: "0",
 					fees: "0",
 					slippage: "0",
-					executionValue: calculateExecutionValue(
+					executionValue: toNumericString(calculateExecutionValue(
 						ex.price,
 						ex.quantity
-					).toString(),
+					))!,
 				}))
 
 				const createdExecutions = await db

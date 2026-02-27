@@ -23,8 +23,10 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 		getCurrentUser(),
 	])
 
-	// Idempotent: seeds the 5 professional risk models if they don't exist yet
-	await seedBuiltInRiskProfiles()
+	// Idempotent: seeds the 5 professional risk models if they don't exist yet (admin-only)
+	if (user?.isAdmin) {
+		await seedBuiltInRiskProfiles()
+	}
 
 	return (
 		<div className="flex h-full flex-col">

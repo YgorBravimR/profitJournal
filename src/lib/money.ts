@@ -75,6 +75,21 @@ export const parseCurrencyToCents = (input: string): number => {
 }
 
 /**
+ * Normalize a numeric value to a clean string for DB storage.
+ * Strips trailing zeros and decimal points to ensure consistent formatting.
+ * e.g., 187295.00000000 → "187295", 182990.5 → "182990.5", 10 → "10"
+ *
+ * @param value - Number or numeric string to normalize
+ * @returns Normalized string, or null if value is null/undefined
+ */
+export const toNumericString = (value: number | string | null | undefined): string | null => {
+	if (value === null || value === undefined) return null
+	const num = typeof value === "string" ? Number(value) : value
+	if (Number.isNaN(num)) return null
+	return num.toString()
+}
+
+/**
  * Add two cent values safely
  */
 export const addCents = (a: number, b: number): number => {

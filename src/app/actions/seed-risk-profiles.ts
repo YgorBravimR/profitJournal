@@ -46,10 +46,10 @@ const TEMPLATE_DESCRIPTIONS: Record<string, string> = {
 const seedBuiltInRiskProfiles = async (): Promise<string[]> => {
 	const { userId } = await requireAuth()
 
-	// Only admins can seed system-level risk profiles
+	// Only admins can seed system-level risk profiles — silently skip for non-admin users
 	const session = await auth()
 	if (!session?.user?.isAdmin) {
-		throw new Error("Unauthorized: admin access required")
+		return []
 	}
 
 	// Fetch all existing active profile names in one query

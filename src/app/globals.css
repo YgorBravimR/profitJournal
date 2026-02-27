@@ -266,6 +266,85 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   MIDNIGHT GOLD THEME - Dark Reader-style warm darkness
+   To activate: add data-brand="midnight" to the body in layout
+   Ultra-dark warm backgrounds with cream text and gold accents
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="midnight"] {
+  /* Ultra-dark warm backgrounds */
+  --color-bg-100: #181a1b;
+  --color-bg-200: #1e2225;
+  --color-bg-300: #2a2e31;
+  --color-bg-stripe: #1a1e20;
+
+  /* Warm cream text */
+  --color-txt-100: #e8e6e3;
+  --color-txt-200: #a9a5a0;
+  --color-txt-300: #7a7672;
+  --color-txt-placeholder: #5a5654;
+
+  /* Gold accent (same as Bravo) + muted blue */
+  --color-acc-100: #D4AF37;
+  --color-acc-200: #4A90D9;
+  --color-fb-error: #E74C3C;
+
+  /* Trading Colors - Emerald + Coral */
+  --color-trade-buy: #10B981;
+  --color-trade-sell: #FF4E64;
+  --color-warning: #FBBF24;
+  --color-trade-buy-muted: rgba(16, 185, 129, 0.12);
+  --color-trade-sell-muted: rgba(255, 78, 100, 0.12);
+
+  /* Action Colors */
+  --color-action-buy: #38BDF8;
+  --color-action-sell: #FB923C;
+  --color-action-buy-muted: rgba(56, 189, 248, 0.15);
+  --color-action-sell-muted: rgba(251, 146, 60, 0.15);
+
+  /* Brand Colors - Gold scale */
+  --color-brand-400: #E5B84B;
+  --color-brand-500: #D4AF37;
+  --color-brand-600: #B8941F;
+}
+
+/* Midnight theme + Light mode (warm earthy aesthetic) */
+[data-brand="midnight"][data-theme="light"] {
+  /* Warm parchment backgrounds */
+  --color-bg-100: #FAF8F5;
+  --color-bg-200: #F0EDE8;
+  --color-bg-300: #E0DCD5;
+  --color-bg-stripe: #F5F2ED;
+
+  /* Warm dark text */
+  --color-txt-100: #1a1816;
+  --color-txt-200: #5c5650;
+  --color-txt-300: #7a746e;
+  --color-txt-placeholder: #a09a94;
+
+  /* Adjusted accents for light backgrounds */
+  --color-acc-100: #B8941F;
+  --color-acc-200: #2563EB;
+  --color-fb-error: #DC2626;
+
+  /* Trading Colors - darker for light mode */
+  --color-trade-buy: #059669;
+  --color-trade-sell: #DC2626;
+  --color-trade-buy-muted: rgba(5, 150, 105, 0.15);
+  --color-trade-sell-muted: rgba(220, 38, 38, 0.15);
+
+  /* Action Colors - darker for light mode */
+  --color-action-buy: #0284C7;
+  --color-action-sell: #EA580C;
+  --color-action-buy-muted: rgba(2, 132, 199, 0.15);
+  --color-action-sell-muted: rgba(234, 88, 12, 0.15);
+
+  /* Brand Colors - adjusted for light */
+  --color-brand-400: #D4AF37;
+  --color-brand-500: #B8941F;
+  --color-brand-600: #996F00;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    RETRO THEME - Warm Metallic Gold, Silver & Rose Gold
    To activate: add data-brand="retro" to the body in layout
    Sophisticated, muted metallic tones with warm earth undertones

@@ -8,7 +8,8 @@ import { eq, and } from "drizzle-orm"
 import { db } from "@/db/drizzle"
 import { users, tradingAccounts, type User, type TradingAccount } from "@/db/schema"
 import { createRateLimiter } from "@/lib/rate-limiter"
-import { generateKey, encryptDek, encryptField } from "@/lib/crypto"
+// Field-level encryption disabled — imports preserved for re-activation:
+// import { generateKey, encryptDek, encryptField } from "@/lib/crypto"
 import { getUserDek, decryptAccountFields } from "@/lib/user-crypto"
 
 /** User type without passwordHash/encryptedDek — safe to send to the client */
@@ -60,21 +61,19 @@ export const registerUser = async (
 		// Hash password
 		const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
 
-		// Generate per-user Data Encryption Key (envelope encryption)
-		const dek = generateKey()
-		const encryptedDekValue = encryptDek(dek)
+		// Field-level encryption disabled — skip DEK generation
+		// To re-enable: uncomment the lines below and remove the plaintext insert
+		// const dek = generateKey()
+		// const encryptedDekValue = encryptDek(dek)
+		// const encryptedName = encryptField(name, dek) ?? name
 
-		// Encrypt the user's name before storage
-		const encryptedName = encryptField(name, dek) ?? name
-
-		// Create user with encrypted DEK and name
 		const [newUser] = await db
 			.insert(users)
 			.values({
-				name: encryptedName,
+				name,
 				email: email.toLowerCase(),
 				passwordHash,
-				encryptedDek: encryptedDekValue,
+				encryptedDek: null,
 			})
 			.returning()
 
@@ -382,12 +381,13 @@ export const updateUserProfile = async (
 			return { status: "error", error: validated.error.issues[0].message }
 		}
 
-		// Encrypt name if user has a DEK
 		const updateData = { ...validated.data } as Record<string, unknown>
-		const dek = await getUserDek(session.user.id)
-		if (dek && updateData.name) {
-			updateData.name = encryptField(updateData.name as string, dek) ?? updateData.name
-		}
+		// Field-level encryption disabled — name stored as plaintext
+		// To re-enable:
+		// const dek = await getUserDek(session.user.id)
+		// if (dek && updateData.name) {
+		// 	updateData.name = encryptField(updateData.name as string, dek) ?? updateData.name
+		// }
 
 		await db
 			.update(users)
