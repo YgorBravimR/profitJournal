@@ -5,6 +5,7 @@ import { format } from "date-fns"
 import { Button } from "@/components/ui/button"
 import { LoadingSpinner } from "@/components/shared"
 import { formatR } from "@/lib/formatting"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import type { SourceStats } from "@/types/monte-carlo"
 
 interface StatsPreviewProps {
@@ -114,7 +115,7 @@ export const StatsPreview = ({
 					<p className="mb-s-200 text-tiny text-txt-200 font-medium">
 						{t("strategiesBreakdown")}
 					</p>
-					<div className="bg-bg-100 p-s-200 max-h-32 overflow-y-auto rounded-md">
+					<ScrollArea className="max-h-32"><div className="bg-bg-100 p-s-200 rounded-md">
 						{stats.strategiesBreakdown.map((s, i) => (
 							<div
 								key={i}
@@ -127,7 +128,7 @@ export const StatsPreview = ({
 								</span>
 							</div>
 						))}
-					</div>
+					</div></ScrollArea>
 				</div>
 			)}
 

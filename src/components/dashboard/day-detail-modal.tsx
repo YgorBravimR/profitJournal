@@ -9,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { DaySummaryStats } from "./day-summary-stats"
 import { DayEquityCurve } from "./day-equity-curve"
 import { DayTradesList } from "./day-trades-list"
@@ -85,8 +86,9 @@ export const DayDetailModal = ({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent
 				id="day-detail-dialog"
-				className="max-h-[90vh] max-w-3xl overflow-y-auto"
+				className="max-h-[90vh] max-w-3xl overflow-hidden"
 			>
+				<ScrollArea className="max-h-[calc(90vh-3rem)]">
 				<DialogHeader>
 					<DialogTitle className="capitalize">{dayName}</DialogTitle>
 				</DialogHeader>
@@ -125,6 +127,7 @@ export const DayDetailModal = ({
 						{t("dayDetail.noData")}
 					</div>
 				)}
+				</ScrollArea>
 			</DialogContent>
 		</Dialog>
 	)

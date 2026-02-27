@@ -91,7 +91,7 @@ export const POST = async (req: NextRequest) => {
 				preTradeThoughts: `Imported from ${preview.brokerName} statement`,
 				postTradeReflection: trade.warnings.join("; "),
 				followedPlan: true,
-				plannedRiskAmount: dek ? encryptField(toNumericString(trade.totalCommission)!, dek) : toNumericString(trade.totalCommission)!,
+				plannedRiskAmount: null,
 				plannedRMultiple: null,
 				realizedRMultiple: null,
 				isArchived: false,

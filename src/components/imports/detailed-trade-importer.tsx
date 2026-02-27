@@ -12,6 +12,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { Label } from "@/components/ui/label"
 import {
 	Select,
@@ -277,7 +278,7 @@ export const DetailedTradeImporter = ({
 				{/* Trade List */}
 				<div className="space-y-3">
 					<h4 className="text-sm font-medium text-txt-100">Trades</h4>
-					<div className="max-h-96 overflow-y-auto space-y-2">
+					<ScrollArea className="max-h-96"><div className="space-y-2">
 						{preview.trades.map((trade, idx) => (
 							<div key={idx} className="p-3 rounded border border-bg-300 bg-bg-200">
 								<div className="flex justify-between items-start mb-2">
@@ -308,7 +309,7 @@ export const DetailedTradeImporter = ({
 								)}
 							</div>
 						))}
-					</div>
+					</div></ScrollArea>
 				</div>
 
 				{/* Error Display */}

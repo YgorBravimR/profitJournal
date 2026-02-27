@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { DatePicker } from "@/components/ui/date-picker"
 import { X } from "lucide-react"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import { formatDateKey } from "@/lib/dates"
@@ -38,12 +39,12 @@ export const InlineExecutionRow = ({
 
 	return (
 		<div className="gap-s-200 grid grid-cols-[4fr_2fr_3fr_2fr_3fr_1fr] items-center">
-			<Input
+			<DatePicker
 				id={`execution-${data.id}-date`}
-				type="date"
-				max={todayDateString}
-				value={data.date}
-				onChange={(e) => onChange(data.id, "date", e.target.value)}
+				value={data.date ? new Date(data.date + "T12:00:00") : undefined}
+				onChange={(date) => onChange(data.id, "date", date ? formatDateKey(date) : "")}
+				maxDate={new Date(todayDateString + "T23:59:59")}
+				formatStr="P"
 				className="text-small h-8"
 			/>
 			<Input

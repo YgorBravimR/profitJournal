@@ -16,11 +16,12 @@ import {
 const brandColors: Record<Brand, { primary: string; bg: string }> = {
 	default: { primary: "#8080ff", bg: "#151C2C" },
 	bravo: { primary: "#D4AF37", bg: "#151C2C" },
-	midnight: { primary: "#D4AF37", bg: "#181a1b" },
+	midnight: { primary: "#AAAF37", bg: "#181a1b" },
 	retro: { primary: "#dddd7a", bg: "#171614" },
 	luxury: { primary: "#C0C0C0", bg: "#141416" },
 	tsr: { primary: "#2563EB", bg: "#161B22" },
 	neon: { primary: "#00FFFF", bg: "#12121C" },
+	lannister: { primary: "#D4A843", bg: "#2D0A10" },
 }
 
 interface BrandColorSwatchProps {

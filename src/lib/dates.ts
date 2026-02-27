@@ -203,6 +203,19 @@ export const formatBrtTimeShort = (date: Date): string => {
 }
 
 /**
+ * Map a next-intl locale string to the corresponding date-fns Locale object.
+ * Used by react-day-picker for locale-aware month/day names and formatting.
+ */
+export const getDateFnsLocale = async (locale: string) => {
+	if (locale === "pt-BR") {
+		const { ptBR } = await import("date-fns/locale/pt-BR")
+		return ptBR
+	}
+	const { enUS } = await import("date-fns/locale/en-US")
+	return enUS
+}
+
+/**
  * Get relative time string (e.g., "2 days ago")
  * Uses absolute timestamp differences — timezone doesn't affect this.
  */

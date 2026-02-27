@@ -22,6 +22,7 @@ import {
 	DialogFooter,
 } from "@/components/ui/dialog"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { DatePicker } from "@/components/ui/date-picker"
 import { createExecution, updateExecution } from "@/app/actions/executions"
 import type { TradeExecution } from "@/db/schema"
 import { Loader2 } from "lucide-react"
@@ -231,13 +232,11 @@ export const ExecutionForm = ({
 							<Label id="label-execution-date" htmlFor="executionDate">
 								{t("date")}
 							</Label>
-							<Input
+							<DatePicker
 								id="executionDate"
-								type="date"
-								max={formatDateKey(effectiveDate)}
-								value={formData.executionDate}
-								onChange={(e) => handleChange("executionDate", e.target.value)}
-								required
+								value={formData.executionDate ? new Date(formData.executionDate + "T12:00:00") : undefined}
+								onChange={(date) => handleChange("executionDate", date ? formatDateKey(date) : "")}
+								maxDate={effectiveDate}
 							/>
 						</div>
 						<div className="space-y-s-200">

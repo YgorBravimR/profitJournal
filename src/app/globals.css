@@ -661,6 +661,87 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   LANNISTER THEME - Crimson & Gold, House Lannister of Casterly Rock
+   To activate: add data-brand="lannister" to the body in layout
+   Rich crimson field, burnished gold lion — luxurious, powerful, regal
+   "A Lannister always pays his debts."
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="lannister"] {
+  /* Deep dark crimson — the blood-red field of House Lannister */
+  --color-bg-100: #1E0508;
+  --color-bg-200: #2D0A10;
+  --color-bg-300: #421218;
+  --color-bg-stripe: #170407;
+
+  /* Warm white/ivory text — parchment letters sealed in gold */
+  --color-txt-100: #FAF3E8;
+  --color-txt-200: #D4B896;
+  --color-txt-300: #9A8068;
+  --color-txt-placeholder: #6A5448;
+
+  /* Burnished gold primary (sigil lion) + deep wine secondary */
+  --color-acc-100: #D4A843;
+  --color-acc-200: #B8903A;
+  --color-fb-error: #FF6B35;
+
+  /* Trading Colors — emerald profit on crimson bg; bright coral for loss (avoids crimson clash) */
+  --color-trade-buy: #4DC87A;
+  --color-trade-sell: #FF8C42;
+  --color-warning: #E8C547;
+  --color-trade-buy-muted: rgba(77, 200, 122, 0.18);
+  --color-trade-sell-muted: rgba(255, 140, 66, 0.2);
+
+  /* Action Colors — steel blue buy, amber-gold sell (both pop on crimson) */
+  --color-action-buy: #5B9BD5;
+  --color-action-sell: #E8A840;
+  --color-action-buy-muted: rgba(91, 155, 213, 0.2);
+  --color-action-sell-muted: rgba(232, 168, 64, 0.2);
+
+  /* Brand Colors — Lannister gold scale */
+  --color-brand-400: #E8C86A;
+  --color-brand-500: #D4A843;
+  --color-brand-600: #A8842E;
+}
+
+/* Lannister theme + Light mode (Crimson rose — Casterly Rock at dawn, warm rose-tinted marble) */
+[data-brand="lannister"][data-theme="light"] {
+  /* Warm blush ivory backgrounds — rose-tinted marble halls in morning light */
+  --color-bg-100: #FEF5F5;
+  --color-bg-200: #F8E8E9;
+  --color-bg-300: #EDD2D4;
+  --color-bg-stripe: #FBF0F1;
+
+  /* Deep ink text — near-black with crimson undertone */
+  --color-txt-100: #1A0608;
+  --color-txt-200: #6B1C24;
+  --color-txt-300: #9A5860;
+  --color-txt-placeholder: #C49098;
+
+  /* Deep burnished gold primary + rich crimson secondary — powerful on pale rose */
+  --color-acc-100: #9A7020;
+  --color-acc-200: #8C1C28;
+  --color-fb-error: #C0390D;
+
+  /* Trading Colors — forest green profit, rich crimson-red loss (dark enough on pale bg) */
+  --color-trade-buy: #1E7A48;
+  --color-trade-sell: #B53020;
+  --color-warning: #A06C00;
+  --color-trade-buy-muted: rgba(30, 122, 72, 0.15);
+  --color-trade-sell-muted: rgba(181, 48, 32, 0.15);
+
+  /* Action Colors — deeper tones for light mode readability */
+  --color-action-buy: #1A5EA8;
+  --color-action-sell: #A8640C;
+  --color-action-buy-muted: rgba(26, 94, 168, 0.15);
+  --color-action-sell-muted: rgba(168, 100, 12, 0.15);
+
+  /* Brand Colors — deeper gold scale for pale backgrounds */
+  --color-brand-400: #C8A840;
+  --color-brand-500: #9A7020;
+  --color-brand-600: #6E4E12;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CALENDAR UTILITIES
    Gradient for days where both B3 and NYSE are closed (holidays)
    ═══════════════════════════════════════════════════════════════════════════ */

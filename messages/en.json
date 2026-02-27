@@ -45,7 +45,11 @@
 		"expandSidebar": "Expand sidebar",
 		"collapseSidebar": "Collapse sidebar",
 		"openMenu": "Open menu",
-		"closeMenu": "Close menu"
+		"closeMenu": "Close menu",
+		"datePicker": {
+			"placeholder": "Select date",
+			"rangePlaceholder": "Select date range"
+		}
 	},
 	"nav": {
 		"dashboard": "Dashboard",
@@ -58,6 +62,7 @@
 		"monthly": "Monthly",
 		"settings": "Settings",
 		"monitor": "Monitor",
+		"riskSimulation": "Risk Simulation",
 		"newTrade": "New Trade"
 	},
 	"market": {
@@ -1148,7 +1153,8 @@
 				"generate": "Generate Values",
 				"regenerate": "Re-generate",
 				"applied": "Applied SL/TP to {count} trades",
-				"lossNote": "Loss trades: SL = exit price (1R)"
+				"lossNote": "Loss trades: SL = exit price (1R)",
+				"generatingSlTp": "Generating SL/TP values..."
 			}
 		},
 		"nota": {
@@ -1624,7 +1630,8 @@
 				"retro": "Retro Metallic",
 				"luxury": "Luxury Silver",
 				"tsr": "TSR Blue",
-				"neon": "Neon Cyber"
+				"neon": "Neon Cyber",
+				"lannister": "Lannister Crimson"
 			}
 		},
 		"account": {
@@ -2002,7 +2009,8 @@
 		"recalculatingR": "Recalculating R-values for all trades...",
 		"recalculatingPnL": "Recalculating P&L for all trades...",
 		"processingImage": "Analyzing screenshot...",
-		"importingOcr": "Importing {count} trades from image..."
+		"importingOcr": "Importing {count} trades from image...",
+		"runningRiskSimulation": "Running risk simulation..."
 	},
 	"auth": {
 		"login": {
@@ -2080,5 +2088,137 @@
 			"lowercase": "One lowercase letter",
 			"number": "One number"
 		}
+	},
+	"riskSimulation": {
+		"title": "Risk Simulation",
+		"subtitle": "Simulate applying risk management rules to your historical trades",
+		"runSimulation": "Run Simulation",
+		"tradeBreakdown": "Trade Breakdown",
+		"viewDecisionTrace": "View Decision Trace",
+		"config": {
+			"dateRange": "Date Range",
+			"from": "From",
+			"to": "To",
+			"prefillFrom": "Prefill Parameters From",
+			"monthlyPlan": "Monthly Plan",
+			"manual": "Manual Input"
+		},
+		"params": {
+			"simpleMode": "Simple Mode Parameters",
+			"advancedMode": "Advanced Mode (Decision Tree)",
+			"advancedDescription": "Using risk profile decision tree. Edit account balance and limits below.",
+			"accountBalance": "Account Balance",
+			"riskPerTrade": "Risk Per Trade",
+			"dailyLossPercent": "Daily Loss Limit",
+			"dailyProfitTarget": "Daily Profit Target",
+			"monthlyLossPercent": "Monthly Loss Limit",
+			"weeklyLossPercent": "Weekly Loss Limit",
+			"maxDailyTrades": "Max Daily Trades",
+			"maxConsecutiveLosses": "Max Consecutive Losses",
+			"reduceRiskAfterLoss": "Reduce risk after loss",
+			"increaseRiskAfterWin": "Increase risk after win",
+			"riskReductionFactor": "Reduction Factor",
+			"profitReinvestmentPercent": "Reinvestment %",
+			"dailyLoss": "Daily Loss Limit",
+			"monthlyLoss": "Monthly Loss Limit",
+			"baseRisk": "Base Risk (from profile)"
+		},
+		"preview": {
+			"loading": "Loading trade preview...",
+			"noTrades": "No closed trades found in this date range.",
+			"totalTrades": "{count} closed trades",
+			"withSl": "{count} with SL",
+			"withoutSl": "{count} without SL",
+			"slCoverage": "{percent}% SL coverage",
+			"days": "{count} trading days",
+			"assets": "Assets: {list}",
+			"allTradesLackSl": "All trades lack a stop loss. Simulation cannot run — position sizing requires SL distance.",
+			"someTradesLackSl": "{count} trades without SL will be skipped in the simulation."
+		},
+		"summary": {
+			"title": "Simulation Results",
+			"originalPnl": "Original P&L",
+			"simulatedPnl": "Simulated P&L",
+			"delta": "Delta",
+			"performance": "Performance Comparison",
+			"winRate": "Win Rate",
+			"profitFactor": "Profit Factor",
+			"avgR": "Avg R-Multiple",
+			"maxDrawdown": "Max Drawdown",
+			"tradeCounts": "Trade Counts",
+			"totalTrades": "Total Trades",
+			"executed": "Executed",
+			"skipped": "Skipped",
+			"daysHitLimit": "Days Hit Loss Limit",
+			"daysHitTarget": "Days Hit Profit Target"
+		},
+		"chart": {
+			"title": "Equity Curve: Original vs Simulated",
+			"original": "Original",
+			"simulated": "Simulated"
+		},
+		"table": {
+			"title": "Trade Comparison",
+			"day": "Day",
+			"trade": "Trade",
+			"asset": "Asset",
+			"status": "Status",
+			"risk": "Risk",
+			"originalPnl": "Original P&L",
+			"simulatedPnl": "Sim P&L",
+			"simR": "Sim R",
+			"riskReason": "Risk Reason",
+			"page": "Page {current} of {total}",
+			"prevPage": "Previous page",
+			"nextPage": "Next page",
+			"statuses": {
+				"executed": "Executed",
+				"skipped_no_sl": "No SL",
+				"skipped_daily_limit": "Daily Limit",
+				"skipped_daily_target": "Daily Target",
+				"skipped_max_trades": "Max Trades",
+				"skipped_consecutive_loss": "Consec. Loss",
+				"skipped_monthly_limit": "Monthly Limit",
+				"skipped_weekly_limit": "Weekly Limit",
+				"skipped_recovery_complete": "Recovery Done",
+				"skipped_gain_stop": "Gain Stop"
+			}
+		},
+		"skipped": {
+			"title": "{count} trades were skipped",
+			"toggle": "Toggle skipped trades details",
+			"reasons": {
+				"noSl": "No stop loss",
+				"dailyLimit": "Daily loss limit hit",
+				"dailyTarget": "Daily profit target hit",
+				"maxTrades": "Max daily trades reached",
+				"consecutiveLoss": "Consecutive losses exceeded",
+				"monthlyLimit": "Monthly loss limit hit",
+				"weeklyLimit": "Weekly loss limit hit"
+			}
+		},
+		"trace": {
+			"title": "Decision Trace",
+			"weekOf": "Week of {label}",
+			"noData": "No trace data available.",
+			"skipped": "SKIPPED",
+			"dailyLimitHit": "Day stopped: daily loss limit hit",
+			"dailyTargetHit": "Day stopped: daily profit target hit"
+		}
+	},
+	"commandMenu": {
+		"placeholder": "Type a command or search...",
+		"navigation": "Navigation",
+		"actions": "Actions",
+		"noResults": "No results found."
+	},
+	"breadcrumb": {
+		"home": "Home",
+		"tradeDetails": "Trade Details",
+		"newTrade": "New Trade",
+		"editTrade": "Edit Trade",
+		"editPlaybook": "Edit Playbook",
+		"playbookDetails": "Playbook Details",
+		"newPlaybook": "New Playbook"
 	}
 }

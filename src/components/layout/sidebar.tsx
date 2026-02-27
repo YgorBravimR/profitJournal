@@ -2,62 +2,13 @@
 
 import { useTranslations } from "next-intl"
 import { Link, usePathname } from "@/i18n/routing"
-import {
-	LayoutDashboard,
-	BookOpen,
-	BarChart3,
-	FileText,
-	FileBarChart,
-	CalendarDays,
-	Settings,
-	ChevronLeft,
-	ChevronRight,
-	Target,
-	Dices,
-	Plus,
-	RotateCcw,
-	type LucideIcon,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, RotateCcw } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
+import { navItems } from "@/lib/navigation"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { AccountSwitcher } from "./account-switcher"
 import { UserMenu } from "./user-menu"
-
-interface NavItem {
-	labelKey:
-		| "dashboard"
-		| "journal"
-		| "analytics"
-		| "playbook"
-		| "reports"
-		| "monthly"
-		| "commandCenter"
-		| "monteCarlo"
-		| "settings"
-	href:
-		| "/"
-		| "/journal"
-		| "/analytics"
-		| "/playbook"
-		| "/reports"
-		| "/monthly"
-		| "/command-center"
-		| "/monte-carlo"
-		| "/settings"
-	icon: LucideIcon
-}
-
-const navItems: NavItem[] = [
-	{ labelKey: "dashboard", href: "/", icon: LayoutDashboard },
-	{ labelKey: "commandCenter", href: "/command-center", icon: Target },
-	{ labelKey: "journal", href: "/journal", icon: BookOpen },
-	{ labelKey: "analytics", href: "/analytics", icon: BarChart3 },
-	{ labelKey: "monteCarlo", href: "/monte-carlo", icon: Dices },
-	{ labelKey: "playbook", href: "/playbook", icon: FileText },
-	{ labelKey: "reports", href: "/reports", icon: FileBarChart },
-	{ labelKey: "monthly", href: "/monthly", icon: CalendarDays },
-	{ labelKey: "settings", href: "/settings", icon: Settings },
-]
 
 interface SidebarProps {
 	isCollapsed: boolean
@@ -166,7 +117,8 @@ const Sidebar = ({
 			</div>
 
 			{/* Navigation */}
-			<nav className="flex-1 space-y-1 p-2">
+			<ScrollArea className="flex-1">
+			<nav className="space-y-1 p-2">
 				{navItems.map((item) => {
 					const isActive =
 						item.href === "/"
@@ -201,6 +153,7 @@ const Sidebar = ({
 					)
 				})}
 			</nav>
+			</ScrollArea>
 
 			{/* Replay Mode Badge */}
 			{isReplayAccount && replayDate && (

@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { useTranslations } from "next-intl"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import type { ProcessedCsvTrade } from "@/app/actions/csv-import"
 
 interface AssetSlTpConfig {
@@ -31,7 +32,9 @@ export const CsvSlTpGenerator = ({
 	onApply,
 }: CsvSlTpGeneratorProps) => {
 	const t = useTranslations("journal.csv.slTpGenerator")
+	const { showLoading, updateLoading, hideLoading } = useLoadingOverlay()
 	const [isEnabled, setIsEnabled] = useState(false)
+	const [isGenerating, setIsGenerating] = useState(false)
 
 	// Extract unique assets from valid/warning trades with assetConfig
 	const uniqueAssets = useMemo(() => {
@@ -99,17 +102,13 @@ export const CsvSlTpGenerator = ({
 		return t("range", { min, max })
 	}
 
-	const handleGenerate = () => {
-		const updatedTrades = processedTrades.map((trade) => {
-			// Skip skipped trades, and trades without assetConfig
-			if (trade.status === "skipped" || !trade.assetConfig) {
-				return trade
-			}
+	const delay = (ms: number): Promise<void> =>
+		new Promise((resolve) => setTimeout(resolve, ms))
 
-			// Skip trades without required data
-			if (trade.originalData.entryPrice === null || !trade.originalData.entryPrice) {
-				return trade
-			}
+	const generateSlTpForTrade = useCallback(
+		(trade: ProcessedCsvTrade): ProcessedCsvTrade => {
+			if (trade.status === "skipped" || !trade.assetConfig) return trade
+			if (trade.originalData.entryPrice === null || !trade.originalData.entryPrice) return trade
 
 			const config = assetConfigs[trade.assetConfig.symbol]
 			if (!config) return trade
@@ -126,7 +125,6 @@ export const CsvSlTpGenerator = ({
 			let tpPrice: number
 
 			if (isWin) {
-				// Win/breakeven: random SL within variance, random TP within variance
 				const slTicks = getRandomInt(
 					config.slTicks - config.slVariance,
 					config.slTicks + config.slVariance
@@ -144,7 +142,6 @@ export const CsvSlTpGenerator = ({
 					tpPrice = entryPrice - tpTicks * tickSize
 				}
 			} else {
-				// Loss: SL = exitPrice (1R loss), random TP within variance
 				if (!exitPrice) return trade
 
 				slPrice = exitPrice
@@ -168,9 +165,52 @@ export const CsvSlTpGenerator = ({
 					takeProfit: tpPrice,
 				},
 			}
-		})
+		},
+		[assetConfigs]
+	)
+
+	const handleGenerate = async () => {
+		const eligibleIndices: number[] = []
+		for (let i = 0; i < processedTrades.length; i++) {
+			const trade = processedTrades[i]
+			if (
+				trade.status !== "skipped" &&
+				trade.assetConfig &&
+				assetConfigs[trade.assetConfig.symbol]
+			) {
+				eligibleIndices.push(i)
+			}
+		}
+
+		if (eligibleIndices.length === 0) return
+
+		setIsGenerating(true)
+		showLoading({ message: t("generatingSlTp"), progress: 0 })
+
+		const DURATION_MS = 5000
+		const CHUNKS = 10
+		const chunkDelay = DURATION_MS / CHUNKS
+		const chunkSize = Math.ceil(eligibleIndices.length / CHUNKS)
+
+		const updatedTrades = [...processedTrades]
+
+		for (let i = 0; i < CHUNKS; i++) {
+			const start = i * chunkSize
+			const end = Math.min(start + chunkSize, eligibleIndices.length)
+
+			for (let j = start; j < end; j++) {
+				const tradeIndex = eligibleIndices[j]
+				updatedTrades[tradeIndex] = generateSlTpForTrade(updatedTrades[tradeIndex])
+			}
+
+			const progress = Math.round(((i + 1) / CHUNKS) * 100)
+			updateLoading({ progress })
+			await delay(chunkDelay)
+		}
 
 		onApply(updatedTrades)
+		hideLoading()
+		setIsGenerating(false)
 	}
 
 	if (uniqueAssets.length === 0) {
@@ -318,6 +358,7 @@ export const CsvSlTpGenerator = ({
 					<Button
 						id="csv-sl-tp-generator-button"
 						onClick={handleGenerate}
+						disabled={isGenerating}
 						className="w-full"
 					>
 						{t("generate")}

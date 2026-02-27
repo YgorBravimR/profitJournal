@@ -38,6 +38,8 @@ import {
 	extractTradesWithVision,
 } from "@/app/actions/ocr-import"
 import { cn } from "@/lib/utils"
+import { formatDateKey } from "@/lib/dates"
+import { DatePicker } from "@/components/ui/date-picker"
 
 // ==========================================
 // Types
@@ -176,7 +178,7 @@ export const OcrImport = () => {
 				}))
 
 				setEditedTrades(trades)
-				setEditedDate(new Date().toISOString().split("T")[0])
+				setEditedDate(formatDateKey(new Date()))
 
 				hideLoading()
 				setStep("review")
@@ -599,11 +601,10 @@ export const OcrImport = () => {
 									All trades will use this date combined with their execution times
 								</p>
 							</div>
-							<Input
+							<DatePicker
 								id="ocr-trade-date"
-								type="date"
-								value={editedDate}
-								onChange={(e) => setEditedDate(e.target.value)}
+								value={editedDate ? new Date(editedDate + "T12:00:00") : undefined}
+								onChange={(date) => setEditedDate(date ? formatDateKey(date) : "")}
 								className="w-48"
 							/>
 						</div>

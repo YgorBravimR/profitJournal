@@ -1,12 +1,13 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, Filter, X } from "lucide-react"
+import { Filter, X } from "lucide-react"
 import { useTranslations } from "next-intl"
+import type { DateRange } from "react-day-picker"
 import { Button } from "@/components/ui/button"
 import { FilterPill } from "@/components/shared"
+import { DateRangePicker } from "@/components/ui/date-range-picker"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
-import { formatDateKey } from "@/lib/dates"
 
 export interface FilterState {
 	dateFrom: Date | null
@@ -77,11 +78,6 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 	{ key: "allTime", getDates: () => ({ from: null, to: null }) },
 ]
 
-const formatDateForInput = (date: Date | null): string => {
-	if (!date) return ""
-	return formatDateKey(date)
-}
-
 export const FilterPanel = ({
 	filters,
 	onFiltersChange,
@@ -119,14 +115,12 @@ export const FilterPanel = ({
 		})
 	}
 
-	const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const date = e.target.value ? new Date(e.target.value) : null
-		onFiltersChange({ ...filters, dateFrom: date })
-	}
-
-	const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		const date = e.target.value ? new Date(e.target.value) : null
-		onFiltersChange({ ...filters, dateTo: date })
+	const handleDateRangeChange = (range: DateRange | undefined) => {
+		onFiltersChange({
+			...filters,
+			dateFrom: range?.from ?? null,
+			dateTo: range?.to ?? null,
+		})
 	}
 
 	const toggleArrayFilter = <T extends string>(
@@ -210,24 +204,16 @@ export const FilterPanel = ({
 						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
 							{t("customDateRange")}
 						</label>
-						<div className="flex items-center gap-s-300">
-							<div className="flex items-center gap-s-200">
-								<Calendar className="h-4 w-4 text-txt-300" />
-								<input
-									type="date"
-									value={formatDateForInput(filters.dateFrom)}
-									onChange={handleDateFromChange}
-									className="rounded-md border border-bg-300 bg-bg-100 px-s-300 py-s-200 text-small text-txt-100"
-								/>
-							</div>
-							<span className="text-txt-300">{tCommon("to")}</span>
-							<input
-								type="date"
-								value={formatDateForInput(filters.dateTo)}
-								onChange={handleDateToChange}
-								className="rounded-md border border-bg-300 bg-bg-100 px-s-300 py-s-200 text-small text-txt-100"
-							/>
-						</div>
+						<DateRangePicker
+							id="analytics-date-range"
+							value={
+								filters.dateFrom || filters.dateTo
+									? { from: filters.dateFrom ?? undefined, to: filters.dateTo ?? undefined }
+									: undefined
+							}
+							onChange={handleDateRangeChange}
+							className="max-w-sm"
+						/>
 					</div>
 
 					{/* Assets */}

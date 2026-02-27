@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { DataTable } from "@/components/ui/data-table"
 import { AssetForm } from "./asset-form"
 import {
 	deleteAsset,
@@ -12,6 +13,7 @@ import {
 	type AssetWithType,
 } from "@/app/actions/assets"
 import type { AssetType } from "@/db/schema"
+import type { ColumnDef } from "@tanstack/react-table"
 import {
 	Plus,
 	Search,
@@ -21,7 +23,6 @@ import {
 	ToggleRight,
 	Loader2,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { fromCents } from "@/lib/money"
 
 interface AssetListProps {
@@ -29,7 +30,7 @@ interface AssetListProps {
 	assetTypes: AssetType[]
 }
 
-export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
+const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 	const t = useTranslations("settings.assets")
 	const tCommon = useTranslations("common")
 	const [search, setSearch] = useState("")
@@ -75,6 +76,146 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 		setFormOpen(false)
 		setEditingAsset(null)
 	}
+
+	const columns: ColumnDef<AssetWithType>[] = useMemo(
+		() => [
+			{
+				accessorKey: "symbol",
+				header: t("symbol"),
+				cell: ({ row }) => (
+					<span className="font-mono font-medium text-acc-100">
+						{row.original.symbol}
+					</span>
+				),
+			},
+			{
+				accessorKey: "name",
+				header: t("name"),
+				cell: ({ row }) => (
+					<span className="text-txt-100">{row.original.name}</span>
+				),
+			},
+			{
+				accessorKey: "assetType.name",
+				header: t("type"),
+				cell: ({ row }) => (
+					<Badge
+						id={`badge-asset-type-${row.original.id}`}
+						variant="outline"
+						className="text-tiny"
+					>
+						{row.original.assetType.name}
+					</Badge>
+				),
+				enableSorting: false,
+			},
+			{
+				accessorKey: "tickSize",
+				header: () => <span className="flex justify-end">{t("tickSize")}</span>,
+				cell: ({ row }) => (
+					<span className="flex justify-end font-mono text-txt-200">
+						{parseFloat(row.original.tickSize)}
+					</span>
+				),
+			},
+			{
+				accessorKey: "tickValue",
+				header: () => <span className="flex justify-end">{t("tickValue")}</span>,
+				cell: ({ row }) => (
+					<span className="flex justify-end font-mono text-txt-200">
+						{fromCents(row.original.tickValue)}
+					</span>
+				),
+			},
+			{
+				accessorKey: "currency",
+				header: () => <span className="flex justify-center">{t("currency")}</span>,
+				cell: ({ row }) => (
+					<span className="flex justify-center text-txt-200">
+						{row.original.currency}
+					</span>
+				),
+				enableSorting: false,
+			},
+			{
+				id: "status",
+				header: () => <span className="flex justify-center">{tCommon("status")}</span>,
+				cell: ({ row }) => (
+					<span className="flex justify-center">
+						<Badge
+							id={`badge-asset-status-${row.original.id}`}
+							variant={row.original.isActive ? "default" : "secondary"}
+							className="text-tiny"
+						>
+							{row.original.isActive ? t("active") : t("inactive")}
+						</Badge>
+					</span>
+				),
+				enableSorting: false,
+			},
+			{
+				id: "actions",
+				header: () => <span className="flex justify-end">{tCommon("actions")}</span>,
+				cell: ({ row }) => {
+					const asset = row.original
+					return (
+						<div className="flex items-center justify-end gap-s-200">
+							{isPending && pendingId === asset.id ? (
+								<Loader2 className="h-4 w-4 animate-spin text-txt-300" />
+							) : (
+								<>
+									<Button
+										id={`asset-edit-${asset.id}`}
+										variant="ghost"
+										size="sm"
+										onClick={() => handleEdit(asset)}
+										className="h-8 w-8 p-0"
+										aria-label={`${tCommon("edit")} ${asset.symbol}`}
+									>
+										<Pencil className="h-4 w-4" aria-hidden="true" />
+									</Button>
+									<Button
+										id={`asset-toggle-active-${asset.id}`}
+										variant="ghost"
+										size="sm"
+										onClick={() => handleToggleActive(asset)}
+										className="h-8 w-8 p-0"
+										aria-label={
+											asset.isActive ? t("deactivate") : t("activate")
+										}
+									>
+										{asset.isActive ? (
+											<ToggleRight
+												className="h-4 w-4 text-trade-buy"
+												aria-hidden="true"
+											/>
+										) : (
+											<ToggleLeft
+												className="h-4 w-4 text-txt-300"
+												aria-hidden="true"
+											/>
+										)}
+									</Button>
+									<Button
+										id={`asset-delete-${asset.id}`}
+										variant="ghost"
+										size="sm"
+										onClick={() => handleDelete(asset)}
+										className="h-8 w-8 p-0 text-fb-error hover:text-fb-error"
+										aria-label={`${tCommon("delete")} ${asset.symbol}`}
+									>
+										<Trash2 className="h-4 w-4" aria-hidden="true" />
+									</Button>
+								</>
+							)}
+						</div>
+					)
+				},
+				enableSorting: false,
+			},
+		],
+		[t, tCommon, isPending, pendingId]
+	)
 
 	return (
 		<div className="space-y-m-400">
@@ -138,137 +279,11 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 			</div>
 
 			{/* Assets Table */}
-			<div className="rounded-lg border border-bg-300 overflow-hidden">
-				<table className="w-full">
-					<thead className="bg-bg-300">
-						<tr>
-							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								{t("symbol")}
-							</th>
-							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								{t("name")}
-							</th>
-							<th className="px-m-400 py-s-300 text-left text-small font-medium text-txt-200">
-								{t("type")}
-							</th>
-							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								{t("tickSize")}
-							</th>
-							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								{t("tickValue")}
-							</th>
-							<th className="px-m-400 py-s-300 text-center text-small font-medium text-txt-200">
-								{t("currency")}
-							</th>
-							<th className="px-m-400 py-s-300 text-center text-small font-medium text-txt-200">
-								{tCommon("status")}
-							</th>
-							<th className="px-m-400 py-s-300 text-right text-small font-medium text-txt-200">
-								{tCommon("actions")}
-							</th>
-						</tr>
-					</thead>
-					<tbody className="divide-y divide-bg-300">
-						{filteredAssets.length === 0 ? (
-							<tr>
-								<td
-									colSpan={8}
-									className="px-m-400 py-l-700 text-center text-txt-300"
-								>
-									{t("noAssets")}
-								</td>
-							</tr>
-						) : (
-							filteredAssets.map((asset, index) => (
-								<tr
-									key={asset.id}
-									className={cn(
-										"transition-colors hover:bg-bg-300/50",
-										index % 2 === 1 && "bg-bg-stripe",
-										!asset.isActive && "opacity-50"
-									)}
-								>
-									<td className="px-m-400 py-s-300">
-										<span className="font-mono font-medium text-acc-100">
-											{asset.symbol}
-										</span>
-									</td>
-									<td className="px-m-400 py-s-300 text-txt-100">
-										{asset.name}
-									</td>
-									<td className="px-m-400 py-s-300">
-										<Badge id={`badge-asset-type-${asset.id}`} variant="outline" className="text-tiny">
-											{asset.assetType.name}
-										</Badge>
-									</td>
-									<td className="px-m-400 py-s-300 text-right font-mono text-txt-200">
-										{parseFloat(asset.tickSize)}
-									</td>
-									<td className="px-m-400 py-s-300 text-right font-mono text-txt-200">
-										{fromCents(asset.tickValue)}
-									</td>
-									<td className="px-m-400 py-s-300 text-center text-txt-200">
-										{asset.currency}
-									</td>
-									<td className="px-m-400 py-s-300 text-center">
-										<Badge
-											id={`badge-asset-status-${asset.id}`}
-											variant={asset.isActive ? "default" : "secondary"}
-											className="text-tiny"
-										>
-											{asset.isActive ? t("active") : t("inactive")}
-										</Badge>
-									</td>
-									<td className="px-m-400 py-s-300">
-										<div className="flex items-center justify-end gap-s-200">
-											{isPending && pendingId === asset.id ? (
-												<Loader2 className="h-4 w-4 animate-spin text-txt-300" />
-											) : (
-												<>
-													<Button
-														id={`asset-edit-${asset.id}`}
-														variant="ghost"
-														size="sm"
-														onClick={() => handleEdit(asset)}
-														className="h-8 w-8 p-0"
-														aria-label={`${tCommon("edit")} ${asset.symbol}`}
-													>
-														<Pencil className="h-4 w-4" aria-hidden="true" />
-													</Button>
-													<Button
-														id={`asset-toggle-active-${asset.id}`}
-														variant="ghost"
-														size="sm"
-														onClick={() => handleToggleActive(asset)}
-														className="h-8 w-8 p-0"
-														aria-label={asset.isActive ? t("deactivate") : t("activate")}
-													>
-														{asset.isActive ? (
-															<ToggleRight className="h-4 w-4 text-trade-buy" aria-hidden="true" />
-														) : (
-															<ToggleLeft className="h-4 w-4 text-txt-300" aria-hidden="true" />
-														)}
-													</Button>
-													<Button
-														id={`asset-delete-${asset.id}`}
-														variant="ghost"
-														size="sm"
-														onClick={() => handleDelete(asset)}
-														className="h-8 w-8 p-0 text-fb-error hover:text-fb-error"
-														aria-label={`${tCommon("delete")} ${asset.symbol}`}
-													>
-														<Trash2 className="h-4 w-4" aria-hidden="true" />
-													</Button>
-												</>
-											)}
-										</div>
-									</td>
-								</tr>
-							))
-						)}
-					</tbody>
-				</table>
-			</div>
+			<DataTable
+				columns={columns}
+				data={filteredAssets}
+				emptyMessage={t("noAssets")}
+			/>
 
 			{/* Asset Form Dialog */}
 			<AssetForm
@@ -280,3 +295,5 @@ export const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 		</div>
 	)
 }
+
+export { AssetList }

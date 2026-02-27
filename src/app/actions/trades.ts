@@ -1055,28 +1055,30 @@ export const bulkCreateTrades = async (
 					let outcome: "win" | "loss" | "breakeven" | undefined
 					let realizedR = tradeData.realizedRMultiple
 
-					// Always calculate plannedRiskAmount and plannedRMultiple from SL/TP (never user input)
+					// Get asset config early — needed for both risk and P&L calculation
+					const assetConfig = assetMap.get(tradeData.asset.toUpperCase())
+
+					// Calculate plannedRiskAmount and plannedRMultiple from SL/TP using tick-based conversion
 					let plannedRiskAmount: number | undefined
 					let plannedRMultiple: number | undefined
 					if (tradeData.stopLoss) {
-						const riskPerUnit =
-							tradeData.direction === "long"
-								? tradeData.entryPrice - tradeData.stopLoss
-								: tradeData.stopLoss - tradeData.entryPrice
-						plannedRiskAmount = Math.abs(riskPerUnit * tradeData.positionSize)
+						const priceDiff = Math.abs(tradeData.entryPrice - tradeData.stopLoss)
+
+						if (assetConfig) {
+							const tickSize = parseFloat(assetConfig.tickSize)
+							const tickValue = fromCents(assetConfig.tickValue)
+							const ticksAtRisk = priceDiff / tickSize
+							plannedRiskAmount = ticksAtRisk * tickValue * tradeData.positionSize
+						} else {
+							plannedRiskAmount = priceDiff * tradeData.positionSize
+						}
 
 						// Calculate plannedRMultiple from take profit (reward/risk ratio)
-						if (tradeData.takeProfit && riskPerUnit !== 0) {
-							const rewardPerUnit =
-								tradeData.direction === "long"
-									? tradeData.takeProfit - tradeData.entryPrice
-									: tradeData.entryPrice - tradeData.takeProfit
-							plannedRMultiple = Math.abs(rewardPerUnit / riskPerUnit)
+						if (tradeData.takeProfit && priceDiff > 0) {
+							const rewardDiff = Math.abs(tradeData.takeProfit - tradeData.entryPrice)
+							plannedRMultiple = rewardDiff / priceDiff
 						}
 					}
-
-					// Get asset config for fees and P&L calculation
-					const assetConfig = assetMap.get(tradeData.asset.toUpperCase())
 					let commission = 0
 					let fees = 0
 

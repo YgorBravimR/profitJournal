@@ -45,7 +45,11 @@
 		"expandSidebar": "Expandir menu",
 		"collapseSidebar": "Recolher menu",
 		"openMenu": "Abrir menu",
-		"closeMenu": "Fechar menu"
+		"closeMenu": "Fechar menu",
+		"datePicker": {
+			"placeholder": "Selecione uma data",
+			"rangePlaceholder": "Selecione o período"
+		}
 	},
 	"nav": {
 		"dashboard": "Painel",
@@ -58,6 +62,7 @@
 		"monthly": "Mensal",
 		"settings": "Configurações",
 		"monitor": "Monitor",
+		"riskSimulation": "Simulador de Risco",
 		"newTrade": "Novo Trade"
 	},
 	"market": {
@@ -1148,7 +1153,8 @@
 				"generate": "Gerar Valores",
 				"regenerate": "Regerar",
 				"applied": "SL/TP aplicado a {count} trades",
-				"lossNote": "Trades de loss: SL = preço de saída (1R)"
+				"lossNote": "Trades de loss: SL = preço de saída (1R)",
+				"generatingSlTp": "Gerando valores de SL/TP..."
 			}
 		},
 		"nota": {
@@ -1624,7 +1630,8 @@
 				"retro": "Retrô Metálico",
 				"luxury": "Luxo Prateado",
 				"tsr": "TSR Azul",
-				"neon": "Neon Cyber"
+				"neon": "Neon Cyber",
+				"lannister": "Lannister Carmesim"
 			}
 		},
 		"account": {
@@ -2002,7 +2009,8 @@
 		"recalculatingR": "Recalculando valores R de todas as operações...",
 		"recalculatingPnL": "Recalculando P&L de todas as operações...",
 		"processingImage": "Analisando captura de tela...",
-		"importingOcr": "Importando {count} operações da imagem..."
+		"importingOcr": "Importando {count} operações da imagem...",
+		"runningRiskSimulation": "Executando simulação de risco..."
 	},
 	"auth": {
 		"login": {
@@ -2080,5 +2088,137 @@
 			"lowercase": "Uma letra minúscula",
 			"number": "Um número"
 		}
+	},
+	"riskSimulation": {
+		"title": "Simulador de Risco",
+		"subtitle": "Simule a aplicação de regras de gerenciamento de risco nas suas operações históricas",
+		"runSimulation": "Executar Simulação",
+		"tradeBreakdown": "Detalhamento das Operações",
+		"viewDecisionTrace": "Ver Rastreio de Decisões",
+		"config": {
+			"dateRange": "Período",
+			"from": "De",
+			"to": "Até",
+			"prefillFrom": "Preencher Parâmetros De",
+			"monthlyPlan": "Plano Mensal",
+			"manual": "Entrada Manual"
+		},
+		"params": {
+			"simpleMode": "Parâmetros do Modo Simples",
+			"advancedMode": "Modo Avançado (Árvore de Decisão)",
+			"advancedDescription": "Usando árvore de decisão do perfil de risco. Edite saldo e limites abaixo.",
+			"accountBalance": "Saldo da Conta",
+			"riskPerTrade": "Risco por Operação",
+			"dailyLossPercent": "Limite de Perda Diária",
+			"dailyProfitTarget": "Meta de Ganho Diário",
+			"monthlyLossPercent": "Limite de Perda Mensal",
+			"weeklyLossPercent": "Limite de Perda Semanal",
+			"maxDailyTrades": "Máx. Operações/Dia",
+			"maxConsecutiveLosses": "Máx. Perdas Consecutivas",
+			"reduceRiskAfterLoss": "Reduzir risco após perda",
+			"increaseRiskAfterWin": "Aumentar risco após ganho",
+			"riskReductionFactor": "Fator de Redução",
+			"profitReinvestmentPercent": "% Reinvestimento",
+			"dailyLoss": "Limite de Perda Diária",
+			"monthlyLoss": "Limite de Perda Mensal",
+			"baseRisk": "Risco Base (do perfil)"
+		},
+		"preview": {
+			"loading": "Carregando preview das operações...",
+			"noTrades": "Nenhuma operação fechada encontrada neste período.",
+			"totalTrades": "{count} operações fechadas",
+			"withSl": "{count} com SL",
+			"withoutSl": "{count} sem SL",
+			"slCoverage": "{percent}% cobertura de SL",
+			"days": "{count} dias de operação",
+			"assets": "Ativos: {list}",
+			"allTradesLackSl": "Todas as operações não possuem stop loss. A simulação não pode rodar — o dimensionamento precisa da distância do SL.",
+			"someTradesLackSl": "{count} operações sem SL serão ignoradas na simulação."
+		},
+		"summary": {
+			"title": "Resultados da Simulação",
+			"originalPnl": "P&L Original",
+			"simulatedPnl": "P&L Simulado",
+			"delta": "Diferença",
+			"performance": "Comparação de Performance",
+			"winRate": "Taxa de Acerto",
+			"profitFactor": "Fator de Lucro",
+			"avgR": "R-Múltiplo Médio",
+			"maxDrawdown": "Drawdown Máximo",
+			"tradeCounts": "Contagem de Operações",
+			"totalTrades": "Total de Operações",
+			"executed": "Executadas",
+			"skipped": "Ignoradas",
+			"daysHitLimit": "Dias que Atingiram Limite",
+			"daysHitTarget": "Dias que Atingiram Meta"
+		},
+		"chart": {
+			"title": "Curva de Capital: Original vs Simulado",
+			"original": "Original",
+			"simulated": "Simulado"
+		},
+		"table": {
+			"title": "Comparação de Operações",
+			"day": "Dia",
+			"trade": "Op.",
+			"asset": "Ativo",
+			"status": "Status",
+			"risk": "Risco",
+			"originalPnl": "P&L Original",
+			"simulatedPnl": "P&L Sim",
+			"simR": "R Sim",
+			"riskReason": "Motivo do Risco",
+			"page": "Página {current} de {total}",
+			"prevPage": "Página anterior",
+			"nextPage": "Próxima página",
+			"statuses": {
+				"executed": "Executado",
+				"skipped_no_sl": "Sem SL",
+				"skipped_daily_limit": "Limite Diário",
+				"skipped_daily_target": "Meta Diária",
+				"skipped_max_trades": "Máx. Ops.",
+				"skipped_consecutive_loss": "Perda Consec.",
+				"skipped_monthly_limit": "Limite Mensal",
+				"skipped_weekly_limit": "Limite Semanal",
+				"skipped_recovery_complete": "Recup. Completa",
+				"skipped_gain_stop": "Ganho Parado"
+			}
+		},
+		"skipped": {
+			"title": "{count} operações foram ignoradas",
+			"toggle": "Alternar detalhes das operações ignoradas",
+			"reasons": {
+				"noSl": "Sem stop loss",
+				"dailyLimit": "Limite de perda diária atingido",
+				"dailyTarget": "Meta de ganho diário atingida",
+				"maxTrades": "Máximo de operações diárias atingido",
+				"consecutiveLoss": "Perdas consecutivas excedidas",
+				"monthlyLimit": "Limite de perda mensal atingido",
+				"weeklyLimit": "Limite de perda semanal atingido"
+			}
+		},
+		"trace": {
+			"title": "Rastreio de Decisões",
+			"weekOf": "Semana de {label}",
+			"noData": "Nenhum dado de rastreio disponível.",
+			"skipped": "IGNORADO",
+			"dailyLimitHit": "Dia parado: limite de perda diária atingido",
+			"dailyTargetHit": "Dia parado: meta de ganho diário atingida"
+		}
+	},
+	"commandMenu": {
+		"placeholder": "Digite um comando ou busque...",
+		"navigation": "Navegação",
+		"actions": "Ações",
+		"noResults": "Nenhum resultado encontrado."
+	},
+	"breadcrumb": {
+		"home": "Início",
+		"tradeDetails": "Detalhes do Trade",
+		"newTrade": "Novo Trade",
+		"editTrade": "Editar Trade",
+		"editPlaybook": "Editar Playbook",
+		"playbookDetails": "Detalhes do Playbook",
+		"newPlaybook": "Novo Playbook"
 	}
 }

@@ -30,7 +30,7 @@ interface RootLayoutProps {
 
 const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
-		<html suppressHydrationWarning data-brand="bravo">
+		<html suppressHydrationWarning data-brand="default">
 			<head>
 				<BrandScript />
 			</head>

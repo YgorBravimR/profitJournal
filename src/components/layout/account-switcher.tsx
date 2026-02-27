@@ -22,6 +22,8 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { DatePicker } from "@/components/ui/date-picker"
+import { formatDateKey } from "@/lib/dates"
 import {
 	Select,
 	SelectContent,
@@ -340,7 +342,11 @@ const CreateAccountDialog = ({
 						<Select
 							value={form.accountType}
 							onValueChange={(value: "personal" | "prop" | "replay") =>
-								setForm((prev) => ({ ...prev, accountType: value }))
+								setForm((prev) => ({
+									...prev,
+									accountType: value,
+									replayStartDate: value === "replay" && !prev.replayStartDate ? formatDateKey(new Date()) : prev.replayStartDate,
+								}))
 							}
 							disabled={isPending}
 						>
@@ -373,12 +379,11 @@ const CreateAccountDialog = ({
 					{form.accountType === "replay" && (
 						<div className="space-y-s-200">
 							<Label id="label-replay-start-date" htmlFor="replayStartDate">{t("replayStartDate")}</Label>
-							<Input
+							<DatePicker
 								id="replayStartDate"
-								type="date"
-								value={form.replayStartDate}
-								onChange={(e) =>
-									setForm((prev) => ({ ...prev, replayStartDate: e.target.value }))
+								value={form.replayStartDate ? new Date(form.replayStartDate + "T12:00:00") : undefined}
+								onChange={(date) =>
+									setForm((prev) => ({ ...prev, replayStartDate: date ? formatDateKey(date) : "" }))
 								}
 								disabled={isPending}
 							/>

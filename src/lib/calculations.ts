@@ -378,3 +378,69 @@ export const calculateWeightedAvgPrice = (
 
 	return totalQty > 0 ? totalValue / totalQty : 0
 }
+
+// ==========================================
+// TICK-BASED POSITION SIZING (for risk simulation)
+// ==========================================
+
+/**
+ * Input for tick-based position sizing.
+ * Uses risk budget in cents and SL distance to determine contract count.
+ */
+export interface TickBasedPositionSizeInput {
+	riskBudgetCents: number
+	entryPrice: number
+	stopLoss: number
+	tickSize: number
+	tickValue: number // cents per tick per contract
+	maxContracts?: number | null
+}
+
+export interface TickBasedPositionSizeResult {
+	contracts: number
+	ticksAtRisk: number
+	riskPerContractCents: number
+	actualRiskCents: number
+}
+
+/**
+ * Calculates the number of contracts based on risk budget and SL distance.
+ *
+ * Formula: floor(riskBudget / (ticksAtRisk × tickValue))
+ * Enforces minimum 1 contract, optional maxContracts cap.
+ *
+ * @example
+ * // WINFUT: tickSize=5, tickValue=100 (cents per tick)
+ * // Entry: 128000, SL: 127950 → 10 ticks at risk
+ * // Risk budget: 5000 cents (R$50) → floor(5000 / (10 × 100)) = 5 contracts
+ */
+export const calculateTickBasedPositionSize = (
+	input: TickBasedPositionSizeInput
+): TickBasedPositionSizeResult => {
+	const { riskBudgetCents, entryPrice, stopLoss, tickSize, tickValue, maxContracts } = input
+
+	const priceDiff = Math.abs(entryPrice - stopLoss)
+	const ticksAtRisk = priceDiff / tickSize
+
+	// SL at entry price (0 ticks) — cannot size
+	if (ticksAtRisk <= 0 || tickValue <= 0) {
+		return { contracts: 0, ticksAtRisk: 0, riskPerContractCents: 0, actualRiskCents: 0 }
+	}
+
+	const riskPerContractCents = ticksAtRisk * tickValue
+	let contracts = Math.floor(riskBudgetCents / riskPerContractCents)
+
+	// Minimum 1 contract when there's any risk budget
+	if (contracts < 1 && riskBudgetCents > 0) {
+		contracts = 1
+	}
+
+	// Apply max contracts cap if specified
+	if (maxContracts && maxContracts > 0) {
+		contracts = Math.min(contracts, maxContracts)
+	}
+
+	const actualRiskCents = contracts * riskPerContractCents
+
+	return { contracts, ticksAtRisk, riskPerContractCents, actualRiskCents }
+}

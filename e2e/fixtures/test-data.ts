@@ -86,6 +86,7 @@ export const ROUTES = {
 	monteCarlo: "/en/monte-carlo",
 	monitor: "/en/monitor",
 	painel: "/en/painel",
+	riskSimulation: "/en/risk-simulation",
 }
 
 export const TEST_CHECKLIST = {

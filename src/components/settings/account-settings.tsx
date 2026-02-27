@@ -21,6 +21,8 @@ import { getCurrentAccount } from "@/app/actions/auth"
 import { updateAccount, getAccountAssets, updateAccountAsset } from "@/app/actions/accounts"
 import { Loader2 } from "lucide-react"
 import { fromCents, toCents } from "@/lib/money"
+import { formatDateKey } from "@/lib/dates"
+import { DatePicker } from "@/components/ui/date-picker"
 import type { TradingAccount, AccountAsset, Asset } from "@/db/schema"
 
 interface AccountSettingsProps {
@@ -246,7 +248,11 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 							<Select
 								value={accountForm.accountType}
 								onValueChange={(value: "personal" | "prop" | "replay") =>
-									setAccountForm((prev) => ({ ...prev, accountType: value }))
+									setAccountForm((prev) => ({
+										...prev,
+										accountType: value,
+										replayStartDate: value === "replay" && !prev.replayStartDate ? formatDateKey(new Date()) : prev.replayStartDate,
+									}))
 								}
 							>
 								<SelectTrigger id="account-type" className="w-48">
@@ -271,14 +277,13 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 								<p className="text-tiny text-txt-300">{t("replayStartDateHelp")}</p>
 							</div>
 							{isEditingAccount ? (
-								<Input
+								<DatePicker
 									id="account-replay-start-date"
-									type="date"
-									value={accountForm.replayStartDate}
-									onChange={(e) =>
+									value={accountForm.replayStartDate ? new Date(accountForm.replayStartDate + "T12:00:00") : undefined}
+									onChange={(date) =>
 										setAccountForm((prev) => ({
 											...prev,
-											replayStartDate: e.target.value,
+											replayStartDate: date ? formatDateKey(date) : "",
 										}))
 									}
 									className="w-48"

@@ -5,6 +5,8 @@ import { useTranslations } from "next-intl"
 import { Menu } from "lucide-react"
 import Image from "next/image"
 import { Sidebar } from "@/components/layout/sidebar"
+import { CommandMenu } from "@/components/layout/command-menu"
+import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
 import { ThemeSynchronizer } from "@/components/providers/theme-synchronizer"
 import { BrandSynchronizer } from "@/components/providers/brand-synchronizer"
 import {
@@ -13,6 +15,8 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Kbd } from "@/components/ui/kbd"
 import { useIsMobile } from "@/hooks/use-is-mobile"
 import { cn } from "@/lib/utils"
 import type { Brand } from "@/lib/brands"
@@ -46,6 +50,7 @@ const AppShell = ({
 		<>
 			<ThemeSynchronizer />
 			<BrandSynchronizer serverBrand={serverBrand} />
+			<CommandMenu />
 
 			{isMobile ? (
 				<>
@@ -92,6 +97,10 @@ const AppShell = ({
 							className="ml-2 h-7 w-auto object-contain"
 							priority
 						/>
+
+						<div className="ml-auto">
+							<PageBreadcrumb />
+						</div>
 					</header>
 
 					{/* Mobile main content */}
@@ -110,14 +119,23 @@ const AppShell = ({
 					/>
 
 					{/* Desktop main content */}
-					<main
+					<div
 						className={cn(
-							"min-h-screen transition-[margin-left] duration-300",
+							"flex min-h-screen flex-col transition-[margin-left] duration-300",
 							isSidebarCollapsed ? "ml-16" : "ml-64"
 						)}
 					>
-						{children}
-					</main>
+						{/* Breadcrumb bar */}
+						<div className="border-bg-300 bg-bg-200 flex h-12 shrink-0 items-center justify-between border-b px-6">
+							<PageBreadcrumb />
+							<Kbd keys={["mod", "K"]} />
+						</div>
+
+						{/* Scrollable main area */}
+						<ScrollArea className="h-[calc(100vh-3rem)]">
+							<main>{children}</main>
+						</ScrollArea>
+					</div>
 				</>
 			)}
 		</>

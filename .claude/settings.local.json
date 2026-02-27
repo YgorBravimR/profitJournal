@@ -86,7 +86,21 @@
       "Bash(pnpm info:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm dev:*)",
-      "Bash(npx playwright:*2)"
+      "Bash(pnpm tsx:*)",
+      "WebFetch(domain:www.tradesviz.com)",
+      "WebFetch(domain:tradersunion.com)",
+      "WebFetch(domain:tradeciety.com)",
+      "WebFetch(domain:suporte.genialinvestimentos.com.br)",
+      "WebFetch(domain:www.scribd.com)",
+      "WebFetch(domain:ajuda.nelogica.com.br)",
+      "WebFetch(domain:www.fulljoin.com.br)",
+      "WebFetch(domain:mycapital.movidesk.com)",
+      "WebFetch(domain:store.nelogica.com.br)",
+      "WebFetch(domain:blog.nelogica.com.br)",
+      "WebFetch(domain:www.nelogica.com.br)",
+      "Bash(npx vitest:*)",
+      "WebFetch(domain:ui.shadcn.com)",
+      "Bash(git:*)"
     ],
     "deny": [],
     "ask": []
