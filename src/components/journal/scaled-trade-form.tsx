@@ -144,6 +144,9 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 		const [disciplineNotes, setDisciplineNotes] = useState(
 			initialSharedState?.disciplineNotes ?? ""
 		)
+		const [setupRank, setSetupRank] = useState<"A" | "AA" | "AAA" | null | undefined>(
+			initialSharedState?.setupRank
+		)
 
 		// Tags
 		const [selectedTagIds, setSelectedTagIds] = useState<string[]>(
@@ -337,6 +340,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 				lessonLearned: lessonLearned || undefined,
 				followedPlan,
 				disciplineNotes: disciplineNotes || undefined,
+				setupRank,
 				tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
 			}),
 		}))
@@ -445,6 +449,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 					lessonLearned: lessonLearned || undefined,
 					followedPlan,
 					disciplineNotes: disciplineNotes || undefined,
+					setupRank: setupRank || undefined,
 					tagIds: selectedTagIds.length > 0 ? selectedTagIds : undefined,
 					executions,
 				})

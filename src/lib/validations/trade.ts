@@ -69,6 +69,13 @@ const tradeBaseFields = {
 
 	// Tags
 	tagIds: z.array(z.string().uuid()).optional(),
+
+	// Setup Rank (A/AA/AAA based on conditions met)
+	setupRank: z.enum(["A", "AA", "AAA"]).optional().nullable(),
+
+	// Trade Screenshot
+	screenshotUrl: z.string().url().max(500).optional().or(z.literal("")),
+	screenshotS3Key: z.string().max(500).optional().or(z.literal("")),
 }
 
 // Base object schema (no refinements) — used for .partial() and server actions
@@ -143,6 +150,9 @@ export interface CreateTradeInput {
 	followedPlan?: boolean
 	disciplineNotes?: string
 	tagIds?: string[]
+	setupRank?: "A" | "AA" | "AAA" | null
+	screenshotUrl?: string
+	screenshotS3Key?: string
 }
 
 // Form input type alias
@@ -162,6 +172,7 @@ export interface SharedTradeFormState {
 	followedPlan?: boolean
 	disciplineNotes?: string
 	tagIds?: string[]
+	setupRank?: "A" | "AA" | "AAA" | null
 }
 
 export interface TradeFormRef {

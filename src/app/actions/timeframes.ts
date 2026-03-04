@@ -11,21 +11,11 @@ import {
 	type UpdateTimeframeInput,
 } from "@/lib/validations/timeframe"
 import { auth } from "@/auth"
+import { requireRole } from "@/lib/auth-utils"
 
 const requireSession = async (): Promise<string> => {
 	const session = await auth()
 	if (!session?.user?.id) {
-		throw new Error("Unauthorized")
-	}
-	return session.user.id
-}
-
-const requireAdmin = async (): Promise<string> => {
-	const session = await auth()
-	if (!session?.user?.id) {
-		throw new Error("Unauthorized")
-	}
-	if (!session.user.isAdmin) {
 		throw new Error("Unauthorized")
 	}
 	return session.user.id
@@ -80,7 +70,7 @@ export const getTimeframeByCode = async (
 export const createTimeframe = async (
 	data: CreateTimeframeInput
 ): Promise<{ success: boolean; data?: Timeframe; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = createTimeframeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -112,7 +102,7 @@ export const createTimeframe = async (
 export const updateTimeframe = async (
 	data: UpdateTimeframeInput
 ): Promise<{ success: boolean; data?: Timeframe; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = updateTimeframeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -155,7 +145,7 @@ export const updateTimeframe = async (
 export const deleteTimeframe = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	await db.delete(timeframes).where(eq(timeframes.id, id))
 
 	revalidatePath("/settings")
@@ -168,7 +158,7 @@ export const toggleTimeframeActive = async (
 	id: string,
 	isActive: boolean
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	await db
 		.update(timeframes)
 		.set({ isActive })
@@ -183,7 +173,7 @@ export const toggleTimeframeActive = async (
 export const reorderTimeframes = async (
 	orderedIds: string[]
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	for (let i = 0; i < orderedIds.length; i++) {
 		await db
 			.update(timeframes)

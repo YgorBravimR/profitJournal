@@ -204,6 +204,9 @@ export const createTrade = async (
 			postTradeReflection: tradeData.postTradeReflection,
 			lessonLearned: tradeData.lessonLearned,
 			disciplineNotes: tradeData.disciplineNotes,
+			setupRank: tradeData.setupRank || null,
+			screenshotUrl: tradeData.screenshotUrl || null,
+			screenshotS3Key: tradeData.screenshotS3Key || null,
 		}
 
 		// Encrypt sensitive fields if user has a DEK
@@ -463,6 +466,12 @@ export const updateTrade = async (
 			updateData.lessonLearned = tradeData.lessonLearned
 		if (tradeData.disciplineNotes !== undefined)
 			updateData.disciplineNotes = tradeData.disciplineNotes
+		if (tradeData.setupRank !== undefined)
+			updateData.setupRank = tradeData.setupRank || null
+		if (tradeData.screenshotUrl !== undefined)
+			updateData.screenshotUrl = tradeData.screenshotUrl || null
+		if (tradeData.screenshotS3Key !== undefined)
+			updateData.screenshotS3Key = tradeData.screenshotS3Key || null
 
 		// Always include calculated fields when we have exit data
 		// Money fields (pnl, plannedRiskAmount) stored as cents in text columns
@@ -1178,6 +1187,9 @@ export const bulkCreateTrades = async (
 						postTradeReflection: tradeData.postTradeReflection,
 						lessonLearned: tradeData.lessonLearned,
 						disciplineNotes: tradeData.disciplineNotes,
+						setupRank: tradeData.setupRank || null,
+						screenshotUrl: tradeData.screenshotUrl || null,
+						screenshotS3Key: tradeData.screenshotS3Key || null,
 					}
 
 					// Encrypt sensitive fields if user has a DEK
@@ -1289,6 +1301,9 @@ export interface CreateScaledTradeInput {
 	lessonLearned?: string
 	followedPlan?: boolean
 	disciplineNotes?: string
+	setupRank?: "A" | "AA" | "AAA" | null
+	screenshotUrl?: string
+	screenshotS3Key?: string
 	tagIds?: string[]
 	executions: Array<{
 		executionType: "entry" | "exit"
@@ -1484,6 +1499,9 @@ export const createScaledTrade = async (
 			postTradeReflection: tradeData.postTradeReflection,
 			lessonLearned: tradeData.lessonLearned,
 			disciplineNotes: tradeData.disciplineNotes,
+			setupRank: tradeData.setupRank || null,
+			screenshotUrl: tradeData.screenshotUrl || null,
+			screenshotS3Key: tradeData.screenshotS3Key || null,
 		}
 
 		// Encrypt sensitive fields if user has a DEK

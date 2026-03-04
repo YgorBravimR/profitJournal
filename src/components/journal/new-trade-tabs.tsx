@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useRef, useCallback } from "react"
-import { FileText, Upload, Layers, FileStack } from "lucide-react"
+import { FileText, Upload, Layers, FileStack, ImageIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
+import { useFeatureAccess } from "@/hooks/use-feature-access"
 import { TradeForm } from "./trade-form"
 import { ScaledTradeForm } from "./scaled-trade-form"
 import { CsvImport } from "./csv-import"
@@ -40,6 +41,7 @@ export const NewTradeTabs = ({
 }: NewTradeTabsProps) => {
 	const t = useTranslations("journal")
 	const tTrade = useTranslations("trade")
+	const { canAccess } = useFeatureAccess()
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
 	const [tradeMode, setTradeMode] = useState<TradeMode>("simple")
 	const [sharedState, setSharedState] = useState<
@@ -98,35 +100,40 @@ export const NewTradeTabs = ({
 					<Upload className="h-4 w-4" />
 					{t("csvImport")}
 				</button>
-				<button
-					type="button"
-					onClick={() => setActiveTab("nota")}
-					className={cn(
-						"gap-s-200 px-m-400 py-s-300 text-small flex items-center border-b-2 font-medium transition-colors",
-						activeTab === "nota"
-							? "border-acc-100 text-acc-100"
-							: "text-txt-300 hover:text-txt-100 border-transparent"
-					)}
-					aria-selected={activeTab === "nota"}
-					role="tab"
-				>
-					<FileStack className="h-4 w-4" />
-					{t("nota.title")}
-				</button>
-				{/* <button
-					type="button"
-					onClick={() => setActiveTab("screenshot")}
-					className={`flex items-center gap-s-200 border-b-2 px-m-400 py-s-300 text-small font-medium transition-colors ${
-						activeTab === "screenshot"
-							? "border-acc-100 text-acc-100"
-							: "border-transparent text-txt-300 hover:text-txt-100"
-					}`}
-					aria-selected={activeTab === "screenshot"}
-					role="tab"
-				>
-					<ImageIcon className="h-4 w-4" />
-					{t("ocr.title")}
-				</button> */}
+				{canAccess("journal:nota-tab") && (
+					<button
+						type="button"
+						onClick={() => setActiveTab("nota")}
+						className={cn(
+							"gap-s-200 px-m-400 py-s-300 text-small flex items-center border-b-2 font-medium transition-colors",
+							activeTab === "nota"
+								? "border-acc-100 text-acc-100"
+								: "text-txt-300 hover:text-txt-100 border-transparent"
+						)}
+						aria-selected={activeTab === "nota"}
+						role="tab"
+					>
+						<FileStack className="h-4 w-4" />
+						{t("nota.title")}
+					</button>
+				)}
+				{canAccess("journal:ocr-tab") && (
+					<button
+						type="button"
+						onClick={() => setActiveTab("screenshot")}
+						className={cn(
+							"gap-s-200 px-m-400 py-s-300 text-small flex items-center border-b-2 font-medium transition-colors",
+							activeTab === "screenshot"
+								? "border-acc-100 text-acc-100"
+								: "text-txt-300 hover:text-txt-100 border-transparent"
+						)}
+						aria-selected={activeTab === "screenshot"}
+						role="tab"
+					>
+						<ImageIcon className="h-4 w-4" />
+						{t("ocr.title")}
+					</button>
+				)}
 			</div>
 
 			{/* Tab Content */}
@@ -167,8 +174,8 @@ export const NewTradeTabs = ({
 					</div>
 				</div>
 				{activeTab === "csv" && <CsvImport />}
-				{activeTab === "nota" && <NotaImport />}
-				{activeTab === "screenshot" && <OcrImport />}
+				{activeTab === "nota" && canAccess("journal:nota-tab") && <NotaImport />}
+				{activeTab === "screenshot" && canAccess("journal:ocr-tab") && <OcrImport />}
 			</div>
 		</div>
 	)

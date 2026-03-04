@@ -16,6 +16,7 @@ import {
 } from "@/lib/validations/asset"
 import { toCents } from "@/lib/money"
 import { auth } from "@/auth"
+import { requireRole } from "@/lib/auth-utils"
 
 /**
  * Require authenticated session. Returns userId or throws.
@@ -23,20 +24,6 @@ import { auth } from "@/auth"
 const requireSession = async (): Promise<string> => {
 	const session = await auth()
 	if (!session?.user?.id) {
-		throw new Error("Unauthorized")
-	}
-	return session.user.id
-}
-
-/**
- * Require admin role. Returns userId or throws.
- */
-const requireAdmin = async (): Promise<string> => {
-	const session = await auth()
-	if (!session?.user?.id) {
-		throw new Error("Unauthorized")
-	}
-	if (!session.user.isAdmin) {
 		throw new Error("Unauthorized")
 	}
 	return session.user.id
@@ -74,7 +61,7 @@ export const getAssetType = async (id: string): Promise<AssetType | null> => {
 export const createAssetType = async (
 	data: CreateAssetTypeInput
 ): Promise<{ success: boolean; data?: AssetType; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = createAssetTypeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -103,7 +90,7 @@ export const updateAssetType = async (
 	id: string,
 	data: UpdateAssetTypeInput
 ): Promise<{ success: boolean; data?: AssetType; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = updateAssetTypeSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -131,7 +118,7 @@ export const updateAssetType = async (
 export const deleteAssetType = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const existingAssets = await db.query.assets.findFirst({
 		where: eq(assets.assetTypeId, id),
 	})
@@ -236,7 +223,7 @@ export const getAssetBySymbol = async (
 export const createAsset = async (
 	data: CreateAssetInput
 ): Promise<{ success: boolean; data?: Asset; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = createAssetSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -269,7 +256,7 @@ export const createAsset = async (
 export const updateAsset = async (
 	data: UpdateAssetInput
 ): Promise<{ success: boolean; data?: Asset; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	const validated = updateAssetSchema.safeParse(data)
 
 	if (!validated.success) {
@@ -320,7 +307,7 @@ export const updateAsset = async (
 export const deleteAsset = async (
 	id: string
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	await db.delete(assets).where(eq(assets.id, id))
 
 	revalidatePath("/settings")
@@ -333,7 +320,7 @@ export const toggleAssetActive = async (
 	id: string,
 	isActive: boolean
 ): Promise<{ success: boolean; error?: string }> => {
-	await requireAdmin()
+	await requireRole("admin")
 	await db
 		.update(assets)
 		.set({ isActive, updatedAt: new Date() })
