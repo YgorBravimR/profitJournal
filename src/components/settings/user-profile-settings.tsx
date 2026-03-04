@@ -9,11 +9,11 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { LanguageSwitcher } from "./language-switcher"
-import { BrandSwitcher } from "./brand-switcher"
 import { useToast } from "@/components/ui/toast"
 import { getCurrentUser, updateUserProfile, changePassword, type SafeUser } from "@/app/actions/auth"
 import { getUserSettings, updateUserSettings } from "@/app/actions/settings"
 import { Loader2 } from "lucide-react"
+import { useFeatureAccess } from "@/hooks/use-feature-access"
 
 /**
  * User profile settings component.
@@ -21,6 +21,7 @@ import { Loader2 } from "lucide-react"
  */
 const UserProfileSettings = () => {
 	const t = useTranslations("settings.profile")
+	const { isAdmin } = useFeatureAccess()
 	const tCommon = useTranslations("common")
 	const tAuth = useTranslations("auth")
 	const router = useRouter()
@@ -167,11 +168,11 @@ const UserProfileSettings = () => {
 	}
 
 	return (
-		<div className="mx-auto max-w-2xl space-y-m-600">
+		<div className="space-y-m-600 mx-auto max-w-2xl">
 			{/* Profile Information */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
-					<h2 className="text-body font-semibold text-txt-100">
+					<h2 className="text-body text-txt-100 font-semibold">
 						{t("profileInfo")}
 					</h2>
 					{!isEditingProfile ? (
@@ -186,7 +187,7 @@ const UserProfileSettings = () => {
 					) : null}
 				</div>
 				<div className="mt-m-400 space-y-m-400">
-					<div className="flex items-center justify-between gap-m-400">
+					<div className="gap-m-400 flex items-center justify-between">
 						<div className="flex-1">
 							<p className="text-small text-txt-100">{t("name")}</p>
 						</div>
@@ -201,7 +202,7 @@ const UserProfileSettings = () => {
 							<span className="text-small text-txt-200">{user?.name}</span>
 						)}
 					</div>
-					<div className="flex items-center justify-between gap-m-400">
+					<div className="gap-m-400 flex items-center justify-between">
 						<div className="flex-1">
 							<p className="text-small text-txt-100">{t("email")}</p>
 							<p className="text-tiny text-txt-300">{t("emailCannotChange")}</p>
@@ -210,7 +211,7 @@ const UserProfileSettings = () => {
 					</div>
 				</div>
 				{isEditingProfile ? (
-					<div className="mt-m-500 flex justify-end gap-s-300">
+					<div className="mt-m-500 gap-s-300 flex justify-end">
 						<Button
 							id="profile-cancel-info"
 							variant="ghost"
@@ -220,8 +221,15 @@ const UserProfileSettings = () => {
 						>
 							{tCommon("cancel")}
 						</Button>
-						<Button id="profile-save-info" size="sm" onClick={handleSaveProfile} disabled={isPending}>
-							{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+						<Button
+							id="profile-save-info"
+							size="sm"
+							onClick={handleSaveProfile}
+							disabled={isPending}
+						>
+							{isPending ? (
+								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+							) : null}
 							{tCommon("save")}
 						</Button>
 					</div>
@@ -229,9 +237,9 @@ const UserProfileSettings = () => {
 			</div>
 
 			{/* Change Password */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
-					<h2 className="text-body font-semibold text-txt-100">
+					<h2 className="text-body text-txt-100 font-semibold">
 						{t("changePassword")}
 					</h2>
 					{!isChangingPassword ? (
@@ -248,7 +256,9 @@ const UserProfileSettings = () => {
 				{isChangingPassword ? (
 					<div className="mt-m-400 space-y-m-400">
 						<div className="space-y-s-200">
-							<Label id="label-current-password" htmlFor="currentPassword">{t("currentPassword")}</Label>
+							<Label id="label-current-password" htmlFor="currentPassword">
+								{t("currentPassword")}
+							</Label>
 							<Input
 								id="currentPassword"
 								type="password"
@@ -257,7 +267,9 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-new-password" htmlFor="newPassword">{t("newPassword")}</Label>
+							<Label id="label-new-password" htmlFor="newPassword">
+								{t("newPassword")}
+							</Label>
 							<Input
 								id="newPassword"
 								type="password"
@@ -266,7 +278,9 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-confirm-new-password" htmlFor="confirmPassword">{t("confirmNewPassword")}</Label>
+							<Label id="label-confirm-new-password" htmlFor="confirmPassword">
+								{t("confirmNewPassword")}
+							</Label>
 							<Input
 								id="confirmPassword"
 								type="password"
@@ -274,7 +288,7 @@ const UserProfileSettings = () => {
 								onChange={handleConfirmPasswordChange}
 							/>
 						</div>
-						<div className="flex justify-end gap-s-300">
+						<div className="gap-s-300 flex justify-end">
 							<Button
 								id="profile-cancel-password"
 								variant="ghost"
@@ -290,7 +304,9 @@ const UserProfileSettings = () => {
 								onClick={handleChangePassword}
 								disabled={isPending}
 							>
-								{isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+								{isPending ? (
+									<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+								) : null}
 								{t("updatePassword")}
 							</Button>
 						</div>
@@ -302,33 +318,35 @@ const UserProfileSettings = () => {
 				)}
 			</div>
 
-			{/* Data Display */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">
-					{t("dataDisplay")}
-				</h2>
-				<div className="mt-m-400 space-y-m-500">
-					{/* Show All Accounts Toggle */}
-					<div className="flex items-center justify-between">
-						<div>
-							<p className="text-small text-txt-100">{t("showAllAccounts")}</p>
-							<p className="text-tiny text-txt-300">
-								{t("showAllAccountsDescription")}
-							</p>
+			{/* Data Display — admin only */}
+			{isAdmin && (
+				<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
+					<h2 className="text-body text-txt-100 font-semibold">
+						{t("dataDisplay")}
+					</h2>
+					<div className="mt-m-400 space-y-m-500">
+						{/* Show All Accounts Toggle */}
+						<div className="flex items-center justify-between">
+							<div>
+								<p className="text-small text-txt-100">{t("showAllAccounts")}</p>
+								<p className="text-tiny text-txt-300">
+									{t("showAllAccountsDescription")}
+								</p>
+							</div>
+							<Switch
+								id="show-all-accounts"
+								checked={showAllAccounts}
+								onCheckedChange={handleToggleShowAllAccounts}
+								disabled={isPending}
+							/>
 						</div>
-						<Switch
-							id="show-all-accounts"
-							checked={showAllAccounts}
-							onCheckedChange={handleToggleShowAllAccounts}
-							disabled={isPending}
-						/>
 					</div>
 				</div>
-			</div>
+			)}
 
 			{/* Appearance */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">
+			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
+				<h2 className="text-body text-txt-100 font-semibold">
 					{t("appearance")}
 				</h2>
 				<div className="mt-m-400 space-y-m-500">
@@ -343,7 +361,7 @@ const UserProfileSettings = () => {
 						<ThemeToggle />
 					</div>
 					{/* Color Scheme / Brand */}
-					<div className="flex items-center justify-between">
+					{/* <div className="flex items-center justify-between">
 						<div>
 							<p className="text-small text-txt-100">{t("colorScheme")}</p>
 							<p className="text-tiny text-txt-300">
@@ -351,7 +369,7 @@ const UserProfileSettings = () => {
 							</p>
 						</div>
 						<BrandSwitcher />
-					</div>
+					</div> */}
 					{/* Language */}
 					<div className="flex items-center justify-between">
 						<div>

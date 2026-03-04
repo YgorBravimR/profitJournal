@@ -3,6 +3,7 @@ import { SettingsContent } from "@/components/settings"
 import { getAssets, getAssetTypes } from "@/app/actions/assets"
 import { getTimeframes } from "@/app/actions/timeframes"
 import { getCurrentUser } from "@/app/actions/auth"
+import { getAllUsersWithAccounts } from "@/app/actions/user-management"
 import { seedBuiltInRiskProfiles } from "@/app/actions/seed-risk-profiles"
 
 // Force dynamic rendering to ensure account-specific data
@@ -23,10 +24,14 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 		getCurrentUser(),
 	])
 
+	const isAdmin = user?.role === "admin"
+
 	// Idempotent: seeds the 5 professional risk models if they don't exist yet (admin-only)
-	if (user?.isAdmin) {
+	if (isAdmin) {
 		await seedBuiltInRiskProfiles()
 	}
+
+	const usersWithAccounts = isAdmin ? await getAllUsersWithAccounts() : []
 
 	return (
 		<div className="flex h-full flex-col">
@@ -35,7 +40,9 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 					assets={assets}
 					assetTypes={assetTypes}
 					timeframes={timeframes}
-					isAdmin={user?.isAdmin ?? false}
+					isAdmin={isAdmin}
+					usersWithAccounts={usersWithAccounts}
+					currentUserId={user?.id ?? ""}
 				/>
 			</div>
 		</div>

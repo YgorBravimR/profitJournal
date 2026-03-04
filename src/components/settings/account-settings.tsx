@@ -20,6 +20,7 @@ import { Link } from "@/i18n/routing"
 import { getCurrentAccount } from "@/app/actions/auth"
 import { updateAccount, getAccountAssets, updateAccountAsset } from "@/app/actions/accounts"
 import { Loader2 } from "lucide-react"
+import { useFeatureAccess } from "@/hooks/use-feature-access"
 import { fromCents, toCents } from "@/lib/money"
 import { formatDateKey } from "@/lib/dates"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -32,6 +33,7 @@ interface AccountSettingsProps {
 export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	const t = useTranslations("settings.account")
 	const tGeneral = useTranslations("settings.general")
+	const { isAdmin } = useFeatureAccess()
 	const tCommon = useTranslations("common")
 	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
@@ -651,31 +653,35 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 				</div>
 			</div>
 
-			{/* Data Import */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">{tGeneral("dataImport")}</h2>
-				<div className="mt-m-400">
-					<p className="text-small text-txt-200">{tGeneral("dataImportDesc")}</p>
+			{/* Data Import — admin only */}
+			{isAdmin && (
+				<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+					<h2 className="text-body font-semibold text-txt-100">{tGeneral("dataImport")}</h2>
+					<div className="mt-m-400">
+						<p className="text-small text-txt-200">{tGeneral("dataImportDesc")}</p>
+						<p className="mt-m-400 text-tiny text-txt-300">
+							{tGeneral("goTo")}{" "}
+							<Link href="/journal/new" className="text-acc-100 hover:underline">
+								Journal → New Trade → CSV Import
+							</Link>{" "}
+							{tGeneral("toImport")}
+						</p>
+					</div>
+				</div>
+			)}
+
+			{/* Data Export — admin only */}
+			{isAdmin && (
+				<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
+					<h2 className="text-body font-semibold text-txt-100">{tGeneral("dataExport")}</h2>
+					<p className="mt-m-400 text-small text-txt-200">
+						{tGeneral("dataExportDesc")}
+					</p>
 					<p className="mt-m-400 text-tiny text-txt-300">
-						{tGeneral("goTo")}{" "}
-						<Link href="/journal/new" className="text-acc-100 hover:underline">
-							Journal → New Trade → CSV Import
-						</Link>{" "}
-						{tGeneral("toImport")}
+						{tGeneral("exportComingSoon")}
 					</p>
 				</div>
-			</div>
-
-			{/* Data Export */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-500">
-				<h2 className="text-body font-semibold text-txt-100">{tGeneral("dataExport")}</h2>
-				<p className="mt-m-400 text-small text-txt-200">
-					{tGeneral("dataExportDesc")}
-				</p>
-				<p className="mt-m-400 text-tiny text-txt-300">
-					{tGeneral("exportComingSoon")}
-				</p>
-			</div>
+			)}
 		</div>
 	)
 }
