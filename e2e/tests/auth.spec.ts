@@ -1,10 +1,9 @@
 import { test, expect } from "@playwright/test"
 import { NEW_USER, ROUTES } from "../fixtures/test-data"
 
-// Auth tests need a fresh context without stored authentication
-test.use({ storageState: { cookies: [], origins: [] } })
-
 test.describe("Authentication", () => {
+	// Auth tests need a fresh context without stored authentication
+	test.use({ storageState: { cookies: [], origins: [] } })
 	test.describe("Registration", () => {
 		test("should display registration form with all fields", async ({ page }) => {
 			await page.goto(ROUTES.register)

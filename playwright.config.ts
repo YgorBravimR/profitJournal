@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test"
+import dotenv from "dotenv"
+
+dotenv.config()
 
 /**
  * Ordered test execution via project dependencies.
@@ -34,6 +37,11 @@ const dataPhases = [
 	{ name: "market-monitor", testMatch: /market-monitor\.spec\.ts/ },
 ]
 
+/** Self-seeding tests — seed their own DB data, only need auth (setup) */
+const selfSeedingPhases = [
+	{ name: "live-trading-status", testMatch: /live-trading-status\.spec\.ts/ },
+]
+
 interface DeviceConfig {
 	[key: string]: unknown
 }
@@ -47,7 +55,8 @@ const buildDeviceProjects = (device: string, deviceUse: DeviceConfig) => {
 		name: prefix(phase.name),
 		testMatch: phase.testMatch,
 		use,
-		dependencies: index === 0 ? ["setup"] : [prefix(orderedPhases[index - 1].name)],
+		dependencies:
+			index === 0 ? ["setup"] : [prefix(orderedPhases[index - 1].name)],
 	}))
 
 	// Parallel fan-out: all depend on journal completing
@@ -59,18 +68,29 @@ const buildDeviceProjects = (device: string, deviceUse: DeviceConfig) => {
 		dependencies: [lastOrdered],
 	}))
 
-	return [...sequential, ...parallel]
+	// Self-seeding tests: seed their own DB data, only need auth (setup)
+	const selfSeeding = selfSeedingPhases.map((phase) => ({
+		name: prefix(phase.name),
+		testMatch: phase.testMatch,
+		use,
+		dependencies: ["setup"],
+	}))
+
+	return [...sequential, ...parallel, ...selfSeeding]
 }
 
 export default defineConfig({
 	testDir: "./e2e",
+	globalSetup: "./e2e/global.teardown.ts",
+	globalTeardown: "./e2e/global.teardown.ts",
 	fullyParallel: false,
 	forbidOnly: !!process.env.CI,
 	retries: process.env.CI ? 2 : 0,
 	workers: process.env.CI ? 1 : undefined,
 	reporter: [["html", { open: "never" }], ["list"]],
 	use: {
-		baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000",
+		baseURL: process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3003",
+		launchOptions: { slowMo: Number(process.env.SLOWMO) || 0 },
 		trace: "on-first-retry",
 		screenshot: "only-on-failure",
 		video: "on-first-retry",
@@ -85,7 +105,7 @@ export default defineConfig({
 	],
 	webServer: {
 		command: "pnpm dev",
-		url: "http://localhost:3000",
+		url: "http://localhost:3003",
 		reuseExistingServer: !process.env.CI,
 		timeout: 120000,
 	},
