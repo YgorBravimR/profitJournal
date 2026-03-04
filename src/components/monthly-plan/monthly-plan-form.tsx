@@ -344,12 +344,12 @@ const MonthlyPlanForm = ({
 					dailyLossPercent: dailyLossPct,
 					monthlyLossPercent: monthlyLossPct,
 					dailyProfitTargetPercent: dailyTargetPct,
-					maxDailyTrades: null,
+					maxDailyTrades: 1 + decisionTree.lossRecovery.sequence.length,
 					maxConsecutiveLosses: 1 + decisionTree.lossRecovery.sequence.length,
 					allowSecondOpAfterLoss: true,
 					reduceRiskAfterLoss: hasRiskReduction,
 					riskReductionFactor: reductionFactor,
-					increaseRiskAfterWin: decisionTree.gainMode.type === "compounding",
+					increaseRiskAfterWin: decisionTree.gainMode.type === "compounding" || decisionTree.gainMode.type === "gainSequence",
 					capRiskAfterWin: false,
 					profitReinvestmentPercent: decisionTree.gainMode.type === "compounding"
 						? decisionTree.gainMode.reinvestmentPercent
@@ -434,8 +434,10 @@ const MonthlyPlanForm = ({
 				<div className="space-y-m-400">
 					{/* Plan Mode Toggle (only shown when profiles exist) */}
 					{riskProfiles.length > 0 && (
-						<div className="space-y-m-300">
-							<label className="text-small text-txt-200">{t("form.riskProfileMode")}</label>
+						<div className="space-y-s-300">
+							<label className="text-small text-txt-200">
+								{t("form.riskProfileMode")}
+							</label>
 							<div
 								className="gap-s-200 border-bg-300 bg-bg-200 p-s-100 flex rounded-lg border"
 								role="radiogroup"
@@ -446,7 +448,7 @@ const MonthlyPlanForm = ({
 									role="radio"
 									aria-checked={planMode === "custom"}
 									onClick={() => setPlanMode("custom")}
-									className={`px-m-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
+									className={`px-s-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
 										planMode === "custom"
 											? "bg-acc-100 text-bg-100 shadow-sm"
 											: "text-txt-300 hover:text-txt-200"
@@ -460,7 +462,7 @@ const MonthlyPlanForm = ({
 									role="radio"
 									aria-checked={planMode === "profile"}
 									onClick={() => setPlanMode("profile")}
-									className={`px-m-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
+									className={`px-s-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
 										planMode === "profile"
 											? "bg-acc-100 text-bg-100 shadow-sm"
 											: "text-txt-300 hover:text-txt-200"
@@ -473,7 +475,7 @@ const MonthlyPlanForm = ({
 
 							{/* Profile Selector */}
 							{planMode === "profile" && (
-								<div className="space-y-m-300">
+								<div className="space-y-s-300">
 									<div>
 										<label className="mb-s-200 text-small text-txt-200 block">
 											{t("form.riskProfileSelect")}
@@ -484,10 +486,19 @@ const MonthlyPlanForm = ({
 											className="border-bg-300 bg-bg-100 text-small text-txt-100 focus:ring-acc-100 w-full rounded-md border px-3 py-2 focus:ring-2 focus:outline-none"
 											aria-label={t("form.riskProfileSelect")}
 										>
-											<option value="">{t("form.riskProfileSelectPlaceholder")}</option>
+											<option value="">
+												{t("form.riskProfileSelectPlaceholder")}
+											</option>
 											{(() => {
-												const builtInNames = ["Fixed Fractional", "Fixed Ratio", "Institutional", "R-Multiples", "Kelly Fractional"]
-												const isBuiltIn = (p: RiskManagementProfile) => builtInNames.some((n) => p.name.includes(n))
+												const builtInNames = [
+													"Fixed Fractional",
+													"Fixed Ratio",
+													"Institutional",
+													"R-Multiples",
+													"Kelly Fractional",
+												]
+												const isBuiltIn = (p: RiskManagementProfile) =>
+													builtInNames.some((n) => p.name.includes(n))
 												const builtIn = riskProfiles.filter(isBuiltIn)
 												const custom = riskProfiles.filter((p) => !isBuiltIn(p))
 												return (
@@ -555,20 +566,27 @@ const MonthlyPlanForm = ({
 
 					{/* Profile mode: locked values derived from profile */}
 					{isProfileMode && selectedProfile && (
-						<div className="space-y-m-300 rounded-lg border border-acc-100/20 bg-acc-100/5 p-m-400">
-							<div className="flex items-center gap-s-200">
-								<Lock className="h-4 w-4 text-acc-100" />
-								<p className="text-small font-medium text-txt-200">
+						<div className="space-y-s-300 border-acc-100/20 bg-acc-100/5 p-m-400 rounded-lg border">
+							<div className="gap-s-200 flex items-center">
+								<Lock className="text-acc-100 h-4 w-4" />
+								<p className="text-small text-txt-200 font-medium">
 									{t("form.profileLocked")}
 								</p>
 							</div>
 
 							{/* Effective values with derived percentages */}
-							<div className="grid grid-cols-[1fr_auto] gap-x-m-300 gap-y-s-200 text-tiny">
-								<span className="text-txt-300">{t("preview.riskPerTrade")}:</span>
+							<div className="gap-x-s-300 gap-y-s-200 text-tiny grid grid-cols-[1fr_auto]">
+								<span className="text-txt-300">
+									{t("preview.riskPerTrade")}:
+								</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(effectiveProfile?.riskCents ?? selectedProfile.baseRiskCents))}
+										{formatCurrency(
+											fromCents(
+												effectiveProfile?.riskCents ??
+													selectedProfile.baseRiskCents
+											)
+										)}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -577,10 +595,17 @@ const MonthlyPlanForm = ({
 									)}
 								</div>
 
-								<span className="text-txt-300">{t("preview.dailyLossLimit")}:</span>
+								<span className="text-txt-300">
+									{t("preview.dailyLossLimit")}:
+								</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(effectiveProfile?.dailyLossCents ?? selectedProfile.dailyLossCents))}
+										{formatCurrency(
+											fromCents(
+												effectiveProfile?.dailyLossCents ??
+													selectedProfile.dailyLossCents
+											)
+										)}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -589,12 +614,21 @@ const MonthlyPlanForm = ({
 									)}
 								</div>
 
-								{(effectiveProfile?.weeklyLossCents ?? selectedProfile.weeklyLossCents) != null && (
+								{(effectiveProfile?.weeklyLossCents ??
+									selectedProfile.weeklyLossCents) != null && (
 									<>
-										<span className="text-txt-300">{t("form.weeklyLoss")}:</span>
+										<span className="text-txt-300">
+											{t("form.weeklyLoss")}:
+										</span>
 										<div className="text-right">
 											<span className="text-txt-100 font-medium">
-												{formatCurrency(fromCents(effectiveProfile?.weeklyLossCents ?? selectedProfile.weeklyLossCents ?? 0))}
+												{formatCurrency(
+													fromCents(
+														effectiveProfile?.weeklyLossCents ??
+															selectedProfile.weeklyLossCents ??
+															0
+													)
+												)}
 											</span>
 											{profileDerivedPercents?.weeklyLoss && (
 												<span className="text-txt-300 ml-s-200">
@@ -605,10 +639,17 @@ const MonthlyPlanForm = ({
 									</>
 								)}
 
-								<span className="text-txt-300">{t("preview.monthlyLossLimit")}:</span>
+								<span className="text-txt-300">
+									{t("preview.monthlyLossLimit")}:
+								</span>
 								<div className="text-right">
 									<span className="text-txt-100 font-medium">
-										{formatCurrency(fromCents(effectiveProfile?.monthlyLossCents ?? selectedProfile.monthlyLossCents))}
+										{formatCurrency(
+											fromCents(
+												effectiveProfile?.monthlyLossCents ??
+													selectedProfile.monthlyLossCents
+											)
+										)}
 									</span>
 									{profileDerivedPercents && (
 										<span className="text-txt-300 ml-s-200">
@@ -617,12 +658,21 @@ const MonthlyPlanForm = ({
 									)}
 								</div>
 
-								{(effectiveProfile?.dailyProfitTargetCents ?? selectedProfile.dailyProfitTargetCents) != null && (
+								{(effectiveProfile?.dailyProfitTargetCents ??
+									selectedProfile.dailyProfitTargetCents) != null && (
 									<>
-										<span className="text-txt-300">{t("form.dailyTarget")}:</span>
+										<span className="text-txt-300">
+											{t("form.dailyTarget")}:
+										</span>
 										<div className="text-right">
 											<span className="text-txt-100 font-medium">
-												{formatCurrency(fromCents(effectiveProfile?.dailyProfitTargetCents ?? selectedProfile.dailyProfitTargetCents ?? 0))}
+												{formatCurrency(
+													fromCents(
+														effectiveProfile?.dailyProfitTargetCents ??
+															selectedProfile.dailyProfitTargetCents ??
+															0
+													)
+												)}
 											</span>
 											{profileDerivedPercents?.dailyTarget && (
 												<span className="text-txt-300 ml-s-200">
@@ -635,32 +685,45 @@ const MonthlyPlanForm = ({
 							</div>
 
 							{/* Decision tree summary */}
-							<div className="border-t border-acc-100/20 pt-m-300">
-								<div className="grid grid-cols-[1fr_auto] gap-x-m-300 gap-y-s-200 text-tiny">
-									<span className="text-txt-300">{t("form.maxConsecutiveLosses")}:</span>
-									<span className="text-txt-100 font-medium text-right">
-										{1 + selectedProfile.decisionTree.lossRecovery.sequence.length}
+							<div className="border-acc-100/20 pt-s-300 border-t">
+								<div className="gap-x-s-300 gap-y-s-200 text-tiny grid grid-cols-[1fr_auto]">
+									<span className="text-txt-300">
+										{t("form.maxConsecutiveLosses")}:
+									</span>
+									<span className="text-txt-100 text-right font-medium">
+										{1 +
+											selectedProfile.decisionTree.lossRecovery.sequence.length}
 									</span>
 
-									<span className="text-txt-300">{t("form.lossRecovery")}:</span>
-									<span className="text-txt-100 font-medium text-right">
-										{t("form.lossRecoverySteps", { count: selectedProfile.decisionTree.lossRecovery.sequence.length })}
+									<span className="text-txt-300">
+										{t("form.lossRecovery")}:
+									</span>
+									<span className="text-txt-100 text-right font-medium">
+										{t("form.lossRecoverySteps", {
+											count:
+												selectedProfile.decisionTree.lossRecovery.sequence
+													.length,
+										})}
 									</span>
 
 									<span className="text-txt-300">{t("form.gainMode")}:</span>
-									<span className="text-txt-100 font-medium text-right">
+									<span className="text-txt-100 text-right font-medium">
 										{selectedProfile.decisionTree.gainMode.type === "compounding"
 											? t("form.gainModeCompounding", {
-												percent: selectedProfile.decisionTree.gainMode.reinvestmentPercent,
-											})
-											: t("form.gainModeSingleTarget")}
+													percent: selectedProfile.decisionTree.gainMode.reinvestmentPercent,
+												})
+											: selectedProfile.decisionTree.gainMode.type === "gainSequence"
+												? t("form.gainModeGainSequence", {
+														steps: selectedProfile.decisionTree.gainMode.sequence.length,
+													})
+												: t("form.gainModeSingleTarget")}
 									</span>
 								</div>
 
 								<button
 									type="button"
 									onClick={() => setShowDecisionTree(true)}
-									className="mt-s-300 flex w-full items-center justify-center gap-s-200 rounded-md border border-acc-100/30 bg-acc-100/10 px-s-300 py-s-200 text-tiny font-medium text-acc-100 transition-colors hover:bg-acc-100/20"
+									className="mt-s-300 gap-s-200 border-acc-100/30 bg-acc-100/10 px-s-300 py-s-200 text-tiny text-acc-100 hover:bg-acc-100/20 flex w-full items-center justify-center rounded-md border font-medium transition-colors"
 									aria-label={t("form.seeDecisionTree")}
 									tabIndex={0}
 								>
@@ -960,7 +1023,7 @@ const MonthlyPlanForm = ({
 												aria-checked={winRiskMode === mode}
 												onClick={() => setWinRiskMode(mode)}
 												onKeyDown={handleWinRiskKeyDown}
-												className={`px-m-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
+												className={`px-s-300 py-s-200 text-small flex-1 rounded-md font-medium transition-all ${
 													winRiskMode === mode
 														? "bg-acc-100 text-bg-100 shadow-sm"
 														: "text-txt-300 hover:text-txt-200"
@@ -1042,44 +1105,62 @@ const MonthlyPlanForm = ({
 					</div>
 
 					{activePreview ? (
-						<div className="space-y-m-300">
+						<div className="space-y-s-300">
 							<PreviewRow
 								label={t("preview.riskPerTrade")}
-								value={formatCurrency(fromCents(activePreview.riskPerTradeCents))}
-								subValue={isProfileMode && profileDerivedPercents
-									? `${profileDerivedPercents.riskPerTrade}%`
-									: undefined}
+								value={formatCurrency(
+									fromCents(activePreview.riskPerTradeCents)
+								)}
+								subValue={
+									isProfileMode && profileDerivedPercents
+										? `${profileDerivedPercents.riskPerTrade}%`
+										: undefined
+								}
 							/>
 							<PreviewRow
 								label={t("preview.dailyLossLimit")}
 								value={formatCurrency(fromCents(activePreview.dailyLossCents))}
-								subValue={isProfileMode && profileDerivedPercents
-									? `${profileDerivedPercents.dailyLoss}%`
-									: undefined}
+								subValue={
+									isProfileMode && profileDerivedPercents
+										? `${profileDerivedPercents.dailyLoss}%`
+										: undefined
+								}
 							/>
 							<PreviewRow
 								label={t("preview.monthlyLossLimit")}
-								value={formatCurrency(fromCents(activePreview.monthlyLossCents))}
-								subValue={isProfileMode && profileDerivedPercents
-									? `${profileDerivedPercents.monthlyLoss}%`
-									: undefined}
+								value={formatCurrency(
+									fromCents(activePreview.monthlyLossCents)
+								)}
+								subValue={
+									isProfileMode && profileDerivedPercents
+										? `${profileDerivedPercents.monthlyLoss}%`
+										: undefined
+								}
 							/>
 							{activePreview.dailyProfitTargetCents !== null && (
 								<PreviewRow
 									label={t("preview.dailyProfitTarget")}
-									value={formatCurrency(fromCents(activePreview.dailyProfitTargetCents))}
-									subValue={isProfileMode && profileDerivedPercents?.dailyTarget
-										? `${profileDerivedPercents.dailyTarget}%`
-										: undefined}
+									value={formatCurrency(
+										fromCents(activePreview.dailyProfitTargetCents)
+									)}
+									subValue={
+										isProfileMode && profileDerivedPercents?.dailyTarget
+											? `${profileDerivedPercents.dailyTarget}%`
+											: undefined
+									}
 								/>
 							)}
 							{activePreview.weeklyLossCents !== null && (
 								<PreviewRow
 									label={t("preview.weeklyLossLimit")}
-									value={formatCurrency(fromCents(activePreview.weeklyLossCents))}
-									subValue={isProfileMode && profileDerivedPercents?.weeklyLoss
-										? `${profileDerivedPercents.weeklyLoss}%`
-										: undefined}
+									value={formatCurrency(
+										fromCents(activePreview.weeklyLossCents)
+									)}
+									subValue={
+										isProfileMode && profileDerivedPercents?.weeklyLoss
+											? `${profileDerivedPercents.weeklyLoss}%`
+											: undefined
+									}
 								/>
 							)}
 							{activePreview.derivedMaxDailyTrades !== null && (
@@ -1087,7 +1168,9 @@ const MonthlyPlanForm = ({
 									label={t("preview.maxTradesPerDay")}
 									value={String(activePreview.derivedMaxDailyTrades)}
 									subValue={
-										!isProfileMode && !maxDailyTrades ? `(${t("preview.derived")})` : undefined
+										!isProfileMode && !maxDailyTrades
+											? `(${t("preview.derived")})`
+											: undefined
 									}
 								/>
 							)}
@@ -1096,21 +1179,33 @@ const MonthlyPlanForm = ({
 								<>
 									<PreviewRow
 										label={t("preview.maxConsecutiveLosses")}
-										value={String(1 + selectedProfile.decisionTree.lossRecovery.sequence.length)}
+										value={String(
+											1 +
+												selectedProfile.decisionTree.lossRecovery.sequence
+													.length
+										)}
 									/>
 									<PreviewRow
 										label={t("form.lossRecovery")}
 										value={t("form.lossRecoverySteps", {
-											count: selectedProfile.decisionTree.lossRecovery.sequence.length,
+											count:
+												selectedProfile.decisionTree.lossRecovery.sequence
+													.length,
 										})}
 									/>
 									<PreviewRow
 										label={t("form.gainMode")}
-										value={selectedProfile.decisionTree.gainMode.type === "compounding"
-											? t("form.gainModeCompounding", {
-												percent: selectedProfile.decisionTree.gainMode.reinvestmentPercent,
-											})
-											: t("form.gainModeSingleTarget")}
+										value={
+											selectedProfile.decisionTree.gainMode.type === "compounding"
+												? t("form.gainModeCompounding", {
+														percent: selectedProfile.decisionTree.gainMode.reinvestmentPercent,
+													})
+												: selectedProfile.decisionTree.gainMode.type === "gainSequence"
+													? t("form.gainModeGainSequence", {
+															steps: selectedProfile.decisionTree.gainMode.sequence.length,
+														})
+													: t("form.gainModeSingleTarget")
+										}
 									/>
 								</>
 							)}
@@ -1123,7 +1218,8 @@ const MonthlyPlanForm = ({
 
 			{/* Save Button */}
 			<div className="flex justify-end">
-				<Button id="plan-save"
+				<Button
+					id="plan-save"
 					onClick={handleSave}
 					disabled={saving || !isValid}
 					aria-label={t("save")}

@@ -357,68 +357,128 @@ interface GainModeCardProps {
 	t: (key: string, values?: Record<string, string | number>) => string
 }
 
-const GainModeCard = ({ gainMode, baseRiskCents, formatCurrency, t }: GainModeCardProps) => (
-	<div className="space-y-s-200">
-		<p className="text-tiny text-trade-buy text-center font-semibold">
-			{t("gainMode")}
-		</p>
-		<div className="border-trade-buy/30 bg-trade-buy/5 p-s-300 rounded-lg border">
-			{gainMode.type === "compounding" ? (
-				<div className="space-y-s-200">
-					<p className="text-tiny text-txt-100 font-medium">
-						{t("compounding")}
-					</p>
-					<div className="space-y-s-100">
-						<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
-							<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
-							{t("reinvest", { percent: gainMode.reinvestmentPercent })}
+const GainModeCard = ({ gainMode, baseRiskCents, formatCurrency, t }: GainModeCardProps) => {
+	let previousRiskCents = baseRiskCents
+
+	return (
+		<div className="space-y-s-200">
+			<p className="text-tiny text-trade-buy text-center font-semibold">
+				{t("gainMode")}
+			</p>
+			<div className="border-trade-buy/30 bg-trade-buy/5 p-s-300 rounded-lg border">
+				{gainMode.type === "compounding" ? (
+					<div className="space-y-s-200">
+						<p className="text-tiny text-txt-100 font-medium">
+							{t("compounding")}
 						</p>
-						{gainMode.stopOnFirstLoss && (
+						<div className="space-y-s-100">
 							<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
 								<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
-								{t("stopOnFirstLoss")}
+								{t("reinvest", { percent: gainMode.reinvestmentPercent })}
 							</p>
-						)}
-						{gainMode.dailyTargetCents !== null && (
-							<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
-								<span className="text-tiny text-txt-300">
-									{t("dailyTarget")}:
-								</span>
-								<span className="text-tiny text-txt-100 font-medium">
-									{formatCurrency(fromCents(gainMode.dailyTargetCents))}
-								</span>
-							</div>
-						)}
+							{gainMode.stopOnFirstLoss && (
+								<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
+									<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
+									{t("stopOnFirstLoss")}
+								</p>
+							)}
+							{gainMode.dailyTargetCents !== null && (
+								<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
+									<span className="text-tiny text-txt-300">
+										{t("dailyTarget")}:
+									</span>
+									<span className="text-tiny text-txt-100 font-medium">
+										{formatCurrency(fromCents(gainMode.dailyTargetCents))}
+									</span>
+								</div>
+							)}
+						</div>
 					</div>
-				</div>
-			) : (
-				<div className="space-y-s-200">
-					<p className="text-tiny text-txt-100 font-medium">
-						{t("singleTarget")}
-					</p>
-					<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
-						<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
-						{t("tradesToTarget", { count: Math.ceil(gainMode.dailyTargetCents / (baseRiskCents * 2)) })}
-					</p>
-					<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
-						<span className="text-tiny text-txt-300">{t("dailyTarget")}:</span>
-						<span className="text-tiny text-txt-100 font-medium">
-							{formatCurrency(fromCents(gainMode.dailyTargetCents))}
-						</span>
+				) : gainMode.type === "gainSequence" ? (
+					<div className="space-y-s-200">
+						<p className="text-tiny text-txt-100 font-medium">
+							{t("gainSequence")}
+						</p>
+						<div className="space-y-s-200">
+							{gainMode.sequence.map((step, index) => {
+								const riskCents = computeStepRisk(step, baseRiskCents, previousRiskCents)
+								previousRiskCents = riskCents
+								return (
+									<div
+										key={index}
+										className="border-trade-buy/10 pb-s-100 border-b last:border-0 last:pb-0"
+									>
+										<div className="flex items-center justify-between">
+											<div>
+												<span className="text-tiny text-txt-200 font-medium">
+													{t("gainSequenceStep", { number: index + 1 })}
+												</span>
+												<span className="ml-s-200 text-tiny text-txt-300">
+													({getRiskLabel(step, t)})
+												</span>
+											</div>
+											<span className="text-tiny text-txt-100 font-medium">
+												{formatCurrency(fromCents(riskCents))}
+											</span>
+										</div>
+									</div>
+								)
+							})}
+						</div>
+						<div className="space-y-s-100">
+							{gainMode.repeatLastStep && (
+								<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
+									<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
+									{t("gainSequenceRepeat")}
+								</p>
+							)}
+							{gainMode.stopOnFirstLoss && (
+								<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
+									<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
+									{t("stopOnFirstLoss")}
+								</p>
+							)}
+							{gainMode.dailyTargetCents !== null && (
+								<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
+									<span className="text-tiny text-txt-300">
+										{t("dailyTarget")}:
+									</span>
+									<span className="text-tiny text-txt-100 font-medium">
+										{formatCurrency(fromCents(gainMode.dailyTargetCents))}
+									</span>
+								</div>
+							)}
+						</div>
 					</div>
-				</div>
+				) : (
+					<div className="space-y-s-200">
+						<p className="text-tiny text-txt-100 font-medium">
+							{t("singleTarget")}
+						</p>
+						<p className="text-tiny text-txt-300 gap-s-100 flex items-center">
+							<span className="bg-trade-buy/50 inline-block h-1.5 w-1.5 rounded-full" />
+							{t("tradesToTarget", { count: Math.ceil(gainMode.dailyTargetCents / (baseRiskCents * 2)) })}
+						</p>
+						<div className="border-trade-buy/20 pt-s-100 flex items-center justify-between border-t">
+							<span className="text-tiny text-txt-300">{t("dailyTarget")}:</span>
+							<span className="text-tiny text-txt-100 font-medium">
+								{formatCurrency(fromCents(gainMode.dailyTargetCents))}
+							</span>
+						</div>
+					</div>
+				)}
+			</div>
+
+			{/* Terminal STOP indicator for singleTarget */}
+			{gainMode.type === "singleTarget" && (
+				<>
+					<VerticalConnector className="bg-trade-buy/50" />
+					<StopBadge label={t("stop")} variant="win" />
+				</>
 			)}
 		</div>
-
-		{/* Terminal STOP indicator for singleTarget */}
-		{gainMode.type === "singleTarget" && (
-			<>
-				<VerticalConnector className="bg-trade-buy/50" />
-				<StopBadge label={t("stop")} variant="win" />
-			</>
-		)}
-	</div>
-)
+	)
+}
 
 interface LimitsSectionProps {
 	cascadingLimits: RiskManagementProfile["decisionTree"]["cascadingLimits"]
@@ -881,6 +941,19 @@ const WinOutcomeBaseTrade = ({ gainMode, t }: WinOutcomeBaseTradeProps) => (
 				<p className="text-tiny text-txt-300">
 					{t("outcome.compoundingDetail", {
 						percent: gainMode.reinvestmentPercent,
+					})}
+				</p>
+				{gainMode.stopOnFirstLoss && (
+					<p className="text-tiny text-txt-300">
+						{t("outcome.stopOnFirstLossActive")}
+					</p>
+				)}
+			</>
+		) : gainMode.type === "gainSequence" ? (
+			<>
+				<p className="text-tiny text-txt-300">
+					{t("outcome.gainSequenceDetail", {
+						steps: gainMode.sequence.length,
 					})}
 				</p>
 				{gainMode.stopOnFirstLoss && (

@@ -66,64 +66,64 @@ export const MonthlyPlanSummary = ({ plan, profileName }: MonthlyPlanSummaryProp
 	return (
 		<div className="space-y-m-400">
 			{profileName && (
-				<div className="flex items-center gap-s-200 rounded-lg border border-acc-100/20 bg-acc-100/5 px-m-300 py-s-300">
-					<ShieldCheck className="h-4 w-4 text-acc-100" />
-					<span className="text-small font-medium text-txt-100">
+				<div className="gap-s-200 border-acc-100/20 bg-acc-100/5 px-s-300 py-s-300 flex items-center rounded-lg border">
+					<ShieldCheck className="text-acc-100 h-4 w-4" />
+					<span className="text-small text-txt-100 font-medium">
 						{t("usingProfile", { name: profileName })}
 					</span>
 				</div>
 			)}
-			<div className="grid gap-m-400 sm:grid-cols-2 lg:grid-cols-3">
-			<SummaryCard
-				icon={DollarSign}
-				label={t("accountBalance")}
-				value={formatCurrency(balance)}
-			/>
-			<SummaryCard
-				icon={Target}
-				label={t("riskPerTrade")}
-				value={formatCurrency(riskPerTrade)}
-				subValue={`${plan.riskPerTradePercent}%`}
-			/>
-			<SummaryCard
-				icon={TrendingDown}
-				label={t("dailyLossLimit")}
-				value={formatCurrency(dailyLoss)}
-				subValue={`${plan.dailyLossPercent}%`}
-				iconClass="text-trade-sell"
-			/>
-			<SummaryCard
-				icon={TrendingDown}
-				label={t("monthlyLossLimit")}
-				value={formatCurrency(monthlyLoss)}
-				subValue={`${plan.monthlyLossPercent}%`}
-				iconClass="text-trade-sell"
-			/>
-			{profitTarget !== null && (
+			<div className="gap-m-400 grid sm:grid-cols-2 lg:grid-cols-3">
 				<SummaryCard
-					icon={TrendingUp}
-					label={t("dailyProfitTarget")}
-					value={formatCurrency(profitTarget)}
-					subValue={`${plan.dailyProfitTargetPercent}%`}
-					iconClass="text-trade-buy"
+					icon={DollarSign}
+					label={t("accountBalance")}
+					value={formatCurrency(balance)}
 				/>
-			)}
-			{maxTrades !== null && (
 				<SummaryCard
-					icon={BarChart3}
-					label={t("maxTradesPerDay")}
-					value={String(maxTrades)}
-					subValue={plan.maxDailyTrades ? undefined : `(${t("derived")})`}
+					icon={Target}
+					label={t("riskPerTrade")}
+					value={formatCurrency(riskPerTrade)}
+					subValue={`${plan.riskPerTradePercent}%`}
 				/>
-			)}
-			{maxLosingDays !== null && (
 				<SummaryCard
-					icon={CalendarDays}
-					label={t("maxLosingDays")}
-					value={String(maxLosingDays)}
+					icon={TrendingDown}
+					label={t("dailyLossLimit")}
+					value={formatCurrency(dailyLoss)}
+					subValue={`${plan.dailyLossPercent}%`}
+					iconClass="text-trade-sell"
 				/>
-			)}
-		</div>
+				<SummaryCard
+					icon={TrendingDown}
+					label={t("monthlyLossLimit")}
+					value={formatCurrency(monthlyLoss)}
+					subValue={`${plan.monthlyLossPercent}%`}
+					iconClass="text-trade-sell"
+				/>
+				{profitTarget !== null && (
+					<SummaryCard
+						icon={TrendingUp}
+						label={t("dailyProfitTarget")}
+						value={formatCurrency(profitTarget)}
+						subValue={`${plan.dailyProfitTargetPercent}%`}
+						iconClass="text-trade-buy"
+					/>
+				)}
+				{maxTrades !== null && (
+					<SummaryCard
+						icon={BarChart3}
+						label={t("maxTradesPerDay")}
+						value={String(maxTrades)}
+						subValue={plan.maxDailyTrades ? undefined : `(${t("derived")})`}
+					/>
+				)}
+				{maxLosingDays !== null && (
+					<SummaryCard
+						icon={CalendarDays}
+						label={t("maxLosingDays")}
+						value={String(maxLosingDays)}
+					/>
+				)}
+			</div>
 		</div>
 	)
 }

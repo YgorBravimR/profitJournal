@@ -87,19 +87,19 @@ const CalculatorResults = ({
 	return (
 		<div className="space-y-m-400">
 			{/* Risk Section */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-				<div className="mb-s-300 flex items-center gap-s-200">
-					<Shield className="h-4 w-4 text-trade-sell" />
-					<h4 className="text-small font-semibold text-txt-100">
+			<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+				<div className="mb-s-300 gap-s-200 flex items-center">
+					<Shield className="text-trade-sell h-4 w-4" />
+					<h4 className="text-small text-txt-100 font-semibold">
 						{t("riskAnalysis")}
 					</h4>
 				</div>
 
-				<div className="grid grid-cols-2 gap-m-300">
+				<div className="gap-s-300 grid grid-cols-2">
 					{/* Stop Distance */}
 					<div>
 						<p className="text-tiny text-txt-300">{t("stopPoints")}</p>
-						<p className="text-body font-semibold text-txt-100">
+						<p className="text-body text-txt-100 font-semibold">
 							{formatPoints(result.stopPoints)} {t("points")}
 						</p>
 					</div>
@@ -107,7 +107,7 @@ const CalculatorResults = ({
 					{/* Risk Per Contract */}
 					<div>
 						<p className="text-tiny text-txt-300">{t("riskPerContract")}</p>
-						<p className="text-body font-semibold text-trade-sell">
+						<p className="text-body text-trade-sell font-semibold">
 							{formatCurrency(result.riskPerContractCents, currency)}
 						</p>
 					</div>
@@ -119,18 +119,16 @@ const CalculatorResults = ({
 							{isMaxRiskFromSettings ? (
 								<Link
 									href="/settings?tab=account"
-									className="ml-s-100 text-acc-100 underline transition-colors hover:text-acc-200"
+									className="ml-s-100 text-acc-100 hover:text-acc-200 underline transition-colors"
 									aria-label={t("fromSettings")}
 								>
 									({t("fromSettings")})
 								</Link>
 							) : (
-								<span className="ml-s-100 text-acc-100">
-									({t("manual")})
-								</span>
+								<span className="ml-s-100 text-acc-100">({t("manual")})</span>
 							)}
 						</p>
-						<p className="text-body font-semibold text-txt-100">
+						<p className="text-body text-txt-100 font-semibold">
 							{formatCurrency(result.maxAllowedRiskCents, currency)}
 						</p>
 					</div>
@@ -155,25 +153,37 @@ const CalculatorResults = ({
 
 					{/* Risk with +1 contract hint */}
 					{result.suggestedContracts > 0 && result.riskPerContractCents > 0 && (
-						<div className="col-span-2 rounded-md border border-dashed border-bg-300 px-m-300 py-s-200">
+						<div className="border-bg-300 px-s-300 py-s-200 col-span-2 rounded-md border border-dashed">
 							<p className="text-tiny text-txt-300">
-								{t("riskWithExtraContract", { contracts: result.suggestedContracts + 1 })}
+								{t("riskWithExtraContract", {
+									contracts: result.suggestedContracts + 1,
+								})}
 							</p>
 							<p
 								className={cn(
 									"text-small font-medium",
-									(result.suggestedContracts + 1) * result.riskPerContractCents > result.maxAllowedRiskCents
+									(result.suggestedContracts + 1) *
+										result.riskPerContractCents >
+										result.maxAllowedRiskCents
 										? "text-trade-sell"
 										: "text-txt-200"
 								)}
 							>
-								{formatCurrency((result.suggestedContracts + 1) * result.riskPerContractCents, currency)}
-								{(result.suggestedContracts + 1) * result.riskPerContractCents > result.maxAllowedRiskCents && (
-									<span className="ml-s-200 text-tiny font-normal text-trade-sell">
-										(+{formatCurrency(
-											(result.suggestedContracts + 1) * result.riskPerContractCents - result.maxAllowedRiskCents,
+								{formatCurrency(
+									(result.suggestedContracts + 1) * result.riskPerContractCents,
+									currency
+								)}
+								{(result.suggestedContracts + 1) * result.riskPerContractCents >
+									result.maxAllowedRiskCents && (
+									<span className="ml-s-200 text-tiny text-trade-sell font-normal">
+										(+
+										{formatCurrency(
+											(result.suggestedContracts + 1) *
+												result.riskPerContractCents -
+												result.maxAllowedRiskCents,
 											currency
-										)} {t("overLimit")})
+										)}{" "}
+										{t("overLimit")})
 									</span>
 								)}
 							</p>
@@ -183,19 +193,19 @@ const CalculatorResults = ({
 			</div>
 
 			{/* Position Size Section */}
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-				<div className="mb-s-300 flex items-center gap-s-200">
-					<BarChart3 className="h-4 w-4 text-acc-100" />
-					<h4 className="text-small font-semibold text-txt-100">
+			<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+				<div className="mb-s-300 gap-s-200 flex items-center">
+					<BarChart3 className="text-acc-100 h-4 w-4" />
+					<h4 className="text-small text-txt-100 font-semibold">
 						{t("positionSizing")}
 					</h4>
 				</div>
 
-				<div className="grid grid-cols-2 gap-m-300">
+				<div className="gap-s-300 grid grid-cols-2">
 					{/* Suggested Contracts */}
 					<div>
 						<p className="text-tiny text-txt-300">{t("suggestedContracts")}</p>
-						<p className="text-body font-semibold text-acc-100">
+						<p className="text-body text-acc-100 font-semibold">
 							{result.suggestedContracts} {t("contracts")}
 						</p>
 					</div>
@@ -219,19 +229,19 @@ const CalculatorResults = ({
 
 			{/* Target / R:R Section */}
 			{result.targetPoints !== null && (
-				<div className="rounded-lg border border-bg-300 bg-bg-200 p-m-400">
-					<div className="mb-s-300 flex items-center gap-s-200">
-						<TrendingUp className="h-4 w-4 text-trade-buy" />
-						<h4 className="text-small font-semibold text-txt-100">
+				<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
+					<div className="mb-s-300 gap-s-200 flex items-center">
+						<TrendingUp className="text-trade-buy h-4 w-4" />
+						<h4 className="text-small text-txt-100 font-semibold">
 							{t("targetAnalysis")}
 						</h4>
 					</div>
 
-					<div className="grid grid-cols-2 gap-m-300">
+					<div className="gap-s-300 grid grid-cols-2">
 						{/* Target Distance */}
 						<div>
 							<p className="text-tiny text-txt-300">{t("targetPoints")}</p>
-							<p className="text-body font-semibold text-txt-100">
+							<p className="text-body text-txt-100 font-semibold">
 								{formatPoints(result.targetPoints)} {t("points")}
 							</p>
 						</div>
@@ -239,8 +249,10 @@ const CalculatorResults = ({
 						{/* Return Per Contract */}
 						{result.returnPerContractCents !== null && (
 							<div>
-								<p className="text-tiny text-txt-300">{t("returnPerContract")}</p>
-								<p className="text-body font-semibold text-trade-buy">
+								<p className="text-tiny text-txt-300">
+									{t("returnPerContract")}
+								</p>
+								<p className="text-body text-trade-buy font-semibold">
 									{formatCurrency(result.returnPerContractCents, currency)}
 								</p>
 							</div>
