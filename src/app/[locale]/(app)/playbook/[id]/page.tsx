@@ -9,9 +9,15 @@ import {
 	XCircle,
 	BarChart3,
 	FileText,
+	Filter,
+	ImageIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { getStrategy } from "@/app/actions/strategies"
+import { getStrategyConditions } from "@/app/actions/strategy-conditions"
+import { getScenariosByStrategy } from "@/app/actions/scenarios"
+import { ConditionTierDisplay } from "@/components/playbook/condition-tier-display"
+import { ScenarioSection } from "@/components/playbook/scenario-section"
 
 interface StrategyDetailPageProps {
 	params: Promise<{ id: string }>
@@ -33,13 +39,17 @@ const formatProfitFactor = (value: number): string => {
 
 const StrategyDetailPage = async ({ params }: StrategyDetailPageProps) => {
 	const { id } = await params
-	const result = await getStrategy(id)
+	const [result, conditionsResult] = await Promise.all([
+		getStrategy(id),
+		getStrategyConditions(id),
+	])
 
 	if (result.status !== "success" || !result.data) {
 		notFound()
 	}
 
 	const strategy = result.data
+	const strategyConditions = conditionsResult.status === "success" ? conditionsResult.data ?? [] : []
 
 	const complianceColor =
 		strategy.compliance >= 80
@@ -192,6 +202,32 @@ const StrategyDetailPage = async ({ params }: StrategyDetailPageProps) => {
 										</p>
 									</div>
 								)}
+							</div>
+						</div>
+					)}
+
+					{/* Conditions */}
+					{strategyConditions.length > 0 && (
+						<div className="border-bg-300 bg-bg-200 rounded-lg border p-m-500">
+							<div className="flex items-center gap-s-200">
+								<Filter className="text-acc-100 h-5 w-5" />
+								<h2 className="text-body text-txt-100 font-semibold">Trading Conditions</h2>
+							</div>
+							<div className="mt-m-400">
+								<ConditionTierDisplay conditions={strategyConditions} />
+							</div>
+						</div>
+					)}
+
+					{/* Scenarios */}
+					{strategy.scenarioCount > 0 && (
+						<div className="border-bg-300 bg-bg-200 rounded-lg border p-m-500">
+							<div className="flex items-center gap-s-200">
+								<ImageIcon className="text-acc-100 h-5 w-5" />
+								<h2 className="text-body text-txt-100 font-semibold">Scenarios</h2>
+							</div>
+							<div className="mt-m-400">
+								<ScenarioSection strategyId={strategy.id} readOnly />
 							</div>
 						</div>
 					)}

@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
-import { strategies, trades } from "@/db/schema"
+import { strategies, trades, strategyConditions, strategyScenarios } from "@/db/schema"
 import type { Strategy } from "@/db/schema"
 import type { ActionResponse } from "@/types"
-import { eq, and, desc, inArray } from "drizzle-orm"
+import { eq, and, desc, inArray, sql } from "drizzle-orm"
 import { z } from "zod"
 import {
 	createStrategySchema,
@@ -27,6 +27,8 @@ export interface StrategyWithStats extends Strategy {
 	winRate: number
 	profitFactor: number
 	avgR: number
+	conditionCount: number
+	scenarioCount: number
 }
 
 export interface ComplianceOverview {
@@ -62,10 +64,23 @@ export const createStrategy = async (
 				targetRMultiple: validated.targetRMultiple?.toString() || null,
 				maxRiskPercent: validated.maxRiskPercent?.toString() || null,
 				screenshotUrl: validated.screenshotUrl || null,
+				screenshotS3Key: validated.screenshotS3Key || null,
 				notes: validated.notes || null,
 				isActive: validated.isActive ?? true,
 			})
 			.returning()
+
+		// Sync conditions if provided
+		if (validated.conditions && validated.conditions.length > 0) {
+			await db.insert(strategyConditions).values(
+				validated.conditions.map((c) => ({
+					strategyId: strategy.id,
+					conditionId: c.conditionId,
+					tier: c.tier,
+					sortOrder: c.sortOrder,
+				}))
+			)
+		}
 
 		revalidatePath("/playbook")
 		revalidatePath("/journal")
@@ -164,6 +179,9 @@ export const updateStrategy = async (
 				...(validated.screenshotUrl !== undefined && {
 					screenshotUrl: validated.screenshotUrl || null,
 				}),
+				...(validated.screenshotS3Key !== undefined && {
+					screenshotS3Key: validated.screenshotS3Key || null,
+				}),
 				...(validated.notes !== undefined && {
 					notes: validated.notes || null,
 				}),
@@ -174,6 +192,24 @@ export const updateStrategy = async (
 			})
 			.where(and(eq(strategies.id, id), eq(strategies.userId, userId)))
 			.returning()
+
+		// Sync conditions if provided (delete-all + bulk-insert)
+		if (validated.conditions !== undefined) {
+			await db
+				.delete(strategyConditions)
+				.where(eq(strategyConditions.strategyId, id))
+
+			if (validated.conditions.length > 0) {
+				await db.insert(strategyConditions).values(
+					validated.conditions.map((c) => ({
+						strategyId: id,
+						conditionId: c.conditionId,
+						tier: c.tier,
+						sortOrder: c.sortOrder,
+					}))
+				)
+			}
+		}
 
 		revalidatePath("/playbook")
 		revalidatePath("/journal")
@@ -374,15 +410,30 @@ export const getStrategies = async (
 		// Calculate stats for each strategy
 		const strategiesWithStats: StrategyWithStats[] = await Promise.all(
 			allStrategies.map(async (strategy) => {
-				const strategyTrades = await db.query.trades.findMany({
-					where: and(
-						eq(trades.strategyId, strategy.id),
-						tradesAccountCondition,
-						eq(trades.isArchived, false)
-					),
-				})
+				const [strategyTrades, conditionCountResult, scenarioCountResult] = await Promise.all([
+					db.query.trades.findMany({
+						where: and(
+							eq(trades.strategyId, strategy.id),
+							tradesAccountCondition,
+							eq(trades.isArchived, false)
+						),
+					}),
+					db
+						.select({ count: sql<number>`count(*)::int` })
+						.from(strategyConditions)
+						.where(eq(strategyConditions.strategyId, strategy.id)),
+					db
+						.select({ count: sql<number>`count(*)::int` })
+						.from(strategyScenarios)
+						.where(eq(strategyScenarios.strategyId, strategy.id)),
+				])
 
-				return { ...strategy, ...calculateStrategyStats(strategyTrades) }
+				return {
+					...strategy,
+					...calculateStrategyStats(strategyTrades),
+					conditionCount: conditionCountResult[0]?.count ?? 0,
+					scenarioCount: scenarioCountResult[0]?.count ?? 0,
+				}
 			})
 		)
 
@@ -433,19 +484,34 @@ export const getStrategy = async (
 			}
 		}
 
-		// Get trades for this strategy
-		const strategyTrades = await db.query.trades.findMany({
-			where: and(
-				eq(trades.strategyId, strategy.id),
-				tradesAccountCondition,
-				eq(trades.isArchived, false)
-			),
-		})
+		// Get trades, condition count, and scenario count for this strategy
+		const [strategyTrades, conditionCountResult, scenarioCountResult] = await Promise.all([
+			db.query.trades.findMany({
+				where: and(
+					eq(trades.strategyId, strategy.id),
+					tradesAccountCondition,
+					eq(trades.isArchived, false)
+				),
+			}),
+			db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(strategyConditions)
+				.where(eq(strategyConditions.strategyId, strategy.id)),
+			db
+				.select({ count: sql<number>`count(*)::int` })
+				.from(strategyScenarios)
+				.where(eq(strategyScenarios.strategyId, strategy.id)),
+		])
 
 		return {
 			status: "success",
 			message: "Strategy retrieved successfully",
-			data: { ...strategy, ...calculateStrategyStats(strategyTrades) },
+			data: {
+				...strategy,
+				...calculateStrategyStats(strategyTrades),
+				conditionCount: conditionCountResult[0]?.count ?? 0,
+				scenarioCount: scenarioCountResult[0]?.count ?? 0,
+			},
 		}
 	} catch (error) {
 		return {

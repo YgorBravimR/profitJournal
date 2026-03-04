@@ -1,5 +1,13 @@
 import { z } from "zod"
 
+const conditionTiers = ["mandatory", "tier_2", "tier_3"] as const
+
+const strategyConditionSchema = z.object({
+	conditionId: z.string().uuid(),
+	tier: z.enum(conditionTiers),
+	sortOrder: z.coerce.number().int().min(0).default(0),
+})
+
 export const createStrategySchema = z.object({
 	code: z
 		.string()
@@ -48,6 +56,8 @@ export const createStrategySchema = z.object({
 		.max(5000, "Notes must be 5000 characters or less")
 		.optional(),
 	isActive: z.boolean().default(true),
+	screenshotS3Key: z.string().max(500).optional().or(z.literal("")),
+	conditions: z.array(strategyConditionSchema).optional(),
 })
 
 export const updateStrategySchema = createStrategySchema.partial()

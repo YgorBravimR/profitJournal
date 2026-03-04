@@ -10,6 +10,8 @@ import {
 	Edit,
 	Trash2,
 	Eye,
+	Filter,
+	ImageIcon,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ColoredValue } from "@/components/shared"
@@ -185,6 +187,28 @@ export const StrategyCard = ({ strategy, onEdit, onDelete }: StrategyCardProps) 
 							<span className="text-tiny text-txt-300">Max Risk:</span>
 							<span className="text-small text-txt-100 font-medium">
 								{Number(strategy.maxRiskPercent).toFixed(1)}%
+							</span>
+						</div>
+					)}
+				</div>
+			)}
+
+			{/* Conditions & Scenarios counts */}
+			{(strategy.conditionCount > 0 || strategy.scenarioCount > 0) && (
+				<div className="mt-s-300 flex items-center gap-m-400">
+					{strategy.conditionCount > 0 && (
+						<div className="flex items-center gap-s-100">
+							<Filter className="text-txt-300 h-3 w-3" />
+							<span className="text-tiny text-txt-300">
+								{strategy.conditionCount} {strategy.conditionCount === 1 ? "condition" : "conditions"}
+							</span>
+						</div>
+					)}
+					{strategy.scenarioCount > 0 && (
+						<div className="flex items-center gap-s-100">
+							<ImageIcon className="text-txt-300 h-3 w-3" />
+							<span className="text-tiny text-txt-300">
+								{strategy.scenarioCount} {strategy.scenarioCount === 1 ? "scenario" : "scenarios"}
 							</span>
 						</div>
 					)}
