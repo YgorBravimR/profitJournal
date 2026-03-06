@@ -22,8 +22,8 @@ const SYMBOL_LIST: SymbolDefinition[] = [
 	{ symbol: "VALE", name: "Vale ADR (NYSE)", flag: "🇺🇸", provider: "yahoo" },
 	{ symbol: "PBR", name: "Petrobras ADR (NYSE)", flag: "🇺🇸", provider: "yahoo" },
 	{ symbol: "^TYX", name: "US 30Y Bond Yield", flag: "🇺🇸", provider: "yahoo" },
-	{ symbol: "IFNC.SA", name: "IFNC (Financeiro)", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "ICOM.SA", name: "ICOM (Comercial)", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
+	{ symbol: "IFNC.SA", name: "IFNC (Financeiro)", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "ICOM.SA", name: "ICOM (Comercial)", flag: "🇧🇷", provider: "yahoo" },
 
 	// ── Indices ──────────────────────────────────────────────────────────────
 	{ symbol: "^GSPC", name: "S&P 500", flag: "🇺🇸", provider: "yahoo" },
@@ -36,18 +36,18 @@ const SYMBOL_LIST: SymbolDefinition[] = [
 	{ symbol: "^BVSP", name: "Ibovespa", flag: "🇧🇷", provider: "yahoo" },
 
 	// ── B3 ───────────────────────────────────────────────────────────────────
-	{ symbol: "VALE3.SA", name: "Vale", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "VALE" },
-	{ symbol: "ITUB4.SA", name: "Itau Unibanco", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "ITUB" },
-	{ symbol: "PETR4.SA", name: "Petrobras PN", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "PBR" },
-	{ symbol: "PETR3.SA", name: "Petrobras ON", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "AZZA3.SA", name: "Azzas 2154", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "BBDC4.SA", name: "Bradesco", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "BBD" },
-	{ symbol: "SBSP3.SA", name: "Sabesp", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "SBS" },
-	{ symbol: "ITSA4.SA", name: "Itausa", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "BPAC11.SA", name: "BTG Pactual", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "BPAC" },
-	{ symbol: "WEGE3.SA", name: "WEG", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "BBAS3.SA", name: "Banco do Brasil", flag: "🇧🇷", provider: "brapi", fallback: "yahoo" },
-	{ symbol: "ABEV3.SA", name: "Ambev", flag: "🇧🇷", provider: "brapi", fallback: "yahoo", adrSymbol: "ABEV" },
+	{ symbol: "VALE3.SA", name: "Vale", flag: "🇧🇷", provider: "yahoo", adrSymbol: "VALE" },
+	{ symbol: "ITUB4.SA", name: "Itau Unibanco", flag: "🇧🇷", provider: "yahoo", adrSymbol: "ITUB" },
+	{ symbol: "PETR4.SA", name: "Petrobras PN", flag: "🇧🇷", provider: "yahoo", adrSymbol: "PBR" },
+	{ symbol: "PETR3.SA", name: "Petrobras ON", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "AZZA3.SA", name: "Azzas 2154", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "BBDC4.SA", name: "Bradesco", flag: "🇧🇷", provider: "yahoo", adrSymbol: "BBD" },
+	{ symbol: "SBSP3.SA", name: "Sabesp", flag: "🇧🇷", provider: "yahoo", adrSymbol: "SBS" },
+	{ symbol: "ITSA4.SA", name: "Itausa", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "BPAC11.SA", name: "BTG Pactual", flag: "🇧🇷", provider: "yahoo", adrSymbol: "BPAC" },
+	{ symbol: "WEGE3.SA", name: "WEG", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "BBAS3.SA", name: "Banco do Brasil", flag: "🇧🇷", provider: "yahoo" },
+	{ symbol: "ABEV3.SA", name: "Ambev", flag: "🇧🇷", provider: "yahoo", adrSymbol: "ABEV" },
 
 	// ── ADR companions (not in any tab group, fetched for B3 side-by-side) ──
 	{ symbol: "ITUB", name: "Itau ADR (NYSE)", flag: "🇺🇸", provider: "yahoo" },

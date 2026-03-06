@@ -23,7 +23,6 @@ import {
 	getCompanionSymbols,
 } from "./registry"
 import { yahooProvider } from "./providers/yahoo"
-import { brapiProvider } from "./providers/brapi"
 import { coingeckoProvider } from "./providers/coingecko"
 import { fetchEconomicCalendar } from "./providers/calendar"
 import { fetchBcbCalendar } from "./providers/bcb"
@@ -32,7 +31,6 @@ import { fetchBcbCalendar } from "./providers/bcb"
 
 const PROVIDERS: Map<ProviderId, QuoteProvider> = new Map([
 	["yahoo", yahooProvider],
-	["brapi", brapiProvider],
 	["coingecko", coingeckoProvider],
 ])
 
