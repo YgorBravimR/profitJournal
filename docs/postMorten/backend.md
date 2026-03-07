@@ -78,3 +78,44 @@ Applied a two-layer fix (defense in depth):
 ### Related Files
 - `src/app/[locale]/(app)/settings/page.tsx`
 - `src/app/actions/seed-risk-profiles.ts`
+
+---
+
+## [BUG-2026-03-07] Zod discriminated union missing `gainSequence` variant in gainModeSchema
+
+**Date:** 2026-03-07
+**Severity:** High
+**Affected Area:** `src/lib/validations/risk-profile.ts`, `src/app/actions/risk-simulation.ts:110`
+
+### Cause
+The TypeScript type `GainMode` in `src/types/risk-profile.ts` defines three variants: `"compounding"`, `"singleTarget"`, and `"gainSequence"`. However, the corresponding Zod validation schema `gainModeSchema` in `src/lib/validations/risk-profile.ts` only included two variants (`"compounding"` and `"singleTarget"`), omitting `"gainSequence"`.
+
+When a risk management profile with `gainMode.type = "gainSequence"` was selected as the prefill source for simulation, the server action `runRiskSimulationFromDb` called `riskSimulationParamsSchema.parse(params)` which delegates to `decisionTreeConfigSchema` -> `gainModeSchema`. The Zod discriminated union failed to match `"gainSequence"` against any member, producing the error: `"No matching discriminator"` at path `decisionTree.gainMode.type`.
+
+### Effect
+Any risk simulation using a risk profile configured with the "Gain Sequence" gain mode would fail with a ZodError at the validation layer, preventing the simulation from running entirely. The `"compounding"` and `"singleTarget"` gain modes were unaffected.
+
+### Solution
+Added the `"gainSequence"` variant to `gainModeSchema` in `src/lib/validations/risk-profile.ts`, mirroring the TypeScript type definition:
+```typescript
+z.object({
+    type: z.literal("gainSequence"),
+    sequence: z.array(lossRecoveryStepSchema).max(10, "Maximum 10 gain steps"),
+    repeatLastStep: z.boolean(),
+    stopOnFirstLoss: z.boolean(),
+    dailyTargetCents: z.number().int().positive().nullable(),
+})
+```
+
+Also fixed `scaleDecisionTree` in `src/components/risk-simulation/risk-params-form.tsx` which was missing the `"gainSequence"` branch — when the user adjusted account balance in advanced mode, `gainSequence` steps with `fixedCents` risk calculations were not being scaled proportionally.
+
+### Prevention
+- When adding a new variant to a TypeScript discriminated union type, always update the corresponding Zod schema in the same PR.
+- Consider co-locating the Zod schema and TypeScript type, or generating one from the other, to prevent drift.
+- Add a test that validates a sample payload with each gainMode variant against the Zod schema.
+
+### Related Files
+- `src/types/risk-profile.ts` (TypeScript type with 3 variants)
+- `src/lib/validations/risk-profile.ts` (Zod schema — was missing gainSequence)
+- `src/app/actions/risk-simulation.ts` (validation call at line 110)
+- `src/components/risk-simulation/risk-params-form.tsx` (scaleDecisionTree missing gainSequence branch)

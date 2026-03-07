@@ -52,6 +52,8 @@
 			"placeholder": "Selecione uma data",
 			"rangePlaceholder": "Selecione o período"
 		},
+		"searchPlaceholder": "Buscar métrica ou ativo...",
+		"notifications": "Notificações",
 		"imageUpload": {
 			"invalidFileType": "Tipo de arquivo inválido. Aceitos: JPEG, PNG, WebP",
 			"fileTooLarge": "Arquivo muito grande. Máx: {maxSize}MB",
@@ -1052,24 +1054,19 @@
 		"trade": "trade",
 		"trades": "trades",
 		"kpi": {
-			"grossPnl": "P&L Bruto",
-			"netPnl": "P&L Líquido",
-			"fees": "Taxas",
+			"pnl": "P&L",
+			"gross": "Bruto",
+			"net": "Líquido",
 			"trades": "trades",
-			"winRate": "Taxa de Acerto",
-			"profitFactor": "Fator de Lucro",
-			"pf": "FL",
+			"winRate": "Tx Acerto",
+			"profitFactor": "Fator Lucro",
 			"avgR": "R Médio",
 			"discipline": "Disciplina",
-			"totalTrades": "Total de Trades",
-			"wins": "Gains",
-			"losses": "Losses",
-			"avgWin": "Gain Médio",
-			"avgLoss": "Loss Médio",
 			"followed": "seguidos",
 			"w": "G",
 			"l": "L",
-			"be": "BE"
+			"be": "BE",
+			"avg": "Média"
 		},
 		"calendar": {
 			"title": "Calendário de Trades",
@@ -1375,14 +1372,12 @@
 			"direction": "Direção",
 			"outcome": "Resultado",
 			"timeframes": "Timeframes",
+			"advancedFilters": "Filtros Avançados",
 			"datePresets": {
 				"today": "Hoje",
 				"thisWeek": "Esta Semana",
 				"thisMonth": "Este Mês",
-				"last30Days": "Últimos 30 Dias",
-				"last90Days": "Últimos 90 Dias",
 				"thisYear": "Este Ano",
-				"allTime": "Todo Período",
 				"custom": "Personalizado"
 			}
 		},

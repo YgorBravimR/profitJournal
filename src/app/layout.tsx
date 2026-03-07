@@ -1,10 +1,11 @@
+import type { ReactNode } from "react"
 import type { Metadata } from "next"
-import { Plus_Jakarta_Sans, Geist_Mono, Aboreto } from "next/font/google"
+import { Public_Sans, Geist_Mono } from "next/font/google"
 import { BrandScript } from "@/components/providers/brand-script"
 import "./globals.css"
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-	variable: "--font-plus-jakarta",
+const publicSans = Public_Sans({
+	variable: "--font-public-sans",
 	subsets: ["latin"],
 	weight: ["300", "400", "500", "600", "700", "800"],
 })
@@ -25,17 +26,17 @@ export const metadata: Metadata = {
 }
 
 interface RootLayoutProps {
-	children: React.ReactNode
+	children: ReactNode
 }
 
 const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
-		<html suppressHydrationWarning data-brand="default">
+		<html suppressHydrationWarning data-brand="bravo">
 			{/* <head>
 				<BrandScript />
 			</head> */}
 			<body
-				className={`${plusJakartaSans.variable} ${geistMono.variable} font-sans antialiased`}
+				className={`${publicSans.variable} ${geistMono.variable} font-sans antialiased`}
 			>
 				{children}
 			</body>

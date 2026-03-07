@@ -7,9 +7,11 @@ type TrendType = "up" | "down" | "stable"
 interface StatCardProps {
 	label: string
 	value: string | ReactNode
-	subValue?: string
+	subValue?: string | ReactNode
 	trend?: TrendType
 	valueColorClass?: string
+	accentColorClass?: string
+	indicator?: ReactNode
 	size?: "sm" | "md" | "lg"
 	className?: string
 }
@@ -48,14 +50,17 @@ const TrendIcon = ({ trend }: { trend: TrendType }) => {
 
 /**
  * A reusable stat card component for displaying KPI metrics.
- * Supports trend indicators and customizable styling.
- * Uses responsive sizing — padding and font sizes scale with viewport.
+ * Uses a two-zone flex layout: top zone (label + value + optional indicator)
+ * and bottom zone (subValue), pushed apart by justify-between for consistent
+ * bottom alignment across sibling cards.
  *
  * @param label - The stat label/title
  * @param value - The main value (can be string or ReactNode)
- * @param subValue - Optional secondary value or description
+ * @param subValue - Optional secondary value or description (string or ReactNode)
  * @param trend - Optional trend indicator (up, down, stable)
  * @param valueColorClass - Optional color class for the value
+ * @param accentColorClass - Optional left border color class (e.g. "border-l-trade-buy")
+ * @param indicator - Optional element rendered top-right alongside label+value block
  * @param size - Size variant (sm, md, lg)
  * @param className - Additional CSS classes
  */
@@ -65,23 +70,21 @@ const StatCard = ({
 	subValue,
 	trend,
 	valueColorClass,
+	accentColorClass,
+	indicator,
 	size = "md",
 	className,
 }: StatCardProps) => {
 	const sizes = sizeClasses[size]
 
-	return (
-		<div
-			className={cn(
-				"rounded-lg border border-bg-300 bg-bg-200 min-w-0",
-				sizes.container,
-				className
-			)}
-		>
-			<p className={cn("text-txt-300 truncate", sizes.label)}>{label}</p>
-			<div className="mt-s-100 sm:mt-s-200 flex items-baseline gap-s-200">
+	const labelAndValue = (
+		<div className="min-w-0">
+			<span className={cn("font-medium uppercase tracking-wider text-txt-300", sizes.label)}>
+				{label}
+			</span>
+			<div className="mt-1 flex items-baseline gap-s-200">
 				{typeof value === "string" ? (
-					<p className={cn("font-bold truncate", sizes.value, valueColorClass || "text-txt-100")}>
+					<p className={cn("font-bold", sizes.value, valueColorClass || "text-txt-100")}>
 						{value}
 					</p>
 				) : (
@@ -89,11 +92,36 @@ const StatCard = ({
 				)}
 				{trend && <TrendIcon trend={trend} />}
 			</div>
+		</div>
+	)
+
+	return (
+		<div
+			className={cn(
+				"rounded-xl border border-bg-300 bg-bg-200 min-w-0 flex flex-col justify-between",
+				accentColorClass && "border-l-2",
+				accentColorClass,
+				sizes.container,
+				className
+			)}
+		>
+			{indicator ? (
+				<div className="flex justify-between items-start gap-2">
+					{labelAndValue}
+					<div className="shrink-0">{indicator}</div>
+				</div>
+			) : (
+				labelAndValue
+			)}
 			{subValue && (
-				<p className={cn("mt-s-100 text-txt-300 truncate", sizes.subValue)}>{subValue}</p>
+				typeof subValue === "string" ? (
+					<p className={cn("text-txt-300", sizes.subValue)}>{subValue}</p>
+				) : (
+					<div className={cn("text-txt-300", sizes.subValue)}>{subValue}</div>
+				)
 			)}
 		</div>
 	)
 }
 
-export { StatCard, type StatCardProps, type TrendType }
+export { StatCard, TrendIcon, type StatCardProps, type TrendType }

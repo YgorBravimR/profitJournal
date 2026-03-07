@@ -1,10 +1,11 @@
-"use client"
-
-import { useTranslations } from "next-intl"
 import type { OverallStats, DisciplineData } from "@/types"
-import { formatCompactCurrency, formatChartPercent } from "@/lib/formatting"
-import { formatRMultiple } from "@/lib/calculations"
-import { StatCard, type TrendType } from "@/components/shared"
+import {
+	PnlCard,
+	WinRateCard,
+	ProfitFactorCard,
+	AvgRCard,
+	DisciplineCard,
+} from "./kpi"
 
 interface KpiCardsProps {
 	stats: OverallStats | null
@@ -12,79 +13,31 @@ interface KpiCardsProps {
 }
 
 /**
- * Determines the color class for a numeric value based on positive/negative state.
- *
- * @param value - The numeric value to evaluate
- * @returns The appropriate Tailwind color class
+ * Thin orchestrator that renders 5 KPI cards in a responsive grid.
+ * Each card is a standalone client component; this file stays a server component.
  */
-const getValueColorClass = (value: number | null | undefined): string => {
-	if (value === null || value === undefined) return "text-txt-100"
-	if (value > 0) return "text-trade-buy"
-	if (value < 0) return "text-trade-sell"
-	return "text-txt-100"
-}
-
-/**
- * Displays key performance indicator cards for the trading dashboard.
- * Shows gross P&L, net P&L, win rate, profit factor, average R, and discipline score.
- *
- * @param stats - Overall trading statistics
- * @param discipline - Discipline tracking data
- */
-export const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
-	const t = useTranslations("dashboard.kpi")
-
+const KpiCards = ({ stats, discipline }: KpiCardsProps) => {
 	return (
-		<div className="grid grid-cols-2 gap-s-300 sm:grid-cols-3 sm:gap-m-400 lg:grid-cols-6 lg:gap-m-500 [&>*]:min-w-0">
-			<StatCard
-				label={t("grossPnl")}
-				value={stats ? formatCompactCurrency(stats.grossPnl) : "--"}
-				subValue={stats ? `${stats.totalTrades} ${t("trades")}` : undefined}
-				valueColorClass={getValueColorClass(stats?.grossPnl)}
+		<div className="gap-s-300 sm:gap-m-400 lg:gap-m-500 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 [&>*]:h-32 [&>*]:min-w-0">
+			<PnlCard
+				grossPnl={stats?.grossPnl ?? null}
+				netPnl={stats?.netPnl ?? null}
 			/>
-			<StatCard
-				label={t("netPnl")}
-				value={stats ? formatCompactCurrency(stats.netPnl) : "--"}
-				subValue={
-					stats?.totalFees
-						? `${t("fees")}: ${formatCompactCurrency(stats.totalFees)}`
-						: undefined
-				}
-				valueColorClass={getValueColorClass(stats?.netPnl)}
+			<WinRateCard
+				winRate={stats?.winRate ?? null}
+				winCount={stats?.winCount ?? null}
+				lossCount={stats?.lossCount ?? null}
+				breakevenCount={stats?.breakevenCount ?? null}
 			/>
-			<StatCard
-				label={t("winRate")}
-				value={stats ? formatChartPercent(stats.winRate, false) : "--"}
-				subValue={
-					stats
-						? `${stats.winCount}${t("w")} / ${stats.lossCount}${t("l")}${stats.breakevenCount > 0 ? ` / ${stats.breakevenCount}${t("be")}` : ""}`
-						: undefined
-				}
+			<ProfitFactorCard
+				profitFactor={stats?.profitFactor ?? null}
+				avgWin={stats?.avgWin ?? null}
+				avgLoss={stats?.avgLoss ?? null}
 			/>
-			<StatCard
-				label={t("profitFactor")}
-				value={stats ? stats.profitFactor.toFixed(2) : "--"}
-				subValue={
-					stats
-						? `${t("avgWin")}: ${formatCompactCurrency(stats.avgWin)} | ${t("avgLoss")}: ${formatCompactCurrency(stats.avgLoss)}`
-						: undefined
-				}
-			/>
-			<StatCard
-				label={t("avgR")}
-				value={stats ? formatRMultiple(stats.averageR) : "--"}
-				valueColorClass={getValueColorClass(stats?.averageR)}
-			/>
-			<StatCard
-				label={t("discipline")}
-				value={discipline ? formatChartPercent(discipline.score, false) : "--"}
-				subValue={
-					discipline
-						? `${discipline.followedCount}/${discipline.totalTrades} ${t("followed")}`
-						: undefined
-				}
-				trend={discipline?.trend as TrendType | undefined}
-			/>
+			<AvgRCard averageR={stats?.averageR ?? null} />
+			<DisciplineCard discipline={discipline} />
 		</div>
 	)
 }
+
+export { KpiCards }

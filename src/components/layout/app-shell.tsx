@@ -1,12 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useTranslations } from "next-intl"
-import { Menu } from "lucide-react"
+import { Menu, Search, Bell } from "lucide-react"
 import Image from "next/image"
 import { Sidebar } from "@/components/layout/sidebar"
 import { CommandMenu } from "@/components/layout/command-menu"
 import { PageBreadcrumb } from "@/components/layout/page-breadcrumb"
+import { UserMenu } from "@/components/layout/user-menu"
 import { ThemeSynchronizer } from "@/components/providers/theme-synchronizer"
 import {
 	Sheet,
@@ -15,7 +16,6 @@ import {
 	SheetTrigger,
 } from "@/components/ui/sheet"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Kbd } from "@/components/ui/kbd"
 import { useBreakpoint } from "@/hooks/use-is-mobile"
 import { cn } from "@/lib/utils"
 import type { ReactNode } from "react"
@@ -54,10 +54,23 @@ const AppShell = ({
 	// Tablet always shows collapsed sidebar; desktop respects user toggle
 	const effectiveCollapsed = isTablet ? true : isSidebarCollapsed
 
+	/** Dispatches Cmd+K (or Ctrl+K) to open the existing CommandMenu */
+	const handleSearchClick = useCallback(() => {
+		const isMac = navigator.platform.toUpperCase().includes("MAC")
+		document.dispatchEvent(
+			new KeyboardEvent("keydown", {
+				key: "k",
+				code: "KeyK",
+				metaKey: isMac,
+				ctrlKey: !isMac,
+				bubbles: true,
+			})
+		)
+	}, [])
+
 	return (
 		<>
 			<ThemeSynchronizer />
-			{/* <BrandSynchronizer serverBrand={serverBrand} /> */}
 			<CommandMenu />
 
 			{isMobile ? (
@@ -103,8 +116,15 @@ const AppShell = ({
 							priority
 						/>
 
-						<div className="ml-auto">
-							<PageBreadcrumb />
+						<div className="gap-s-200 ml-auto flex items-center">
+							<button
+								type="button"
+								className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
+								aria-label={tCommon("notifications")}
+							>
+								<Bell className="h-5 w-5" />
+							</button>
+							<UserMenu isCollapsed />
 						</div>
 					</header>
 
@@ -129,10 +149,28 @@ const AppShell = ({
 							effectiveCollapsed ? "ml-16" : "ml-64"
 						)}
 					>
-						{/* Breadcrumb bar */}
-						<div className="border-bg-300 bg-bg-200 flex h-12 shrink-0 items-center justify-between border-b px-4 lg:px-6">
+						{/* Top bar: breadcrumbs | search | notifications + user */}
+						<div className="border-bg-300 bg-bg-200 gap-m-400 flex h-12 shrink-0 items-center border-b px-4 lg:px-6">
 							<PageBreadcrumb />
-							<Kbd keys={["mod", "K"]} />
+							<div className="flex-1" />
+							{/* Search trigger — opens CommandMenu via Cmd+K */}
+							<button
+								type="button"
+								onClick={handleSearchClick}
+								className="gap-s-200 border-bg-300 bg-bg-100 px-s-300 py-s-100 text-tiny text-txt-placeholder hover:border-txt-300 hidden w-56 cursor-pointer items-center rounded-md border transition-colors md:flex lg:w-72"
+								aria-label={tCommon("searchPlaceholder")}
+							>
+								<Search className="h-3.5 w-3.5 shrink-0" />
+								<span className="truncate">{tCommon("searchPlaceholder")}</span>
+							</button>
+							<button
+								type="button"
+								className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
+								aria-label={tCommon("notifications")}
+							>
+								<Bell className="h-4.5 w-4.5" />
+							</button>
+							<UserMenu isCollapsed />
 						</div>
 
 						{/* Scrollable main area */}

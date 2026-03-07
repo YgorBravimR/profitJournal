@@ -16,7 +16,7 @@ import {
 	SessionAssetTable,
 	type FilterState,
 } from "@/components/analytics"
-import { ExpectancyModeToggle, type ExpectancyMode } from "./expectancy-mode-toggle"
+import type { ExpectancyMode } from "./expectancy-mode-toggle"
 import { LoadingSpinner } from "@/components/shared"
 import {
 	getPerformanceByVariable,
@@ -48,11 +48,6 @@ interface TimeframeOption {
 	name: string
 }
 
-/**
- * Props for the AnalyticsContent component.
- * Contains all initial data fetched server-side and filter options.
- */
-
 interface AnalyticsContentProps {
 	initialPerformance: PerformanceByGroup[]
 	initialTagStats: TagStats[]
@@ -68,14 +63,21 @@ interface AnalyticsContentProps {
 	availableTimeframes: TimeframeOption[]
 }
 
+/** Converts FilterState to the TradeFilters format expected by server actions */
+const toTradeFilters = (f: FilterState) => ({
+	dateFrom: f.dateFrom || undefined,
+	dateTo: f.dateTo || undefined,
+	assets: f.assets.length > 0 ? f.assets : undefined,
+	directions: f.directions.length > 0 ? f.directions : undefined,
+	outcomes: f.outcomes.length > 0 ? f.outcomes : undefined,
+	timeframeIds: f.timeframeIds.length > 0 ? f.timeframeIds : undefined,
+})
+
 /**
  * Main analytics dashboard component.
- * Displays comprehensive trading analytics with filtering, charts, and performance metrics.
  * Uses parallel data fetching for optimal performance when filters change.
- *
- * @param props - Initial data and filter options from server-side rendering
  */
-export const AnalyticsContent = ({
+const AnalyticsContent = ({
 	initialPerformance,
 	initialTagStats,
 	initialExpectedValue,
@@ -157,16 +159,6 @@ export const AnalyticsContent = ({
 		initialSessionAssetPerformance,
 	])
 
-	// Convert FilterState to TradeFilters format
-	const toTradeFilters = (f: FilterState) => ({
-		dateFrom: f.dateFrom || undefined,
-		dateTo: f.dateTo || undefined,
-		assets: f.assets.length > 0 ? f.assets : undefined,
-		directions: f.directions.length > 0 ? f.directions : undefined,
-		outcomes: f.outcomes.length > 0 ? f.outcomes : undefined,
-		timeframeIds: f.timeframeIds.length > 0 ? f.timeframeIds : undefined,
-	})
-
 	// Refetch data when filters or groupBy change
 	useEffect(() => {
 		startTransition(async () => {
@@ -219,24 +211,15 @@ export const AnalyticsContent = ({
 
 	return (
 		<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600">
-			{/* Filter Panel + Expectancy Mode Toggle */}
-			<div className="flex flex-col gap-m-400 sm:flex-row sm:items-start sm:justify-between">
-				<div className="flex-1">
-					<FilterPanel
-						filters={filters}
-						onFiltersChange={setFilters}
-						availableAssets={availableAssets}
-						availableTimeframes={availableTimeframes}
-					/>
-				</div>
-				<div className="flex items-center gap-s-200">
-					<span className="text-tiny text-txt-300">{t("expectancyToggle")}:</span>
-					<ExpectancyModeToggle
-						mode={expectancyMode}
-						onModeChange={setExpectancyMode}
-					/>
-				</div>
-			</div>
+			{/* Filter Panel (includes ExpectancyModeToggle) */}
+			<FilterPanel
+				filters={filters}
+				onFiltersChange={setFilters}
+				availableAssets={availableAssets}
+				availableTimeframes={availableTimeframes}
+				expectancyMode={expectancyMode}
+				onExpectancyModeChange={setExpectancyMode}
+			/>
 
 			{/* Loading Indicator */}
 			{isPending && (
@@ -256,10 +239,7 @@ export const AnalyticsContent = ({
 			{/* Two Column Grid */}
 			<div className="gap-m-400 sm:gap-m-500 lg:gap-m-600 grid grid-cols-1 lg:grid-cols-2">
 				{/* Expected Value */}
-				<ExpectedValue
-					data={expectedValue}
-					mode={expectancyMode}
-				/>
+				<ExpectedValue data={expectedValue} mode={expectancyMode} />
 
 				{/* R Distribution */}
 				<RDistribution data={rDistribution} />
@@ -277,23 +257,37 @@ export const AnalyticsContent = ({
 				{/* Heatmap + Session: stacked on small/medium, side-by-side on xl+ */}
 				<div className="gap-m-400 sm:gap-m-500 lg:gap-m-600 grid grid-cols-1 xl:grid-cols-2">
 					<TimeHeatmap data={timeHeatmap} expectancyMode={expectancyMode} />
-					<SessionPerformanceChart data={sessionPerformance} expectancyMode={expectancyMode} />
+					<SessionPerformanceChart
+						data={sessionPerformance}
+						expectancyMode={expectancyMode}
+					/>
 				</div>
 
 				{/* Session Asset Table - Full Width */}
 				<div className="mt-m-400 sm:mt-m-500 lg:mt-m-600">
-					<SessionAssetTable data={sessionAssetPerformance} expectancyMode={expectancyMode} />
+					<SessionAssetTable
+						data={sessionAssetPerformance}
+						expectancyMode={expectancyMode}
+					/>
 				</div>
 
 				{/* Two Column Grid for Charts */}
 				<div className="mt-m-400 sm:mt-m-500 lg:mt-m-600 gap-m-400 sm:gap-m-500 lg:gap-m-600 grid grid-cols-1 lg:grid-cols-2">
 					{/* Hourly Performance */}
-					<HourlyPerformanceChart data={hourlyPerformance} expectancyMode={expectancyMode} />
+					<HourlyPerformanceChart
+						data={hourlyPerformance}
+						expectancyMode={expectancyMode}
+					/>
 
 					{/* Day of Week Performance */}
-					<DayOfWeekChart data={dayOfWeekPerformance} expectancyMode={expectancyMode} />
+					<DayOfWeekChart
+						data={dayOfWeekPerformance}
+						expectancyMode={expectancyMode}
+					/>
 				</div>
 			</div>
 		</div>
 	)
 }
+
+export { AnalyticsContent }

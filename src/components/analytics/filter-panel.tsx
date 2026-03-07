@@ -1,15 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { Filter, X } from "lucide-react"
+import { Calendar, SlidersHorizontal, X } from "lucide-react"
 import { useTranslations } from "next-intl"
 import type { DateRange } from "react-day-picker"
 import { Button } from "@/components/ui/button"
-import { FilterPill } from "@/components/shared"
+import { FilterPill, type FilterVariant } from "@/components/shared"
 import { DateRangePicker } from "@/components/ui/date-range-picker"
+import {
+	Sheet,
+	SheetContent,
+	SheetTitle,
+	SheetTrigger,
+} from "@/components/ui/sheet"
+import {
+	ExpectancyModeToggle,
+	type ExpectancyMode,
+} from "./expectancy-mode-toggle"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { cn } from "@/lib/utils"
 
-export interface FilterState {
+interface FilterState {
 	dateFrom: Date | null
 	dateTo: Date | null
 	assets: string[]
@@ -28,6 +39,8 @@ interface FilterPanelProps {
 	onFiltersChange: (filters: FilterState) => void
 	availableAssets: string[]
 	availableTimeframes: TimeframeOption[]
+	expectancyMode: ExpectancyMode
+	onExpectancyModeChange: (mode: ExpectancyMode) => void
 }
 
 interface DatePreset {
@@ -35,8 +48,21 @@ interface DatePreset {
 	getDates: (now: Date) => { from: Date | null; to: Date | null }
 }
 
+const OUTCOME_VARIANT_MAP: Record<string, FilterVariant> = {
+	win: "positive",
+	loss: "negative",
+	breakeven: "accent",
+}
+
+/**
+ * Simplified date presets: Today, Week, Month, Year, Custom.
+ * "allTime" is triggered by deselecting the active preset.
+ */
 const DATE_PRESET_CONFIGS: DatePreset[] = [
-	{ key: "today", getDates: (now) => ({ from: new Date(now), to: new Date(now) }) },
+	{
+		key: "today",
+		getDates: (now) => ({ from: new Date(now), to: new Date(now) }),
+	},
 	{
 		key: "thisWeek",
 		getDates: (now) => {
@@ -53,42 +79,53 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 		},
 	},
 	{
-		key: "last30Days",
-		getDates: (now) => {
-			const start = new Date(now)
-			start.setDate(now.getDate() - 30)
-			return { from: start, to: new Date(now) }
-		},
-	},
-	{
-		key: "last90Days",
-		getDates: (now) => {
-			const start = new Date(now)
-			start.setDate(now.getDate() - 90)
-			return { from: start, to: new Date(now) }
-		},
-	},
-	{
 		key: "thisYear",
 		getDates: (now) => {
 			const start = new Date(now.getFullYear(), 0, 1)
 			return { from: start, to: new Date(now) }
 		},
 	},
-	{ key: "allTime", getDates: () => ({ from: null, to: null }) },
 ]
 
-export const FilterPanel = ({
+/**
+ * Determines which preset key is currently active based on filter dates.
+ * Returns null when no preset matches (custom range or allTime).
+ */
+const getActivePresetKey = (
+	filters: FilterState,
+	effectiveDate: Date
+): string | null => {
+	if (!filters.dateFrom && !filters.dateTo) return null
+
+	for (const preset of DATE_PRESET_CONFIGS) {
+		const { from, to } = preset.getDates(effectiveDate)
+		if (
+			from &&
+			to &&
+			filters.dateFrom?.toDateString() === from.toDateString() &&
+			filters.dateTo?.toDateString() === to.toDateString()
+		) {
+			return preset.key
+		}
+	}
+	return "custom"
+}
+
+const FilterPanel = ({
 	filters,
 	onFiltersChange,
 	availableAssets,
 	availableTimeframes,
+	expectancyMode,
+	onExpectancyModeChange,
 }: FilterPanelProps) => {
 	const t = useTranslations("analytics.filters")
 	const tTrade = useTranslations("trade")
-	const tCommon = useTranslations("common")
 	const effectiveDate = useEffectiveDate()
-	const [isExpanded, setIsExpanded] = useState(false)
+	const [isSheetOpen, setIsSheetOpen] = useState(false)
+	const [isCustomDateOpen, setIsCustomDateOpen] = useState(false)
+
+	const activePresetKey = getActivePresetKey(filters, effectiveDate)
 
 	const directions = [
 		{ value: "long" as const, label: tTrade("direction.long") },
@@ -101,18 +138,14 @@ export const FilterPanel = ({
 		{ value: "breakeven" as const, label: tTrade("outcome.breakeven") },
 	]
 
-	const datePresets = DATE_PRESET_CONFIGS.map((preset) => ({
-		...preset,
-		label: t(`datePresets.${preset.key}`),
-	}))
-
 	const handleDatePreset = (preset: DatePreset) => {
+		// Clicking the already-active preset deselects it (→ allTime)
+		if (activePresetKey === preset.key) {
+			onFiltersChange({ ...filters, dateFrom: null, dateTo: null })
+			return
+		}
 		const { from, to } = preset.getDates(effectiveDate)
-		onFiltersChange({
-			...filters,
-			dateFrom: from,
-			dateTo: to,
-		})
+		onFiltersChange({ ...filters, dateFrom: from, dateTo: to })
 	}
 
 	const handleDateRangeChange = (range: DateRange | undefined) => {
@@ -145,166 +178,218 @@ export const FilterPanel = ({
 		})
 	}
 
+	// Count active advanced filters (excludes date since that's in the main bar)
+	const advancedFilterCount =
+		filters.assets.length +
+		filters.directions.length +
+		filters.outcomes.length +
+		filters.timeframeIds.length
+
 	const hasActiveFilters =
-		filters.dateFrom ||
-		filters.dateTo ||
-		filters.assets.length > 0 ||
-		filters.directions.length > 0 ||
-		filters.outcomes.length > 0 ||
-		filters.timeframeIds.length > 0
+		filters.dateFrom || filters.dateTo || advancedFilterCount > 0
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
-			{/* Header */}
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-s-300">
-					<Filter className="h-4 w-4 text-txt-300" />
-					<h3 className="text-small font-semibold text-txt-100">{t("title")}</h3>
-					{hasActiveFilters && (
-						<span className="rounded-full bg-acc-100 px-s-200 py-s-100 text-tiny font-medium text-bg-100">
-							{t("active")}
-						</span>
-					)}
+		<div className="space-y-s-200">
+			{/* Slim filter bar */}
+			<div className="gap-s-200 sm:gap-s-300 flex flex-wrap items-center">
+				{/* Period presets */}
+				<div className="scrollbar-none flex items-center gap-1 overflow-x-auto">
+					{DATE_PRESET_CONFIGS.map((preset) => (
+						<button
+							key={preset.key}
+							type="button"
+							tabIndex={0}
+							onClick={() => handleDatePreset(preset)}
+							className={cn(
+								"px-s-300 py-s-100 text-tiny rounded-md font-medium whitespace-nowrap transition-colors",
+								activePresetKey === preset.key
+									? "bg-acc-100 text-bg-100"
+									: "text-txt-300 hover:bg-bg-300 hover:text-txt-100"
+							)}
+						>
+							{t(`datePresets.${preset.key}`)}
+						</button>
+					))}
+
+					{/* Custom date button */}
+					<button
+						type="button"
+						tabIndex={0}
+						onClick={() => setIsCustomDateOpen((prev) => !prev)}
+						className={cn(
+							"px-s-300 py-s-100 text-tiny flex items-center gap-1 rounded-md font-medium whitespace-nowrap transition-colors",
+							activePresetKey === "custom"
+								? "bg-acc-100 text-bg-100"
+								: "text-txt-300 hover:bg-bg-300 hover:text-txt-100"
+						)}
+					>
+						<Calendar className="h-3 w-3" />
+						{t("datePresets.custom")}
+					</button>
 				</div>
-				<div className="flex items-center gap-s-200">
+
+				{/* Right side: spacer + controls */}
+				<div className="gap-s-200 ml-auto flex items-center">
 					{hasActiveFilters && (
-						<Button id="analytics-filter-clear" variant="ghost" size="sm" onClick={clearFilters}>
+						<Button
+							id="analytics-filter-clear"
+							variant="ghost"
+							size="sm"
+							onClick={clearFilters}
+							className="px-s-200 text-tiny h-7"
+						>
 							<X className="mr-1 h-3 w-3" />
 							{t("clear")}
 						</Button>
 					)}
-					<Button
-					id="analytics-filter-toggle"
-						variant="ghost"
-						size="sm"
-						onClick={() => setIsExpanded(!isExpanded)}
-					>
-						{isExpanded ? t("collapse") : t("expand")}
-					</Button>
+
+					<ExpectancyModeToggle
+						mode={expectancyMode}
+						onModeChange={onExpectancyModeChange}
+					/>
+
+					{/* Advanced Filters button */}
+					<Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+						<SheetTrigger asChild>
+							<button
+								type="button"
+								tabIndex={0}
+								className="gap-s-200 border-bg-300 bg-bg-100 px-s-300 py-s-100 text-tiny text-txt-200 hover:border-txt-300 flex items-center rounded-md border transition-colors"
+								aria-label={t("advancedFilters")}
+							>
+								<SlidersHorizontal className="h-3.5 w-3.5" />
+								<span className="hidden sm:inline">{t("advancedFilters")}</span>
+								{advancedFilterCount > 0 && (
+									<span className="bg-acc-100 text-micro text-bg-100 flex h-4 min-w-4 items-center justify-center rounded-full px-1 font-bold">
+										{advancedFilterCount}
+									</span>
+								)}
+							</button>
+						</SheetTrigger>
+						<SheetContent
+							id="advanced-filters-sheet"
+							side="right"
+							className="w-80 sm:w-96"
+						>
+							<SheetTitle className="text-small text-txt-100 font-semibold">
+								{t("advancedFilters")}
+							</SheetTitle>
+							<div className="mt-m-400 space-y-m-400">
+								{/* Assets */}
+								{availableAssets.length > 0 && (
+									<div>
+										<label className="mb-s-200 text-tiny text-txt-300 block font-medium">
+											{t("assets")}
+										</label>
+										<div className="gap-s-200 flex flex-wrap">
+											{availableAssets.map((asset) => (
+												<FilterPill
+													key={asset}
+													label={asset}
+													isActive={filters.assets.includes(asset)}
+													onClick={() =>
+														toggleArrayFilter(filters.assets, asset, "assets")
+													}
+												/>
+											))}
+										</div>
+									</div>
+								)}
+
+								{/* Direction */}
+								<div>
+									<label className="mb-s-200 text-tiny text-txt-300 block font-medium">
+										{t("direction")}
+									</label>
+									<div className="gap-s-200 flex">
+										{directions.map(({ value, label }) => (
+											<FilterPill
+												key={value}
+												label={label}
+												isActive={filters.directions.includes(value)}
+												onClick={() =>
+													toggleArrayFilter(
+														filters.directions,
+														value,
+														"directions"
+													)
+												}
+												variant={value === "long" ? "positive" : "negative"}
+											/>
+										))}
+									</div>
+								</div>
+
+								{/* Outcome */}
+								<div>
+									<label className="mb-s-200 text-tiny text-txt-300 block font-medium">
+										{t("outcome")}
+									</label>
+									<div className="gap-s-200 flex">
+										{outcomes.map(({ value, label }) => (
+											<FilterPill
+												key={value}
+												label={label}
+												isActive={filters.outcomes.includes(value)}
+												onClick={() =>
+													toggleArrayFilter(filters.outcomes, value, "outcomes")
+												}
+												variant={OUTCOME_VARIANT_MAP[value]}
+											/>
+										))}
+									</div>
+								</div>
+
+								{/* Timeframes */}
+								{availableTimeframes.length > 0 && (
+									<div>
+										<label className="mb-s-200 text-tiny text-txt-300 block font-medium">
+											{t("timeframes")}
+										</label>
+										<div className="gap-s-200 flex flex-wrap">
+											{availableTimeframes.map((tf) => (
+												<FilterPill
+													key={tf.id}
+													label={tf.name}
+													isActive={filters.timeframeIds.includes(tf.id)}
+													onClick={() =>
+														toggleArrayFilter(
+															filters.timeframeIds,
+															tf.id,
+															"timeframeIds"
+														)
+													}
+												/>
+											))}
+										</div>
+									</div>
+								)}
+							</div>
+						</SheetContent>
+					</Sheet>
 				</div>
 			</div>
 
-			{/* Date Presets (always visible) */}
-			<div className="mt-s-300 sm:mt-m-400 flex flex-wrap gap-s-200">
-				{datePresets.map((preset) => (
-					<FilterPill
-						key={preset.key}
-						label={preset.label}
-						isActive={false}
-						onClick={() => handleDatePreset(preset)}
+			{/* Custom date range picker (shown when "Personalizado" is clicked) */}
+			{isCustomDateOpen && (
+				<div className="gap-s-300 flex items-center">
+					<DateRangePicker
+						id="analytics-date-range"
+						value={
+							filters.dateFrom || filters.dateTo
+								? {
+										from: filters.dateFrom ?? undefined,
+										to: filters.dateTo ?? undefined,
+									}
+								: undefined
+						}
+						onChange={handleDateRangeChange}
+						className="w-full sm:max-w-sm"
 					/>
-				))}
-			</div>
-
-			{/* Expanded Filters */}
-			{isExpanded && (
-				<div className="mt-m-400 sm:mt-m-500 space-y-m-400 sm:space-y-m-500">
-					{/* Custom Date Range */}
-					<div>
-						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							{t("customDateRange")}
-						</label>
-						<DateRangePicker
-							id="analytics-date-range"
-							value={
-								filters.dateFrom || filters.dateTo
-									? { from: filters.dateFrom ?? undefined, to: filters.dateTo ?? undefined }
-									: undefined
-							}
-							onChange={handleDateRangeChange}
-							className="w-full sm:max-w-sm"
-						/>
-					</div>
-
-					{/* Assets */}
-					{availableAssets.length > 0 && (
-						<div>
-							<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-								{t("assets")}
-							</label>
-							<div className="flex flex-wrap gap-s-200">
-								{availableAssets.map((asset) => (
-									<FilterPill
-										key={asset}
-										label={asset}
-										isActive={filters.assets.includes(asset)}
-										onClick={() =>
-											toggleArrayFilter(filters.assets, asset, "assets")
-										}
-									/>
-								))}
-							</div>
-						</div>
-					)}
-
-					{/* Direction */}
-					<div>
-						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							{t("direction")}
-						</label>
-						<div className="flex gap-s-200">
-							{directions.map(({ value, label }) => (
-								<FilterPill
-									key={value}
-									label={label}
-									isActive={filters.directions.includes(value)}
-									onClick={() =>
-										toggleArrayFilter(filters.directions, value, "directions")
-									}
-									variant={value === "long" ? "positive" : "negative"}
-								/>
-							))}
-						</div>
-					</div>
-
-					{/* Outcome */}
-					<div>
-						<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-							{t("outcome")}
-						</label>
-						<div className="flex gap-s-200">
-							{outcomes.map(({ value, label }) => (
-								<FilterPill
-									key={value}
-									label={label}
-									isActive={filters.outcomes.includes(value)}
-									onClick={() =>
-										toggleArrayFilter(filters.outcomes, value, "outcomes")
-									}
-									variant={
-										value === "win"
-											? "positive"
-											: value === "loss"
-												? "negative"
-												: "accent"
-									}
-								/>
-							))}
-						</div>
-					</div>
-
-					{/* Timeframes */}
-					{availableTimeframes.length > 0 && (
-						<div>
-							<label className="mb-s-200 block text-tiny font-medium text-txt-300">
-								{t("timeframes")}
-							</label>
-							<div className="flex flex-wrap gap-s-200">
-								{availableTimeframes.map((tf) => (
-									<FilterPill
-										key={tf.id}
-										label={tf.name}
-										isActive={filters.timeframeIds.includes(tf.id)}
-										onClick={() =>
-											toggleArrayFilter(filters.timeframeIds, tf.id, "timeframeIds")
-										}
-									/>
-								))}
-							</div>
-						</div>
-					)}
 				</div>
 			)}
 		</div>
 	)
 }
+
+export { FilterPanel, type FilterState }

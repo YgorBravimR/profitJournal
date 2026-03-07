@@ -17,3 +17,9 @@
 > **[FIX-2026-02-15]** `Severity: Low` — **Affected:** `/src/components/journal/inline-execution-row.tsx`
 > **Report:** "Commission currency placeholder 'BRL' overlaps with input value in the commission column"
 > **Fix:** The input had `pl-5` (20px left padding) which was insufficient for 3-character currency codes like "BRL" positioned at `left-2` (8px). Increased to `pl-10` (40px) for adequate clearance. Also added `pointer-events-none` to the currency prefix span to prevent it from blocking input clicks.
+
+---
+
+> **[FIX-2026-03-07]** `Severity: Medium` — **Affected:** `src/components/risk-simulation/risk-params-form.tsx`
+> **Report:** "When typing any number in the 'Saldo da Conta' input field, the cursor drags to the end of ',00', blocking the user from typing"
+> **Fix:** Replaced all currency `Field` usages with a new `CurrencyField` component that maintains local string state while focused and only formats on blur. See `~/.claude/post-mortems/react.md` for the general pattern (controlled input cursor jump on reformat).

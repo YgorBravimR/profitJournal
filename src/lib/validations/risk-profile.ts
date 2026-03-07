@@ -40,6 +40,13 @@ const gainModeSchema = z.discriminatedUnion("type", [
 		type: z.literal("singleTarget"),
 		dailyTargetCents: z.number().int().positive(),
 	}),
+	z.object({
+		type: z.literal("gainSequence"),
+		sequence: z.array(lossRecoveryStepSchema).max(10, "Maximum 10 gain steps"),
+		repeatLastStep: z.boolean(),
+		stopOnFirstLoss: z.boolean(),
+		dailyTargetCents: z.number().int().positive().nullable(),
+	}),
 ])
 
 // ==========================================

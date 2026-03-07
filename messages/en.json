@@ -52,6 +52,8 @@
 			"placeholder": "Select date",
 			"rangePlaceholder": "Select date range"
 		},
+		"searchPlaceholder": "Search metric or asset...",
+		"notifications": "Notifications",
 		"imageUpload": {
 			"invalidFileType": "Invalid file type. Accepted: JPEG, PNG, WebP",
 			"fileTooLarge": "File too large. Max: {maxSize}MB",
@@ -1052,24 +1054,19 @@
 		"trade": "trade",
 		"trades": "trades",
 		"kpi": {
-			"grossPnl": "Gross P&L",
-			"netPnl": "Net P&L",
-			"fees": "Fees",
+			"pnl": "P&L",
+			"gross": "Gross",
+			"net": "Net",
 			"trades": "trades",
 			"winRate": "Win Rate",
 			"profitFactor": "Profit Factor",
-			"pf": "PF",
 			"avgR": "Avg R",
 			"discipline": "Discipline",
-			"totalTrades": "Total Trades",
-			"wins": "Wins",
-			"losses": "Losses",
-			"avgWin": "Avg Win",
-			"avgLoss": "Avg Loss",
 			"followed": "followed",
 			"w": "W",
 			"l": "L",
-			"be": "BE"
+			"be": "BE",
+			"avg": "Avg"
 		},
 		"calendar": {
 			"title": "Trading Calendar",
@@ -1375,14 +1372,12 @@
 			"direction": "Direction",
 			"outcome": "Outcome",
 			"timeframes": "Timeframes",
+			"advancedFilters": "Advanced Filters",
 			"datePresets": {
 				"today": "Today",
 				"thisWeek": "This Week",
 				"thisMonth": "This Month",
-				"last30Days": "Last 30 Days",
-				"last90Days": "Last 90 Days",
 				"thisYear": "This Year",
-				"allTime": "All Time",
 				"custom": "Custom"
 			}
 		},

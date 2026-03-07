@@ -10,7 +10,6 @@ import { useFeatureAccess } from "@/hooks/use-feature-access"
 import { getFilteredNavItems } from "@/lib/feature-access"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { AccountSwitcher } from "./account-switcher"
-import { UserMenu } from "./user-menu"
 
 interface SidebarProps {
 	isCollapsed: boolean
@@ -198,11 +197,10 @@ const Sidebar = ({
 			<div
 				className={cn(
 					"border-bg-300 border-t",
-					isCompact ? "flex flex-col items-center gap-2 py-4" : "space-y-2 p-4"
+					isCompact ? "flex flex-col items-center py-4" : "p-4"
 				)}
 			>
 				<AccountSwitcher isCollapsed={isCompact} />
-				<UserMenu isCollapsed={isCompact} />
 			</div>
 		</aside>
 	)

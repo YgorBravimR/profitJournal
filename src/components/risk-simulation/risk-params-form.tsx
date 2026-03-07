@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { useTranslations } from "next-intl"
 import { Lock } from "lucide-react"
 import { fromCents } from "@/lib/money"
@@ -49,6 +50,76 @@ const Field = ({ label, value, onChange, type = "number", suffix, disabled, lock
 	</div>
 )
 
+/**
+ * Currency field that maintains a local string state while the user is typing,
+ * preventing cursor jumps caused by reformatting (e.g. .toFixed(2)) on every keystroke.
+ * The parent's onChange is called on every keystroke for live updates, but the displayed
+ * value is the user's raw input. On blur, the display is formatted to 2 decimal places.
+ */
+interface CurrencyFieldProps {
+	label: string
+	valueCents: number
+	onChange: (rawValue: string) => void
+	suffix?: string
+	disabled?: boolean
+	locked?: boolean
+}
+
+const CurrencyField = ({ label, valueCents, onChange, suffix, disabled, locked }: CurrencyFieldProps) => {
+	const [localValue, setLocalValue] = useState(() => fromCents(valueCents).toFixed(2))
+	const [isFocused, setIsFocused] = useState(false)
+
+	// Sync from parent when not focused (e.g. prefill selection, balance scaling)
+	useEffect(() => {
+		if (!isFocused) {
+			setLocalValue(fromCents(valueCents).toFixed(2))
+		}
+	}, [valueCents, isFocused])
+
+	const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const raw = event.target.value
+		setLocalValue(raw)
+		onChange(raw)
+	}
+
+	const handleFocus = () => {
+		setIsFocused(true)
+	}
+
+	const handleBlur = () => {
+		setIsFocused(false)
+		// Format to 2 decimal places on blur
+		const parsed = parseFloat(localValue || "0")
+		const formatted = isNaN(parsed) ? "0.00" : parsed.toFixed(2)
+		setLocalValue(formatted)
+	}
+
+	return (
+		<div className="flex flex-col gap-1">
+			<label className="text-tiny text-txt-300 flex items-center gap-1">
+				{label}
+				{locked && <Lock className="text-txt-300 h-3 w-3 shrink-0" aria-hidden="true" />}
+			</label>
+			<div className="flex items-center gap-1">
+				<input
+					type="number"
+					value={localValue}
+					onChange={handleChange}
+					onFocus={handleFocus}
+					onBlur={handleBlur}
+					disabled={disabled || locked}
+					step="0.01"
+					className={cn(
+						"border-bg-300 text-txt-100 text-small w-full rounded-md border px-3 py-1.5",
+						disabled || locked ? "bg-bg-300/50 text-txt-300 cursor-not-allowed opacity-70" : "bg-bg-100"
+					)}
+				/>
+				{suffix && <span className="text-tiny text-txt-300 shrink-0">{suffix}</span>}
+			</div>
+		</div>
+	)
+}
+
 const CheckboxField = ({
 	label,
 	checked,
@@ -95,12 +166,33 @@ const scaleDecisionTree = (tree: DecisionTreeConfig, scaleFactor: number): Decis
 					: step.riskCalculation,
 		})),
 	},
-	gainMode:
-		tree.gainMode.type === "singleTarget"
-			? { ...tree.gainMode, dailyTargetCents: Math.round(tree.gainMode.dailyTargetCents * scaleFactor) }
-			: tree.gainMode.type === "compounding" && tree.gainMode.dailyTargetCents
-				? { ...tree.gainMode, dailyTargetCents: Math.round(tree.gainMode.dailyTargetCents * scaleFactor) }
-				: tree.gainMode,
+	gainMode: (() => {
+		const gm = tree.gainMode
+		if (gm.type === "singleTarget") {
+			return { ...gm, dailyTargetCents: Math.round(gm.dailyTargetCents * scaleFactor) }
+		}
+		if (gm.type === "compounding") {
+			return gm.dailyTargetCents
+				? { ...gm, dailyTargetCents: Math.round(gm.dailyTargetCents * scaleFactor) }
+				: gm
+		}
+		if (gm.type === "gainSequence") {
+			return {
+				...gm,
+				sequence: gm.sequence.map((step) => ({
+					...step,
+					riskCalculation:
+						step.riskCalculation.type === "fixedCents"
+							? { ...step.riskCalculation, amountCents: Math.round(step.riskCalculation.amountCents * scaleFactor) }
+							: step.riskCalculation,
+				})),
+				dailyTargetCents: gm.dailyTargetCents
+					? Math.round(gm.dailyTargetCents * scaleFactor)
+					: null,
+			}
+		}
+		return gm
+	})(),
 	cascadingLimits: {
 		...tree.cascadingLimits,
 		weeklyLossCents: tree.cascadingLimits.weeklyLossCents
@@ -145,9 +237,9 @@ const RiskParamsForm = ({ params, onChange, isLocked, originalAdvancedParams }: 
 				</h3>
 				<p className="text-tiny text-txt-300">{t("advancedDescription")}</p>
 				<div className="gap-s-300 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-					<Field
+					<CurrencyField
 						label={t("accountBalance")}
-						value={fromCents(params.accountBalanceCents).toFixed(2)}
+						valueCents={params.accountBalanceCents}
 						onChange={
 							isLocked
 								? handleAdvancedBalanceChange
@@ -161,9 +253,9 @@ const RiskParamsForm = ({ params, onChange, isLocked, originalAdvancedParams }: 
 						}
 						suffix="R$"
 					/>
-					<Field
+					<CurrencyField
 						label={t("dailyLoss")}
-						value={fromCents(params.dailyLossCents).toFixed(2)}
+						valueCents={params.dailyLossCents}
 						onChange={(val) =>
 							onChange({
 								...params,
@@ -173,9 +265,9 @@ const RiskParamsForm = ({ params, onChange, isLocked, originalAdvancedParams }: 
 						suffix="R$"
 						locked={isLocked}
 					/>
-					<Field
+					<CurrencyField
 						label={t("monthlyLoss")}
-						value={fromCents(params.monthlyLossCents).toFixed(2)}
+						valueCents={params.monthlyLossCents}
 						onChange={(val) =>
 							onChange({
 								...params,
@@ -185,11 +277,9 @@ const RiskParamsForm = ({ params, onChange, isLocked, originalAdvancedParams }: 
 						suffix="R$"
 						locked={isLocked}
 					/>
-					<Field
+					<CurrencyField
 						label={t("baseRisk")}
-						value={fromCents(params.decisionTree.baseTrade.riskCents).toFixed(
-							2
-						)}
+						valueCents={params.decisionTree.baseTrade.riskCents}
 						onChange={() => {}}
 						disabled
 						suffix="R$"
@@ -211,9 +301,9 @@ const RiskParamsForm = ({ params, onChange, isLocked, originalAdvancedParams }: 
 				{t("simpleMode")}
 			</h3>
 			<div className="gap-s-300 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-				<Field
+				<CurrencyField
 					label={t("accountBalance")}
-					value={fromCents(params.accountBalanceCents).toFixed(2)}
+					valueCents={params.accountBalanceCents}
 					onChange={(val) =>
 						updateSimple({
 							accountBalanceCents: Math.round(parseFloat(val || "0") * 100),
