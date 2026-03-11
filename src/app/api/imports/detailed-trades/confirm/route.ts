@@ -61,13 +61,10 @@ export const POST = async (req: NextRequest) => {
 
 		// Convert trades to database format (plaintext when dek is null)
 		const tradesToInsert = preview.trades.map((trade: GroupedTrade) => {
-			const entryDate = new Date(
-				`${trade.date}T${trade.entryGroup.firstExecutionTime.toISOString().substring(11)}`
-			)
+			// Use the already-correct Date objects from the parser (constructed with BRT offset)
+			const entryDate = trade.entryGroup.firstExecutionTime
 			const exitDate = trade.exitGroup
-				? new Date(
-						`${trade.date}T${trade.exitGroup.firstExecutionTime.toISOString().substring(11)}`
-					)
+				? trade.exitGroup.firstExecutionTime
 				: null
 
 			return {

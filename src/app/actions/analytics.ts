@@ -33,6 +33,7 @@ import {
 	getEndOfDay,
 	formatDateKey,
 	APP_TIMEZONE,
+	getBrtTimeParts,
 } from "@/lib/dates"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
@@ -697,7 +698,7 @@ export const getPerformanceByVariable = async (
 					groupKey = trade.timeframe?.name || "Unknown"
 					break
 				case "hour": {
-					const hour = trade.entryDate.getHours()
+					const { hour } = getBrtTimeParts(trade.entryDate)
 					groupKey = `${hour.toString().padStart(2, "0")}:00`
 					break
 				}
@@ -711,7 +712,8 @@ export const getPerformanceByVariable = async (
 						"Friday",
 						"Saturday",
 					]
-					groupKey = days[trade.entryDate.getDay()]
+					const { dayOfWeek } = getBrtTimeParts(trade.entryDate)
+					groupKey = days[dayOfWeek]
 					break
 				}
 				case "strategy":
@@ -1045,7 +1047,7 @@ export const getHourlyPerformance = async (
 		>()
 
 		for (const trade of result) {
-			const hour = trade.entryDate.getHours()
+			const { hour } = getBrtTimeParts(trade.entryDate)
 			const existing = hourlyMap.get(hour) || {
 				trades: [],
 				wins: 0,
@@ -1171,8 +1173,7 @@ export const getDayOfWeekPerformance = async (
 		>()
 
 		for (const trade of result) {
-			const dayOfWeek = trade.entryDate.getDay()
-			const hour = trade.entryDate.getHours()
+			const { dayOfWeek, hour } = getBrtTimeParts(trade.entryDate)
 			const existing = dayMap.get(dayOfWeek) || {
 				trades: [],
 				wins: 0,
@@ -1318,8 +1319,7 @@ export const getTimeHeatmap = async (
 		>()
 
 		for (const trade of result) {
-			const dayOfWeek = trade.entryDate.getDay()
-			const hour = trade.entryDate.getHours()
+			const { dayOfWeek, hour } = getBrtTimeParts(trade.entryDate)
 			const key = `${dayOfWeek}-${hour}`
 			const existing = cellMap.get(key) || {
 				totalTrades: 0,
@@ -1815,9 +1815,8 @@ const B3_SESSIONS: Record<
  * Determine which trading session a time belongs to
  */
 const getSessionForTime = (date: Date): TradingSession | null => {
-	const hours = date.getHours()
-	const minutes = date.getMinutes()
-	const decimalHour = hours + minutes / 60
+	const { hour, minute } = getBrtTimeParts(date)
+	const decimalHour = hour + minute / 60
 
 	for (const [session, def] of Object.entries(B3_SESSIONS) as [
 		TradingSession,

@@ -1,9 +1,36 @@
 import { z } from "zod"
+import { BRT_OFFSET } from "@/lib/dates"
 
 // Direction and outcome enums
 export const tradeDirectionSchema = z.enum(["long", "short"])
 export const tradeOutcomeSchema = z.enum(["win", "loss", "breakeven"])
 
+/**
+ * Coerce a value to Date, treating timezone-naive strings as BRT (UTC-3).
+ * datetime-local inputs produce strings like "2026-03-11T09:00" without timezone.
+ * Without this, `new Date()` would interpret them in the server/browser's local TZ.
+ */
+const coerceDateAsBrt = z.union([z.date(), z.string(), z.number()]).transform((val, ctx) => {
+	if (val instanceof Date) return val
+
+	if (typeof val === "string") {
+		const hasTimezone = val.includes("Z") || val.includes("+") || /T.*-\d{2}:/.test(val)
+		const dateStr = hasTimezone ? val : `${val}${BRT_OFFSET}`
+		const date = new Date(dateStr)
+		if (isNaN(date.getTime())) {
+			ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" })
+			return z.NEVER
+		}
+		return date
+	}
+
+	const date = new Date(val)
+	if (isNaN(date.getTime())) {
+		ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid date" })
+		return z.NEVER
+	}
+	return date
+})
 
 // Base trade fields (used by both createTradeSchema and cross-field validation)
 const tradeBaseFields = {
@@ -17,8 +44,8 @@ const tradeBaseFields = {
 	timeframeId: z.string().uuid().optional().nullable(),
 
 	// Timing
-	entryDate: z.coerce.date({ message: "Entry date is required" }),
-	exitDate: z.coerce.date().optional(),
+	entryDate: coerceDateAsBrt.pipe(z.date({ message: "Entry date is required" })),
+	exitDate: coerceDateAsBrt.optional(),
 
 	// Execution
 	entryPrice: z.coerce

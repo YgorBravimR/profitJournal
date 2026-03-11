@@ -203,6 +203,39 @@ export const formatBrtTimeShort = (date: Date): string => {
 }
 
 /**
+ * Extract hour, minute, and dayOfWeek as they appear in São Paulo timezone.
+ * Avoids getHours()/getDay() which use the server's local TZ (UTC on Vercel).
+ */
+export const getBrtTimeParts = (
+	date: Date
+): { hour: number; minute: number; dayOfWeek: number } => {
+	const parts = new Intl.DateTimeFormat("en-US", {
+		timeZone: APP_TIMEZONE,
+		hour: "numeric",
+		minute: "numeric",
+		weekday: "short",
+		hour12: false,
+	}).formatToParts(date)
+
+	const dayMap: Record<string, number> = {
+		Sun: 0,
+		Mon: 1,
+		Tue: 2,
+		Wed: 3,
+		Thu: 4,
+		Fri: 5,
+		Sat: 6,
+	}
+
+	const weekday = parts.find((p) => p.type === "weekday")!.value
+	return {
+		hour: parseInt(parts.find((p) => p.type === "hour")!.value),
+		minute: parseInt(parts.find((p) => p.type === "minute")!.value),
+		dayOfWeek: dayMap[weekday],
+	}
+}
+
+/**
  * Map a next-intl locale string to the corresponding date-fns Locale object.
  * Used by react-day-picker for locale-aware month/day names and formatting.
  */

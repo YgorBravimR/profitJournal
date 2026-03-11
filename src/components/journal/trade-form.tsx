@@ -34,6 +34,7 @@ import {
 	calculateAssetPnL,
 } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
+import { APP_TIMEZONE } from "@/lib/dates"
 import { useToast } from "@/components/ui/toast"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,22 +89,40 @@ interface TradeFormProps {
 	initialSharedState?: SharedTradeFormState
 }
 
-// Format Date to datetime-local input value (YYYY-MM-DDTHH:mm)
+/**
+ * Format Date to datetime-local input value (YYYY-MM-DDTHH:mm) in BRT timezone.
+ * Uses Intl.DateTimeFormat to ensure the displayed time is always BRT,
+ * regardless of the server/browser's local timezone.
+ */
 const formatDateTimeLocal = (date: Date): string => {
-	const year = date.getFullYear()
-	const month = String(date.getMonth() + 1).padStart(2, "0")
-	const day = String(date.getDate()).padStart(2, "0")
-	const hours = String(date.getHours()).padStart(2, "0")
-	const minutes = String(date.getMinutes()).padStart(2, "0")
-	return `${year}-${month}-${day}T${hours}:${minutes}`
+	const parts = new Intl.DateTimeFormat("en-CA", {
+		timeZone: APP_TIMEZONE,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+		hour: "2-digit",
+		minute: "2-digit",
+		hour12: false,
+	}).formatToParts(date)
+
+	const get = (type: string) => parts.find((p) => p.type === type)!.value
+	return `${get("year")}-${get("month")}-${get("day")}T${get("hour")}:${get("minute")}`
 }
 
-// End-of-day in datetime-local format — prevents selecting future days
+// End-of-day in datetime-local format — prevents selecting future days (in BRT)
 const getEndOfDayLocal = (referenceDate?: Date): string => {
 	const date = referenceDate ?? new Date()
-	const year = date.getFullYear()
-	const month = String(date.getMonth() + 1).padStart(2, "0")
-	const day = String(date.getDate()).padStart(2, "0")
+	const parts = new Intl.DateTimeFormat("en-CA", {
+		timeZone: APP_TIMEZONE,
+		year: "numeric",
+		month: "2-digit",
+		day: "2-digit",
+	}).formatToParts(date)
+
+	const get = (type: string) => parts.find((p) => p.type === type)!.value
+	const year = get("year")
+	const month = get("month")
+	const day = get("day")
 	return `${year}-${month}-${day}T23:59`
 }
 
