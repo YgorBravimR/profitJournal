@@ -1,4 +1,5 @@
 ignoredBuiltDependencies:
+  - '@sentry/cli'
   - protobufjs
   - sharp
   - tesseract.js

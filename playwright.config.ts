@@ -40,6 +40,7 @@ const dataPhases = [
 /** Self-seeding tests — seed their own DB data, only need auth (setup) */
 const selfSeedingPhases = [
 	{ name: "live-trading-status", testMatch: /live-trading-status\.spec\.ts/ },
+	{ name: "auth-security", testMatch: /auth-security\.spec\.ts/ },
 ]
 
 interface DeviceConfig {
