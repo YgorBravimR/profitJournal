@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs"
 import { eq, and } from "drizzle-orm"
 import { db } from "@/db/drizzle"
 import { users, tradingAccounts, type User, type TradingAccount } from "@/db/schema"
-import { createRateLimiter } from "@/lib/rate-limiter"
+import { createDbRateLimiter } from "@/lib/db-rate-limiter"
 // Field-level encryption disabled — imports preserved for re-activation:
 // import { generateKey, encryptDek, encryptField } from "@/lib/crypto"
 import { getUserDek, decryptAccountFields } from "@/lib/user-crypto"
@@ -29,8 +29,8 @@ import {
 
 const SALT_ROUNDS = 12
 
-// 5 login attempts per 15 minutes, keyed by email
-const loginLimiter = createRateLimiter({
+// 5 login attempts per 15 minutes, keyed by email (DB-backed, survives cold starts)
+const loginLimiter = createDbRateLimiter({
 	maxAttempts: 5,
 	windowMs: 15 * 60 * 1000,
 })
@@ -41,7 +41,7 @@ const loginLimiter = createRateLimiter({
 
 export const registerUser = async (
 	input: RegisterInput
-): Promise<{ status: "success" | "error"; error?: string }> => {
+): Promise<{ status: "success" | "error"; error?: string; needsVerification?: boolean }> => {
 	try {
 		const validated = registerSchema.safeParse(input)
 		if (!validated.success) {
@@ -68,6 +68,9 @@ export const registerUser = async (
 		// const encryptedDekValue = encryptDek(dek)
 		// const encryptedName = encryptField(name, dek) ?? name
 
+		// Create user + default account sequentially
+		// neon-http driver doesn't support transactions; if account insert fails,
+		// the orphaned user is caught by the unique email constraint on re-registration
 		const [newUser] = await db
 			.insert(users)
 			.values({
@@ -78,18 +81,35 @@ export const registerUser = async (
 			})
 			.returning()
 
-		// Create default trading account and seed starter data in parallel
-		await Promise.all([
-			db.insert(tradingAccounts).values({
-				userId: newUser.id,
-				name: "Personal",
-				isDefault: true,
-				accountType: "personal",
-			}),
-			seedUserData(newUser.id),
-		])
+		await db.insert(tradingAccounts).values({
+			userId: newUser.id,
+			name: "Personal",
+			isDefault: true,
+			accountType: "personal",
+		})
 
-		return { status: "success" }
+		// Seed starter strategies and tags (best-effort, does not block registration)
+		seedUserData(newUser.id).catch((err) =>
+			console.error("Seed data failed for user", newUser.id, err)
+		)
+
+		// Send email verification OTP — await to know if it actually sent
+		const { requestEmailVerification } = await import("@/app/actions/email-verification")
+		const emailResult = await requestEmailVerification({ email: email.toLowerCase() })
+
+		if (!emailResult.success) {
+			// User was created but verification email failed to send.
+			// Mark as verified so they can log in immediately (graceful degradation).
+			await db
+				.update(users)
+				.set({ emailVerified: new Date(), updatedAt: new Date() })
+				.where(eq(users.id, newUser.id))
+
+			console.error("Email verification send failed, auto-verifying user:", email)
+			return { status: "success", needsVerification: false }
+		}
+
+		return { status: "success", needsVerification: true }
 	} catch (error) {
 		console.error("Registration error:", error)
 		return { status: "error", error: "An error occurred during registration" }
@@ -108,6 +128,52 @@ interface AccountPickerItem {
 	isDefault: boolean
 }
 
+// ==========================================
+// ACCOUNT LOCKOUT (exponential backoff via DB rate limiter)
+// ==========================================
+
+const LOCKOUT_KEY_PREFIX = "login-fail:"
+
+const LOCKOUT_TIERS = [
+	{ failures: 20, lockoutMs: 24 * 60 * 60 * 1000 }, // 20 fails → 24h
+	{ failures: 10, lockoutMs: 60 * 60 * 1000 },       // 10 fails → 1h
+	{ failures: 5, lockoutMs: 15 * 60 * 1000 },        // 5 fails  → 15min
+] as const
+
+const checkAccountLockout = async (
+	email: string
+): Promise<{ locked: boolean; retryAfterMs: number }> => {
+	const key = `${LOCKOUT_KEY_PREFIX}${email.toLowerCase()}`
+	const failCount = await loginLimiter.countAttempts(key, 24 * 60 * 60 * 1000) // 24h window
+
+	for (const tier of LOCKOUT_TIERS) {
+		if (failCount >= tier.failures) {
+			// Check if the lockout period has passed since the last failure
+			const lastFailure = await loginLimiter.getLatest(key)
+			if (!lastFailure) break
+
+			const lockoutEndsAt = lastFailure.getTime() + tier.lockoutMs
+			const now = Date.now()
+
+			if (now < lockoutEndsAt) {
+				return { locked: true, retryAfterMs: lockoutEndsAt - now }
+			}
+			// Lockout period passed — allow attempt
+			break
+		}
+	}
+
+	return { locked: false, retryAfterMs: 0 }
+}
+
+const recordLoginFailure = async (email: string): Promise<void> => {
+	await loginLimiter.record(`${LOCKOUT_KEY_PREFIX}${email.toLowerCase()}`)
+}
+
+const clearLoginFailures = async (email: string): Promise<void> => {
+	await loginLimiter.reset(`${LOCKOUT_KEY_PREFIX}${email.toLowerCase()}`)
+}
+
 export const loginUser = async (
 	input: LoginInput
 ): Promise<{ status: "success" | "error"; error?: string; needsAccountSelection?: boolean; accounts?: AccountPickerItem[] }> => {
@@ -118,9 +184,10 @@ export const loginUser = async (
 		}
 
 		const { email, password, accountId } = validated.data
+		const lowerEmail = email.toLowerCase()
 
 		// Rate limit by email address
-		const rateLimitResult = loginLimiter.check(email.toLowerCase())
+		const rateLimitResult = await loginLimiter.check(`login:${lowerEmail}`)
 		if (!rateLimitResult.allowed) {
 			const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
 			return {
@@ -129,9 +196,19 @@ export const loginUser = async (
 			}
 		}
 
+		// Check account lockout (exponential backoff)
+		const lockout = await checkAccountLockout(lowerEmail)
+		if (lockout.locked) {
+			const retryMinutes = Math.ceil(lockout.retryAfterMs / 60_000)
+			return {
+				status: "error",
+				error: `Account temporarily locked due to too many failed attempts. Try again in ${retryMinutes} minute(s).`,
+			}
+		}
+
 		// Find user
 		const user = await db.query.users.findFirst({
-			where: eq(users.email, email.toLowerCase()),
+			where: eq(users.email, lowerEmail),
 		})
 
 		if (!user) {
@@ -141,8 +218,17 @@ export const loginUser = async (
 		// Verify password
 		const isValid = await bcrypt.compare(password, user.passwordHash)
 		if (!isValid) {
+			await recordLoginFailure(lowerEmail)
 			return { status: "error", error: "Invalid email or password" }
 		}
+
+		// Check email verification — block unverified users
+		if (!user.emailVerified) {
+			return { status: "error", error: "EMAIL_NOT_VERIFIED" }
+		}
+
+		// Clear lockout history on successful login
+		await clearLoginFailures(lowerEmail)
 
 		// Get user's accounts
 		const userAccounts = await db.query.tradingAccounts.findMany({
@@ -214,7 +300,11 @@ export const getCurrentUser = async (): Promise<SafeUser | null> => {
 		},
 	})
 
-	if (!user) return null
+	if (!user) {
+		// User was deleted while session is still active — delegate to route handler
+		// (can't call signOut() during rendering — cookies are read-only outside Server Actions)
+		redirect("/api/auth/force-signout")
+	}
 
 	// Decrypt name if user has a DEK
 	const dek = await getUserDek(session.user.id)
@@ -229,18 +319,25 @@ export const getCurrentUser = async (): Promise<SafeUser | null> => {
 
 export const getCurrentAccount = async (): Promise<TradingAccount | null> => {
 	const session = await auth()
-	if (!session?.user?.accountId) {
+	if (!session?.user?.accountId || !session?.user?.id) {
 		return null
 	}
 
 	const account = await db.query.tradingAccounts.findFirst({
-		where: eq(tradingAccounts.id, session.user.accountId),
+		where: and(
+			eq(tradingAccounts.id, session.user.accountId),
+			eq(tradingAccounts.userId, session.user.id),
+		),
 	})
 
-	if (!account) return null
+	if (!account) {
+		// Account was deleted — delegate to route handler to clear session
+		// (can't call signOut() during rendering — cookies are read-only outside Server Actions)
+		redirect("/api/auth/force-signout")
+	}
 
 	// Decrypt financial fields if DEK is available
-	const dek = session.user.id ? await getUserDek(session.user.id) : null
+	const dek = await getUserDek(session.user.id)
 	if (dek) {
 		return decryptAccountFields(account as unknown as Record<string, unknown>, dek) as unknown as TradingAccount
 	}
@@ -292,6 +389,32 @@ export const requireAuth = cache(async (): Promise<AuthContext> => {
 	if (!session?.user?.accountId) {
 		// No account selected - redirect to login to re-authenticate
 		redirect("/login")
+	}
+
+	// Verify user still exists in the database (handles deleted users)
+	const dbUser = await db.query.users.findFirst({
+		where: eq(users.id, session.user.id),
+		columns: { id: true },
+	})
+
+	if (!dbUser) {
+		// User was deleted — delegate to route handler to clear session and redirect
+		redirect("/api/auth/force-signout")
+	}
+
+	// Verify the current account still exists and belongs to this user
+	const currentAccount = await db.query.tradingAccounts.findFirst({
+		where: and(
+			eq(tradingAccounts.id, session.user.accountId),
+			eq(tradingAccounts.userId, session.user.id),
+		),
+		columns: { id: true },
+	})
+
+	if (!currentAccount) {
+		// Account was deleted — delegate to route handler to clear session.
+		// On re-login, the authorize flow auto-selects the default account.
+		redirect("/api/auth/force-signout")
 	}
 
 	// Get user settings for showAllAccounts preference

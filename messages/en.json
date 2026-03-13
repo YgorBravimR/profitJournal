@@ -2469,7 +2469,10 @@
 			"success": "Signed in successfully",
 			"showPassword": "Show password",
 			"hidePassword": "Hide password",
-			"forgotPassword": "Forgot your password?"
+			"forgotPassword": "Forgot your password?",
+			"notVerifiedError": "Email not verified",
+			"notVerifiedMessage": "Please verify your email before signing in. Check your inbox for the verification code.",
+			"resendVerification": "Resend verification code"
 		},
 		"register": {
 			"title": "Create Account",
@@ -2486,7 +2489,9 @@
 			"namePlaceholder": "John Doe",
 			"passwordNotMeetRequirements": "Password does not meet requirements",
 			"passwordsDoNotMatch": "Passwords do not match",
-			"genericError": "An error occurred"
+			"genericError": "An error occurred",
+			"showPassword": "Show password",
+			"hidePassword": "Hide password"
 		},
 		"selectAccount": {
 			"title": "Select Account",
@@ -2535,6 +2540,20 @@
 			"uppercase": "One uppercase letter",
 			"lowercase": "One lowercase letter",
 			"number": "One number"
+		},
+		"verifyEmail": {
+			"title": "Verify Your Email",
+			"subtitle": "Enter the 6-digit code we sent to your email",
+			"codeSentTo": "Code sent to",
+			"codeLabel": "Verification code",
+			"verify": "Verify Email",
+			"resend": "Resend code",
+			"resendIn": "Resend code in {seconds}s",
+			"invalidCode": "Invalid or expired code. Please try again.",
+			"expired": "Code expired. Please request a new one.",
+			"success": "Email Verified!",
+			"successMessage": "Your email has been verified. Redirecting to login...",
+			"backToLogin": "Back to login"
 		}
 	},
 	"riskSimulation": {

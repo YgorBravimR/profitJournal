@@ -52,7 +52,18 @@ export const updateProfileSchema = z.object({
 	dateFormat: z.string().optional(),
 })
 
+export const verifyEmailSchema = z.object({
+	email: z.string().email("Invalid email address"),
+	code: z.string().length(6, "Code must be 6 digits").regex(/^\d+$/, "Code must be numeric"),
+})
+
+export const requestVerificationSchema = z.object({
+	email: z.string().email("Invalid email address"),
+})
+
 export type RegisterInput = z.infer<typeof registerSchema>
 export type LoginInput = z.infer<typeof loginSchema>
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>
+export type RequestVerificationInput = z.infer<typeof requestVerificationSchema>

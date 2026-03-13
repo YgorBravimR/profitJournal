@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
-import { signIn } from "next-auth/react"
 import { Link, useRouter } from "@/i18n/routing"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,7 +11,7 @@ import { Loader2, Eye, EyeOff, Check, X } from "lucide-react"
 import { registerUser } from "@/app/actions/auth"
 import { cn } from "@/lib/utils"
 
-export const RegisterForm = () => {
+const RegisterForm = () => {
 	const t = useTranslations("auth.register")
 	const tReq = useTranslations("auth.passwordRequirements")
 	const router = useRouter()
@@ -28,7 +27,7 @@ export const RegisterForm = () => {
 		confirmPassword: "",
 	})
 
-	const handleChange = (field: string, value: string) => {
+	const handleChange = (field: "name" | "email" | "password" | "confirmPassword", value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setError(null)
 	}
@@ -66,22 +65,14 @@ export const RegisterForm = () => {
 				return
 			}
 
-			// Auto sign-in after successful registration
-			const signInResult = await signIn("credentials", {
-				email: formData.email,
-				password: formData.password,
-				redirect: false,
-			})
-
-			if (signInResult?.error) {
-				// If auto sign-in fails, redirect to login
-				router.push("/login?registered=true")
+			// Redirect to email verification page
+			if (result.needsVerification) {
+				router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`)
 				return
 			}
 
-			// Go to dashboard
-			router.push("/")
-			router.refresh()
+			// Fallback: redirect to login
+			router.push("/login?registered=true")
 		})
 	}
 
@@ -155,13 +146,13 @@ export const RegisterForm = () => {
 						<button
 							type="button"
 							onClick={() => setShowPassword(!showPassword)}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200"
-							tabIndex={-1}
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acc-100 rounded"
+							aria-label={showPassword ? t("hidePassword") : t("showPassword")}
 						>
 							{showPassword ? (
-								<EyeOff className="h-4 w-4" />
+								<EyeOff className="h-4 w-4" aria-hidden="true" />
 							) : (
-								<Eye className="h-4 w-4" />
+								<Eye className="h-4 w-4" aria-hidden="true" />
 							)}
 						</button>
 					</div>
@@ -178,9 +169,9 @@ export const RegisterForm = () => {
 									)}
 								>
 									{req.test ? (
-										<Check className="h-3 w-3" />
+										<Check className="h-3 w-3" aria-hidden="true" />
 									) : (
-										<X className="h-3 w-3" />
+										<X className="h-3 w-3" aria-hidden="true" />
 									)}
 									{req.label}
 								</div>
@@ -205,13 +196,13 @@ export const RegisterForm = () => {
 						<button
 							type="button"
 							onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200"
-							tabIndex={-1}
+							className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-300 hover:text-txt-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acc-100 rounded"
+							aria-label={showConfirmPassword ? t("hidePassword") : t("showPassword")}
 						>
 							{showConfirmPassword ? (
-								<EyeOff className="h-4 w-4" />
+								<EyeOff className="h-4 w-4" aria-hidden="true" />
 							) : (
-								<Eye className="h-4 w-4" />
+								<Eye className="h-4 w-4" aria-hidden="true" />
 							)}
 						</button>
 					</div>
@@ -243,3 +234,5 @@ export const RegisterForm = () => {
 		</div>
 	)
 }
+
+export { RegisterForm }

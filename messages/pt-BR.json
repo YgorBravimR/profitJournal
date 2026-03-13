@@ -2469,7 +2469,10 @@
 			"success": "Login realizado com sucesso",
 			"showPassword": "Mostrar senha",
 			"hidePassword": "Ocultar senha",
-			"forgotPassword": "Esqueceu sua senha?"
+			"forgotPassword": "Esqueceu sua senha?",
+			"notVerifiedError": "Email não verificado",
+			"notVerifiedMessage": "Verifique seu email antes de entrar. Confira sua caixa de entrada para o código de verificação.",
+			"resendVerification": "Reenviar código de verificação"
 		},
 		"register": {
 			"title": "Criar Conta",
@@ -2486,7 +2489,9 @@
 			"namePlaceholder": "João Silva",
 			"passwordNotMeetRequirements": "A senha não atende aos requisitos",
 			"passwordsDoNotMatch": "As senhas não coincidem",
-			"genericError": "Ocorreu um erro"
+			"genericError": "Ocorreu um erro",
+			"showPassword": "Mostrar senha",
+			"hidePassword": "Ocultar senha"
 		},
 		"selectAccount": {
 			"title": "Selecionar Conta",
@@ -2535,6 +2540,20 @@
 			"uppercase": "Uma letra maiúscula",
 			"lowercase": "Uma letra minúscula",
 			"number": "Um número"
+		},
+		"verifyEmail": {
+			"title": "Verifique seu Email",
+			"subtitle": "Digite o código de 6 dígitos enviado para seu email",
+			"codeSentTo": "Código enviado para",
+			"codeLabel": "Código de verificação",
+			"verify": "Verificar Email",
+			"resend": "Reenviar código",
+			"resendIn": "Reenviar em {seconds}s",
+			"invalidCode": "Código inválido ou expirado. Tente novamente.",
+			"expired": "Código expirado. Solicite um novo.",
+			"success": "Email Verificado!",
+			"successMessage": "Seu email foi verificado. Redirecionando para o login...",
+			"backToLogin": "Voltar ao login"
 		}
 	},
 	"riskSimulation": {

@@ -3,7 +3,7 @@ import type { NextAuthConfig } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
 // Public paths that don't require authentication
-const publicPaths = ["/login", "/register", "/forgot-password", "/api/auth", "/monitor"]
+const publicPaths = ["/login", "/register", "/forgot-password", "/verify-email", "/api/auth", "/monitor"]
 
 // Supported locales
 const locales = ["pt-BR", "en"]
@@ -41,7 +41,7 @@ const isPublicPath = (pathname: string): boolean => {
 // Edge-compatible auth config (no database imports)
 // This is used by middleware for JWT validation only
 export const authConfig: NextAuthConfig = {
-	session: { strategy: "jwt" },
+	session: { strategy: "jwt", maxAge: 7 * 24 * 60 * 60 }, // 7 days (default was 30)
 	pages: {
 		signIn: "/login",
 		newUser: "/register",

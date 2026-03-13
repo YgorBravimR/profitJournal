@@ -17,37 +17,15 @@ import {
 } from "@/lib/validations/password-recovery"
 
 // ==========================================
-// RATE LIMITING (in-memory, MVP)
+// RATE LIMITING (DB-backed, survives cold starts)
 // ==========================================
 
-const verifyAttempts = new Map<string, { count: number; resetAt: number }>()
-const VERIFY_MAX_ATTEMPTS = 5
-const VERIFY_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+import { createDbRateLimiter } from "@/lib/db-rate-limiter"
 
-const isRateLimited = (email: string): boolean => {
-	const key = email.toLowerCase()
-	const entry = verifyAttempts.get(key)
-	if (!entry) return false
-	if (Date.now() > entry.resetAt) {
-		verifyAttempts.delete(key)
-		return false
-	}
-	return entry.count >= VERIFY_MAX_ATTEMPTS
-}
-
-const recordAttempt = (email: string): void => {
-	const key = email.toLowerCase()
-	const entry = verifyAttempts.get(key)
-	if (!entry || Date.now() > entry.resetAt) {
-		verifyAttempts.set(key, { count: 1, resetAt: Date.now() + VERIFY_WINDOW_MS })
-		return
-	}
-	entry.count += 1
-}
-
-const clearAttempts = (email: string): void => {
-	verifyAttempts.delete(email.toLowerCase())
-}
+const verifyLimiter = createDbRateLimiter({
+	maxAttempts: 5,
+	windowMs: 15 * 60 * 1000, // 15 minutes
+})
 
 // ==========================================
 // HELPERS
@@ -124,12 +102,12 @@ const verifyResetCode = async (
 	const { email, code } = parsed.data
 	const lowerEmail = email.toLowerCase()
 
-	// Rate limiting
-	if (isRateLimited(lowerEmail)) {
-		return { valid: false, error: "Too many attempts. Try again later." }
+	// Rate limiting (DB-backed)
+	const rateLimitResult = await verifyLimiter.check(`pw-verify:${lowerEmail}`)
+	if (!rateLimitResult.allowed) {
+		const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
+		return { valid: false, error: `Too many attempts. Try again in ${retryMinutes} minute(s).` }
 	}
-
-	recordAttempt(lowerEmail)
 
 	const identifier = buildIdentifier(lowerEmail)
 	const hashedCode = hashOTP(code)
@@ -200,7 +178,7 @@ const resetPassword = async (
 		.delete(verificationTokens)
 		.where(eq(verificationTokens.identifier, identifier))
 
-	clearAttempts(lowerEmail)
+	await verifyLimiter.reset(`pw-verify:${lowerEmail}`)
 
 	return { success: true }
 }

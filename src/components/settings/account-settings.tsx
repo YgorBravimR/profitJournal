@@ -53,7 +53,7 @@ interface AccountSettingsProps {
 	assets: Array<Asset & { assetType?: { code: string; name: string } | null }>
 }
 
-export const AccountSettings = ({ assets }: AccountSettingsProps) => {
+const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	const t = useTranslations("settings.account")
 	const tGeneral = useTranslations("settings.general")
 	const { isAdmin } = useFeatureAccess()
@@ -937,7 +937,7 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			)}
 
 			{/* Danger Zone */}
-			<div className="bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-red-500/30">
+			{/* <div className="bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-red-500/30">
 				<h2 className="text-small sm:text-body font-semibold text-red-500">
 					{t("dangerZone")}
 				</h2>
@@ -1021,7 +1021,9 @@ export const AccountSettings = ({ assets }: AccountSettingsProps) => {
 						</AlertDialogContent>
 					</AlertDialog>
 				</div>
-			</div>
+			</div> */}
 		</div>
 	)
 }
+
+export { AccountSettings }

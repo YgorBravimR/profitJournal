@@ -219,6 +219,17 @@ export const verificationTokens = pgTable(
 	(table) => [uniqueIndex("verification_tokens_idx").on(table.identifier, table.token)]
 )
 
+// Rate Limit Attempts (DB-backed, survives serverless cold starts)
+export const rateLimitAttempts = pgTable(
+	"rate_limit_attempts",
+	{
+		id: uuid("id").primaryKey().defaultRandom(),
+		identifier: varchar("identifier", { length: 255 }).notNull(),
+		createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+	},
+	(table) => [index("rate_limit_attempts_identifier_created_idx").on(table.identifier, table.createdAt)]
+)
+
 // Account Assets Table (per-account asset configuration)
 export const accountAssets = pgTable(
 	"account_assets",

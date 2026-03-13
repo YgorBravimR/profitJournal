@@ -8,8 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import Image from "next/image"
-import { Loader2, Eye, EyeOff, Building2, User, ArrowLeft } from "lucide-react"
+import { Loader2, Eye, EyeOff, Building2, User, ArrowLeft, Mail } from "lucide-react"
 import { loginUser } from "@/app/actions/auth"
+import { requestEmailVerification } from "@/app/actions/email-verification"
 import { cn } from "@/lib/utils"
 interface AccountPickerItem {
 	id: string
@@ -24,7 +25,7 @@ interface LoginFormProps {
 
 type FormStep = "credentials" | "account-selection"
 
-export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
+const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 	const t = useTranslations("auth.login")
 	const tSelect = useTranslations("auth.selectAccount")
 	const router = useRouter()
@@ -37,19 +38,31 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 	const [accounts, setAccounts] = useState<AccountPickerItem[]>([])
 	const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
 
+	const [emailNotVerified, setEmailNotVerified] = useState(false)
+	const [resendingVerification, setResendingVerification] = useState(false)
+
 	const [formData, setFormData] = useState({
 		email: "",
 		password: "",
 	})
 
-	const handleChange = (field: string, value: string) => {
+	const handleChange = (field: "email" | "password", value: string) => {
 		setFormData((prev) => ({ ...prev, [field]: value }))
 		setError(null)
+		setEmailNotVerified(false)
+	}
+
+	const handleResendVerification = async () => {
+		setResendingVerification(true)
+		await requestEmailVerification({ email: formData.email })
+		setResendingVerification(false)
+		router.push(`/verify-email?email=${encodeURIComponent(formData.email)}`)
 	}
 
 	const handleCredentialsSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
 		setError(null)
+		setEmailNotVerified(false)
 
 		startTransition(async () => {
 			try {
@@ -59,6 +72,10 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				})
 
 				if (result.status === "error") {
+					if (result.error === "EMAIL_NOT_VERIFIED") {
+						setEmailNotVerified(true)
+						return
+					}
 					setError(result.error ?? t("invalidCredentials"))
 					return
 				}
@@ -164,9 +181,9 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 								)}
 							>
 								{account.accountType === "prop" ? (
-									<Building2 className="h-5 w-5" />
+									<Building2 className="h-5 w-5" aria-hidden="true" />
 								) : (
-									<User className="h-5 w-5" />
+									<User className="h-5 w-5" aria-hidden="true" />
 								)}
 							</div>
 
@@ -210,6 +227,7 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 						type="button"
 						onClick={handleBackToCredentials}
 						disabled={isPending}
+						aria-label={tSelect("backToLogin")}
 						className="flex w-full items-center justify-center gap-2 text-small text-txt-300 hover:text-txt-200"
 					>
 						<ArrowLeft className="h-4 w-4" />
@@ -244,6 +262,32 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				{error && (
 					<div className="rounded-md bg-fb-error/10 p-s-300 text-small text-fb-error">
 						{error}
+					</div>
+				)}
+
+				{emailNotVerified && (
+					<div className="rounded-md border border-brand-500/30 bg-brand-500/10 p-m-400 space-y-s-300">
+						<div className="flex items-center gap-s-200">
+							<Mail className="h-4 w-4 text-brand-500" />
+							<p className="text-small font-medium text-txt-100">
+								{t("notVerifiedError")}
+							</p>
+						</div>
+						<p className="text-tiny text-txt-300">
+							{t("notVerifiedMessage")}
+						</p>
+						<Button
+							id="login-resend-verification"
+							type="button"
+							variant="outline"
+							size="sm"
+							onClick={handleResendVerification}
+							disabled={resendingVerification}
+							className="w-full"
+						>
+							{resendingVerification && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+							{t("resendVerification")}
+						</Button>
 					</div>
 				)}
 
@@ -316,3 +360,5 @@ export const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 		</div>
 	)
 }
+
+export { LoginForm }

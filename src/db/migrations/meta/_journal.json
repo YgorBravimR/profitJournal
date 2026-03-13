@@ -106,6 +106,13 @@
       "when": 1773255380206,
       "tag": "0014_nice_sphinx",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1773386502024,
+      "tag": "0015_lush_satana",
+      "breakpoints": true
     }
   ]
 }

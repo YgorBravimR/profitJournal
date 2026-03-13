@@ -125,6 +125,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 					})
 					if (defaultAccount) {
 						selectedAccountId = defaultAccount.id
+					} else {
+						// No accounts exist — create one so the user can always log in
+						const [created] = await db
+							.insert(tradingAccounts)
+							.values({
+								userId: user.id,
+								name: "Personal",
+								isDefault: true,
+								accountType: "personal",
+							})
+							.returning({ id: tradingAccounts.id })
+						selectedAccountId = created?.id ?? null
 					}
 				}
 
