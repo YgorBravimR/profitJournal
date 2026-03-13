@@ -1,12 +1,13 @@
 import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
-import { getMessages, setRequestLocale } from "next-intl/server"
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server"
+import type { Metadata } from "next"
 import { ThemeProvider } from "next-themes"
 import { ToastProvider } from "@/components/ui/toast"
 import { LoadingOverlayProvider } from "@/components/ui/loading-overlay"
 import { AccountTransitionOverlayProvider } from "@/components/ui/account-transition-overlay"
 import { AuthProvider } from "@/components/auth"
-import { BrandProvider } from "@/components/providers/brand-provider"
+import { PostHogProvider } from "@/components/providers/posthog-provider"
 import type { ReactNode } from "react"
 import { routing } from "@/i18n/routing"
 
@@ -22,6 +23,26 @@ interface LocaleLayoutProps {
  */
 const generateStaticParams = () => {
 	return routing.locales.map((locale) => ({ locale }))
+}
+
+/**
+ * Generates locale-aware metadata for the page title and description.
+ *
+ * @param params - The route params containing the locale
+ * @returns Translated metadata for the current locale
+ */
+const generateMetadata = async ({
+	params,
+}: {
+	params: Promise<{ locale: string }>
+}): Promise<Metadata> => {
+	const { locale } = await params
+	const t = await getTranslations({ locale, namespace: "common" })
+
+	return {
+		title: t("appName"),
+		description: t("version"),
+	}
 }
 
 /**
@@ -54,20 +75,20 @@ const LocaleLayout = async ({ children, params }: LocaleLayoutProps) => {
 				enableSystem={false}
 				disableTransitionOnChange={false}
 			>
-				{/* <BrandProvider> */}
 				<ToastProvider>
 					<LoadingOverlayProvider>
 						<AuthProvider>
-							<AccountTransitionOverlayProvider>
-								<div className="bg-bg-100 min-h-dvh">{children}</div>
-							</AccountTransitionOverlayProvider>
+							<PostHogProvider>
+								<AccountTransitionOverlayProvider>
+									<div className="bg-bg-100 min-h-dvh">{children}</div>
+								</AccountTransitionOverlayProvider>
+							</PostHogProvider>
 						</AuthProvider>
 					</LoadingOverlayProvider>
 				</ToastProvider>
-				{/* </BrandProvider> */}
 			</ThemeProvider>
 		</NextIntlClientProvider>
 	)
 }
 
-export { LocaleLayout as default, generateStaticParams }
+export { LocaleLayout as default, generateStaticParams, generateMetadata }
