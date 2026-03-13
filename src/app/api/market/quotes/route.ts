@@ -22,7 +22,7 @@ export const GET = async (request: NextRequest) => {
 
 	if (!rateLimitResult.allowed) {
 		return NextResponse.json(
-			{ status: "error", message: "Too many requests" },
+			{ status: "error", message: "api.errors.tooManyRequests" },
 			{ status: 429, headers: { "Retry-After": String(Math.ceil(rateLimitResult.retryAfterMs / 1000)) } }
 		)
 	}
@@ -56,7 +56,7 @@ export const GET = async (request: NextRequest) => {
 		return NextResponse.json(
 			{
 				status: "error",
-				message: "Failed to fetch market quotes",
+				message: "api.errors.marketQuotesFailed",
 				errors: [{ code: "MARKET_QUOTES_ERROR", detail: toSafeErrorMessage(error, "market/quotes") }],
 			},
 			{ status: 500 }

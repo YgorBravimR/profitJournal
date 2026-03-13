@@ -46,7 +46,7 @@ export const POST = async (req: NextRequest) => {
 		// Authenticate using NextAuth
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+			return NextResponse.json({ error: "api.errors.unauthorized" }, { status: 401 })
 		}
 		const userId = session.user.id
 
@@ -62,7 +62,7 @@ export const POST = async (req: NextRequest) => {
 		if (!accountId || !brokerName || !csvContent) {
 			return NextResponse.json(
 				{
-					error: "Missing required fields: accountId, brokerName, csvContent",
+					error: "api.errors.missingFields",
 				},
 				{ status: 400 }
 			)
@@ -70,7 +70,7 @@ export const POST = async (req: NextRequest) => {
 
 		if (!["CLEAR", "XP", "GENIAL"].includes(brokerName)) {
 			return NextResponse.json(
-				{ error: `Invalid broker: ${brokerName}` },
+				{ error: `api.errors.invalidParams|${brokerName}` },
 				{ status: 400 }
 			)
 		}
@@ -81,8 +81,7 @@ export const POST = async (req: NextRequest) => {
 			const retryAfterSec = Math.ceil(rateLimitResult.retryAfterMs / 1000)
 			return NextResponse.json(
 				{
-					error: "RATE_LIMITED",
-					message: `Import in cooldown. Try again in ${Math.ceil(retryAfterSec / 60)} minute(s).`,
+					error: "api.errors.tooManyRequests",
 					retryAfter: retryAfterSec,
 				},
 				{ status: 429 }
@@ -93,7 +92,7 @@ export const POST = async (req: NextRequest) => {
 		const validation = validateStatementCSV(brokerName, csvContent)
 		if (!validation.valid) {
 			return NextResponse.json(
-				{ error: "Invalid CSV format", details: validation.error },
+				{ error: "imports.errors.invalidCsvFormat", details: validation.error },
 				{ status: 400 }
 			)
 		}
@@ -125,13 +124,10 @@ export const POST = async (req: NextRequest) => {
 	} catch (error) {
 		console.error("[POST /api/imports/detailed-trades]", error)
 
-		let message = "Failed to parse CSV"
-		if (error instanceof Error) {
-			message = error.message
-		}
+		const message = error instanceof Error ? error.message : "imports.errors.parseFailed"
 
 		return NextResponse.json(
-			{ error: "PARSE_ERROR", message },
+			{ error: "imports.errors.parseFailed", message },
 			{ status: 400 }
 		)
 	}

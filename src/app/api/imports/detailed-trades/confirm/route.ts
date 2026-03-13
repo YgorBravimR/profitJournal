@@ -22,7 +22,7 @@ export const POST = async (req: NextRequest) => {
 		// Authenticate using NextAuth
 		const session = await auth()
 		if (!session?.user?.id) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+			return NextResponse.json({ error: "api.errors.unauthorized" }, { status: 401 })
 		}
 		const userId = session.user.id
 
@@ -32,7 +32,7 @@ export const POST = async (req: NextRequest) => {
 
 		if (!importId || !accountId) {
 			return NextResponse.json(
-				{ error: "Missing importId or accountId" },
+				{ error: "api.errors.missingFields" },
 				{ status: 400 }
 			)
 		}
@@ -41,7 +41,7 @@ export const POST = async (req: NextRequest) => {
 		const cached = previewCache.get(importId)
 		if (!cached) {
 			return NextResponse.json(
-				{ error: "Import preview not found or expired", importId },
+				{ error: "imports.errors.previewExpired", importId },
 				{ status: 404 }
 			)
 		}
@@ -49,7 +49,7 @@ export const POST = async (req: NextRequest) => {
 		// Verify preview belongs to correct account
 		if (cached.accountId !== accountId) {
 			return NextResponse.json(
-				{ error: "Account mismatch" },
+				{ error: "api.errors.forbidden" },
 				{ status: 403 }
 			)
 		}
@@ -85,7 +85,7 @@ export const POST = async (req: NextRequest) => {
 				takeProfit: null,
 				mfe: null,
 				mae: null,
-				preTradeThoughts: `Imported from ${preview.brokerName} statement`,
+				preTradeThoughts: `imports.importedFrom|${preview.brokerName}`,
 				postTradeReflection: trade.warnings.join("; "),
 				followedPlan: true,
 				plannedRiskAmount: null,
@@ -124,18 +124,15 @@ export const POST = async (req: NextRequest) => {
 			success: true,
 			importId,
 			importedTradesCount: insertedCount,
-			message: `Successfully imported ${insertedCount} trades from ${preview.brokerName}`,
+			message: "imports.success.imported",
 		})
 	} catch (error) {
 		console.error("[POST /api/imports/detailed-trades/confirm]", error)
 
-		let message = "Failed to confirm import"
-		if (error instanceof Error) {
-			message = error.message
-		}
+		const message = error instanceof Error ? error.message : "imports.errors.confirmFailed"
 
 		return NextResponse.json(
-			{ error: "IMPORT_FAILED", message },
+			{ error: "imports.errors.confirmFailed", message },
 			{ status: 500 }
 		)
 	}

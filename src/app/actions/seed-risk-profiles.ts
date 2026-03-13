@@ -13,8 +13,12 @@ import { RISK_PROFILE_TEMPLATES } from "@/lib/risk-profile-templates"
 
 /**
  * Hardcoded display names for the 5 built-in templates.
- * We avoid i18n here because DB rows need a stable, language-agnostic name
- * that works regardless of the user's locale when displayed in dropdowns.
+ * These are stored as-is in the database. They are NOT translated here because
+ * DB rows need a stable, language-agnostic identifier.
+ *
+ * The client-side component (RiskProfileSelector) should use translation keys
+ * to display localized names when rendering these profiles. The profile name
+ * stored in DB serves as a lookup key for the translation system.
  */
 const TEMPLATE_DISPLAY_NAMES: Record<string, string> = {
 	"fixed-fractional": "Fixed Fractional (Van Tharp)",

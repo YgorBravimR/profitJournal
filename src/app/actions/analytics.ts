@@ -39,6 +39,7 @@ import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
+import { getTranslations } from "next-intl/server"
 
 interface AccountFilter {
 	accountId: string
@@ -672,6 +673,9 @@ export const getPerformanceByVariable = async (
 			}
 		}
 
+		// Pre-load day translations for dayOfWeek grouping
+		const tDaysTranslation = await getTranslations("days")
+
 		// Group trades by the specified variable
 		const groups = new Map<
 			string,
@@ -703,17 +707,17 @@ export const getPerformanceByVariable = async (
 					break
 				}
 				case "dayOfWeek": {
-					const days = [
-						"Sunday",
-						"Monday",
-						"Tuesday",
-						"Wednesday",
-						"Thursday",
-						"Friday",
-						"Saturday",
-					]
+					const dayKeys = [
+						"sunday",
+						"monday",
+						"tuesday",
+						"wednesday",
+						"thursday",
+						"friday",
+						"saturday",
+					] as const
 					const { dayOfWeek } = getBrtTimeParts(trade.entryDate)
-					groupKey = days[dayOfWeek]
+					groupKey = tDaysTranslation(dayKeys[dayOfWeek])
 					break
 				}
 				case "strategy":
@@ -1145,15 +1149,17 @@ export const getDayOfWeekPerformance = async (
 			}
 		}
 
-		const dayNames = [
-			"Sunday",
-			"Monday",
-			"Tuesday",
-			"Wednesday",
-			"Thursday",
-			"Friday",
-			"Saturday",
-		]
+		const tDays = await getTranslations("days")
+		const dayKeys = [
+			"sunday",
+			"monday",
+			"tuesday",
+			"wednesday",
+			"thursday",
+			"friday",
+			"saturday",
+		] as const
+		const dayNames = dayKeys.map((key) => tDays(key))
 
 		// Group by day of week
 		const dayMap = new Map<
@@ -1295,15 +1301,17 @@ export const getTimeHeatmap = async (
 			}
 		}
 
-		const dayNames = [
-			"Sunday",
-			"Monday",
-			"Tuesday",
-			"Wednesday",
-			"Thursday",
-			"Friday",
-			"Saturday",
-		]
+		const tDays = await getTranslations("days")
+		const dayKeys = [
+			"sunday",
+			"monday",
+			"tuesday",
+			"wednesday",
+			"thursday",
+			"friday",
+			"saturday",
+		] as const
+		const dayNames = dayKeys.map((key) => tDays(key))
 
 		// Group by day × hour
 		const cellMap = new Map<
@@ -1543,7 +1551,7 @@ export const getDayTrades = async (
 
 		const dayTrades: DayTrade[] = result.map((trade) => ({
 			id: trade.id,
-			time: new Intl.DateTimeFormat("en-US", {
+			time: new Intl.DateTimeFormat("en-GB", {
 				hour: "2-digit",
 				minute: "2-digit",
 				hour12: false,
@@ -1624,7 +1632,7 @@ export const getDayEquityCurve = async (
 		const equityPoints: DayEquityPoint[] = result.map((trade) => {
 			cumulativePnl += fromCents(trade.pnl)
 			return {
-				time: new Intl.DateTimeFormat("en-US", {
+				time: new Intl.DateTimeFormat("en-GB", {
 					hour: "2-digit",
 					minute: "2-digit",
 					hour12: false,
@@ -1803,12 +1811,12 @@ export const getRadarChartData = async (
  */
 const B3_SESSIONS: Record<
 	TradingSession,
-	{ startHour: number; endHour: number; label: string }
+	{ startHour: number; endHour: number; labelKey: TradingSession }
 > = {
-	preOpen: { startHour: 9, endHour: 9.5, label: "Pre-Open" },
-	morning: { startHour: 9.5, endHour: 12, label: "Morning" },
-	afternoon: { startHour: 12, endHour: 15, label: "Afternoon" },
-	close: { startHour: 15, endHour: 17.92, label: "Close" }, // 17:55
+	preOpen: { startHour: 9, endHour: 9.5, labelKey: "preOpen" },
+	morning: { startHour: 9.5, endHour: 12, labelKey: "morning" },
+	afternoon: { startHour: 12, endHour: 15, labelKey: "afternoon" },
+	close: { startHour: 15, endHour: 17.92, labelKey: "close" }, // 17:55
 }
 
 /**
@@ -1835,6 +1843,7 @@ const getSessionForTime = (date: Date): TradingSession | null => {
 export const getSessionPerformance = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<SessionPerformance[]>> => {
+	const tSessions = await getTranslations("sessions")
 	try {
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
@@ -1923,7 +1932,7 @@ export const getSessionPerformance = async (
 
 			return {
 				session,
-				sessionLabel: def.label,
+				sessionLabel: tSessions(def.labelKey),
 				startHour: def.startHour,
 				endHour: def.endHour,
 				totalTrades,
@@ -1963,6 +1972,7 @@ export const getSessionPerformance = async (
 export const getSessionAssetPerformance = async (
 	filters?: TradeFilters
 ): Promise<ActionResponse<SessionAssetPerformance[]>> => {
+	const tSessions = await getTranslations("sessions")
 	try {
 		const authContext = await requireAuth()
 		const conditions = buildFilterConditions(authContext, filters)
@@ -2072,7 +2082,7 @@ export const getSessionAssetPerformance = async (
 
 						return {
 							session,
-							sessionLabel: def.label,
+							sessionLabel: tSessions(def.labelKey),
 							pnl: data.totalPnl,
 							winRate: calculateWinRate(data.wins, data.wins + data.losses),
 							trades: data.tradeCount,

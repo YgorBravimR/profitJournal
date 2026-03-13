@@ -24,14 +24,14 @@ const SelectAccountPage = async () => {
 		<div className="w-full max-w-sm space-y-m-600 text-center">
 			<h1 className="text-h2 font-bold text-txt-100">{t("title")}</h1>
 			<p className="text-small text-txt-300">
-				To select your trading account, please sign in again.
+				{t("signInAgain")}
 			</p>
 			<Link
 				href="/login"
 				className="inline-flex items-center gap-2 text-brand-500 hover:text-brand-400"
 			>
 				<ArrowLeft className="h-4 w-4" />
-				Back to Login
+				{t("backToLoginButton")}
 			</Link>
 		</div>
 	)

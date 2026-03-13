@@ -4,6 +4,7 @@ import { cache } from "react"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
 import bcrypt from "bcryptjs"
+import { getTranslations } from "next-intl/server"
 import { eq, and } from "drizzle-orm"
 import { db } from "@/db/drizzle"
 import { users, tradingAccounts, type User, type TradingAccount } from "@/db/schema"
@@ -42,7 +43,9 @@ const loginLimiter = createDbRateLimiter({
 export const registerUser = async (
 	input: RegisterInput
 ): Promise<{ status: "success" | "error"; error?: string; needsVerification?: boolean }> => {
+	const t = await getTranslations("auth")
 	try {
+
 		const validated = registerSchema.safeParse(input)
 		if (!validated.success) {
 			return { status: "error", error: validated.error.issues[0].message }
@@ -56,7 +59,7 @@ export const registerUser = async (
 		})
 
 		if (existingUser) {
-			return { status: "error", error: "An account with this email already exists" }
+			return { status: "error", error: t("errors.emailExists") }
 		}
 
 		// Hash password
@@ -83,7 +86,7 @@ export const registerUser = async (
 
 		await db.insert(tradingAccounts).values({
 			userId: newUser.id,
-			name: "Personal",
+			name: t("defaultAccountName"),
 			isDefault: true,
 			accountType: "personal",
 		})
@@ -112,7 +115,7 @@ export const registerUser = async (
 		return { status: "success", needsVerification: true }
 	} catch (error) {
 		console.error("Registration error:", error)
-		return { status: "error", error: "An error occurred during registration" }
+		return { status: "error", error: t("errors.registrationFailed") }
 	}
 }
 
@@ -177,6 +180,7 @@ const clearLoginFailures = async (email: string): Promise<void> => {
 export const loginUser = async (
 	input: LoginInput
 ): Promise<{ status: "success" | "error"; error?: string; needsAccountSelection?: boolean; accounts?: AccountPickerItem[] }> => {
+	const t = await getTranslations("auth")
 	try {
 		const validated = loginSchema.safeParse(input)
 		if (!validated.success) {
@@ -192,7 +196,7 @@ export const loginUser = async (
 			const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
 			return {
 				status: "error",
-				error: `Too many login attempts. Please try again in ${retryMinutes} minute(s).`,
+				error: t("errors.rateLimited", { minutes: retryMinutes }),
 			}
 		}
 
@@ -202,7 +206,7 @@ export const loginUser = async (
 			const retryMinutes = Math.ceil(lockout.retryAfterMs / 60_000)
 			return {
 				status: "error",
-				error: `Account temporarily locked due to too many failed attempts. Try again in ${retryMinutes} minute(s).`,
+				error: t("errors.accountLocked", { minutes: retryMinutes }),
 			}
 		}
 
@@ -212,14 +216,14 @@ export const loginUser = async (
 		})
 
 		if (!user) {
-			return { status: "error", error: "Invalid email or password" }
+			return { status: "error", error: t("errors.invalidCredentials") }
 		}
 
 		// Verify password
 		const isValid = await bcrypt.compare(password, user.passwordHash)
 		if (!isValid) {
 			await recordLoginFailure(lowerEmail)
-			return { status: "error", error: "Invalid email or password" }
+			return { status: "error", error: t("errors.invalidCredentials") }
 		}
 
 		// Check email verification — block unverified users
@@ -263,7 +267,7 @@ export const loginUser = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Login error:", error)
-		return { status: "error", error: "An error occurred during login" }
+		return { status: "error", error: t("errors.loginFailed") }
 	}
 }
 
@@ -448,10 +452,12 @@ export const requireAuth = cache(async (): Promise<AuthContext> => {
 export const switchAccount = async (
 	accountId: string
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const t = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: t("errors.notAuthenticated") }
 		}
 
 		// Verify account belongs to user
@@ -463,7 +469,7 @@ export const switchAccount = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Note: The actual session update happens via the update trigger in the JWT callback
@@ -473,7 +479,7 @@ export const switchAccount = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Switch account error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: t("errors.loginFailed") }
 	}
 }
 
@@ -498,10 +504,11 @@ export const revalidateAfterAccountSwitch = async (): Promise<void> => {
 export const updateUserProfile = async (
 	input: UpdateProfileInput
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const t = await getTranslations("auth")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: t("errors.notAuthenticated") }
 		}
 
 		const validated = updateProfileSchema.safeParse(input)
@@ -530,17 +537,18 @@ export const updateUserProfile = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Update profile error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: t("errors.loginFailed") }
 	}
 }
 
 export const changePassword = async (
 	input: ChangePasswordInput
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const t = await getTranslations("auth")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: t("errors.notAuthenticated") }
 		}
 
 		const validated = changePasswordSchema.safeParse(input)
@@ -554,13 +562,13 @@ export const changePassword = async (
 		})
 
 		if (!user) {
-			return { status: "error", error: "User not found" }
+			return { status: "error", error: t("errors.userNotFound") }
 		}
 
 		// Verify current password
 		const isValid = await bcrypt.compare(validated.data.currentPassword, user.passwordHash)
 		if (!isValid) {
-			return { status: "error", error: "Current password is incorrect" }
+			return { status: "error", error: t("errors.incorrectPassword") }
 		}
 
 		// Hash new password
@@ -578,6 +586,6 @@ export const changePassword = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Change password error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: t("errors.loginFailed") }
 	}
 }

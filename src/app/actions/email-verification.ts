@@ -3,6 +3,7 @@
 import { eq, and, gt } from "drizzle-orm"
 import { db } from "@/db/drizzle"
 import { users, verificationTokens } from "@/db/schema"
+import { getTranslations } from "next-intl/server"
 import { sendEmail } from "@/lib/email"
 import { emailVerificationTemplate } from "@/lib/email-templates"
 import { generateOTP, hashOTP, OTP_EXPIRY_MINUTES } from "@/lib/otp"
@@ -46,7 +47,8 @@ const requestEmailVerification = async (
 	const rateLimitResult = await requestLimiter.check(`email-verify-req:${email}`)
 	if (!rateLimitResult.allowed) {
 		const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
-		return { success: false, error: `Too many requests. Try again in ${retryMinutes} minute(s).` }
+		const tVerify = await getTranslations("auth.verifyEmail")
+		return { success: false, error: tVerify("errors.rateLimited", { minutes: retryMinutes }) }
 	}
 
 	// Look up user — if not found, return success anyway (anti-enumeration)
@@ -78,11 +80,23 @@ const requestEmailVerification = async (
 		expires,
 	})
 
-	// Send email
+	// Send email with locale-aware translations
+	const tEmail = await getTranslations("email")
 	const emailResult = await sendEmail({
 		to: email,
-		subject: "Verify Your Email - Bravo Journal",
-		html: emailVerificationTemplate({ code, expiresInMinutes: OTP_EXPIRY_MINUTES }),
+		subject: tEmail("verification.subject"),
+		html: emailVerificationTemplate({
+			code,
+			expiresInMinutes: OTP_EXPIRY_MINUTES,
+			translations: {
+				brandName: tEmail("brandName"),
+				footer: tEmail("footer"),
+				heading: tEmail("verification.heading"),
+				body: tEmail("verification.body"),
+				disclaimer: tEmail("verification.disclaimer"),
+				title: tEmail("verification.title"),
+			},
+		}),
 	})
 
 	if (!emailResult.success) {
@@ -104,9 +118,10 @@ const requestEmailVerification = async (
 const verifyEmail = async (
 	input: VerifyEmailInput
 ): Promise<{ success: boolean; error?: string }> => {
+	const tVerify = await getTranslations("auth.verifyEmail")
 	const parsed = verifyEmailSchema.safeParse(input)
 	if (!parsed.success) {
-		return { success: false, error: "Invalid input" }
+		return { success: false, error: tVerify("errors.invalidInput") }
 	}
 
 	const { email, code } = parsed.data
@@ -116,7 +131,7 @@ const verifyEmail = async (
 	const rateLimitResult = await verifyLimiter.check(`email-verify:${lowerEmail}`)
 	if (!rateLimitResult.allowed) {
 		const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
-		return { success: false, error: `Too many attempts. Try again in ${retryMinutes} minute(s).` }
+		return { success: false, error: tVerify("errors.rateLimited", { minutes: retryMinutes }) }
 	}
 
 	const identifier = buildIdentifier(lowerEmail)

@@ -22,7 +22,7 @@ export const GET = async (request: NextRequest) => {
 
 	if (!rateLimitResult.allowed) {
 		return NextResponse.json(
-			{ status: "error", message: "Too many requests" },
+			{ status: "error", message: "api.errors.tooManyRequests" },
 			{ status: 429, headers: { "Retry-After": String(Math.ceil(rateLimitResult.retryAfterMs / 1000)) } }
 		)
 	}
@@ -56,7 +56,7 @@ export const GET = async (request: NextRequest) => {
 		return NextResponse.json(
 			{
 				status: "error",
-				message: "Failed to fetch economic calendar",
+				message: "api.errors.calendarFailed",
 				errors: [{ code: "MARKET_CALENDAR_ERROR", detail: toSafeErrorMessage(error, "market/calendar") }],
 			},
 			{ status: 500 }

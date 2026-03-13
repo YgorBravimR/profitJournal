@@ -14,6 +14,7 @@ import { getUserDek, encryptMonthlyPlanFields, decryptMonthlyPlanFields } from "
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 import { isMonthBeyondAllowed } from "@/lib/monthly-plan-date-guard"
+import { getTranslations } from "next-intl/server"
 
 // ==========================================
 // MONTHLY PLAN ACTIONS
@@ -107,6 +108,7 @@ export const getMonthlyPlan = async ({
 export const upsertMonthlyPlan = async (
 	input: MonthlyPlanInput
 ): Promise<ActionResponse<MonthlyPlan>> => {
+	const t = await getTranslations("commandCenter.plan")
 	try {
 		const { userId, accountId } = await requireAuth()
 		const validated = monthlyPlanSchema.parse(input)
@@ -115,7 +117,7 @@ export const upsertMonthlyPlan = async (
 		if (isMonthBeyondAllowed(validated.year, validated.month)) {
 			return {
 				status: "error",
-				message: "Cannot create a plan for a month that far in the future",
+				message: t("actionErrors.tooFarInFuture"),
 				errors: [{ code: "FUTURE_MONTH_BLOCKED", detail: "Plans can only be created for the current month, or next month within the last 5 days of the current month" }],
 			}
 		}
@@ -260,6 +262,7 @@ export const upsertMonthlyPlan = async (
 export const rolloverMonthlyPlan = async (
 	adjustedBalance?: number | null
 ): Promise<ActionResponse<MonthlyPlan>> => {
+	const t = await getTranslations("commandCenter.plan")
 	try {
 		const { userId, accountId } = await requireAuth()
 
@@ -287,7 +290,7 @@ export const rolloverMonthlyPlan = async (
 		if (!previousPlan) {
 			return {
 				status: "error",
-				message: "No plan found for the previous month to roll over",
+				message: t("actionErrors.noPreviousPlan"),
 				errors: [{ code: "NO_PREVIOUS_PLAN", detail: `No monthly plan exists for ${prevYear}-${String(prevMonth).padStart(2, "0")}` }],
 			}
 		}

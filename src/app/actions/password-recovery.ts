@@ -4,6 +4,7 @@ import { eq, and, gt } from "drizzle-orm"
 import bcrypt from "bcryptjs"
 import { db } from "@/db/drizzle"
 import { users, verificationTokens } from "@/db/schema"
+import { getTranslations } from "next-intl/server"
 import { sendEmail } from "@/lib/email"
 import { passwordResetTemplate } from "@/lib/email-templates"
 import { generateOTP, hashOTP, OTP_EXPIRY_MINUTES } from "@/lib/otp"
@@ -77,11 +78,23 @@ const requestPasswordReset = async (
 		expires,
 	})
 
-	// Send email
+	// Send email with locale-aware translations
+	const tEmail = await getTranslations("email")
 	await sendEmail({
 		to: email,
-		subject: "Password Reset Code",
-		html: passwordResetTemplate({ code, expiresInMinutes: OTP_EXPIRY_MINUTES }),
+		subject: tEmail("passwordReset.subject"),
+		html: passwordResetTemplate({
+			code,
+			expiresInMinutes: OTP_EXPIRY_MINUTES,
+			translations: {
+				brandName: tEmail("brandName"),
+				footer: tEmail("footer"),
+				heading: tEmail("passwordReset.heading"),
+				body: tEmail("passwordReset.body"),
+				disclaimer: tEmail("passwordReset.disclaimer"),
+				title: tEmail("passwordReset.title"),
+			},
+		}),
 	})
 
 	return { success: true }
@@ -94,9 +107,10 @@ const requestPasswordReset = async (
 const verifyResetCode = async (
 	input: VerifyCodeInput
 ): Promise<{ valid: boolean; error?: string }> => {
+	const t = await getTranslations("forgotPassword")
 	const parsed = verifyCodeSchema.safeParse(input)
 	if (!parsed.success) {
-		return { valid: false, error: "Invalid input" }
+		return { valid: false, error: t("errors.invalidInput") }
 	}
 
 	const { email, code } = parsed.data
@@ -106,7 +120,7 @@ const verifyResetCode = async (
 	const rateLimitResult = await verifyLimiter.check(`pw-verify:${lowerEmail}`)
 	if (!rateLimitResult.allowed) {
 		const retryMinutes = Math.ceil(rateLimitResult.retryAfterMs / 60_000)
-		return { valid: false, error: `Too many attempts. Try again in ${retryMinutes} minute(s).` }
+		return { valid: false, error: t("errors.rateLimited", { minutes: retryMinutes }) }
 	}
 
 	const identifier = buildIdentifier(lowerEmail)
@@ -122,7 +136,7 @@ const verifyResetCode = async (
 	})
 
 	if (!tokenRow) {
-		return { valid: false, error: "Invalid or expired code" }
+		return { valid: false, error: t("errors.invalidCode") }
 	}
 
 	return { valid: true }
@@ -135,9 +149,11 @@ const verifyResetCode = async (
 const resetPassword = async (
 	input: ResetPasswordInput
 ): Promise<{ success: boolean; error?: string }> => {
+	const t = await getTranslations("forgotPassword")
+	const tAuth = await getTranslations("auth")
 	const parsed = resetPasswordSchema.safeParse(input)
 	if (!parsed.success) {
-		const firstError = parsed.error.issues[0]?.message ?? "Invalid input"
+		const firstError = parsed.error.issues[0]?.message ?? t("errors.invalidInput")
 		return { success: false, error: firstError }
 	}
 
@@ -156,7 +172,7 @@ const resetPassword = async (
 	})
 
 	if (!tokenRow) {
-		return { success: false, error: "Invalid or expired code" }
+		return { success: false, error: t("errors.invalidCode") }
 	}
 
 	// Hash new password
@@ -170,7 +186,7 @@ const resetPassword = async (
 		.returning({ id: users.id })
 
 	if (result.length === 0) {
-		return { success: false, error: "User not found" }
+		return { success: false, error: tAuth("errors.userNotFound") }
 	}
 
 	// Clean up: delete token and clear rate limit attempts

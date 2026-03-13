@@ -10,6 +10,7 @@ import {
 	type UpdateUserSettingsInput,
 } from "@/lib/validations/settings"
 import { requireAuth } from "@/app/actions/auth"
+import { getTranslations } from "next-intl/server"
 
 export interface RiskSettings {
 	defaultRiskPercent: number
@@ -374,6 +375,7 @@ export const getUserTheme = async (): Promise<ActionResponse<string>> => {
 export const updateTheme = async (
 	theme: string
 ): Promise<ActionResponse<string>> => {
+	const t = await getTranslations("settings")
 	try {
 		const { userId } = await requireAuth()
 
@@ -381,7 +383,7 @@ export const updateTheme = async (
 		if (!validThemes.includes(theme)) {
 			return {
 				status: "error",
-				message: "Invalid theme value",
+				message: t("errors.invalidTheme"),
 				errors: [{ code: "INVALID_THEME", detail: `Theme must be one of: ${validThemes.join(", ")}` }],
 			}
 		}
@@ -439,13 +441,14 @@ export const getAccountBrand = async (): Promise<ActionResponse<string>> => {
 export const updateAccountBrand = async (
 	brand: string
 ): Promise<ActionResponse<string>> => {
+	const t = await getTranslations("settings")
 	try {
 		const { accountId } = await requireAuth()
 
 		if (!VALID_BRANDS.includes(brand as BrandValue)) {
 			return {
 				status: "error",
-				message: "Invalid brand value",
+				message: t("errors.invalidBrand"),
 				errors: [{ code: "INVALID_BRAND", detail: `Brand must be one of: ${VALID_BRANDS.join(", ")}` }],
 			}
 		}

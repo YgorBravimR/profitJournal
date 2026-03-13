@@ -19,6 +19,7 @@ import { getUserSettings, type UserSettingsData } from "./settings"
 import { requireAuth } from "@/app/actions/auth"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 import { getUserDek, decryptTradeFields, decryptAccountFields } from "@/lib/user-crypto"
+import { getTranslations } from "next-intl/server"
 
 // ============================================================================
 // TYPES
@@ -1054,20 +1055,8 @@ export const getYearlyOverview = async (
 		}
 
 		// Build months array
-		const monthNames = [
-			"January",
-			"February",
-			"March",
-			"April",
-			"May",
-			"June",
-			"July",
-			"August",
-			"September",
-			"October",
-			"November",
-			"December",
-		]
+		const tMonths = await getTranslations("months")
+		const monthNames = Array.from({ length: 12 }, (_, i) => tMonths(String(i)))
 
 		const months = monthNames.map((name, index) => {
 			const data = monthlyData.get(index)

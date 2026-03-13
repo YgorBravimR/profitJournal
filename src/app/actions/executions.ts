@@ -16,6 +16,7 @@ import { toCents, fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 import { getUserDek, encryptExecutionFields, decryptExecutionFields } from "@/lib/user-crypto"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 import { calculateAssetPnL, determineOutcome } from "@/lib/calculations"
 import { assets } from "@/db/schema"
 import { getBreakevenTicks } from "@/app/actions/accounts"
@@ -260,6 +261,7 @@ const updateTradeAggregates = async (tradeId: string, dek: string | null): Promi
 export const createExecution = async (
 	input: CreateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
+	const t = await getTranslations("journal")
 	try {
 		const { userId, accountId } = await requireAuth()
 		const validated = createExecutionSchema.parse(input)
@@ -306,7 +308,7 @@ export const createExecution = async (
 				const remainingQty = totalEntryQty - totalExitQty
 				return {
 					status: "error",
-					message: `Exit quantity exceeds available position. Remaining: ${remainingQty}`,
+					message: t("errors.exitQuantityExceeds", { qty: remainingQty }),
 					errors: [{
 						code: "EXIT_EXCEEDS_ENTRIES",
 						detail: `Total exit quantity (${totalExitQty + validated.quantity}) would exceed total entry quantity (${totalEntryQty})`,
@@ -399,6 +401,7 @@ export const updateExecution = async (
 	id: string,
 	input: UpdateExecutionInput
 ): Promise<ActionResponse<TradeExecution>> => {
+	const t = await getTranslations("journal")
 	try {
 		const { userId, accountId } = await requireAuth()
 		const validated = updateExecutionSchema.parse(input)
@@ -452,7 +455,7 @@ export const updateExecution = async (
 				const remainingQty = totalEntryQty - otherExitQty
 				return {
 					status: "error",
-					message: `Exit quantity exceeds available position. Remaining: ${remainingQty}`,
+					message: t("errors.exitQuantityExceeds", { qty: remainingQty }),
 					errors: [{
 						code: "EXIT_EXCEEDS_ENTRIES",
 						detail: `Total exit quantity (${otherExitQty + resultQuantity}) would exceed total entry quantity (${totalEntryQty})`,
@@ -697,6 +700,7 @@ export const getExecutionSummary = async (
 export const convertToScaledMode = async (
 	tradeId: string
 ): Promise<ActionResponse<TradeExecution[]>> => {
+	const t = await getTranslations("journal")
 	try {
 		const { userId, accountId } = await requireAuth()
 
@@ -715,9 +719,9 @@ export const convertToScaledMode = async (
 		if (trade.executionMode === "scaled") {
 			return {
 				status: "error",
-				message: "Trade is already in scaled mode",
+				message: t("errors.alreadyScaledMode"),
 				errors: [
-					{ code: "ALREADY_SCALED", detail: "Trade is already in scaled mode" },
+					{ code: "ALREADY_SCALED", detail: t("errors.alreadyScaledMode") },
 				],
 			}
 		}
@@ -837,6 +841,7 @@ export const convertToScaledMode = async (
 export const recalculateTradeFromExecutions = async (
 	tradeId: string
 ): Promise<ActionResponse<ExecutionSummary>> => {
+	const t = await getTranslations("journal")
 	try {
 		const { userId, accountId } = await requireAuth()
 
@@ -855,11 +860,11 @@ export const recalculateTradeFromExecutions = async (
 		if (trade.executionMode !== "scaled") {
 			return {
 				status: "error",
-				message: "Trade is not in scaled mode",
+				message: t("errors.notScaledMode"),
 				errors: [
 					{
 						code: "NOT_SCALED",
-						detail: "Trade must be in scaled mode to recalculate from executions",
+						detail: t("errors.notScaledMode"),
 					},
 				],
 			}

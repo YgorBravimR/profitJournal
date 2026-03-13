@@ -7,6 +7,7 @@ import type { ActionResponse } from "@/types"
 import { eq, and } from "drizzle-orm"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 import { toCents, toNumericString } from "@/lib/money"
 import {
 	getUserDek,

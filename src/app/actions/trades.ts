@@ -1,6 +1,7 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
+import { getLocale } from "next-intl/server"
 import { db } from "@/db/drizzle"
 import {
 	trades,
@@ -1600,6 +1601,8 @@ export const getTradesGroupedByDay = async (
 	try {
 		const { accountId, userId, showAllAccounts, allAccountIds } =
 			await requireAuth()
+		const locale = await getLocale()
+		const bcp47Locale = locale === "pt-BR" ? "pt-BR" : "en-US"
 
 		// Build where conditions
 		const accountCondition = showAllAccounts
@@ -1702,7 +1705,7 @@ export const getTradesGroupedByDay = async (
 			.map(([dateKey, data]) => {
 				// Format date for display (e.g., "Friday, Jan 31, 2026")
 				const date = new Date(dateKey + "T12:00:00-03:00")
-				const dateFormatted = new Intl.DateTimeFormat("en-US", {
+				const dateFormatted = new Intl.DateTimeFormat(bcp47Locale, {
 					weekday: "long",
 					month: "short",
 					day: "numeric",
@@ -1743,7 +1746,7 @@ export const getTradesGroupedByDay = async (
 					.toSorted((a, b) => a.entryDate.getTime() - b.entryDate.getTime())
 					.map((trade) => ({
 						id: trade.id,
-						time: new Intl.DateTimeFormat("en-US", {
+						time: new Intl.DateTimeFormat("en-GB", {
 							hour: "2-digit",
 							minute: "2-digit",
 							hour12: false,

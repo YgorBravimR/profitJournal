@@ -28,6 +28,7 @@ import {
 import { runSimpleSimulation } from "@/lib/risk-simulation"
 import { runAdvancedSimulation } from "@/lib/risk-simulation-advanced"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 
 // ==========================================
 // PREVIEW (before running simulation)
@@ -104,6 +105,7 @@ const runRiskSimulationFromDb = async (
 	dateTo: string,
 	params: RiskSimulationParams
 ): Promise<ActionResponse<RiskSimulationResult>> => {
+	const t = await getTranslations("riskSimulation")
 	try {
 		const { accountId, userId } = await requireAuth()
 		const validatedDates = dateRangeSchema.parse({ dateFrom, dateTo })
@@ -133,7 +135,7 @@ const runRiskSimulationFromDb = async (
 		if (decryptedTrades.length === 0) {
 			return {
 				status: "error",
-				message: "No closed trades found in the selected date range",
+				message: t("errors.noClosedTrades"),
 				errors: [{ code: "NO_TRADES", detail: "No closed trades found" }],
 			}
 		}
@@ -253,7 +255,7 @@ const runRiskSimulationFromDb = async (
 		if (tradesForSim.length === 0) {
 			return {
 				status: "error",
-				message: "No valid trades to simulate",
+				message: t("errors.noValidTrades"),
 				errors: [{ code: "NO_VALID_TRADES", detail: "No trades with valid price data found" }],
 			}
 		}

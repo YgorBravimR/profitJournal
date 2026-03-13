@@ -9,6 +9,7 @@ import type { StrategyConditionInput } from "@/types/trading-condition"
 import { eq, and, asc } from "drizzle-orm"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 
 interface StrategyConditionWithDetail extends StrategyCondition {
 	condition: TradingCondition
@@ -22,6 +23,7 @@ const syncStrategyConditions = async (
 	strategyId: string,
 	conditions: StrategyConditionInput[]
 ): Promise<ActionResponse<StrategyCondition[]>> => {
+	const t = await getTranslations("playbook")
 	try {
 		const { userId } = await requireAuth()
 
@@ -33,7 +35,7 @@ const syncStrategyConditions = async (
 		if (!strategy) {
 			return {
 				status: "error",
-				message: "Strategy not found",
+				message: t("actionErrors.strategyNotFound"),
 				errors: [{ code: "NOT_FOUND", detail: "Strategy does not exist" }],
 			}
 		}
@@ -75,7 +77,7 @@ const syncStrategyConditions = async (
 	} catch (error) {
 		return {
 			status: "error",
-			message: "Failed to sync strategy conditions",
+			message: t("actionErrors.syncFailed"),
 			errors: [
 				{
 					code: "SYNC_FAILED",
@@ -92,6 +94,7 @@ const syncStrategyConditions = async (
 const getStrategyConditions = async (
 	strategyId: string
 ): Promise<ActionResponse<StrategyConditionWithDetail[]>> => {
+	const t = await getTranslations("playbook")
 	try {
 		const { userId } = await requireAuth()
 
@@ -103,7 +106,7 @@ const getStrategyConditions = async (
 		if (!strategy) {
 			return {
 				status: "error",
-				message: "Strategy not found",
+				message: t("actionErrors.strategyNotFound"),
 				errors: [{ code: "NOT_FOUND", detail: "Strategy does not exist" }],
 			}
 		}
@@ -122,7 +125,7 @@ const getStrategyConditions = async (
 	} catch (error) {
 		return {
 			status: "error",
-			message: "Failed to retrieve strategy conditions",
+			message: t("actionErrors.retrieveFailed"),
 			errors: [
 				{
 					code: "FETCH_FAILED",

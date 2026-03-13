@@ -16,12 +16,12 @@ import { toSafeErrorMessage } from "@/lib/error-utils"
 const createTagSchema = z.object({
 	name: z
 		.string()
-		.min(1, "Name is required")
-		.max(50, "Name must be 50 characters or less"),
+		.min(1, "validation.tags.nameRequired")
+		.max(50, "validation.tags.nameMaxLength"),
 	type: z.enum(["setup", "mistake", "general"]),
 	color: z
 		.string()
-		.regex(/^#[0-9A-Fa-f]{6}$/, "Color must be a valid hex color")
+		.regex(/^#[0-9A-Fa-f]{6}$/, "validation.tags.invalidColor")
 		.optional(),
 	description: z.string().max(500).optional(),
 })

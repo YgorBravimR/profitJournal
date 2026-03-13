@@ -26,10 +26,12 @@ import { runMonteCarloV2 } from "@/lib/monte-carlo-v2"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
+import { getTranslations } from "next-intl/server"
 
 export const getDataSourceOptions = async (): Promise<
 	ActionResponse<DataSourceOption[]>
 > => {
+	const t = await getTranslations("monteCarlo")
 	try {
 		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
 
@@ -62,7 +64,7 @@ export const getDataSourceOptions = async (): Promise<
 				tradesCount,
 				disabled: tradesCount < 10,
 				disabledReason:
-					tradesCount < 10 ? "Need at least 10 trades" : undefined,
+					tradesCount < 10 ? t("dataSources.needMinTrades") : undefined,
 			})
 		}
 
@@ -75,12 +77,12 @@ export const getDataSourceOptions = async (): Promise<
 
 		options.push({
 			type: "all_strategies",
-			label: "All Strategies",
-			description: "Combined metrics from all strategies",
+			label: t("dataSources.allStrategies"),
+			description: t("dataSources.allStrategiesDesc"),
 			tradesCount: allAccountTrades,
 			disabled: allAccountTrades < 10,
 			disabledReason:
-				allAccountTrades < 10 ? "Need at least 10 trades" : undefined,
+				allAccountTrades < 10 ? t("dataSources.needMinTrades") : undefined,
 		})
 
 		// Add "Universal" option if show all accounts is enabled
@@ -98,12 +100,12 @@ export const getDataSourceOptions = async (): Promise<
 
 			options.push({
 				type: "universal",
-				label: "All Accounts + All Strategies",
-				description: "Universal metrics across all accounts",
+				label: t("dataSources.allAccountsStrategies"),
+				description: t("dataSources.allAccountsStrategiesDesc"),
 				tradesCount: universalTrades,
 				disabled: universalTrades < 10,
 				disabledReason:
-					universalTrades < 10 ? "Need at least 10 trades" : undefined,
+					universalTrades < 10 ? t("dataSources.needMinTrades") : undefined,
 			})
 		}
 
@@ -124,6 +126,7 @@ export const getDataSourceOptions = async (): Promise<
 export const getSimulationStats = async (
 	source: DataSource
 ): Promise<ActionResponse<SourceStats>> => {
+	const t = await getTranslations("monteCarlo")
 	try {
 		const validated = dataSourceSchema.parse(source)
 		const { accountId, userId, showAllAccounts, allAccountIds } = await requireAuth()
@@ -154,7 +157,7 @@ export const getSimulationStats = async (
 			if (!strategy) {
 				return {
 					status: "error",
-					message: "Strategy not found",
+					message: t("errors.failedToLoadStats"),
 					errors: [{ code: "NOT_FOUND", detail: "Strategy not found" }],
 				}
 			}
@@ -180,7 +183,7 @@ export const getSimulationStats = async (
 			})
 			tradesList = dek ? rawTrades.map((t) => decryptTradeFields(t, dek)) : rawTrades
 		} else if (validated.type === "all_strategies") {
-			sourceName = "All Strategies"
+			sourceName = t("dataSources.allStrategies")
 
 			const accountStrategies = await db.query.strategies.findMany({
 				where: eq(strategies.userId, userId),
@@ -206,7 +209,7 @@ export const getSimulationStats = async (
 			if (!showAllAccounts) {
 				return {
 					status: "error",
-					message: 'Universal mode requires "show all accounts" to be enabled',
+					message: t("errors.universalRequiresAllAccounts"),
 					errors: [
 						{
 							code: "NOT_ALLOWED",
@@ -215,7 +218,7 @@ export const getSimulationStats = async (
 					],
 				}
 			}
-			sourceName = "All Accounts + All Strategies"
+			sourceName = t("dataSources.allAccountsStrategies")
 			accountsCount = allAccountIds.length
 
 			const allStrategies = await db.query.strategies.findMany({
@@ -246,7 +249,7 @@ export const getSimulationStats = async (
 		if (tradesList.length === 0) {
 			return {
 				status: "error",
-				message: `No trades found for ${sourceName}`,
+				message: t("errors.noTradesForSource", { source: sourceName }),
 				errors: [{ code: "NO_TRADES", detail: "No completed trades found" }],
 			}
 		}
@@ -445,6 +448,7 @@ export const runComparisonSimulation = async (
 		recommendations: ComparisonRecommendation
 	}>
 > => {
+	const t = await getTranslations("monteCarlo")
 	try {
 		const { userId } = await requireAuth()
 
@@ -506,9 +510,9 @@ export const runComparisonSimulation = async (
 			0
 		)
 		const getAllocationReason = (pct: number): string => {
-			if (pct >= 80) return "Excellent statistical robustness"
-			if (pct >= 70) return "Good statistical performance"
-			return "Moderate reliability"
+			if (pct >= 80) return t("allocation.excellent")
+			if (pct >= 70) return t("allocation.good")
+			return t("allocation.moderate")
 		}
 
 		const suggestedAllocations = sortedResults
@@ -527,7 +531,7 @@ export const runComparisonSimulation = async (
 			suggestedAllocations.push({
 				strategyName,
 				allocationPct: 0,
-				reason: "Pause until improved",
+				reason: t("allocation.pause"),
 			})
 		}
 

@@ -9,6 +9,7 @@ import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 import { resolveLiveStatus } from "@/lib/live-trading-status"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 import type { ActionResponse } from "@/types"
 import type { LiveTradingStatusResult, TradeSummary } from "@/types/live-trading-status"
 
@@ -17,6 +18,7 @@ import type { LiveTradingStatusResult, TradeSummary } from "@/types/live-trading
  * using the active monthly plan's linked risk profile.
  */
 const getLiveTradingStatus = async (date?: Date): Promise<ActionResponse<LiveTradingStatusResult>> => {
+	const t = await getTranslations("commandCenter")
 	try {
 		const { userId, accountId } = await requireAuth()
 
@@ -48,7 +50,7 @@ const getLiveTradingStatus = async (date?: Date): Promise<ActionResponse<LiveTra
 		if (!monthlyPlan?.riskProfileId) {
 			return {
 				status: "success",
-				message: "No risk profile linked",
+				message: t("actionErrors.noRiskProfile"),
 				data: {
 					hasProfile: false,
 					fallbackRiskCents: monthlyPlan?.riskPerTradeCents
@@ -64,7 +66,7 @@ const getLiveTradingStatus = async (date?: Date): Promise<ActionResponse<LiveTra
 		if (profileResult.status !== "success" || !profileResult.data) {
 			return {
 				status: "success",
-				message: "Risk profile not found",
+				message: t("actionErrors.riskProfileNotFound"),
 				data: {
 					hasProfile: false,
 					fallbackRiskCents: monthlyPlan.riskPerTradeCents

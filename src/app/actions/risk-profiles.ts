@@ -13,6 +13,7 @@ import type { RiskProfileSchemaInput } from "@/lib/validations/risk-profile"
 import { requireAuth } from "@/app/actions/auth"
 import { requireRole } from "@/lib/auth-utils"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+import { getTranslations } from "next-intl/server"
 
 // ==========================================
 // HELPERS
@@ -71,6 +72,7 @@ const listActiveRiskProfiles = async (): Promise<ActionResponse<RiskManagementPr
  * Get a single risk profile by ID.
  */
 const getRiskProfile = async (id: string): Promise<ActionResponse<RiskManagementProfile>> => {
+	const t = await getTranslations("settings.riskProfiles")
 	try {
 		await requireAuth()
 
@@ -81,7 +83,7 @@ const getRiskProfile = async (id: string): Promise<ActionResponse<RiskManagement
 		if (!row) {
 			return {
 				status: "error",
-				message: "Profile not found",
+				message: t("errors.notFound"),
 				errors: [{ code: "NOT_FOUND", detail: "Risk profile not found" }],
 			}
 		}
@@ -167,6 +169,7 @@ const updateRiskProfile = async (
 	id: string,
 	input: RiskProfileSchemaInput
 ): Promise<ActionResponse<RiskManagementProfile>> => {
+	const t = await getTranslations("settings.riskProfiles")
 	try {
 		const { userId } = await requireAuth()
 		await requireRole("admin")
@@ -192,7 +195,7 @@ const updateRiskProfile = async (
 		if (!row) {
 			return {
 				status: "error",
-				message: "Profile not found",
+				message: t("errors.notFound"),
 				errors: [{ code: "NOT_FOUND", detail: "Risk profile not found" }],
 			}
 		}

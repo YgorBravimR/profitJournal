@@ -17,6 +17,7 @@ import {
 import { auth } from "@/auth"
 import { getUserDek, encryptAccountFields, decryptAccountFields } from "@/lib/user-crypto"
 import { hasAccess } from "@/lib/feature-access"
+import { getTranslations } from "next-intl/server"
 
 // ==========================================
 // TYPES
@@ -85,10 +86,12 @@ interface AccountTimeframeWithDetails extends AccountTimeframe {
 export const createAccount = async (
 	input: AccountInput
 ): Promise<{ status: "success" | "error"; data?: TradingAccount; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		// Check if account name already exists for user
@@ -100,7 +103,7 @@ export const createAccount = async (
 		})
 
 		if (existing) {
-			return { status: "error", error: "An account with this name already exists" }
+			return { status: "error", error: tSettings("errors.accountNameExists") }
 		}
 
 		const replayCurrentDate =
@@ -154,7 +157,7 @@ export const createAccount = async (
 		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Create account error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
@@ -162,10 +165,12 @@ export const updateAccount = async (
 	accountId: string,
 	input: Partial<AccountInput>
 ): Promise<{ status: "success" | "error"; data?: TradingAccount; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		// Verify ownership
@@ -177,7 +182,7 @@ export const updateAccount = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Check name uniqueness if changing
@@ -190,7 +195,7 @@ export const updateAccount = async (
 			})
 
 			if (existing) {
-				return { status: "error", error: "An account with this name already exists" }
+				return { status: "error", error: tSettings("errors.accountNameExists") }
 			}
 		}
 
@@ -249,17 +254,19 @@ export const updateAccount = async (
 		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Update account error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
 export const deleteAccount = async (
 	accountId: string
 ): Promise<{ status: "success" | "error"; error?: string; shouldLogout?: boolean }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		const account = await db.query.tradingAccounts.findFirst({
@@ -267,14 +274,14 @@ export const deleteAccount = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		const callerIsAdmin = hasAccess(session.user.role ?? "trader", "admin")
 
 		// Non-admins can only delete their own accounts
 		if (!callerIsAdmin && account.userId !== session.user.id) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		const ownerAccounts = await db.query.tradingAccounts.findMany({
@@ -285,7 +292,7 @@ export const deleteAccount = async (
 
 		// Default account can only be deleted when it's the last one
 		if (account.isDefault && !isLastAccount) {
-			return { status: "error", error: "Cannot delete the default account while other accounts exist" }
+			return { status: "error", error: tSettings("errors.cannotDeleteDefault") }
 		}
 
 		// Delete account (cascades to trades, strategies, tags)
@@ -297,17 +304,19 @@ export const deleteAccount = async (
 		return { status: "success", shouldLogout: isLastAccount }
 	} catch (error) {
 		console.error("Delete account error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
 export const setDefaultAccount = async (
 	accountId: string
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		// Verify ownership
@@ -319,7 +328,7 @@ export const setDefaultAccount = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Remove default from all user accounts
@@ -339,7 +348,7 @@ export const setDefaultAccount = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Set default account error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
@@ -356,10 +365,12 @@ export const advanceReplayDate = async (): Promise<{
 	data?: TradingAccount
 	error?: string
 }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id || !session?.user?.accountId) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		const account = await db.query.tradingAccounts.findFirst({
@@ -370,15 +381,15 @@ export const advanceReplayDate = async (): Promise<{
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		if (account.accountType !== "replay") {
-			return { status: "error", error: "Only replay accounts can advance date" }
+			return { status: "error", error: tSettings("errors.onlyReplayAccounts") }
 		}
 
 		if (!account.replayCurrentDate) {
-			return { status: "error", error: "Replay account has no start date" }
+			return { status: "error", error: tSettings("errors.replayNoStartDate") }
 		}
 
 		const currentDate = new Date(account.replayCurrentDate)
@@ -399,7 +410,7 @@ export const advanceReplayDate = async (): Promise<{
 		return { status: "success", data: decryptedAccount }
 	} catch (error) {
 		console.error("Advance replay date error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
@@ -410,15 +421,17 @@ export const advanceReplayDate = async (): Promise<{
 export const getAccountAssets = async (
 	accountId?: string
 ): Promise<{ status: "success" | "error"; data?: AccountAssetWithDetails[]; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		const targetAccountId = accountId || session.user.accountId
 		if (!targetAccountId) {
-			return { status: "error", error: "No account selected" }
+			return { status: "error", error: tSettings("errors.noAccountSelected") }
 		}
 
 		// Verify ownership
@@ -430,7 +443,7 @@ export const getAccountAssets = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Get all active assets
@@ -473,17 +486,19 @@ export const getAccountAssets = async (
 		return { status: "success", data: result }
 	} catch (error) {
 		console.error("Get account assets error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
 export const updateAccountAsset = async (
 	input: AccountAssetInput
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id || !session?.user?.accountId) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		// Verify ownership
@@ -495,7 +510,7 @@ export const updateAccountAsset = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Check if config exists
@@ -537,7 +552,7 @@ export const updateAccountAsset = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Update account asset error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
@@ -548,15 +563,17 @@ export const updateAccountAsset = async (
 export const getAccountTimeframes = async (
 	accountId?: string
 ): Promise<{ status: "success" | "error"; data?: AccountTimeframeWithDetails[]; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		const targetAccountId = accountId || session.user.accountId
 		if (!targetAccountId) {
-			return { status: "error", error: "No account selected" }
+			return { status: "error", error: tSettings("errors.noAccountSelected") }
 		}
 
 		// Verify ownership
@@ -568,7 +585,7 @@ export const getAccountTimeframes = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Get all active timeframes
@@ -606,7 +623,7 @@ export const getAccountTimeframes = async (
 		return { status: "success", data: result }
 	} catch (error) {
 		console.error("Get account timeframes error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 
@@ -614,10 +631,12 @@ export const updateAccountTimeframe = async (
 	timeframeId: string,
 	isEnabled: boolean
 ): Promise<{ status: "success" | "error"; error?: string }> => {
+	const tAuth = await getTranslations("auth")
+	const tSettings = await getTranslations("settings")
 	try {
 		const session = await auth()
 		if (!session?.user?.id || !session?.user?.accountId) {
-			return { status: "error", error: "Not authenticated" }
+			return { status: "error", error: tAuth("errors.notAuthenticated") }
 		}
 
 		// Verify ownership
@@ -629,7 +648,7 @@ export const updateAccountTimeframe = async (
 		})
 
 		if (!account) {
-			return { status: "error", error: "Account not found" }
+			return { status: "error", error: tSettings("errors.accountNotFound") }
 		}
 
 		// Check if config exists
@@ -660,7 +679,7 @@ export const updateAccountTimeframe = async (
 		return { status: "success" }
 	} catch (error) {
 		console.error("Update account timeframe error:", error)
-		return { status: "error", error: "An error occurred" }
+		return { status: "error", error: tAuth("register.genericError") }
 	}
 }
 

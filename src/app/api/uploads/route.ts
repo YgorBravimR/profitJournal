@@ -12,7 +12,7 @@ export const POST = async (request: NextRequest) => {
 	const session = await auth()
 	if (!session?.user?.id) {
 		return NextResponse.json(
-			{ status: "error", message: "Unauthorized" },
+			{ status: "error", message: "api.errors.unauthorized" },
 			{ status: 401 }
 		)
 	}
@@ -24,7 +24,7 @@ export const POST = async (request: NextRequest) => {
 
 	if (!file || !path || !entityId) {
 		return NextResponse.json(
-			{ status: "error", message: "Missing required fields: file, path, entityId" },
+			{ status: "error", message: "api.errors.missingFields" },
 			{ status: 400 }
 		)
 	}
@@ -35,7 +35,7 @@ export const POST = async (request: NextRequest) => {
 		return NextResponse.json(
 			{
 				status: "error",
-				message: "Invalid upload parameters",
+				message: "api.errors.invalidParams",
 				errors: metaResult.error.issues.map((issue) => ({
 					code: "VALIDATION_ERROR",
 					detail: `${issue.path.join(".")}: ${issue.message}`,
@@ -65,7 +65,7 @@ export const POST = async (request: NextRequest) => {
 
 	return NextResponse.json({
 		status: "success",
-		message: "File uploaded successfully",
+		message: "upload.success",
 		data: { url: result.url, s3Key: result.s3Key },
 	})
 }
@@ -74,7 +74,7 @@ export const DELETE = async (request: NextRequest) => {
 	const session = await auth()
 	if (!session?.user?.id) {
 		return NextResponse.json(
-			{ status: "error", message: "Unauthorized" },
+			{ status: "error", message: "api.errors.unauthorized" },
 			{ status: 401 }
 		)
 	}
@@ -84,7 +84,7 @@ export const DELETE = async (request: NextRequest) => {
 
 	if (!s3Key) {
 		return NextResponse.json(
-			{ status: "error", message: "Missing required field: s3Key" },
+			{ status: "error", message: "api.errors.missingFields" },
 			{ status: 400 }
 		)
 	}
@@ -93,6 +93,6 @@ export const DELETE = async (request: NextRequest) => {
 
 	return NextResponse.json({
 		status: "success",
-		message: "File deleted successfully",
+		message: "upload.deleteSuccess",
 	})
 }

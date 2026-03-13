@@ -17,6 +17,7 @@ import {
 import { toCents } from "@/lib/money"
 import { auth } from "@/auth"
 import { requireRole } from "@/lib/auth-utils"
+import { getTranslations } from "next-intl/server"
 
 /**
  * Require authenticated session. Returns userId or throws.
@@ -107,7 +108,8 @@ export const updateAssetType = async (
 		.returning()
 
 	if (!assetType) {
-		return { success: false, error: "Asset type not found" }
+		const t = await getTranslations("settings")
+		return { success: false, error: t("errors.assetTypeNotFound") }
 	}
 
 	revalidatePath("/settings")
@@ -124,9 +126,10 @@ export const deleteAssetType = async (
 	})
 
 	if (existingAssets) {
+		const t = await getTranslations("settings")
 		return {
 			success: false,
-			error: "Cannot delete asset type with existing assets",
+			error: t("errors.cannotDeleteAssetType"),
 		}
 	}
 
