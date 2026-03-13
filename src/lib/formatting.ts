@@ -188,7 +188,7 @@ export const getRelativeTimeLocale = (date: Date, locale: Locale): string => {
 		}
 	}
 
-	return locale === "pt-BR" ? "agora mesmo" : "just now"
+	return rtf.format(0, "second")
 }
 
 /**
@@ -248,7 +248,7 @@ export const formatHourOfDay = (hour: number, locale: Locale): string => {
 /**
  * Format currency in compact form for charts (e.g., $10K, $1.5M)
  */
-export const formatCompactCurrency = (value: number, symbol = "R$"): string => {
+export const formatCompactCurrency = (value: number, symbol: string): string => {
 	const absValue = Math.abs(value)
 	const sign = value < 0 ? "-" : ""
 
@@ -266,7 +266,7 @@ export const formatCompactCurrency = (value: number, symbol = "R$"): string => {
  */
 export const formatCompactCurrencyWithSign = (
 	value: number,
-	symbol = "R$"
+	symbol: string
 ): string => {
 	const formatted = formatCompactCurrency(Math.abs(value), symbol)
 	if (value > 0) return `+${formatted}`

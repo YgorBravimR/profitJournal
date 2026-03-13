@@ -170,7 +170,7 @@ const runAdvancedSimulation = (
 
 		// ── DECISION TREE LOGIC ──
 		let riskCents = baseRiskCents
-		let riskReason = "Base risk"
+		let riskReason = "riskSimulation.reasons.baseRisk"
 		let maxContracts = baseTrade.maxContracts
 		let currentPhase: DayPhase = dayPhase
 		let currentRecoveryIndex: number | null = null
@@ -180,7 +180,7 @@ const runAdvancedSimulation = (
 		if (isT1) {
 			// T1: always use base risk
 			riskCents = baseRiskCents
-			riskReason = "T1 base risk"
+			riskReason = "riskSimulation.reasons.t1BaseRisk"
 			currentPhase = "base"
 		} else if (dayPhase === "loss_recovery") {
 			// Recovery sequence
@@ -194,11 +194,11 @@ const runAdvancedSimulation = (
 				// Fall through to normal mode
 				currentPhase = "normal"
 				riskCents = baseRiskCents
-				riskReason = "Post-recovery base risk"
+				riskReason = "riskSimulation.reasons.postRecoveryBase"
 			} else {
 				const step = lossRecovery.sequence[recoveryIndex]
 				riskCents = resolveRiskCalculation(step.riskCalculation, baseRiskCents, previousRiskCents)
-				riskReason = `Recovery #${recoveryIndex + 1} (${describeRiskCalc(step.riskCalculation)})`
+				riskReason = `riskSimulation.reasons.recoveryStep|${recoveryIndex + 1}`
 				maxContracts = step.maxContractsOverride ?? baseTrade.maxContracts
 				currentRecoveryIndex = recoveryIndex
 				currentPhase = "loss_recovery"
@@ -214,7 +214,7 @@ const runAdvancedSimulation = (
 			if (gainMode.type === "compounding") {
 				// Compounding gain mode — reinvest % of accumulated gains
 				riskCents = Math.max(1, Math.round(dayGainsCents * (gainMode.reinvestmentPercent / 100)))
-				riskReason = `Gain reinvest (${gainMode.reinvestmentPercent}% of day gains)`
+				riskReason = `riskSimulation.reasons.gainReinvest|${gainMode.reinvestmentPercent}`
 				currentPhase = "gain_mode"
 			}
 			if (gainMode.type === "gainSequence") {
@@ -222,12 +222,12 @@ const runAdvancedSimulation = (
 				if (gainSequenceIndex < seqLen) {
 					const step = gainMode.sequence[gainSequenceIndex]
 					riskCents = resolveRiskCalculation(step.riskCalculation, baseRiskCents, previousRiskCents)
-					riskReason = `Gain #${gainSequenceIndex + 1} (${describeRiskCalc(step.riskCalculation)})`
+					riskReason = `riskSimulation.reasons.gainStep|${gainSequenceIndex + 1}`
 					maxContracts = step.maxContractsOverride ?? baseTrade.maxContracts
 				} else if (gainMode.repeatLastStep && seqLen > 0) {
 					const lastStep = gainMode.sequence[seqLen - 1]
 					riskCents = resolveRiskCalculation(lastStep.riskCalculation, baseRiskCents, previousRiskCents)
-					riskReason = `Gain repeat (${describeRiskCalc(lastStep.riskCalculation)})`
+					riskReason = "riskSimulation.reasons.gainRepeat"
 					maxContracts = lastStep.maxContractsOverride ?? baseTrade.maxContracts
 				} else {
 					// Sequence exhausted, no repeat — skip
@@ -241,7 +241,7 @@ const runAdvancedSimulation = (
 		} else {
 			// Normal mode (post-recovery or default)
 			riskCents = baseRiskCents
-			riskReason = "Base risk"
+			riskReason = "riskSimulation.reasons.baseRisk"
 			currentPhase = "normal"
 		}
 
@@ -508,7 +508,7 @@ const buildSkippedTrade = (
 	simulatedRMultiple: null,
 	riskAmountCents: null,
 	dayPhase,
-	riskReason: status.replace("skipped_", "").replace(/_/g, " "),
+	riskReason: status,
 	recoveryStepIndex: null,
 	equityAfterCents: equity,
 	dailyPnlCents,

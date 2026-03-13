@@ -99,14 +99,15 @@ export const getEndOfDay = (date: Date): Date => {
  */
 export const formatDate = (
 	date: Date,
-	options?: Intl.DateTimeFormatOptions
+	options?: Intl.DateTimeFormatOptions,
+	locale = "en-US"
 ): string => {
 	const defaultOptions: Intl.DateTimeFormatOptions = {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
 	}
-	return new Intl.DateTimeFormat("en-US", {
+	return new Intl.DateTimeFormat(locale, {
 		...(options || defaultOptions),
 		timeZone: APP_TIMEZONE,
 	}).format(date)
@@ -115,8 +116,8 @@ export const formatDate = (
 /**
  * Format date and time for display (always in BRT)
  */
-export const formatDateTime = (date: Date): string => {
-	return new Intl.DateTimeFormat("en-US", {
+export const formatDateTime = (date: Date, locale = "en-US"): string => {
+	return new Intl.DateTimeFormat(locale, {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
@@ -252,8 +253,8 @@ export const getDateFnsLocale = async (locale: string) => {
  * Get relative time string (e.g., "2 days ago")
  * Uses absolute timestamp differences — timezone doesn't affect this.
  */
-export const getRelativeTime = (date: Date): string => {
-	const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" })
+export const getRelativeTime = (date: Date, locale = "en"): string => {
+	const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" })
 	const now = new Date()
 	const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000)
 
@@ -273,5 +274,5 @@ export const getRelativeTime = (date: Date): string => {
 		}
 	}
 
-	return "just now"
+	return rtf.format(0, "second")
 }

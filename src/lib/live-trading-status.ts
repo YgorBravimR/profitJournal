@@ -162,7 +162,7 @@ const resolveLiveStatus = ({
 
 	let nextTradeRiskCents = baseRiskCents
 	let nextTradeMaxContracts = baseTrade.maxContracts
-	let riskReason = "T1 base risk"
+	let riskReason = "riskSimulation.reasons.t1BaseRisk"
 	let nextRecoveryStepIndex: number | null = null
 	let recoverySequenceExhausted = false
 	let shouldStopTrading = false
@@ -186,23 +186,23 @@ const resolveLiveStatus = ({
 	if (isNextT1) {
 		// No trades yet — T1 base risk
 		nextTradeRiskCents = baseRiskCents
-		riskReason = "T1 base risk"
+		riskReason = "riskSimulation.reasons.t1BaseRisk"
 	} else if (dayPhase === "loss_recovery") {
 		if (recoveryIndex >= totalRecoverySteps) {
 			recoverySequenceExhausted = true
 			if (lossRecovery.stopAfterSequence) {
 				shouldStopTrading = true
 				stopReason = "recoverySequenceExhausted"
-				riskReason = "Recovery sequence exhausted"
+				riskReason = "riskSimulation.reasons.recoveryExhausted"
 			} else {
 				// Fall through to normal base risk
 				nextTradeRiskCents = baseRiskCents
-				riskReason = "Post-recovery base risk"
+				riskReason = "riskSimulation.reasons.postRecoveryBase"
 			}
 		} else {
 			const step = lossRecovery.sequence[recoveryIndex]
 			nextTradeRiskCents = resolveRiskCalculation(step.riskCalculation, baseRiskCents, previousRiskCents)
-			riskReason = `Recovery #${recoveryIndex + 1} (${describeRiskCalc(step.riskCalculation)})`
+			riskReason = `riskSimulation.reasons.recoveryStep|${recoveryIndex + 1}`
 			nextTradeMaxContracts = step.maxContractsOverride ?? baseTrade.maxContracts
 			nextRecoveryStepIndex = recoveryIndex
 		}
@@ -210,37 +210,37 @@ const resolveLiveStatus = ({
 		if (gainMode.type === "singleTarget") {
 			shouldStopTrading = true
 			stopReason = "singleTargetGainMode"
-			riskReason = "Single target reached"
+			riskReason = "riskSimulation.reasons.singleTarget"
 		} else if (gainMode.type === "compounding") {
 			if (dayGainsCents > 0) {
 				nextTradeRiskCents = Math.max(1, Math.round(dayGainsCents * (gainMode.reinvestmentPercent / 100)))
-				riskReason = `Gain reinvest (${gainMode.reinvestmentPercent}% of day gains)`
+				riskReason = `riskSimulation.reasons.gainReinvest|${gainMode.reinvestmentPercent}`
 			} else {
 				nextTradeRiskCents = baseRiskCents
-				riskReason = "Base risk (no gains to reinvest)"
+				riskReason = "riskSimulation.reasons.baseRiskNoGains"
 			}
 		} else if (gainMode.type === "gainSequence") {
 			const seqLen = gainMode.sequence.length
 			if (gainSequenceIndex < seqLen) {
 				const step = gainMode.sequence[gainSequenceIndex]
 				nextTradeRiskCents = resolveRiskCalculation(step.riskCalculation, baseRiskCents, previousRiskCents)
-				riskReason = `Gain #${gainSequenceIndex + 1} (${describeRiskCalc(step.riskCalculation)})`
+				riskReason = `riskSimulation.reasons.gainStep|${gainSequenceIndex + 1}`
 				nextTradeMaxContracts = step.maxContractsOverride ?? baseTrade.maxContracts
 			} else if (gainMode.repeatLastStep && seqLen > 0) {
 				const lastStep = gainMode.sequence[seqLen - 1]
 				nextTradeRiskCents = resolveRiskCalculation(lastStep.riskCalculation, baseRiskCents, previousRiskCents)
-				riskReason = `Gain repeat (${describeRiskCalc(lastStep.riskCalculation)})`
+				riskReason = "riskSimulation.reasons.gainRepeat"
 				nextTradeMaxContracts = lastStep.maxContractsOverride ?? baseTrade.maxContracts
 			} else {
 				shouldStopTrading = true
 				stopReason = "gainSequenceExhausted"
-				riskReason = "Gain sequence exhausted"
+				riskReason = "riskSimulation.reasons.gainExhausted"
 			}
 		}
 	} else {
 		// Normal phase
 		nextTradeRiskCents = baseRiskCents
-		riskReason = "Base risk"
+		riskReason = "riskSimulation.reasons.baseRisk"
 	}
 
 	// Minimum 1 cent risk

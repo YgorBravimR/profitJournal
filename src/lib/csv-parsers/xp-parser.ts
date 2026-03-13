@@ -179,7 +179,7 @@ export const parseXPCSV = (
 		.filter((line) => line.length > 0)
 
 	if (lines.length < 2) {
-		throw new Error("XP CSV must have at least header and one data row")
+		throw new Error("imports.errors.csvMinRows")
 	}
 
 	// Parse header row
@@ -203,7 +203,7 @@ export const parseXPCSV = (
 	for (const col of requiredColumns) {
 		if (columnMap[col] === undefined) {
 			throw new Error(
-				`XP CSV: Missing required column "${col}". Found columns: ${headers.join(", ")}`
+				`imports.errors.missingRequiredColumn|${col}|${headers.join(", ")}`
 			)
 		}
 	}
@@ -262,7 +262,7 @@ export const parseXPCSV = (
 	}
 
 	if (executions.length === 0) {
-		throw new Error("XP CSV: No valid executions found")
+		throw new Error("imports.errors.noValidExecutions")
 	}
 
 	return executions
@@ -282,14 +282,14 @@ export const validateXPCSV = (
 			.filter((line) => line.length > 0)
 
 		if (lines.length < 2) {
-			return { valid: false, error: "CSV must have header and at least one row" }
+			return { valid: false, error: "imports.errors.csvMinRows" }
 		}
 
 		const headers = parseCSVLine(lines[0], delimiter)
 		if (headers.length < 7) {
 			return {
 				valid: false,
-				error: `Expected at least 7 columns, found ${headers.length}`,
+				error: `imports.errors.expectedMinColumns|7|${headers.length}`,
 			}
 		}
 

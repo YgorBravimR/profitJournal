@@ -233,17 +233,16 @@ export const calculateKellyCriterion = (
 	let kellyLevel: "aggressive" | "balanced" | "conservative"
 
 	if (cappedKelly <= 0) {
-		kellyRecommendation = "Negative edge - do not trade this strategy"
+		kellyRecommendation = "monteCarlo.kelly.negativeEdge"
 		kellyLevel = "conservative"
 	} else if (cappedKelly > 25) {
-		kellyRecommendation = "High potential but risky - Use Quarter Kelly"
+		kellyRecommendation = "monteCarlo.kelly.highPotential"
 		kellyLevel = "aggressive"
 	} else if (cappedKelly > 15) {
-		kellyRecommendation = "Reasonable Kelly - Consider Half Kelly for growth"
+		kellyRecommendation = "monteCarlo.kelly.reasonable"
 		kellyLevel = "balanced"
 	} else {
-		kellyRecommendation =
-			"Conservative Kelly - Quarter Kelly recommended for stability"
+		kellyRecommendation = "monteCarlo.kelly.conservative"
 		kellyLevel = "conservative"
 	}
 

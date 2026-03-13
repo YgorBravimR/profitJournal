@@ -8,7 +8,7 @@
 import { reportError, ErrorCategory } from "@/lib/sentry"
 import type { ErrorCategoryValue } from "@/lib/sentry"
 
-const GENERIC_MESSAGE = "An unexpected error occurred"
+const GENERIC_MESSAGE = "common.unexpectedError"
 
 /**
  * Converts any caught error into a safe string for client-facing responses.

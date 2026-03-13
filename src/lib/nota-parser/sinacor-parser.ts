@@ -146,7 +146,7 @@ const parseBrokerName = (text: string): string => {
 	const corretoraMatch = text.match(/Corretora\s*\n\s*.*?\t([^\t\n]+)/i)
 	if (corretoraMatch) return corretoraMatch[1].trim()
 
-	return "Unknown Broker"
+	return "nota.unknownBroker"
 }
 
 /**

@@ -1,18 +1,34 @@
+/**
+ * Email template translations interface.
+ * The calling server action is responsible for resolving translations
+ * from the user's locale before passing them here.
+ */
+interface EmailTranslations {
+	brandName: string
+	footer: string
+	heading: string
+	body: string
+	disclaimer: string
+	title: string
+}
+
 interface PasswordResetTemplateParams {
 	code: string
 	expiresInMinutes: number
+	translations: EmailTranslations
 }
 
-const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplateParams): string => {
+const passwordResetTemplate = ({ code, expiresInMinutes, translations }: PasswordResetTemplateParams): string => {
 	const digits = code.split("")
+	const bodyText = translations.body.replace("{minutes}", String(expiresInMinutes))
 
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Password Reset</title>
+  <title>${translations.title}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0f;">
@@ -23,7 +39,7 @@ const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplate
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #1e1e2e;">
               <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #c9a55a; letter-spacing: 0.5px;">
-                BRAVO JOURNAL
+                ${translations.brandName}
               </h1>
             </td>
           </tr>
@@ -32,10 +48,10 @@ const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplate
           <tr>
             <td style="padding: 32px;">
               <h2 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #e4e4e7;">
-                Password Reset
+                ${translations.heading}
               </h2>
               <p style="margin: 0 0 24px; font-size: 14px; color: #9ca3af; line-height: 1.6;">
-                Use the code below to reset your password. This code expires in ${expiresInMinutes} minutes.
+                ${bodyText}
               </p>
 
               <!-- OTP Code -->
@@ -58,7 +74,7 @@ const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplate
               </table>
 
               <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">
-                If you didn't request this, you can safely ignore this email. Your password will remain unchanged.
+                ${translations.disclaimer}
               </p>
             </td>
           </tr>
@@ -67,7 +83,7 @@ const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplate
           <tr>
             <td style="padding: 20px 32px; border-top: 1px solid #1e1e2e; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #4b5563;">
-                Bravo Journal &mdash; Your trading companion
+                ${translations.footer}
               </p>
             </td>
           </tr>
@@ -83,18 +99,20 @@ const passwordResetTemplate = ({ code, expiresInMinutes }: PasswordResetTemplate
 interface EmailVerificationTemplateParams {
 	code: string
 	expiresInMinutes: number
+	translations: EmailTranslations
 }
 
-const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerificationTemplateParams): string => {
+const emailVerificationTemplate = ({ code, expiresInMinutes, translations }: EmailVerificationTemplateParams): string => {
 	const digits = code.split("")
+	const bodyText = translations.body.replace("{minutes}", String(expiresInMinutes))
 
 	return `
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Email Verification</title>
+  <title>${translations.title}</title>
 </head>
 <body style="margin: 0; padding: 0; background-color: #0a0a0f; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0f;">
@@ -105,7 +123,7 @@ const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerification
           <tr>
             <td style="padding: 32px 32px 24px; text-align: center; border-bottom: 1px solid #1e1e2e;">
               <h1 style="margin: 0; font-size: 20px; font-weight: 600; color: #c9a55a; letter-spacing: 0.5px;">
-                BRAVO JOURNAL
+                ${translations.brandName}
               </h1>
             </td>
           </tr>
@@ -114,10 +132,10 @@ const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerification
           <tr>
             <td style="padding: 32px;">
               <h2 style="margin: 0 0 8px; font-size: 18px; font-weight: 600; color: #e4e4e7;">
-                Verify Your Email
+                ${translations.heading}
               </h2>
               <p style="margin: 0 0 24px; font-size: 14px; color: #9ca3af; line-height: 1.6;">
-                Use the code below to verify your email address. This code expires in ${expiresInMinutes} minutes.
+                ${bodyText}
               </p>
 
               <!-- OTP Code -->
@@ -140,7 +158,7 @@ const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerification
               </table>
 
               <p style="margin: 0; font-size: 13px; color: #6b7280; line-height: 1.5;">
-                If you didn't create an account, you can safely ignore this email.
+                ${translations.disclaimer}
               </p>
             </td>
           </tr>
@@ -149,7 +167,7 @@ const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerification
           <tr>
             <td style="padding: 20px 32px; border-top: 1px solid #1e1e2e; text-align: center;">
               <p style="margin: 0; font-size: 12px; color: #4b5563;">
-                Bravo Journal &mdash; Your trading companion
+                ${translations.footer}
               </p>
             </td>
           </tr>
@@ -162,4 +180,4 @@ const emailVerificationTemplate = ({ code, expiresInMinutes }: EmailVerification
 `.trim()
 }
 
-export { passwordResetTemplate, emailVerificationTemplate }
+export { passwordResetTemplate, emailVerificationTemplate, type EmailTranslations }

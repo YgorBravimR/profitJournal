@@ -11,42 +11,22 @@ import type { OcrProgressInfo, OcrRawResult } from "./types"
 type ProgressCallback = (info: OcrProgressInfo) => void
 
 /**
- * Map Tesseract status to user-friendly messages
+ * Map Tesseract status to translation keys.
+ * The consuming component should translate these via useTranslations("ocr.progress").
  */
-const getProgressMessage = (status: string, lang: "en" | "pt" = "pt"): string => {
-	const messages: Record<string, Record<string, string>> = {
-		loading: {
-			en: "Loading OCR engine...",
-			pt: "Carregando motor OCR...",
-		},
-		initializing: {
-			en: "Initializing language data...",
-			pt: "Inicializando dados de idioma...",
-		},
-		"loading tesseract core": {
-			en: "Loading OCR core...",
-			pt: "Carregando núcleo OCR...",
-		},
-		"initializing tesseract": {
-			en: "Initializing OCR...",
-			pt: "Inicializando OCR...",
-		},
-		"loading language traineddata": {
-			en: "Loading Portuguese language...",
-			pt: "Carregando idioma Português...",
-		},
-		"initializing api": {
-			en: "Preparing recognition...",
-			pt: "Preparando reconhecimento...",
-		},
-		recognizing: {
-			en: "Recognizing text...",
-			pt: "Reconhecendo texto...",
-		},
+const getProgressMessage = (status: string): string => {
+	const keyMap: Record<string, string> = {
+		loading: "ocr.progress.loading",
+		initializing: "ocr.progress.initializing",
+		"loading tesseract core": "ocr.progress.loadingCore",
+		"initializing tesseract": "ocr.progress.initializingOcr",
+		"loading language traineddata": "ocr.progress.loadingLanguage",
+		"initializing api": "ocr.progress.preparingRecognition",
+		recognizing: "ocr.progress.recognizing",
 	}
 
 	const key = status.toLowerCase()
-	return messages[key]?.[lang] ?? messages[key]?.en ?? status
+	return keyMap[key] ?? status
 }
 
 /**
@@ -321,7 +301,7 @@ export const recognizeImage = async (
 				onProgress?.({
 					status: "recognizing",
 					progress: 50,
-					message: "Tentando processamento alternativo...",
+					message: "ocr.progress.alternativeProcessing",
 				})
 
 				const softProcessed = await preprocessImageSoft(imageSource)
@@ -339,7 +319,7 @@ export const recognizeImage = async (
 		onProgress?.({
 			status: "complete",
 			progress: 100,
-			message: "Reconhecimento concluído",
+			message: "ocr.progress.complete",
 		})
 
 		// Split text into lines
@@ -357,7 +337,7 @@ export const recognizeImage = async (
 		onProgress?.({
 			status: "error",
 			progress: 0,
-			message: error instanceof Error ? error.message : "OCR failed",
+			message: error instanceof Error ? error.message : "ocr.progress.failed",
 		})
 		throw error
 	}

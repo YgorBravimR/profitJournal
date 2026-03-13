@@ -36,15 +36,15 @@ const buildWeekKey = (date: Date): string => {
 }
 
 /** Build a human-readable week label like "Feb 17-21" */
-const buildWeekLabel = (date: Date): string => {
+const buildWeekLabel = (date: Date, locale = "en-US"): string => {
 	const { start, end } = getWeekBoundaries(date)
-	const fmt = new Intl.DateTimeFormat("en-US", {
+	const fmt = new Intl.DateTimeFormat(locale, {
 		month: "short",
 		day: "numeric",
 		timeZone: APP_TIMEZONE,
 	})
 	const startStr = fmt.format(start)
-	const endDay = new Intl.DateTimeFormat("en-US", {
+	const endDay = new Intl.DateTimeFormat(locale, {
 		day: "numeric",
 		timeZone: APP_TIMEZONE,
 	}).format(end)
@@ -260,7 +260,7 @@ const runSimpleSimulation = (
 				simulatedRMultiple: null,
 				riskAmountCents: null,
 				dayPhase: "normal",
-				riskReason: skipStatus.replace("skipped_", "Skipped: ").replace(/_/g, " "),
+				riskReason: skipStatus,
 				recoveryStepIndex: null,
 				equityAfterCents: equity,
 				dailyPnlCents,
@@ -279,17 +279,17 @@ const runSimpleSimulation = (
 
 		// ── CALCULATE RISK ──
 		let adjustedRiskCents = baseRiskCents
-		let riskReason = "Base risk"
+		let riskReason = "riskSimulation.reasons.baseRisk"
 
 		if (reduceRiskAfterLoss && consecutiveLosses > 0) {
 			adjustedRiskCents = Math.round(
 				baseRiskCents * Math.pow(riskReductionFactor, consecutiveLosses)
 			)
-			riskReason = `Reduced (loss #${consecutiveLosses}, ×${Math.pow(riskReductionFactor, consecutiveLosses).toFixed(2)})`
+			riskReason = `riskSimulation.reasons.reducedLoss|${consecutiveLosses}|${Math.pow(riskReductionFactor, consecutiveLosses).toFixed(2)}`
 		} else if (increaseRiskAfterWin && lastOutcome === "win" && profitReinvestmentPercent && lastSimulatedPnlCents > 0) {
 			const bonus = Math.round(lastSimulatedPnlCents * (profitReinvestmentPercent / 100))
 			adjustedRiskCents = baseRiskCents + bonus
-			riskReason = `Win bonus (+${profitReinvestmentPercent}% of last gain)`
+			riskReason = `riskSimulation.reasons.winBonus|${profitReinvestmentPercent}`
 		}
 
 		// Minimum 1 cent risk

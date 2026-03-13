@@ -1,27 +1,67 @@
 /**
  * Root layout error boundary.
  *
- * This catches errors that happen in the root layout itself — when this fires,
+ * This catches errors that happen in the root layout itself -- when this fires,
  * Tailwind/globals.css may not be available, so we use inline styles.
  * Colors are hardcoded from globals.css dark theme.
+ *
+ * Because this renders OUTSIDE all providers (including NextIntlClientProvider),
+ * we maintain a small inline translation map and detect the locale from
+ * navigator.language at render time.
  */
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import * as Sentry from "@sentry/nextjs"
+
+type SupportedLocale = "pt-BR" | "en"
+
+const translations: Record<SupportedLocale, {
+	title: string
+	description: string
+	reference: string
+	tryAgain: string
+}> = {
+	en: {
+		title: "Something went wrong!",
+		description: "A critical error occurred. Please try again or reload the page.",
+		reference: "Reference: {digest}",
+		tryAgain: "Try Again",
+	},
+	"pt-BR": {
+		title: "Algo deu errado!",
+		description: "Um erro critico ocorreu. Por favor, tente novamente ou recarregue a pagina.",
+		reference: "Referencia: {digest}",
+		tryAgain: "Tentar Novamente",
+	},
+}
+
+const detectLocale = (): SupportedLocale => {
+	if (typeof navigator === "undefined") return "pt-BR"
+	const lang = navigator.language
+	if (lang.startsWith("pt")) return "pt-BR"
+	return "en"
+}
 
 const GlobalError = (props: {
 	error: Error & { digest?: string }
 	reset: () => void
 }) => {
 	const { error, reset } = props
+	const [locale, setLocale] = useState<SupportedLocale>("pt-BR")
+
+	useEffect(() => {
+		setLocale(detectLocale())
+	}, [])
 
 	useEffect(() => {
 		Sentry.captureException(error)
 	}, [error])
 
+	const t = translations[locale]
+
 	return (
-		<html lang="en">
+		<html lang={locale}>
 			<body
 				style={{
 					backgroundColor: "rgb(11 14 17)",
@@ -70,7 +110,7 @@ const GlobalError = (props: {
 							marginBottom: "0.75rem",
 						}}
 					>
-						Something went wrong!
+						{t.title}
 					</h1>
 
 					<p
@@ -81,7 +121,7 @@ const GlobalError = (props: {
 							marginBottom: "1.5rem",
 						}}
 					>
-						A critical error occurred. Please try again or reload the page.
+						{t.description}
 					</p>
 
 					{error.digest && (
@@ -95,7 +135,7 @@ const GlobalError = (props: {
 								marginBottom: "1.5rem",
 							}}
 						>
-							Reference: {error.digest}
+							{t.reference.replace("{digest}", error.digest)}
 						</p>
 					)}
 
@@ -112,9 +152,9 @@ const GlobalError = (props: {
 							fontWeight: 600,
 							cursor: "pointer",
 						}}
-						aria-label="Try again"
+						aria-label={t.tryAgain}
 					>
-						Try Again
+						{t.tryAgain}
 					</button>
 				</div>
 			</body>

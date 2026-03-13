@@ -108,7 +108,7 @@ const matchTradeToGroup = (
 			computedAvgEntry: avgEntryPrice,
 			computedAvgExit: avgExitPrice,
 			priceDeltaPercent: priceDeltaPercent(avgEntryPrice, tradeEntryPrice),
-			message: "Trade already has execution data (scaled mode)",
+			message: "nota.alreadyEnrichedScaled",
 		}
 	}
 
@@ -313,9 +313,9 @@ const matchNotaFillsToTrades = async (
 				computedAvgExit: avgExit,
 				priceDeltaPercent: entryDelta,
 				message: status === "price_mismatch"
-					? `Entry price delta: ${entryDelta.toFixed(2)}%`
+					? `nota.priceDelta|${entryDelta.toFixed(2)}`
 					: status === "already_enriched"
-						? "Trade already has execution data"
+						? "nota.alreadyEnriched"
 						: undefined,
 			})
 		}

@@ -648,7 +648,7 @@ const parseWithPatterns = (
 			if (!assetInfo) {
 				warnings.push({
 					line: rowNum,
-					message: `Could not detect asset from line, please verify: "${line.substring(0, 50)}..."`,
+					message: `ocr.warnings.assetNotDetected|${line.substring(0, 50)}`,
 				})
 			}
 			continue
@@ -698,8 +698,7 @@ const parseWithPatterns = (
 					}
 					warnings.push({
 						line: rowNum,
-						message:
-							"Found execution without summary row, created placeholder trade",
+						message: "ocr.warnings.executionWithoutSummary",
 					})
 				}
 
@@ -1126,7 +1125,7 @@ export const parseProfitChartOcr = (
 		errors.push({
 			line: 0,
 			code: "INSUFFICIENT_DATA",
-			message: "Not enough lines detected in image",
+			message: "ocr.errors.insufficientData",
 		})
 		return {
 			success: false,
@@ -1221,7 +1220,7 @@ export const parseProfitChartOcr = (
 				if (line.match(/\d{1,2}:\d{2}:\d{2}/)) {
 					warnings.push({
 						line: rowNum,
-						message: `Could not parse line: ${line.substring(0, 50)}...`,
+						message: `ocr.warnings.couldNotParseLine|${line.substring(0, 50)}`,
 					})
 				}
 				continue
@@ -1264,7 +1263,7 @@ export const parseProfitChartOcr = (
 				} else if (parsed.buyPrice && parsed.sellPrice) {
 					warnings.push({
 						line: rowNum,
-						message: "Both buy and sell prices present, treating as entry",
+						message: "ocr.warnings.bothPricesPresent",
 					})
 					executionType = "entry"
 					price = parsed.buyPrice
@@ -1274,7 +1273,7 @@ export const parseProfitChartOcr = (
 				} else {
 					warnings.push({
 						line: rowNum,
-						message: "No price found for execution",
+						message: "ocr.warnings.noPriceFound",
 					})
 					continue
 				}
@@ -1295,7 +1294,7 @@ export const parseProfitChartOcr = (
 		// Fall back to pattern-based extraction
 		warnings.push({
 			line: 0,
-			message: "Column detection failed, using pattern-based extraction",
+			message: "ocr.warnings.columnDetectionFailed",
 		})
 
 		const patternResult = parseWithPatterns(lines)
@@ -1311,7 +1310,7 @@ export const parseProfitChartOcr = (
 		errors.push({
 			line: 0,
 			code: "NO_DATA",
-			message: "Could not extract any trade data from the image",
+			message: "ocr.errors.noTradeData",
 		})
 	}
 

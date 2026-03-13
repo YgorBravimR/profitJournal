@@ -45,7 +45,7 @@ const uploadFiles = async ({
 			uploaded.push({ url: result.data.url, s3Key: result.data.s3Key })
 			URL.revokeObjectURL(pending.previewUrl)
 		} else {
-			errors.push(result.message ?? `Failed to upload ${pending.file.name}`)
+			errors.push(result.message ?? `upload.errors.uploadFailed|${pending.file.name}`)
 		}
 	}
 

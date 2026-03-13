@@ -463,7 +463,7 @@ export const parseCsvContent = (content: string): CsvParseResult => {
 		result.errors.push({
 			row: 0,
 			field: "file",
-			message: "CSV must have at least a header row and one data row",
+			message: "imports.errors.csvMinRows",
 		})
 		return result
 	}
@@ -543,7 +543,7 @@ const parseProfitChartContent = (
 		result.errors.push({
 			row: headerRowIndex + 1,
 			field: "headers",
-			message: `Missing required columns for ProfitChart format: ${missingReadable.join(", ")}`,
+			message: `imports.errors.missingRequiredColumns|${missingReadable.join(", ")}`,
 		})
 		return result
 	}
@@ -552,7 +552,7 @@ const parseProfitChartContent = (
 	if (unmappedHeaders.length > 0) {
 		result.warnings.push({
 			row: headerRowIndex + 1,
-			message: `Ignored columns: ${unmappedHeaders.slice(0, 5).join(", ")}${unmappedHeaders.length > 5 ? ` and ${unmappedHeaders.length - 5} more` : ""}`,
+			message: `imports.warnings.ignoredColumns|${unmappedHeaders.slice(0, 5).join(", ")}${unmappedHeaders.length > 5 ? `|${unmappedHeaders.length - 5}` : ""}`,
 		})
 	}
 
@@ -582,7 +582,7 @@ const parseProfitChartContent = (
 			result.errors.push({
 				row: rowNumber,
 				field: "direction",
-				message: `Invalid side: ${rawData.pc_side}. Expected "C" or "V"`,
+				message: `imports.errors.invalidSide|${rawData.pc_side}`,
 			})
 			continue
 		}
@@ -593,7 +593,7 @@ const parseProfitChartContent = (
 			result.errors.push({
 				row: rowNumber,
 				field: "entryDate",
-				message: `Invalid entry date: ${rawData.pc_openDateTime}`,
+				message: `imports.errors.invalidEntryDate|${rawData.pc_openDateTime}`,
 			})
 			continue
 		}
@@ -621,7 +621,7 @@ const parseProfitChartContent = (
 			result.errors.push({
 				row: rowNumber,
 				field: "entryPrice",
-				message: `Invalid entry price`,
+				message: "imports.errors.invalidEntryPrice",
 			})
 			continue
 		}
@@ -635,7 +635,7 @@ const parseProfitChartContent = (
 			result.errors.push({
 				row: rowNumber,
 				field: "positionSize",
-				message: `Invalid position size`,
+				message: "imports.errors.invalidPositionSize",
 			})
 			continue
 		}
@@ -733,7 +733,7 @@ const parseStandardContent = (
 		result.errors.push({
 			row: 1,
 			field: "headers",
-			message: `Missing required columns: ${missingRequired.join(", ")}`,
+			message: `imports.errors.missingRequiredColumns|${missingRequired.join(", ")}`,
 		})
 		return result
 	}
@@ -742,7 +742,7 @@ const parseStandardContent = (
 	if (unmappedHeaders.length > 0) {
 		result.warnings.push({
 			row: 1,
-			message: `Ignored columns: ${unmappedHeaders.join(", ")}`,
+			message: `imports.warnings.ignoredColumns|${unmappedHeaders.join(", ")}`,
 		})
 	}
 
@@ -792,7 +792,7 @@ const parseStandardContent = (
 					result.errors.push({
 						row: rowNumber,
 						field,
-						message: `${field} is required`,
+						message: `imports.errors.fieldRequired|${field}`,
 					})
 					rowHasErrors = true
 				}
@@ -821,7 +821,7 @@ const parseStandardContent = (
 						result.errors.push({
 							row: rowNumber,
 							field,
-							message: `Invalid direction: ${value}. Use "long" or "short"`,
+							message: `imports.errors.invalidDirection|${value}`,
 						})
 						rowHasErrors = true
 					}
@@ -838,13 +838,13 @@ const parseStandardContent = (
 							result.errors.push({
 								row: rowNumber,
 								field,
-								message: `Invalid date format: ${value}`,
+								message: `imports.errors.invalidDateFormat|${value}`,
 							})
 							rowHasErrors = true
 						} else {
 							result.warnings.push({
 								row: rowNumber,
-								message: `Invalid exit date format: ${value}. Skipping field.`,
+								message: `imports.warnings.invalidExitDate|${value}`,
 							})
 						}
 					}
@@ -868,13 +868,13 @@ const parseStandardContent = (
 							result.errors.push({
 								row: rowNumber,
 								field,
-								message: `Invalid number: ${value}`,
+								message: `imports.errors.invalidNumber|${value}`,
 							})
 							rowHasErrors = true
 						} else {
 							result.warnings.push({
 								row: rowNumber,
-								message: `Invalid number for ${field}: ${value}. Skipping field.`,
+								message: `imports.warnings.invalidNumberField|${field}|${value}`,
 							})
 						}
 					}

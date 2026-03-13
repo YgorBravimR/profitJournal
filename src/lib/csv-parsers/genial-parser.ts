@@ -185,7 +185,7 @@ export const parseGenialCSV = (
 		.filter((line) => line.length > 0)
 
 	if (lines.length < 2) {
-		throw new Error("Genial CSV must have at least header and one data row")
+		throw new Error("imports.errors.csvMinRows")
 	}
 
 	// Parse header
@@ -209,7 +209,7 @@ export const parseGenialCSV = (
 	for (const col of requiredColumns) {
 		if (columnMap[col] === undefined) {
 			throw new Error(
-				`Genial CSV: Missing required column "${col}". Found columns: ${headers.join(", ")}`
+				`imports.errors.missingRequiredColumn|${col}|${headers.join(", ")}`
 			)
 		}
 	}
@@ -267,7 +267,7 @@ export const parseGenialCSV = (
 	}
 
 	if (executions.length === 0) {
-		throw new Error("Genial CSV: No valid executions found")
+		throw new Error("imports.errors.noValidExecutions")
 	}
 
 	return executions
@@ -287,14 +287,14 @@ export const validateGenialCSV = (
 			.filter((line) => line.length > 0)
 
 		if (lines.length < 2) {
-			return { valid: false, error: "CSV must have header and at least one row" }
+			return { valid: false, error: "imports.errors.csvMinRows" }
 		}
 
 		const headers = parseCSVLine(lines[0], delimiter)
 		if (headers.length < 7) {
 			return {
 				valid: false,
-				error: `Expected at least 7 columns, found ${headers.length}`,
+				error: `imports.errors.expectedMinColumns|7|${headers.length}`,
 			}
 		}
 
