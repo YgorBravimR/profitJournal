@@ -2,6 +2,7 @@
 "use client"
 
 import { useEffect } from "react"
+import * as Sentry from "@sentry/nextjs"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { AlertTriangle } from "lucide-react"
@@ -18,7 +19,7 @@ const Error = (props: {
 	const { error, reset } = props
 
 	useEffect(() => {
-		console.error("Dashboard error:", error)
+		Sentry.captureException(error)
 	}, [error])
 
 	return (
