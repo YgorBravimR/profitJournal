@@ -105,6 +105,7 @@ const TradeFlowItem = ({ trade, isLast }: TradeFlowItemProps) => {
 
 const DayTraceCard = ({ day }: DayTraceCardProps) => {
 	const t = useTranslations("riskSimulation.trace")
+	const locale = useLocale()
 	const dayPnl = day.dayResult.totalPnlCents
 
 	return (
@@ -112,7 +113,7 @@ const DayTraceCard = ({ day }: DayTraceCardProps) => {
 			{/* Day header */}
 			<div className="mb-s-300 flex items-center justify-between">
 				<span className="text-small text-txt-100 font-medium">
-					{formatDate(day.dayKey)}
+					{formatDate(day.dayKey, locale)}
 				</span>
 				<div className="flex items-center gap-2">
 					<span
