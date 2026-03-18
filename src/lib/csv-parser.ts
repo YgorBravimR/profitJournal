@@ -272,10 +272,10 @@ const parseDate = (value: string): Date | null => {
 
 	// Try date+time formats first (before date-only)
 	const dateTimeFormats = [
-		/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // YYYY-MM-DD HH:MM[:SS]
-		/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // YYYY-MM-DDTHH:MM[:SS] (no tz)
-		/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // MM/DD/YYYY HH:MM[:SS]
-		/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/, // MM-DD-YYYY HH:MM[:SS]
+		/^(\d{4})-(\d{1,2})-(\d{1,2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/, // YYYY-MM-DD HH:MM[:SS[.ms]]
+		/^(\d{4})-(\d{1,2})-(\d{1,2})T(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/, // YYYY-MM-DDTHH:MM[:SS[.ms]] (no tz)
+		/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/, // MM/DD/YYYY HH:MM[:SS[.ms]]
+		/^(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\.\d+)?$/, // MM-DD-YYYY HH:MM[:SS[.ms]]
 	]
 
 	for (const fmt of dateTimeFormats) {
