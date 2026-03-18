@@ -40,6 +40,11 @@ const translateRiskReason = (t: TranslateFn, raw: string | null | undefined): st
 	const key = stripped.slice(0, pipeIndex)
 	const paramValue = stripped.slice(pipeIndex + 1)
 
+	// Determine the correct parameter name based on the key
+	if (key.endsWith("Step")) {
+		return t(key, { step: paramValue })
+	}
+
 	return t(key, { percent: paramValue })
 }
 
