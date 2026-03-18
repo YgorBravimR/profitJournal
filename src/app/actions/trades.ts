@@ -1988,7 +1988,14 @@ export const recalculateAllTradesPnL = async (): Promise<
 			let ticksGained: number | null = null
 			const assetConfig = assetMap.get(trade.asset.toUpperCase())
 
+			// Track per-trade commission and fees (in dollars) for column update
+			let tradeCommission = 0
+			let tradeFees = 0
+
 			if (assetConfig) {
+				const perContractCommission = fromCents(assetConfig.commission)
+				const perContractFees = fromCents(assetConfig.fees)
+
 				const result = calculateAssetPnL({
 					entryPrice,
 					exitPrice,
@@ -1996,12 +2003,16 @@ export const recalculateAllTradesPnL = async (): Promise<
 					direction,
 					tickSize: parseFloat(assetConfig.tickSize),
 					tickValue: fromCents(assetConfig.tickValue),
-					commission: fromCents(assetConfig.commission),
-					fees: fromCents(assetConfig.fees),
+					commission: perContractCommission,
+					fees: perContractFees,
 					contractsExecuted,
 				})
 				pnl = result.netPnl
 				ticksGained = result.ticksGained
+
+				// Total commission/fees for this trade = per-contract rate * executions
+				tradeCommission = perContractCommission * contractsExecuted
+				tradeFees = perContractFees * contractsExecuted
 			} else {
 				pnl = calculatePnL({
 					direction,
@@ -2039,6 +2050,8 @@ export const recalculateAllTradesPnL = async (): Promise<
 
 			const pnlUpdateData: Record<string, unknown> = {
 				pnl: toNumericString(toCents(pnl)),
+				commission: toNumericString(toCents(tradeCommission)),
+				fees: toNumericString(toCents(tradeFees)),
 				outcome,
 				plannedRiskAmount:
 					plannedRiskAmount !== null
@@ -2053,6 +2066,8 @@ export const recalculateAllTradesPnL = async (): Promise<
 					encryptTradeFields(
 						{
 							pnl: toCents(pnl),
+							commission: toCents(tradeCommission),
+							fees: toCents(tradeFees),
 							plannedRiskAmount:
 								plannedRiskAmount !== null ? toCents(plannedRiskAmount) : null,
 						},

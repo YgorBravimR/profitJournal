@@ -9,12 +9,20 @@ import {
 	accountTimeframes,
 	assets,
 	timeframes,
+	trades,
+	monthlyPlans,
+	dailyAccountNotes,
+	dailyChecklists,
+	dailyTargets,
+	dailyAssetSettings,
+	notaImports,
 	type TradingAccount,
 	type NewTradingAccount,
 	type AccountAsset,
 	type AccountTimeframe,
 } from "@/db/schema"
 import { auth } from "@/auth"
+import { requireAuth } from "@/app/actions/auth"
 import { getUserDek, encryptAccountFields, decryptAccountFields } from "@/lib/user-crypto"
 import { hasAccess } from "@/lib/feature-access"
 import { getTranslations } from "next-intl/server"
@@ -305,6 +313,42 @@ export const deleteAccount = async (
 	} catch (error) {
 		console.error("Delete account error:", error)
 		return { status: "error", error: tAuth("register.genericError") }
+	}
+}
+
+/**
+ * Deletes all trading data for the current account while preserving the account
+ * and its configuration (asset overrides, timeframes, etc.).
+ *
+ * Tables cleared: trades (cascades to executions/tags), monthlyPlans,
+ * dailyAccountNotes, dailyChecklists (cascades to completions),
+ * dailyTargets, dailyAssetSettings, notaImports.
+ */
+export const deleteAllTradingData = async (): Promise<{
+	status: "success" | "error"
+	error?: string
+}> => {
+	const tSettings = await getTranslations("settings.account")
+	try {
+		const { accountId } = await requireAuth()
+
+		// Delete in order — child tables first to respect FK constraints
+		// trades cascade-deletes tradeExecutions + tradeTags
+		// dailyChecklists cascade-deletes checklistCompletions
+		await db.delete(trades).where(eq(trades.accountId, accountId))
+		await db.delete(monthlyPlans).where(eq(monthlyPlans.accountId, accountId))
+		await db.delete(dailyAccountNotes).where(eq(dailyAccountNotes.accountId, accountId))
+		await db.delete(dailyChecklists).where(eq(dailyChecklists.accountId, accountId))
+		await db.delete(dailyTargets).where(eq(dailyTargets.accountId, accountId))
+		await db.delete(dailyAssetSettings).where(eq(dailyAssetSettings.accountId, accountId))
+		await db.delete(notaImports).where(eq(notaImports.accountId, accountId))
+
+		revalidatePath("/")
+
+		return { status: "success" }
+	} catch (error) {
+		console.error("Delete all trading data error:", error)
+		return { status: "error", error: tSettings("deleteAllDataError") }
 	}
 }
 
