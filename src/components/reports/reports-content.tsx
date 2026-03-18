@@ -4,6 +4,8 @@ import { WeeklyReportCard } from "./weekly-report-card"
 import { MonthlyReportCard } from "./monthly-report-card"
 import { MistakeCostCard } from "./mistake-cost-card"
 import type { WeeklyReport, MonthlyReport, MistakeCostAnalysis } from "@/app/actions/reports"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { reportsGuide } from "@/components/ui/page-guide/guide-configs/reports"
 
 interface ReportsContentProps {
 	weeklyReport: WeeklyReport | null
@@ -16,6 +18,8 @@ export const ReportsContent = ({
 	monthlyReport,
 	mistakeCostAnalysis,
 }: ReportsContentProps) => {
+	useRegisterPageGuide(reportsGuide)
+
 	return (
 		<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600">
 			{/* Weekly and Monthly side by side on larger screens */}

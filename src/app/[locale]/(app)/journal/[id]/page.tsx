@@ -31,6 +31,7 @@ import {
 import { getTrade } from "@/app/actions/trades"
 import { getAssetBySymbol } from "@/app/actions/assets"
 import { DeleteTradeButton } from "./delete-button"
+import { TradeDetailGuide } from "@/components/journal/trade-detail-guide"
 
 // Force dynamic rendering to ensure account-specific data
 export const dynamic = "force-dynamic"
@@ -63,9 +64,11 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 	const tags = trade.tradeTags?.map((tt) => tt.tag) || []
 	const setupTags = tags.filter((t) => t.type === "setup")
 	const mistakeTags = tags.filter((t) => t.type === "mistake")
+	const generalTags = tags.filter((t) => t.type === "general")
 
 	return (
 		<div className="flex h-full flex-col">
+			<TradeDetailGuide />
 			<div className="p-m-400 sm:p-m-500 lg:p-m-600 flex-1 overflow-auto">
 				<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600 mx-auto max-w-4xl">
 					{/* Header Card */}
@@ -200,7 +203,7 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 					</Card>
 
 					{/* Metrics Grid */}
-					<div className="gap-s-300 sm:gap-m-400 lg:gap-m-500 grid grid-cols-2 md:grid-cols-4">
+					<div id="trade-detail-metrics" className="gap-s-300 sm:gap-m-400 lg:gap-m-500 grid grid-cols-2 md:grid-cols-4">
 						<Card
 							id="trade-detail-entry-price"
 							className="p-s-300 sm:p-m-400 lg:p-m-500 min-w-0"
@@ -346,6 +349,15 @@ const TradeDetailPage = async ({ params }: TradeDetailPageProps) => {
 											id={`badge-mistake-tag-${tag.id}`}
 											key={tag.id}
 											className="bg-warning/10 text-warning"
+										>
+											{tag.name}
+										</Badge>
+									))}
+									{generalTags.map((tag) => (
+										<Badge
+											id={`badge-general-tag-${tag.id}`}
+											key={tag.id}
+											className="bg-acc-100/10 text-acc-100"
 										>
 											{tag.name}
 										</Badge>

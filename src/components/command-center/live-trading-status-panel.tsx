@@ -540,6 +540,7 @@ const LiveTradingStatusPanel = ({
 
 	return (
 		<div
+			id="cc-live-trading"
 			className={cn(
 				"p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border transition-colors",
 				phaseStyles.borderClass,

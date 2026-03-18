@@ -196,7 +196,7 @@ const UserProfileSettings = () => {
 	return (
 		<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600 mx-auto max-w-2xl">
 			{/* Profile Information */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-profile-info" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
 					<h2 className="text-body text-txt-100 font-semibold">
 						{t("profileInfo")}
@@ -263,7 +263,7 @@ const UserProfileSettings = () => {
 			</div>
 
 			{/* Change Password */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-password" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
 					<h2 className="text-body text-txt-100 font-semibold">
 						{t("changePassword")}
@@ -346,7 +346,7 @@ const UserProfileSettings = () => {
 
 			{/* Data Display — admin only */}
 			{isAdmin && (
-				<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+				<div id="settings-data-display" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 					<h2 className="text-body text-txt-100 font-semibold">
 						{t("dataDisplay")}
 					</h2>
@@ -373,7 +373,7 @@ const UserProfileSettings = () => {
 			)}
 
 			{/* Appearance */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-appearance" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<h2 className="text-body text-txt-100 font-semibold">
 					{t("appearance")}
 				</h2>

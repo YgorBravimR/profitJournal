@@ -142,7 +142,7 @@ export const ConditionList = () => {
 	]
 
 	return (
-		<div className="space-y-m-400">
+		<div id="settings-conditions" className="space-y-m-400">
 			{/* Header */}
 			<div className="gap-m-400 flex flex-wrap items-center justify-between">
 				<div className="gap-s-300 flex flex-wrap items-center">

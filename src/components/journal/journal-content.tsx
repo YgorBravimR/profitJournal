@@ -19,6 +19,8 @@ import { LoadingSpinner, EmptyState, ColoredValue } from "@/components/shared"
 import { useToast } from "@/components/ui/toast"
 import { PeriodFilter } from "./period-filter"
 import { TradeDayGroup } from "./trade-day-group"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { journalGuide } from "@/components/ui/page-guide/guide-configs/journal"
 
 /**
  * Calculates the date range based on the selected period.
@@ -94,6 +96,7 @@ export const JournalContent = ({
 	initialPeriod = "week",
 }: JournalContentProps) => {
 	const router = useRouter()
+	useRegisterPageGuide(journalGuide)
 	const t = useTranslations("journal")
 	const tTrade = useTranslations("trade")
 	const tCommon = useTranslations("common")
@@ -221,7 +224,7 @@ export const JournalContent = ({
 	return (
 		<div className="gap-s-300 sm:gap-m-400 flex flex-col">
 			{/* Period Filter */}
-			<div className="gap-s-300 sm:gap-m-400 flex flex-wrap items-start justify-between">
+			<div id="journal-period-filter" className="gap-s-300 sm:gap-m-400 flex flex-wrap items-start justify-between">
 				<PeriodFilter
 					value={period}
 					onChange={handlePeriodChange}
@@ -230,7 +233,7 @@ export const JournalContent = ({
 
 				{/* Period Summary */}
 				{!isLoading && totalTrades > 0 && (
-					<div className="gap-s-300 sm:gap-m-400 text-small flex flex-wrap items-center">
+					<div id="journal-period-summary" className="gap-s-300 sm:gap-m-400 text-small flex flex-wrap items-center">
 						<span className="text-txt-300">
 							{totalTrades} {t("tradesCount")}
 						</span>
@@ -267,7 +270,7 @@ export const JournalContent = ({
 
 			{/* Trade Groups by Day */}
 			{!isLoading && tradesByDay.length > 0 && (
-				<div className="space-y-s-300 sm:space-y-m-400">
+				<div id="journal-trade-groups" className="space-y-s-300 sm:space-y-m-400">
 					{tradesByDay.map((dayData) => (
 						<TradeDayGroup
 							key={dayData.date}

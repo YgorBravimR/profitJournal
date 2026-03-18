@@ -44,7 +44,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 
 	if (!report) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+			<div id="reports-monthly" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 				<h2 className="text-small sm:text-body font-semibold text-txt-100">{t("title")}</h2>
 				<p className="mt-m-400 text-txt-300">{tCommon("noData")}</p>
 			</div>
@@ -60,7 +60,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 			: t("monthsAgo", { n: monthOffset })
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="reports-monthly" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>

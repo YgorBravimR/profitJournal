@@ -10,6 +10,8 @@ import { PropProfitSummary } from "./prop-profit-summary"
 import { MonthlyProjection } from "./monthly-projection"
 import { MonthComparison } from "./month-comparison"
 import { WeeklyBreakdown } from "./weekly-breakdown"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { monthlyGuide } from "@/components/ui/page-guide/guide-configs/monthly"
 import {
 	getMonthlyResultsWithProp,
 	getMonthlyProjection,
@@ -32,6 +34,7 @@ export const MonthlyContent = ({
 }: MonthlyContentProps) => {
 	const t = useTranslations("monthly")
 	const effectiveDate = useEffectiveDate()
+	useRegisterPageGuide(monthlyGuide)
 	const [isPending, startTransition] = useTransition()
 	const [currentDate, setCurrentDate] = useState(() => startOfMonth(effectiveDate))
 	const [monthOffset, setMonthOffset] = useState(0)

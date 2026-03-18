@@ -135,7 +135,7 @@ const UserList = ({ users, currentUserId }: UserListProps) => {
 	}, [deleteTarget, showToast, t, router])
 
 	return (
-		<div className="space-y-m-400">
+		<div id="settings-users" className="space-y-m-400">
 			<div className="flex items-center justify-between">
 				<div>
 					<h3 className="text-lg font-semibold">{t("title")}</h3>

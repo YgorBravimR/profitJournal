@@ -42,7 +42,7 @@ export const MonthNavigator = ({
 	const formattedMonth = format(currentDate, "MMMM yyyy", { locale: dateLocale })
 
 	return (
-		<div className="flex items-center justify-center gap-s-300 sm:gap-m-400">
+		<div id="monthly-navigator" className="flex items-center justify-center gap-s-300 sm:gap-m-400">
 			<Button id="month-nav-previous"
 				variant="ghost"
 				size="sm"

@@ -20,6 +20,8 @@ import {
 	getRadarChartData,
 } from "@/app/actions/analytics"
 import { cn } from "@/lib/utils"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { dashboardGuide } from "@/components/ui/page-guide/guide-configs/dashboard"
 import type {
 	OverallStats,
 	DisciplineData,
@@ -113,6 +115,7 @@ export const DashboardContent = ({
 	initialMonthIndex,
 }: DashboardContentProps) => {
 	const effectiveDate = useEffectiveDate()
+	useRegisterPageGuide(dashboardGuide)
 	// Calendar month state (independent of the period filter)
 	const [currentMonth, setCurrentMonth] = useState(() => new Date(initialYear, initialMonthIndex, 1))
 	const [dailyPnL, setDailyPnL] = useState<DailyPnL[]>(initialDailyPnL)
@@ -202,7 +205,7 @@ export const DashboardContent = ({
 	return (
 		<div className="grid grid-cols-1 gap-m-400 sm:gap-m-500 md:grid-cols-2 lg:grid-cols-3 lg:gap-m-600">
 			{/* Period Toggle + Loading */}
-			<div className="md:col-span-2 lg:col-span-3 flex items-center gap-m-400">
+			<div id="dashboard-period-toggle" className="md:col-span-2 lg:col-span-3 flex items-center gap-m-400">
 				<PeriodToggle
 					period={period}
 					onChange={handlePeriodChange}
@@ -212,12 +215,12 @@ export const DashboardContent = ({
 			</div>
 
 			{/* KPI Cards */}
-			<div className="md:col-span-2 lg:col-span-3">
+			<div id="dashboard-kpi-cards" className="md:col-span-2 lg:col-span-3">
 				<KpiCards stats={stats} discipline={discipline} />
 			</div>
 
 			{/* Calendar */}
-			<div className="md:col-span-2 lg:col-span-2">
+			<div id="dashboard-calendar" className="md:col-span-2 lg:col-span-2">
 				<TradingCalendar
 					data={dailyPnL}
 					month={currentMonth}
@@ -227,22 +230,22 @@ export const DashboardContent = ({
 			</div>
 
 			{/* Quick Stats */}
-			<div className="md:col-span-2 lg:col-span-1">
+			<div id="dashboard-quick-stats" className="md:col-span-2 lg:col-span-1">
 				<QuickStats streakData={streakData} stats={stats} />
 			</div>
 
 			{/* Daily P&L Bar Chart */}
-			<div className="md:col-span-2 lg:col-span-2">
+			<div id="dashboard-daily-pnl" className="md:col-span-2 lg:col-span-2">
 				<DailyPnLBarChart data={dailyPnL} onDayClick={handleDayClick} />
 			</div>
 
 			{/* Performance Radar */}
-			<div className="md:col-span-2 lg:col-span-1">
+			<div id="dashboard-radar" className="md:col-span-2 lg:col-span-1">
 				<PerformanceRadarChart data={radarData} />
 			</div>
 
 			{/* Equity Curve */}
-			<div className="md:col-span-2 lg:col-span-3">
+			<div id="dashboard-equity-curve" className="md:col-span-2 lg:col-span-3">
 				<EquityCurve data={equityCurve} calendarMonth={currentMonth} />
 			</div>
 

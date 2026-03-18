@@ -37,7 +37,7 @@ export const PropProfitSummary = ({
 	const isNegative = data.grossProfit < 0
 
 	return (
-		<div className="space-y-s-300 sm:space-y-m-400">
+		<div id="monthly-profit-summary" className="space-y-s-300 sm:space-y-m-400">
 			{/* Main Summary Cards */}
 			<div className="grid grid-cols-1 gap-s-300 sm:gap-m-400 sm:grid-cols-3">
 				{/* Gross Profit */}

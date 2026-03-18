@@ -36,6 +36,8 @@ import type {
 } from "@/db/schema"
 import { useTranslations } from "next-intl"
 import { useFeatureAccess } from "@/hooks/use-feature-access"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { commandCenterGuide } from "@/components/ui/page-guide/guide-configs/command-center"
 import { useFormatting } from "@/hooks/use-formatting"
 import { fromCents } from "@/lib/money"
 import { CalendarDays, Target, TrendingDown, ShieldCheck } from "lucide-react"
@@ -74,6 +76,7 @@ export const CommandCenterContent = ({
 	const isReadOnly = !isToday
 	const tPlan = useTranslations("commandCenter.plan")
 	const { isAdmin } = useFeatureAccess()
+	useRegisterPageGuide(commandCenterGuide)
 	const { formatCurrency } = useFormatting()
 
 	// State
@@ -194,7 +197,7 @@ export const CommandCenterContent = ({
 				<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600 min-w-0">
 					{/* Plan summary or "create plan" prompt */}
 					{initialPlan ? (
-						<div className="border-bg-300 bg-bg-100 p-s-300 sm:p-m-400 rounded-lg border">
+						<div id="cc-plan-summary" className="border-bg-300 bg-bg-100 p-s-300 sm:p-m-400 rounded-lg border">
 							<div className="mb-s-300 sm:mb-m-400 gap-s-200 flex items-center">
 								<CalendarDays className="text-acc-100 h-4 w-4" />
 								<h3 className="text-small text-txt-100 font-semibold">
@@ -241,7 +244,7 @@ export const CommandCenterContent = ({
 							</div>
 						</div>
 					) : (
-						<div className="border-bg-300 bg-bg-100 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-dashed">
+						<div id="cc-plan-summary" className="border-bg-300 bg-bg-100 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-dashed">
 							<div className="gap-s-300 flex flex-col items-center text-center">
 								<CalendarDays className="text-txt-300 h-8 w-8" />
 								<p className="text-small text-txt-200">

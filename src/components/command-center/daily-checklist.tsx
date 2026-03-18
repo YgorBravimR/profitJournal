@@ -60,7 +60,7 @@ export const DailyChecklist = ({
 	}
 
 	return (
-		<div className="space-y-s-300 sm:space-y-m-400">
+		<div id="cc-daily-checklist" className="space-y-s-300 sm:space-y-m-400">
 			{checklists.map((checklist) => {
 				const completedCount = checklist.completedItemIds.length
 				const totalCount = checklist.parsedItems.length

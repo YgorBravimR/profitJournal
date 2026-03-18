@@ -14,6 +14,8 @@ import type { AssetWithType } from "@/app/actions/assets"
 import type { AssetType, Timeframe } from "@/db/schema"
 import type { UserWithAccounts } from "@/app/actions/user-management"
 import { User, Briefcase, Coins, Clock, Tag, Users, Filter } from "lucide-react"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { settingsGuide } from "@/components/ui/page-guide/guide-configs/settings"
 
 interface SettingsContentProps {
 	assets: AssetWithType[]
@@ -34,6 +36,7 @@ export const SettingsContent = ({
 }: SettingsContentProps) => {
 	const t = useTranslations("settings.tabs")
 	const searchParams = useSearchParams()
+	useRegisterPageGuide(settingsGuide)
 
 	const baseTabs = ["profile", "account", "tags"]
 	const adminTabs = ["conditions", "assets", "timeframes", "users"]
@@ -43,7 +46,7 @@ export const SettingsContent = ({
 
 	return (
 		<Tabs defaultValue={defaultTab} className="h-full">
-			<div className="relative mb-m-400 sm:mb-m-500">
+			<div id="settings-tabs" className="relative mb-m-400 sm:mb-m-500">
 				<TabsList variant="line" className="w-full overflow-x-auto scrollbar-none">
 					<TabsTrigger value="profile" className="shrink-0 gap-s-200">
 						<User className="h-4 w-4" />

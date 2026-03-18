@@ -146,7 +146,7 @@ export const CircuitBreakerPanel = ({
 
 	if (!status) {
 		return (
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="cc-circuit-breaker" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="gap-s-200 flex items-center">
 					<AlertCircle className="text-txt-300 h-5 w-5" />
 					<p className="text-small text-txt-300">{t("loading")}</p>
@@ -184,6 +184,7 @@ export const CircuitBreakerPanel = ({
 
 	return (
 		<div
+			id="cc-circuit-breaker"
 			className={cn(
 				"p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border transition-colors",
 				stateConfig.borderClass,

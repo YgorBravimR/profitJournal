@@ -12,6 +12,8 @@ import type {
 	StrategyWithStats,
 	ComplianceOverview,
 } from "@/app/actions/strategies"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { playbookGuide } from "@/components/ui/page-guide/guide-configs/playbook"
 
 interface PlaybookContentProps {
 	initialStrategies: StrategyWithStats[]
@@ -24,6 +26,7 @@ export const PlaybookContent = ({
 }: PlaybookContentProps) => {
 	const t = useTranslations("playbook")
 	const router = useRouter()
+	useRegisterPageGuide(playbookGuide)
 	const [strategies, setStrategies] =
 		useState<StrategyWithStats[]>(initialStrategies)
 	const [compliance, setCompliance] = useState<ComplianceOverview | null>(
@@ -69,7 +72,7 @@ export const PlaybookContent = ({
 			<ComplianceDashboard data={compliance} />
 
 			{/* Strategy List */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="playbook-strategies" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
 					<h2 className="text-small sm:text-body text-txt-100 font-semibold">
 						{t("yourStrategies")}

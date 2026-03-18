@@ -130,7 +130,7 @@ export const TradeExecutionsSection = ({
 	// If in simple mode, show convert option
 	if (executionMode === "simple") {
 		return (
-			<Card id="trade-executions-simple-card" className="p-m-400 sm:p-m-500 lg:p-m-600">
+			<Card id="trade-detail-executions" className="p-m-400 sm:p-m-500 lg:p-m-600">
 				<div className="flex flex-col gap-s-300 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex items-center gap-s-300">
 						<Layers className="h-5 w-5 shrink-0 text-txt-300" />
@@ -184,7 +184,7 @@ export const TradeExecutionsSection = ({
 			)}
 
 			{/* Execution List */}
-			<Card id="trade-executions-scaled-card" className="p-m-400 sm:p-m-500 lg:p-m-600">
+			<Card id="trade-detail-executions" className="p-m-400 sm:p-m-500 lg:p-m-600">
 				<ExecutionList
 					executions={executions}
 					direction={direction}

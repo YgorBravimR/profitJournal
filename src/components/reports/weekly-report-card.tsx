@@ -52,7 +52,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 
 	if (!report) {
 		return (
-			<div className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
+			<div id="reports-weekly" className="border-bg-300 bg-bg-200 p-m-500 rounded-lg border">
 				<h2 className="text-body text-txt-100 font-semibold">{t("title")}</h2>
 				<p className="mt-m-400 text-txt-300">{tCommon("noData")}</p>
 			</div>
@@ -68,7 +68,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 				: t("weeksAgo", { n: weekOffset })
 
 	return (
-		<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+		<div id="reports-weekly" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<div>

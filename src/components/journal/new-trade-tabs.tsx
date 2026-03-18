@@ -17,6 +17,8 @@ import type {
 } from "@/lib/validations/trade"
 import type { Strategy, Tag, Timeframe } from "@/db/schema"
 import type { AssetWithType } from "@/app/actions/assets"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { newTradeGuide } from "@/components/ui/page-guide/guide-configs/new-trade"
 
 interface NewTradeTabsProps {
 	strategies: Strategy[]
@@ -42,6 +44,7 @@ export const NewTradeTabs = ({
 	const t = useTranslations("journal")
 	const tTrade = useTranslations("trade")
 	const { canAccess, isAdmin } = useFeatureAccess()
+	useRegisterPageGuide(newTradeGuide)
 	const [activeTab, setActiveTab] = useState<TabValue>("single")
 	const [tradeMode, setTradeMode] = useState<TradeMode>("simple")
 	const [sharedState, setSharedState] = useState<

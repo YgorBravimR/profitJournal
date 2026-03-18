@@ -218,7 +218,7 @@ export const CsvSlTpGenerator = ({
 	}
 
 	return (
-		<div className="space-y-m-400 sm:space-y-m-500">
+		<div id="csv-sl-tp-generator" className="space-y-m-400 sm:space-y-m-500">
 			{/* Checkbox */}
 			<div className="gap-s-300 flex items-center">
 				<Checkbox

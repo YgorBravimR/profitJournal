@@ -221,7 +221,7 @@ const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 	)
 
 	return (
-		<div className="space-y-m-400">
+		<div id="settings-assets" className="space-y-m-400">
 			{/* Header */}
 			<div className="flex flex-wrap items-center justify-between gap-m-400">
 				<div className="flex items-center gap-s-300">

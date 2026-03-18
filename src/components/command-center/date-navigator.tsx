@@ -82,7 +82,7 @@ export const DateNavigator = ({
 	const locale = pathname.startsWith("/pt-BR") ? "pt-BR" : "en"
 
 	return (
-		<div className="gap-s-200 flex flex-wrap items-center">
+		<div id="cc-date-navigator" className="gap-s-200 flex flex-wrap items-center">
 			<Button
 				id="date-nav-previous"
 				variant="ghost"

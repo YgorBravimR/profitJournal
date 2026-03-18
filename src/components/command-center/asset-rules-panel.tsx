@@ -147,7 +147,7 @@ export const AssetRulesPanel = ({
 	}
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="cc-asset-rules" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			{/* Header */}
 			<div className="mb-s-300 sm:mb-m-400 flex items-center justify-between">
 				<div className="flex items-center gap-s-200">

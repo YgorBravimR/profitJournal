@@ -16,7 +16,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 
 	if (!data || data.mistakes.length === 0) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+			<div id="reports-mistake-cost" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 				<h2 className="flex items-center gap-s-200 text-small sm:text-body font-semibold text-txt-100">
 					<AlertTriangle className="h-5 w-5 text-warning" />
 					{t("title")}
@@ -34,7 +34,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 	const maxLoss = Math.max(...mistakes.map((m) => m.totalLoss))
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="reports-mistake-cost" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			{/* Header */}
 			<div className="flex items-center justify-between">
 				<h2 className="flex items-center gap-s-200 text-small sm:text-body font-semibold text-txt-100">

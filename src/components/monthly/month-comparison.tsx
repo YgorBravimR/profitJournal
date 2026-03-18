@@ -65,7 +65,7 @@ export const MonthComparison = ({
 
 	if (!previous) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+			<div id="monthly-comparison" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 				<h3 className="flex items-center gap-s-200 text-small sm:text-body font-semibold text-txt-100">
 					<GitCompare className="h-5 w-5 text-acc-100" />
 					{t("title")}
@@ -114,7 +114,7 @@ export const MonthComparison = ({
 	]
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="monthly-comparison" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			<h3 className="flex items-center gap-s-200 text-small sm:text-body font-semibold text-txt-100">
 				<GitCompare className="h-5 w-5 text-acc-100" />
 				{t("titleWithMonth", { month: previousMonthName })}

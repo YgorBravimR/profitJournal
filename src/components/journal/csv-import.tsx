@@ -363,6 +363,7 @@ export const CsvImport = () => {
 			{/* Upload Area */}
 			{!validationResult && (
 				<div
+					id="csv-upload-zone"
 					className={`p-m-600 sm:p-l-700 lg:p-l-800 rounded-lg border-2 border-dashed text-center transition-colors ${
 						isDragging
 							? "border-acc-100 bg-acc-100/10"

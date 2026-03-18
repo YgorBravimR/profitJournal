@@ -515,6 +515,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 
 		const setupTags = localTags.filter((t) => t.type === "setup")
 		const mistakeTags = localTags.filter((t) => t.type === "mistake")
+		const generalTags = localTags.filter((t) => t.type === "general")
 
 		// Map fields to tabs for error highlighting
 		const basicFields = [
@@ -948,7 +949,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 
 							{/* Setup Rank — visible when a strategy is selected */}
 							{watch("strategyId") && (
-								<div className="space-y-s-200">
+								<div id="new-trade-setup-rank" className="space-y-s-200">
 									<Label id="label-trade-setup-rank">{t("setupRank")}</Label>
 									<p className="text-tiny text-txt-300">{t("setupRankHint")}</p>
 									<div className="gap-s-200 flex">
@@ -981,11 +982,12 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 
 						{/* Risk Management Tab */}
 						<AnimatedTabsContent
+							id="new-trade-risk-section"
 							value="risk"
 							className="space-y-m-400 sm:space-y-m-500 pt-m-400 sm:pt-m-500"
 						>
 							{/* Stop Loss and Take Profit */}
-							<div className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-2">
+							<div id="new-trade-sl-tp" className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-2">
 								<FormField
 									control={form.control}
 									name="stopLoss"
@@ -1059,7 +1061,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 							</div>
 
 							{/* Risk Amount (always calculated from entry, stop loss, and position size) */}
-							<div className="space-y-s-200">
+							<div id="new-trade-planned-risk" className="space-y-s-200">
 								<div className="gap-s-200 flex items-center">
 									<Label id="label-trade-planned-risk">
 										{t("plannedRisk")} ({selectedAsset?.currency ?? "$"})
@@ -1096,7 +1098,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 							</div>
 
 							{/* Planned R-Multiple (calculated from TP/SL) */}
-							<div className="space-y-s-200">
+							<div id="new-trade-planned-r" className="space-y-s-200">
 								<Label id="label-trade-planned-r-target">
 									{t("plannedRTarget")}
 								</Label>
@@ -1115,7 +1117,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 							</div>
 
 							{/* MFE/MAE */}
-							<div className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-2">
+							<div id="new-trade-mfe-mae" className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-2">
 								<FormField
 									control={form.control}
 									name="mfe"
@@ -1173,6 +1175,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 							</div>
 
 							{/* Contracts Executed (for fee calculation) */}
+							<div id="new-trade-contracts-executed">
 							<FormField
 								control={form.control}
 								name="contractsExecuted"
@@ -1220,10 +1223,11 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 									</FormItem>
 								)}
 							/>
+							</div>
 
 							{/* P&L Preview */}
 							{calculatedPnLResult !== null && (
-								<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 rounded-lg border">
+								<div id="new-trade-pnl-summary" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 rounded-lg border">
 									<p className="text-small text-txt-300">
 										{t("calculatedPnl")}
 									</p>
@@ -1467,6 +1471,32 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 													selectedTagIds.includes(tag.id)
 														? "border-warning bg-warning/10 text-warning"
 														: "border-bg-300 text-txt-200 hover:border-warning/50"
+												)}
+											>
+												{tag.name}
+											</button>
+										))}
+									</div>
+								</div>
+							)}
+
+							{/* General Tags */}
+							{generalTags.length > 0 && (
+								<div className="space-y-s-200">
+									<Label id="label-trade-general-tags">{t("generalTags")}</Label>
+									<div className="gap-s-200 flex flex-wrap">
+										{generalTags.map((tag) => (
+											<button
+												key={tag.id}
+												type="button"
+												onClick={() => handleTagToggle(tag.id)}
+												aria-label={`${t("tags")}: ${tag.name}`}
+												aria-pressed={selectedTagIds.includes(tag.id)}
+												className={cn(
+													"px-m-400 py-s-200 text-small rounded-full border transition-colors",
+													selectedTagIds.includes(tag.id)
+														? "border-acc-100 bg-acc-100/10 text-acc-100"
+														: "border-bg-300 text-txt-200 hover:border-acc-100/50"
 												)}
 											>
 												{tag.name}

@@ -49,7 +49,7 @@ export const CsvImportSummary = ({
 	}
 
 	return (
-		<div className="space-y-m-400">
+		<div id="csv-import-summary" className="space-y-m-400">
 			{/* Stats Cards */}
 			<div className="grid grid-cols-2 gap-s-200 sm:gap-s-300 md:grid-cols-4">
 				{/* Valid */}

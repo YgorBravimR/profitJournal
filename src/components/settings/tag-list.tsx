@@ -117,7 +117,7 @@ export const TagList = () => {
 	}
 
 	return (
-		<div className="space-y-m-400">
+		<div id="settings-tags" className="space-y-m-400">
 			{/* Header */}
 			<div className="gap-m-400 flex flex-wrap items-center justify-between">
 				<div className="gap-s-300 flex items-center">

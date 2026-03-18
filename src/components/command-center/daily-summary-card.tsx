@@ -25,7 +25,7 @@ export const DailySummaryCard = ({ summary, currency = "$" }: DailySummaryCardPr
 
 	if (!summary) {
 		return (
-			<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+			<div id="cc-daily-summary" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 				<div className="flex items-center gap-s-200">
 					<BarChart3 className="h-5 w-5 text-txt-300" />
 					<p className="text-small text-txt-300">{t("loading")}</p>
@@ -37,7 +37,7 @@ export const DailySummaryCard = ({ summary, currency = "$" }: DailySummaryCardPr
 	const hasNoTrades = summary.tradesCount === 0
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="cc-daily-summary" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			{/* Header */}
 			<div className="mb-s-300 sm:mb-m-400 flex items-center gap-s-200">
 				<BarChart3 className="h-5 w-5 text-accent-primary" />

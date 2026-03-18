@@ -27,7 +27,7 @@ export const MonthlyProjection = ({ data }: MonthlyProjectionProps) => {
 	)
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
+		<div id="monthly-projection" className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">
 			<h3 className="flex items-center gap-s-200 text-small sm:text-body font-semibold text-txt-100">
 				<TrendingUp className="h-5 w-5 text-acc-100" />
 				{t("title")}

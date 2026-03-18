@@ -472,6 +472,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 
 		const setupTags = tags.filter((t) => t.type === "setup")
 		const mistakeTags = tags.filter((t) => t.type === "mistake")
+		const generalTags = tags.filter((t) => t.type === "general")
 
 		return (
 			<form
@@ -583,7 +584,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 						</div>
 
 						{/* Entries Section */}
-						<div className="space-y-s-300">
+						<div id="scaled-trade-entries" className="space-y-s-300">
 							<div className="flex items-center justify-between">
 								<Label id="label-scaled-entries" className="text-action-buy">
 									{tScaled("entries")}
@@ -639,7 +640,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 						</div>
 
 						{/* Exits Section */}
-						<div className="space-y-s-300">
+						<div id="scaled-trade-exits" className="space-y-s-300">
 							<div className="flex items-center justify-between">
 								<Label id="label-scaled-exits" className="text-action-sell">
 									{tScaled("exits")}
@@ -704,7 +705,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 
 						{/* Position Summary */}
 						{positionSummary.validEntries > 0 && (
-							<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 rounded-lg border">
+							<div id="scaled-trade-position-summary" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 rounded-lg border">
 								<p className="text-small text-txt-100 font-medium">
 									{tScaled("positionSummary")}
 								</p>
@@ -799,7 +800,7 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 						)}
 
 						{/* Risk Management */}
-						<div className="space-y-m-400">
+						<div id="scaled-trade-risk" className="space-y-m-400">
 							<Label id="label-scaled-risk-management">
 								{tScaled("riskManagement")}
 							</Label>
@@ -1098,6 +1099,32 @@ export const ScaledTradeForm = forwardRef<TradeFormRef, ScaledTradeFormProps>(
 												selectedTagIds.includes(tag.id)
 													? "border-warning bg-warning/10 text-warning"
 													: "border-bg-300 text-txt-200 hover:border-warning/50"
+											)}
+										>
+											{tag.name}
+										</button>
+									))}
+								</div>
+							</div>
+						)}
+
+						{/* General Tags */}
+						{generalTags.length > 0 && (
+							<div className="space-y-s-200">
+								<Label id="label-scaled-general-tags">{t("generalTags")}</Label>
+								<div className="gap-s-200 flex flex-wrap">
+									{generalTags.map((tag) => (
+										<button
+											key={tag.id}
+											type="button"
+											onClick={() => handleTagToggle(tag.id)}
+											aria-label={`${t("tags")}: ${tag.name}`}
+											aria-pressed={selectedTagIds.includes(tag.id)}
+											className={cn(
+												"px-m-400 py-s-200 text-small rounded-full border transition-colors",
+												selectedTagIds.includes(tag.id)
+													? "border-acc-100 bg-acc-100/10 text-acc-100"
+													: "border-bg-300 text-txt-200 hover:border-acc-100/50"
 											)}
 										>
 											{tag.name}

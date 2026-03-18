@@ -108,6 +108,7 @@ export const PositionSummary = ({
 
 	return (
 		<div
+			id="trade-detail-position-summary"
 			className={cn(
 				"border-stroke-100 bg-bg-100 p-s-300 sm:p-m-400 rounded-lg border",
 				className

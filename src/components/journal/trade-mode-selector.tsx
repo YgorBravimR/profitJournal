@@ -20,7 +20,7 @@ export const TradeModeSelector = ({
 	const t = useTranslations("trade.mode")
 
 	return (
-		<div className="space-y-s-200">
+		<div id="new-trade-mode-selector" className="space-y-s-200">
 			<label className="text-small text-txt-100 font-medium">{t("label")}</label>
 			<div className="gap-s-300 grid grid-cols-2">
 				<button

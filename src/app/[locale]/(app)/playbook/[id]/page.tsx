@@ -20,6 +20,7 @@ import { getScenariosByStrategy } from "@/app/actions/scenarios"
 import { ConditionTierDisplay } from "@/components/playbook/condition-tier-display"
 import { ScenarioSection } from "@/components/playbook/scenario-section"
 import { getCurrentUser } from "@/app/actions/auth"
+import { StrategyDetailGuide } from "@/components/playbook/strategy-detail-guide"
 
 interface StrategyDetailPageProps {
 	params: Promise<{ id: string }>
@@ -69,10 +70,11 @@ const StrategyDetailPage = async ({ params }: StrategyDetailPageProps) => {
 
 	return (
 		<div className="flex h-full flex-col">
+			<StrategyDetailGuide />
 			<div className="p-m-400 sm:p-m-500 lg:p-m-600 flex-1 overflow-y-auto">
 				<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600 mx-auto max-w-4xl">
 					{/* Performance Stats */}
-					<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+					<div id="strategy-detail-performance" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 						<div className="gap-s-200 flex items-center">
 							<BarChart3 className="text-acc-100 h-5 w-5" />
 							<h2 className="text-small sm:text-body text-txt-100 font-semibold">
@@ -235,7 +237,7 @@ const StrategyDetailPage = async ({ params }: StrategyDetailPageProps) => {
 
 					{/* Conditions */}
 					{isAdmin && strategyConditions.length > 0 && (
-						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+						<div id="strategy-detail-conditions" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<div className="gap-s-200 flex items-center">
 								<Filter className="text-acc-100 h-5 w-5" />
 								<h2 className="text-small sm:text-body text-txt-100 font-semibold">

@@ -26,6 +26,7 @@ import {
 	AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from "@/components/ui/toast"
+import { useLoadingOverlay } from "@/components/ui/loading-overlay"
 import { cn } from "@/lib/utils"
 import { RecalculateButton } from "./recalculate-button"
 import { RecalculatePnLButton } from "./recalculate-pnl-button"
@@ -41,8 +42,9 @@ import {
 	getAccountAssets,
 	updateAccountAsset,
 	deleteAccount,
+	deleteAllTradingData,
 } from "@/app/actions/accounts"
-import { Loader2, Trash2 } from "lucide-react"
+import { Loader2, Trash2, DatabaseZap } from "lucide-react"
 import { useFeatureAccess } from "@/hooks/use-feature-access"
 import { fromCents, toCents } from "@/lib/money"
 import { formatDateKey } from "@/lib/dates"
@@ -58,7 +60,9 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	const tGeneral = useTranslations("settings.general")
 	const { isAdmin } = useFeatureAccess()
 	const tCommon = useTranslations("common")
+	const tOverlay = useTranslations("overlay")
 	const { showToast } = useToast()
+	const { showLoading, hideLoading } = useLoadingOverlay()
 	const { update: updateSession } = useSession()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
@@ -68,6 +72,8 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	const [userAccounts, setUserAccounts] = useState<TradingAccount[]>([])
 	const [deleteConfirmName, setDeleteConfirmName] = useState("")
 	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+	const [deleteDataConfirmName, setDeleteDataConfirmName] = useState("")
+	const [isDeleteDataDialogOpen, setIsDeleteDataDialogOpen] = useState(false)
 
 	// Account editing
 	const [isEditingAccount, setIsEditingAccount] = useState(false)
@@ -314,6 +320,25 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 		})
 	}
 
+	const handleDeleteAllData = async () => {
+		if (!account) return
+
+		setIsDeleteDataDialogOpen(false)
+		setDeleteDataConfirmName("")
+		showLoading({ message: tOverlay("deletingTradingData") })
+
+		const result = await deleteAllTradingData()
+
+		hideLoading()
+
+		if (result.status === "success") {
+			showToast("success", t("deleteAllDataSuccess"))
+			router.refresh()
+		} else {
+			showToast("error", result.error || t("deleteAllDataError"))
+		}
+	}
+
 	const isDefaultAccount = account?.isDefault ?? false
 	const isLastAccount = userAccounts.length <= 1
 	const canDeleteAccount = !isDefaultAccount || isLastAccount
@@ -329,7 +354,7 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 	return (
 		<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600 mx-auto max-w-2xl">
 			{/* Account Information */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-account-info" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
 					<h2 className="text-small sm:text-body text-txt-100 font-semibold">
 						{t("accountInfo")}
@@ -580,7 +605,7 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			</div>
 
 			{/* Default Commission & Fees */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-default-fees" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<div className="flex items-center justify-between">
 					<h2 className="text-small sm:text-body text-txt-100 font-semibold">
 						{t("defaultFees")}
@@ -693,7 +718,7 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			</div>
 
 			{/* Per-Asset Overrides */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-asset-overrides" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<h2 className="text-body text-txt-100 font-semibold">
 					{t("assetOverrides")}
 				</h2>
@@ -871,7 +896,7 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			</div>
 
 			{/* Data Maintenance */}
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="settings-data-maintenance" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<h2 className="text-body text-txt-100 font-semibold">
 					{tGeneral("dataMaintenance")}
 				</h2>
@@ -937,91 +962,169 @@ const AccountSettings = ({ assets }: AccountSettingsProps) => {
 			)}
 
 			{/* Danger Zone */}
-			{/* <div className="bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-red-500/30">
+			<div id="settings-danger-zone" className="bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border border-red-500/30">
 				<h2 className="text-small sm:text-body font-semibold text-red-500">
 					{t("dangerZone")}
 				</h2>
-				<p className="mt-s-200 text-tiny text-txt-300">
-					{isLastAccount ? t("deleteLastAccountDesc") : t("dangerZoneDesc")}
-				</p>
-				{!canDeleteAccount && (
-					<p className="mt-s-200 text-tiny text-red-400">
-						{t("cannotDeleteDefaultAccount")}
+
+				{/* Delete All Trading Data */}
+				<div className="mt-m-400">
+					<p className="text-small text-txt-100">{t("deleteAllData")}</p>
+					<p className="mt-s-100 text-tiny text-txt-300">
+						{t("deleteAllDataDesc")}
 					</p>
-				)}
-				<div className="mt-m-400 flex items-center justify-between">
-					<p className="text-small text-txt-200">{account?.name}</p>
-					<AlertDialog
-						open={isDeleteDialogOpen}
-						onOpenChange={(open) => {
-							setIsDeleteDialogOpen(open)
-							if (!open) setDeleteConfirmName("")
-						}}
-					>
-						<AlertDialogTrigger asChild>
-							<Button
-								id="account-delete-trigger"
-								variant="destructive"
-								size="sm"
-								disabled={!canDeleteAccount}
-							>
-								<Trash2 className="mr-2 h-4 w-4" />
-								{t("deleteAccount")}
-							</Button>
-						</AlertDialogTrigger>
-						<AlertDialogContent>
-							<AlertDialogHeader>
-								<AlertDialogTitle>{t("deleteAccountTitle")}</AlertDialogTitle>
-								<AlertDialogDescription>
-									{isLastAccount
-										? t("deleteLastAccountWarning", {
-												name: account?.name ?? "",
-											})
-										: t("deleteAccountDescription", {
-												name: account?.name ?? "",
-											})}
-								</AlertDialogDescription>
-							</AlertDialogHeader>
-							<div className="space-y-s-200">
-								<Label
-									id="delete-confirm-label"
-									htmlFor="delete-confirm-input"
-									className="text-small text-txt-200"
-								>
-									{t("deleteAccountConfirmLabel", {
-										name: account?.name ?? "",
-									})}
-								</Label>
-								<Input
-									id="delete-confirm-input"
-									value={deleteConfirmName}
-									onChange={(e) => setDeleteConfirmName(e.target.value)}
-									placeholder={account?.name ?? ""}
-									aria-label={t("deleteAccountConfirmLabel", {
-										name: account?.name ?? "",
-									})}
-								/>
-							</div>
-							<AlertDialogFooter>
-								<AlertDialogCancel id="account-delete-cancel">
-									{tCommon("cancel")}
-								</AlertDialogCancel>
-								<AlertDialogAction
-									id="account-delete-confirm"
+					<div className="mt-s-300">
+						<AlertDialog
+							open={isDeleteDataDialogOpen}
+							onOpenChange={(open) => {
+								setIsDeleteDataDialogOpen(open)
+								if (!open) setDeleteDataConfirmName("")
+							}}
+						>
+							<AlertDialogTrigger asChild>
+								<Button
+									id="account-delete-data-trigger"
 									variant="destructive"
-									disabled={deleteConfirmName !== account?.name || isPending}
-									onClick={handleDeleteAccount}
+									size="sm"
 								>
-									{isPending && (
-										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-									)}
-									{tCommon("confirm")}
-								</AlertDialogAction>
-							</AlertDialogFooter>
-						</AlertDialogContent>
-					</AlertDialog>
+									<DatabaseZap className="mr-2 h-4 w-4" />
+									{t("deleteAllData")}
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>{t("deleteAllDataTitle")}</AlertDialogTitle>
+									<AlertDialogDescription>
+										{t("deleteAllDataDescription", {
+											name: account?.name ?? "",
+										})}
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<div className="space-y-s-200">
+									<Label
+										id="delete-data-confirm-label"
+										htmlFor="delete-data-confirm-input"
+										className="text-small text-txt-200"
+									>
+										{t("deleteAllDataConfirmLabel", {
+											name: account?.name ?? "",
+										})}
+									</Label>
+									<Input
+										id="delete-data-confirm-input"
+										value={deleteDataConfirmName}
+										onChange={(e) => setDeleteDataConfirmName(e.target.value)}
+										placeholder={account?.name ?? ""}
+										aria-label={t("deleteAllDataConfirmLabel", {
+											name: account?.name ?? "",
+										})}
+									/>
+								</div>
+								<AlertDialogFooter>
+									<AlertDialogCancel id="account-delete-data-cancel">
+										{tCommon("cancel")}
+									</AlertDialogCancel>
+									<AlertDialogAction
+										id="account-delete-data-confirm"
+										variant="destructive"
+										disabled={deleteDataConfirmName !== account?.name || isPending}
+										onClick={handleDeleteAllData}
+									>
+										{isPending && (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										)}
+										{tCommon("confirm")}
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
 				</div>
-			</div> */}
+
+				{/* Delete Account */}
+				<div className="border-bg-300 mt-m-400 border-t pt-m-400">
+					<p className="text-small text-txt-100">{t("deleteAccount")}</p>
+					<p className="mt-s-100 text-tiny text-txt-300">
+						{isLastAccount ? t("deleteLastAccountDesc") : t("dangerZoneDesc")}
+					</p>
+					{!canDeleteAccount && (
+						<p className="mt-s-100 text-tiny text-red-400">
+							{t("cannotDeleteDefaultAccount")}
+						</p>
+					)}
+					<div className="mt-s-300">
+						<AlertDialog
+							open={isDeleteDialogOpen}
+							onOpenChange={(open) => {
+								setIsDeleteDialogOpen(open)
+								if (!open) setDeleteConfirmName("")
+							}}
+						>
+							<AlertDialogTrigger asChild>
+								<Button
+									id="account-delete-trigger"
+									variant="destructive"
+									size="sm"
+									disabled={!canDeleteAccount}
+								>
+									<Trash2 className="mr-2 h-4 w-4" />
+									{t("deleteAccount")}
+								</Button>
+							</AlertDialogTrigger>
+							<AlertDialogContent>
+								<AlertDialogHeader>
+									<AlertDialogTitle>{t("deleteAccountTitle")}</AlertDialogTitle>
+									<AlertDialogDescription>
+										{isLastAccount
+											? t("deleteLastAccountWarning", {
+													name: account?.name ?? "",
+												})
+											: t("deleteAccountDescription", {
+													name: account?.name ?? "",
+												})}
+									</AlertDialogDescription>
+								</AlertDialogHeader>
+								<div className="space-y-s-200">
+									<Label
+										id="delete-confirm-label"
+										htmlFor="delete-confirm-input"
+										className="text-small text-txt-200"
+									>
+										{t("deleteAccountConfirmLabel", {
+											name: account?.name ?? "",
+										})}
+									</Label>
+									<Input
+										id="delete-confirm-input"
+										value={deleteConfirmName}
+										onChange={(e) => setDeleteConfirmName(e.target.value)}
+										placeholder={account?.name ?? ""}
+										aria-label={t("deleteAccountConfirmLabel", {
+											name: account?.name ?? "",
+										})}
+									/>
+								</div>
+								<AlertDialogFooter>
+									<AlertDialogCancel id="account-delete-cancel">
+										{tCommon("cancel")}
+									</AlertDialogCancel>
+									<AlertDialogAction
+										id="account-delete-confirm"
+										variant="destructive"
+										disabled={deleteConfirmName !== account?.name || isPending}
+										onClick={handleDeleteAccount}
+									>
+										{isPending && (
+											<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										)}
+										{tCommon("confirm")}
+									</AlertDialogAction>
+								</AlertDialogFooter>
+							</AlertDialogContent>
+						</AlertDialog>
+					</div>
+				</div>
+			</div>
 		</div>
 	)
 }

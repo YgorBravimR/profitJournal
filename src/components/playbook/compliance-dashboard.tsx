@@ -20,7 +20,7 @@ export const ComplianceDashboard = ({ data }: ComplianceDashboardProps) => {
 
 	if (!data) {
 		return (
-			<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+			<div id="playbook-compliance" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 				<h2 className="text-small sm:text-body text-txt-100 font-semibold">
 					{t("overview")}
 				</h2>
@@ -46,7 +46,7 @@ export const ComplianceDashboard = ({ data }: ComplianceDashboardProps) => {
 				: "bg-trade-sell"
 
 	return (
-		<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+		<div id="playbook-compliance" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 			<h2 className="text-small sm:text-body text-txt-100 font-semibold">
 				{t("overview")}
 			</h2>

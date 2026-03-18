@@ -16,6 +16,8 @@ import { uploadFiles } from "@/lib/upload-files"
 import type { PendingImage } from "@/lib/validations/upload"
 import type { StrategyConditionInput } from "@/types/trading-condition"
 import { useFeatureAccess } from "@/hooks/use-feature-access"
+import { useRegisterPageGuide } from "@/components/ui/page-guide"
+import { newStrategyGuide } from "@/components/ui/page-guide/guide-configs/new-strategy"
 import { Filter, ImageIcon } from "lucide-react"
 
 const NewStrategyPage = () => {
@@ -24,6 +26,7 @@ const NewStrategyPage = () => {
 	const tScenarios = useTranslations("playbook.scenarios")
 	const tCommon = useTranslations("common")
 	const { isAdmin } = useFeatureAccess()
+	useRegisterPageGuide(newStrategyGuide)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
 	const [conditions, setConditions] = useState<StrategyConditionInput[]>([])
@@ -173,7 +176,7 @@ const NewStrategyPage = () => {
 						</div>
 
 						{/* Rules & Criteria Section */}
-						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+						<div id="strategy-rules-criteria" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<h2 className="text-small sm:text-body text-txt-100 mb-s-300 sm:mb-m-400 font-semibold">
 								{t("rulesCriteria")}
 							</h2>
@@ -227,7 +230,7 @@ const NewStrategyPage = () => {
 						</div>
 
 						{/* Risk Settings Section */}
-						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+						<div id="strategy-risk-settings" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<h2 className="text-small sm:text-body text-txt-100 mb-s-300 sm:mb-m-400 font-semibold">
 								{t("riskSettings")}
 							</h2>
@@ -292,7 +295,7 @@ const NewStrategyPage = () => {
 
 						{/* Conditions Section */}
 						{isAdmin && (
-						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
+						<div id="strategy-conditions" className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<div className="gap-s-200 flex items-center">
 								<Filter className="text-acc-100 h-5 w-5" />
 								<h2 className="text-small sm:text-body text-txt-100 font-semibold">

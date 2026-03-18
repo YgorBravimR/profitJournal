@@ -79,7 +79,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 	}
 
 	return (
-		<div className="space-y-m-400">
+		<div id="settings-timeframes" className="space-y-m-400">
 			{/* Header */}
 			<div className="flex flex-wrap items-center justify-between gap-m-400">
 				<div className="flex items-center gap-s-300">
