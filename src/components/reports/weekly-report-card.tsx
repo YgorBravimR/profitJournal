@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
+import { useFormatting } from "@/hooks/use-formatting"
 import { getWeeklyReport, type WeeklyReport } from "@/app/actions/reports"
 import { format, parseISO } from "date-fns"
 import { ptBR, enUS } from "date-fns/locale"
@@ -27,6 +28,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 	const tCommon = useTranslations("common")
 	const locale = useLocale()
 	const dateLocale = locale === "pt-BR" ? ptBR : enUS
+	const { formatCurrencyWithSign, formatCurrency } = useFormatting()
 
 	const [report, setReport] = useState<WeeklyReport | null>(initialReport)
 	const [weekOffset, setWeekOffset] = useState(0)
@@ -123,8 +125,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 									summary.netPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 								)}
 							>
-								{summary.netPnl >= 0 ? "+" : ""}
-								{summary.netPnl.toFixed(2)}
+								{formatCurrencyWithSign(summary.netPnl)}
 							</p>
 							{summary.totalFees > 0 && (
 								<p className="mt-s-100 text-tiny text-txt-200">
@@ -136,11 +137,10 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 												: "text-trade-sell"
 										)}
 									>
-										{summary.grossPnl >= 0 ? "+" : ""}
-										{summary.grossPnl.toFixed(2)}
+										{formatCurrencyWithSign(summary.grossPnl)}
 									</span>{" "}
 									<span className="text-txt-300">
-										({tStats("fees")}: -{summary.totalFees.toFixed(2)})
+										({tStats("fees")}: -{formatCurrency(summary.totalFees)})
 									</span>
 								</p>
 							)}
@@ -184,25 +184,25 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 						<div>
 							<p className="text-tiny text-txt-200">{tStats("avgWin")}</p>
 							<p className="text-small text-trade-buy">
-								+{summary.avgWin.toFixed(2)}
+								{formatCurrencyWithSign(summary.avgWin)}
 							</p>
 						</div>
 						<div>
 							<p className="text-tiny text-txt-200">{tStats("avgLoss")}</p>
 							<p className="text-small text-trade-sell">
-								{summary.avgLoss.toFixed(2)}
+								{formatCurrencyWithSign(summary.avgLoss)}
 							</p>
 						</div>
 						<div>
 							<p className="text-tiny text-txt-200">{tStats("bestTrade")}</p>
 							<p className="text-small text-trade-buy">
-								+{summary.bestTrade.toFixed(2)}
+								{formatCurrencyWithSign(summary.bestTrade)}
 							</p>
 						</div>
 						<div>
 							<p className="text-tiny text-txt-200">{tStats("worstTrade")}</p>
 							<p className="text-small text-trade-sell">
-								{summary.worstTrade.toFixed(2)}
+								{formatCurrencyWithSign(summary.worstTrade)}
 							</p>
 						</div>
 					</div>
@@ -250,8 +250,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 																: "text-trade-sell"
 														)}
 													>
-														{day.pnl >= 0 ? "+" : ""}
-														{day.pnl.toFixed(2)}
+														{formatCurrencyWithSign(day.pnl)}
 													</span>
 												</div>
 											</div>
@@ -288,7 +287,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 													</span>
 												</div>
 												<span className="text-small text-trade-buy">
-													+{trade.pnl.toFixed(2)}
+													{formatCurrencyWithSign(trade.pnl)}
 													{trade.r && (
 														<span className="text-txt-300 ml-1">
 															({trade.r.toFixed(1)}R)
@@ -330,7 +329,7 @@ export const WeeklyReportCard = ({ initialReport }: WeeklyReportCardProps) => {
 													</span>
 												</div>
 												<span className="text-small text-trade-sell">
-													{trade.pnl.toFixed(2)}
+													{formatCurrencyWithSign(trade.pnl)}
 													{trade.r && (
 														<span className="text-txt-300 ml-1">
 															({trade.r.toFixed(1)}R)

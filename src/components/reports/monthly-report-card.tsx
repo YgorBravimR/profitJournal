@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ChevronLeft, ChevronRight, Loader2, Calendar, TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useFormatting } from "@/hooks/use-formatting"
 import { getMonthlyReport, type MonthlyReport } from "@/app/actions/reports"
 import { format, parseISO } from "date-fns"
 import { ptBR, enUS } from "date-fns/locale"
@@ -20,6 +21,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 	const tCommon = useTranslations("common")
 	const locale = useLocale()
 	const dateLocale = locale === "pt-BR" ? ptBR : enUS
+	const { formatCurrencyWithSign, formatCurrency } = useFormatting()
 	const [report, setReport] = useState<MonthlyReport | null>(initialReport)
 	const [monthOffset, setMonthOffset] = useState(0)
 	const [isPending, startTransition] = useTransition()
@@ -103,8 +105,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 									summary.netPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 								)}
 							>
-								{summary.netPnl >= 0 ? "+" : ""}
-								{summary.netPnl.toFixed(2)}
+								{formatCurrencyWithSign(summary.netPnl)}
 							</p>
 							{summary.totalFees > 0 && (
 								<p className="mt-s-100 text-tiny text-txt-200">
@@ -113,11 +114,11 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 										"font-mono",
 										summary.grossPnl >= 0 ? "text-trade-buy" : "text-trade-sell"
 									)}>
-										{summary.grossPnl >= 0 ? "+" : ""}{summary.grossPnl.toFixed(2)}
+										{formatCurrencyWithSign(summary.grossPnl)}
 									</span>
 									{" "}
 									<span className="text-txt-300">
-										({tStats("fees")}: -{summary.totalFees.toFixed(2)})
+										({tStats("fees")}: -{formatCurrency(summary.totalFees)})
 									</span>
 								</p>
 							)}
@@ -160,7 +161,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 											{format(parseISO(summary.bestDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
 										<span className="font-medium text-trade-buy">
-											+{summary.bestDay.pnl.toFixed(2)}
+											{formatCurrencyWithSign(summary.bestDay.pnl)}
 										</span>
 									</p>
 								</div>
@@ -176,7 +177,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 											{format(parseISO(summary.worstDay.date), "MMM d", { locale: dateLocale })}:
 										</span>{" "}
 										<span className="font-medium text-trade-sell">
-											{summary.worstDay.pnl.toFixed(2)}
+											{formatCurrencyWithSign(summary.worstDay.pnl)}
 										</span>
 									</p>
 								</div>
@@ -228,8 +229,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 																: "text-trade-sell"
 														)}
 													>
-														{week.pnl >= 0 ? "+" : ""}
-														{week.pnl.toFixed(2)}
+														{formatCurrencyWithSign(week.pnl)}
 													</span>
 												</div>
 											</div>
@@ -270,8 +270,7 @@ export const MonthlyReportCard = ({ initialReport }: MonthlyReportCardProps) => 
 																: "text-trade-sell"
 														)}
 													>
-														{asset.pnl >= 0 ? "+" : ""}
-														{asset.pnl.toFixed(2)}
+														{formatCurrencyWithSign(asset.pnl)}
 													</span>
 												</div>
 											</div>

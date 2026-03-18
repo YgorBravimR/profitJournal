@@ -3,7 +3,7 @@
 import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
 import { AlertTriangle } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useFormatting } from "@/hooks/use-formatting"
 import type { MistakeCostAnalysis } from "@/app/actions/reports"
 
 interface MistakeCostCardProps {
@@ -13,6 +13,7 @@ interface MistakeCostCardProps {
 export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 	const t = useTranslations("reports.mistakeCost")
 	const tStats = useTranslations("reports.stats")
+	const { formatCurrencyWithSign, formatCurrency } = useFormatting()
 
 	if (!data || data.mistakes.length === 0) {
 		return (
@@ -48,7 +49,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 				<div className="rounded bg-trade-sell-muted px-s-300 py-s-200">
 					<p className="text-tiny text-txt-300">{t("totalCost")}</p>
 					<p className="text-h3 font-bold text-trade-sell">
-						-{totalMistakeCost.toFixed(2)}
+						{formatCurrencyWithSign(-totalMistakeCost)}
 					</p>
 				</div>
 				<div className="rounded bg-bg-100 px-s-300 py-s-200">
@@ -88,10 +89,10 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 								</div>
 								<div className="flex shrink-0 items-center gap-m-400">
 									<span className="text-tiny text-txt-300 whitespace-nowrap">
-										{t("avg")}: -{mistake.avgLoss.toFixed(2)}
+										{t("avg")}: {formatCurrencyWithSign(-mistake.avgLoss)}
 									</span>
 									<span className="text-small font-medium text-trade-sell whitespace-nowrap">
-										-{mistake.totalLoss.toFixed(2)}
+										{formatCurrencyWithSign(-mistake.totalLoss)}
 									</span>
 								</div>
 							</div>
@@ -113,7 +114,7 @@ export const MistakeCostCard = ({ data }: MistakeCostCardProps) => {
 					<span className="font-medium text-warning">{t("insight")}:</span>{" "}
 					{t("insightText", {
 						mistake: mostCostlyMistake || "-",
-						amount: mistakes[0]?.totalLoss.toFixed(2) || "0.00",
+						amount: mistakes[0] ? formatCurrency(mistakes[0].totalLoss) : formatCurrency(0),
 					})}
 				</p>
 			</div>
