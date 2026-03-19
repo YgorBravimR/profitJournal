@@ -96,23 +96,13 @@ export const registerUser = async (
 			console.error("Seed data failed for user", newUser.id, err)
 		)
 
-		// Send email verification OTP — await to know if it actually sent
-		const { requestEmailVerification } = await import("@/app/actions/email-verification")
-		const emailResult = await requestEmailVerification({ email: email.toLowerCase() })
+		// Auto-verify user — email verification disabled for now
+		await db
+			.update(users)
+			.set({ emailVerified: new Date(), updatedAt: new Date() })
+			.where(eq(users.id, newUser.id))
 
-		if (!emailResult.success) {
-			// User was created but verification email failed to send.
-			// Mark as verified so they can log in immediately (graceful degradation).
-			await db
-				.update(users)
-				.set({ emailVerified: new Date(), updatedAt: new Date() })
-				.where(eq(users.id, newUser.id))
-
-			console.error("Email verification send failed, auto-verifying user:", email)
-			return { status: "success", needsVerification: false }
-		}
-
-		return { status: "success", needsVerification: true }
+		return { status: "success", needsVerification: false }
 	} catch (error) {
 		console.error("Registration error:", error)
 		return { status: "error", error: t("errors.registrationFailed") }
@@ -226,10 +216,10 @@ export const loginUser = async (
 			return { status: "error", error: t("errors.invalidCredentials") }
 		}
 
-		// Check email verification — block unverified users
-		if (!user.emailVerified) {
-			return { status: "error", error: "EMAIL_NOT_VERIFIED" }
-		}
+		// Email verification check disabled — users register directly
+		// if (!user.emailVerified) {
+		// 	return { status: "error", error: "EMAIL_NOT_VERIFIED" }
+		// }
 
 		// Clear lockout history on successful login
 		await clearLoginFailures(lowerEmail)
