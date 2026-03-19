@@ -29,3 +29,15 @@
 > **[FIX-2026-03-18]** `Severity: Medium` — **Affected:** `src/components/reports/weekly-report-card.tsx`, `src/components/reports/monthly-report-card.tsx`, `src/components/reports/mistake-cost-card.tsx`
 > **Report:** "Reports page components display monetary values without currency formatting — raw numbers like +428.34 instead of R$ 428,34 or $428.34"
 > **Fix:** Replaced all `.toFixed(2)` calls on monetary values (netPnl, grossPnl, totalFees, avgWin, avgLoss, bestTrade, worstTrade, daily/weekly/asset pnl, trade pnl, mistake costs) with `formatCurrencyWithSign()` for P&L values and `formatCurrency()` for absolute values, using the `useFormatting` hook. Removed manual `+`/`-` prefixes since `formatCurrencyWithSign` handles sign display. Left non-monetary `.toFixed()` calls (win rate, profit factor, R-multiples) unchanged.
+
+---
+
+> **[FIX-2026-03-19]** `Severity: Low` — **Affected:** `src/components/command-center/live-trading-status-panel.tsx`
+> **Report:** "Raw i18n key `riskSimulation.reasons.t1BaseRisk` displayed as text in Live Trading Status panel instead of translated string"
+> **Fix:** Imported `translateRiskReason` from `@/lib/risk-reason-i18n` and added a `tRisk = useTranslations("riskSimulation")` hook. Applied `translateRiskReason(tRisk, status.riskReason)` in both the stop-trading and active-trading branches where `status.riskReason` was rendered raw as a `subLabel`.
+
+---
+
+> **[FIX-2026-03-19]** `Severity: Low` — **Affected:** `src/components/command-center/circuit-breaker-panel.tsx`
+> **Report:** "Circuit Breaker card shows `$` prefix instead of `R$` for all monetary values (P&L Diario, P&L Mensal, Meta, Limite Mensal, Risco Diario Restante)"
+> **Fix:** Removed the local `formatCurrency(value, currency = "$")` function and `currency` prop. Replaced with `useFormatting` hook's locale-aware `formatCurrency` which correctly resolves to `R$` for pt-BR locale. Removed all `currency` parameter references from `formatCurrency` calls throughout the component.
