@@ -45,7 +45,8 @@ test-results
 demo-videos
 video-trades.csv
 video/out/
-video/public/*.webm
+video/public/
+video/node_modules/
 
 # claude code
 .claude/settings.local.json
