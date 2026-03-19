@@ -140,7 +140,7 @@ export const TradeRow = memo(({
 
 			{/* Strategy (truncated) */}
 			{trade.strategyName && (
-				<span className="text-small text-txt-300 hidden max-w-[120px] shrink-0 truncate lg:inline">
+				<span className="text-small text-txt-300 hidden min-w-0 shrink truncate lg:inline">
 					{trade.strategyName}
 				</span>
 			)}
