@@ -1062,6 +1062,7 @@ const DecisionTreeModal = ({
 			<DialogContent
 				id="decision-tree-modal"
 				className="max-h-[85dvh] max-w-[92dvw] overflow-y-auto"
+				aria-describedby={undefined}
 			>
 				<DialogHeader>
 					<DialogTitle>

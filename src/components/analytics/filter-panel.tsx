@@ -269,7 +269,8 @@ const FilterPanel = ({
 						<SheetContent
 							id="advanced-filters-sheet"
 							side="right"
-							className="w-80 sm:w-96"
+							className="w-80 sm:w-96 px-m-400 pt-m-400 pb-m-500"
+							aria-describedby={undefined}
 						>
 							<SheetTitle className="text-small text-txt-100 font-semibold">
 								{t("advancedFilters")}

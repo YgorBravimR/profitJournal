@@ -30,7 +30,8 @@ const DecisionTraceModal = ({
 			<SheetContent
 				id="risk-sim-trace-sheet"
 				side="right"
-				className="bg-bg-100 border-bg-300 w-full overflow-y-auto border-l sm:max-w-2xl"
+				className="bg-bg-100 border-bg-300 w-full overflow-y-auto border-l px-m-400 pt-m-400 pb-m-500 sm:max-w-2xl"
+				aria-describedby={undefined}
 			>
 				<SheetHeader className="mb-m-400">
 					<SheetTitle className="text-body sm:text-h3 text-txt-100">

@@ -87,6 +87,7 @@ export const DayDetailModal = ({
 			<DialogContent
 				id="day-detail-dialog"
 				className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-3xl overflow-hidden sm:w-full"
+				aria-describedby={undefined}
 			>
 				<ScrollArea className="max-h-[calc(90dvh-3rem)] overflow-y-auto">
 				<DialogHeader>

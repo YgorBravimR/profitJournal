@@ -116,7 +116,7 @@ export const ChecklistManager = ({
 
 	return (
 		<Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-			<DialogContent id="checklist-manager-dialog" className="max-w-lg">
+			<DialogContent id="checklist-manager-dialog" className="max-w-lg" aria-describedby={undefined}>
 				<DialogHeader>
 					<DialogTitle>
 						{isEditing ? t("editTitle") : t("createTitle")}
