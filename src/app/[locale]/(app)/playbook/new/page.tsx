@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef } from "react"
 import type { FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/toast"
 import { createStrategy } from "@/app/actions/strategies"
 import { ConditionPicker } from "@/components/playbook/condition-picker"
 import { ImageUpload } from "@/components/shared/image-upload"
@@ -27,15 +28,19 @@ const NewStrategyPage = () => {
 	const tCommon = useTranslations("common")
 	const { isAdmin } = useFeatureAccess()
 	useRegisterPageGuide(newStrategyGuide)
+	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
-	const [error, setError] = useState<string | null>(null)
+	const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({})
 	const [conditions, setConditions] = useState<StrategyConditionInput[]>([])
 	const [pendingScreenshot, setPendingScreenshot] =
 		useState<PendingImage | null>(null)
+	const [code, setCode] = useState("")
+	const [name, setName] = useState("")
+	const codeInputRef = useRef<HTMLInputElement>(null)
 
 	const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
-		setError(null)
+		setFieldErrors({})
 
 		const formData = new FormData(e.currentTarget)
 
@@ -54,7 +59,7 @@ const NewStrategyPage = () => {
 				})
 
 				if (errors.length > 0) {
-					setError(errors[0])
+					showToast("error", errors[0])
 					return
 				}
 
@@ -89,7 +94,14 @@ const NewStrategyPage = () => {
 			if (result.status === "success") {
 				router.push("/playbook")
 			} else {
-				setError(result.message)
+				showToast("error", result.message)
+
+				// Highlight the code field for duplicate strategy errors
+				const isDuplicate = result.errors?.some((err) => err.code === "DUPLICATE_STRATEGY")
+				if (isDuplicate) {
+					setFieldErrors({ code: true })
+					codeInputRef.current?.focus()
+				}
 			}
 		})
 	}
@@ -102,12 +114,6 @@ const NewStrategyPage = () => {
 						onSubmit={handleSubmit}
 						className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600"
 					>
-						{error && (
-							<div className="bg-fb-error/10 text-fb-error p-s-300 text-small rounded-lg">
-								{error}
-							</div>
-						)}
-
 						{/* Basic Info Section */}
 						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<h2 className="text-small sm:text-body text-txt-100 mb-s-300 sm:mb-m-400 font-semibold">
@@ -117,10 +123,11 @@ const NewStrategyPage = () => {
 							<div className="space-y-m-400">
 								<div className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-3">
 									<div>
-										<Label id="label-code" htmlFor="code">
+										<Label id="label-code" htmlFor="code" required filled={!!code.trim()}>
 											{t("codeLabel")}
 										</Label>
 										<Input
+											ref={codeInputRef}
 											id="code"
 											name="code"
 											placeholder={t("codePlaceholder")}
@@ -128,13 +135,19 @@ const NewStrategyPage = () => {
 											maxLength={10}
 											minLength={3}
 											className="mt-s-200 uppercase"
+											aria-invalid={fieldErrors.code}
+											value={code}
+											onChange={(e) => {
+												setCode(e.target.value)
+												if (fieldErrors.code) setFieldErrors({})
+											}}
 										/>
 										<p className="text-tiny text-txt-300 mt-s-100">
 											{t("codeHint")}
 										</p>
 									</div>
 									<div className="sm:col-span-2">
-										<Label id="label-strategy-name" htmlFor="name">
+										<Label id="label-strategy-name" htmlFor="name" required filled={!!name.trim()}>
 											{t("strategyNameLabel")}
 										</Label>
 										<Input
@@ -143,6 +156,8 @@ const NewStrategyPage = () => {
 											placeholder={t("strategyNamePlaceholder")}
 											required
 											className="mt-s-200"
+											value={name}
+											onChange={(e) => setName(e.target.value)}
 										/>
 									</div>
 								</div>

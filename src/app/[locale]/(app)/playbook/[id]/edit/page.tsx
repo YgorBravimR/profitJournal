@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import type { FormEvent } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/components/ui/toast"
 import { getStrategy, updateStrategy } from "@/app/actions/strategies"
 import { getStrategyConditions } from "@/app/actions/strategy-conditions"
 import type { StrategyWithStats } from "@/app/actions/strategies"
@@ -31,9 +32,11 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 	const tScenarios = useTranslations("playbook.scenarios")
 	const { isAdmin } = useFeatureAccess()
 	const tCommon = useTranslations("common")
+	const { showToast } = useToast()
 	const [isPending, startTransition] = useTransition()
 	const [isLoading, setIsLoading] = useState(true)
-	const [error, setError] = useState<string | null>(null)
+	const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({})
+	const codeInputRef = useRef<HTMLInputElement>(null)
 	const [strategy, setStrategy] = useState<StrategyWithStats | null>(null)
 	const [strategyId, setStrategyId] = useState<string | null>(null)
 	const [conditions, setConditions] = useState<StrategyConditionInput[]>([])
@@ -41,6 +44,8 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 		useState<PersistedImage | null>(null)
 	const [pendingScreenshot, setPendingScreenshot] =
 		useState<PendingImage | null>(null)
+	const [code, setCode] = useState("")
+	const [name, setName] = useState("")
 
 	useEffect(() => {
 		const loadStrategy = async () => {
@@ -54,6 +59,8 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 
 			if (stratResult.status === "success" && stratResult.data) {
 				setStrategy(stratResult.data)
+				setCode(stratResult.data.code)
+				setName(stratResult.data.name)
 				// Initialize persisted screenshot from existing data
 				if (
 					stratResult.data.screenshotUrl &&
@@ -65,7 +72,7 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 					})
 				}
 			} else {
-				setError(t("strategyNotFound"))
+				showToast("error", t("strategyNotFound"))
 			}
 
 			if (condResult.status === "success" && condResult.data) {
@@ -86,7 +93,7 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 	const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
 		e.preventDefault()
 		if (!strategyId) return
-		setError(null)
+		setFieldErrors({})
 
 		const formData = new FormData(e.currentTarget)
 
@@ -103,7 +110,7 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 				})
 
 				if (errors.length > 0) {
-					setError(errors[0])
+					showToast("error", errors[0])
 					return
 				}
 
@@ -143,7 +150,13 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 			if (result.status === "success") {
 				router.push("/playbook")
 			} else {
-				setError(result.message)
+				showToast("error", result.message)
+
+				const isDuplicate = result.errors?.some((err) => err.code === "DUPLICATE_STRATEGY")
+				if (isDuplicate) {
+					setFieldErrors({ code: true })
+					codeInputRef.current?.focus()
+				}
 			}
 		})
 	}
@@ -178,12 +191,6 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 						onSubmit={handleSubmit}
 						className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600"
 					>
-						{error && (
-							<div className="bg-fb-error/10 text-fb-error p-s-300 text-small rounded-lg">
-								{error}
-							</div>
-						)}
-
 						{/* Basic Info Section */}
 						<div className="border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500 rounded-lg border">
 							<h2 className="text-small sm:text-body text-txt-100 mb-s-300 sm:mb-m-400 font-semibold">
@@ -193,34 +200,41 @@ const EditStrategyPage = ({ params }: EditStrategyPageProps) => {
 							<div className="space-y-m-400">
 								<div className="gap-s-300 sm:gap-m-400 grid grid-cols-1 sm:grid-cols-3">
 									<div>
-										<Label id="label-code" htmlFor="code">
+										<Label id="label-code" htmlFor="code" required filled={!!code.trim()}>
 											{t("codeLabel")}
 										</Label>
 										<Input
+											ref={codeInputRef}
 											id="code"
 											name="code"
-											defaultValue={strategy.code}
 											placeholder={t("codePlaceholder")}
 											required
 											maxLength={10}
 											minLength={3}
 											className="mt-s-200 uppercase"
+											aria-invalid={fieldErrors.code}
+											value={code}
+											onChange={(e) => {
+												setCode(e.target.value)
+												if (fieldErrors.code) setFieldErrors({})
+											}}
 										/>
 										<p className="text-tiny text-txt-300 mt-s-100">
 											{t("codeHint")}
 										</p>
 									</div>
 									<div className="sm:col-span-2">
-										<Label id="label-strategy-name" htmlFor="name">
+										<Label id="label-strategy-name" htmlFor="name" required filled={!!name.trim()}>
 											{t("strategyNameLabel")}
 										</Label>
 										<Input
 											id="name"
 											name="name"
-											defaultValue={strategy.name}
 											placeholder={t("strategyNamePlaceholder")}
 											required
 											className="mt-s-200"
+											value={name}
+											onChange={(e) => setName(e.target.value)}
 										/>
 									</div>
 								</div>

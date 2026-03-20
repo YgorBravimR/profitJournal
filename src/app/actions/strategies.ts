@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache"
 import { db } from "@/db/drizzle"
-import { strategies, trades, strategyConditions, strategyScenarios } from "@/db/schema"
+import {
+	strategies,
+	trades,
+	strategyConditions,
+	strategyScenarios,
+} from "@/db/schema"
 import type { Strategy } from "@/db/schema"
 import type { ActionResponse } from "@/types"
 import { eq, and, desc, inArray, sql } from "drizzle-orm"
@@ -17,6 +22,28 @@ import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
 import { fromCents } from "@/lib/money"
 import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
+
+/**
+ * Checks whether a database error represents a unique constraint violation.
+ * Neon wraps the real Postgres error in `.cause`, so we check both
+ * the top-level message and the nested cause for code 23505.
+ *
+ * @param error - The caught error from a database operation
+ * @returns Whether the error is a unique constraint violation
+ */
+const isUniqueViolation = (error: unknown): boolean => {
+	if (!(error instanceof Error)) return false
+	const msg = error.message
+	if (msg.includes("unique") || msg.includes("23505")) return true
+	if (error.cause instanceof Error) {
+		const causeMsg = error.cause.message
+		if (causeMsg.includes("unique") || causeMsg.includes("23505")) return true
+	}
+	if (error.cause && typeof error.cause === "object" && "code" in error.cause) {
+		if ((error.cause as Record<string, unknown>).code === "23505") return true
+	}
+	return false
+}
 
 export interface StrategyWithStats extends Strategy {
 	tradeCount: number
@@ -102,8 +129,8 @@ export const createStrategy = async (
 			}
 		}
 
-		// Check for unique constraint violation
-		if (error instanceof Error && error.message.includes("unique")) {
+		// Check for unique constraint violation (Neon wraps the real error in .cause)
+		if (isUniqueViolation(error)) {
 			return {
 				status: "error",
 				message: "A strategy with this code already exists",
@@ -228,6 +255,20 @@ export const updateStrategy = async (
 					code: "VALIDATION_ERROR",
 					detail: `${e.path.join(".")}: ${e.message}`,
 				})),
+			}
+		}
+
+		// Check for unique constraint violation (Neon wraps the real error in .cause)
+		if (isUniqueViolation(error)) {
+			return {
+				status: "error",
+				message: "A strategy with this code already exists",
+				errors: [
+					{
+						code: "DUPLICATE_STRATEGY",
+						detail: "Strategy code must be unique",
+					},
+				],
 			}
 		}
 
@@ -410,23 +451,24 @@ export const getStrategies = async (
 		// Calculate stats for each strategy
 		const strategiesWithStats: StrategyWithStats[] = await Promise.all(
 			allStrategies.map(async (strategy) => {
-				const [strategyTrades, conditionCountResult, scenarioCountResult] = await Promise.all([
-					db.query.trades.findMany({
-						where: and(
-							eq(trades.strategyId, strategy.id),
-							tradesAccountCondition,
-							eq(trades.isArchived, false)
-						),
-					}),
-					db
-						.select({ count: sql<number>`count(*)::int` })
-						.from(strategyConditions)
-						.where(eq(strategyConditions.strategyId, strategy.id)),
-					db
-						.select({ count: sql<number>`count(*)::int` })
-						.from(strategyScenarios)
-						.where(eq(strategyScenarios.strategyId, strategy.id)),
-				])
+				const [strategyTrades, conditionCountResult, scenarioCountResult] =
+					await Promise.all([
+						db.query.trades.findMany({
+							where: and(
+								eq(trades.strategyId, strategy.id),
+								tradesAccountCondition,
+								eq(trades.isArchived, false)
+							),
+						}),
+						db
+							.select({ count: sql<number>`count(*)::int` })
+							.from(strategyConditions)
+							.where(eq(strategyConditions.strategyId, strategy.id)),
+						db
+							.select({ count: sql<number>`count(*)::int` })
+							.from(strategyScenarios)
+							.where(eq(strategyScenarios.strategyId, strategy.id)),
+					])
 
 				return {
 					...strategy,
@@ -485,23 +527,24 @@ export const getStrategy = async (
 		}
 
 		// Get trades, condition count, and scenario count for this strategy
-		const [strategyTrades, conditionCountResult, scenarioCountResult] = await Promise.all([
-			db.query.trades.findMany({
-				where: and(
-					eq(trades.strategyId, strategy.id),
-					tradesAccountCondition,
-					eq(trades.isArchived, false)
-				),
-			}),
-			db
-				.select({ count: sql<number>`count(*)::int` })
-				.from(strategyConditions)
-				.where(eq(strategyConditions.strategyId, strategy.id)),
-			db
-				.select({ count: sql<number>`count(*)::int` })
-				.from(strategyScenarios)
-				.where(eq(strategyScenarios.strategyId, strategy.id)),
-		])
+		const [strategyTrades, conditionCountResult, scenarioCountResult] =
+			await Promise.all([
+				db.query.trades.findMany({
+					where: and(
+						eq(trades.strategyId, strategy.id),
+						tradesAccountCondition,
+						eq(trades.isArchived, false)
+					),
+				}),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(strategyConditions)
+					.where(eq(strategyConditions.strategyId, strategy.id)),
+				db
+					.select({ count: sql<number>`count(*)::int` })
+					.from(strategyScenarios)
+					.where(eq(strategyScenarios.strategyId, strategy.id)),
+			])
 
 		return {
 			status: "success",
