@@ -1,8 +1,8 @@
 "use client"
 
 import { useMemo } from "react"
-import { PieChart, Pie, Cell, Tooltip } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { PieChart, Pie, Cell } from "recharts"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import type { SimulationStatisticsV2 } from "@/types/monte-carlo"
 
@@ -112,7 +112,7 @@ const ModeDistributionChart = ({ statistics }: ModeDistributionChartProps) => {
 								/>
 							))}
 						</Pie>
-						<Tooltip content={<CustomTooltip />} />
+						<ChartTooltip content={<CustomTooltip />} />
 					</PieChart>
 				</ChartContainer>
 				</div>

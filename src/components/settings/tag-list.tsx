@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { TagForm } from "./tag-form"
 import { getTags, deleteTag } from "@/app/actions/tags"
+import { useUrlParams } from "@/hooks/use-url-params"
 import type { Tag } from "@/db/schema"
 import type { TagType } from "@/types"
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
@@ -25,9 +26,14 @@ import {
 export const TagList = () => {
 	const t = useTranslations("settings.tags")
 	const tCommon = useTranslations("common")
+	const urlParams = useUrlParams()
+	const filterType = (urlParams.get("tagType") ?? "all") as "all" | TagType
+	const setFilterType = (value: "all" | TagType) => {
+		urlParams.set({ tagType: value === "all" ? null : value })
+	}
+
 	const [tags, setTags] = useState<Tag[]>([])
 	const [isLoading, setIsLoading] = useState(true)
-	const [filterType, setFilterType] = useState<"all" | TagType>("all")
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingTag, setEditingTag] = useState<Tag | null>(null)
 	const [isPending, startTransition] = useTransition()

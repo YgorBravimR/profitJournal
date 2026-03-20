@@ -7,12 +7,12 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 	Cell,
 	Rectangle,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatR } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -266,7 +266,7 @@ export const DistributionHistogram = ({
 						domain={[0, maxCount * 1.1]}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip content={<CustomTooltip />} />
 					<ReferenceLine
 						x={0}
 						stroke="var(--color-acc-100)"

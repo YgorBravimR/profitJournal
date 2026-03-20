@@ -1,5 +1,7 @@
+import { Suspense } from "react"
 import { setRequestLocale } from "next-intl/server"
 import { SettingsContent } from "@/components/settings"
+import { LoadingSpinner } from "@/components/shared"
 import { getAssets, getAssetTypes } from "@/app/actions/assets"
 import { getTimeframes } from "@/app/actions/timeframes"
 import { getCurrentUser } from "@/app/actions/auth"
@@ -36,14 +38,16 @@ const SettingsPage = async ({ params }: SettingsPageProps) => {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex-1 overflow-auto p-m-400 sm:p-m-500 lg:p-m-600">
-				<SettingsContent
-					assets={assets}
-					assetTypes={assetTypes}
-					timeframes={timeframes}
-					isAdmin={isAdmin}
-					usersWithAccounts={usersWithAccounts}
-					currentUserId={user?.id ?? ""}
-				/>
+				<Suspense fallback={<LoadingSpinner size="md" className="h-50" />}>
+					<SettingsContent
+						assets={assets}
+						assetTypes={assetTypes}
+						timeframes={timeframes}
+						isAdmin={isAdmin}
+						usersWithAccounts={usersWithAccounts}
+						currentUserId={user?.id ?? ""}
+					/>
+				</Suspense>
 			</div>
 		</div>
 	)

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -21,6 +21,8 @@ import {
 	BarChart3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useUrlParams } from "@/hooks/use-url-params"
+import { useState } from "react"
 
 interface TimeframeListProps {
 	timeframes: Timeframe[]
@@ -29,10 +31,18 @@ interface TimeframeListProps {
 export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 	const t = useTranslations("settings.timeframes")
 	const tCommon = useTranslations("common")
-	const [filterType, setFilterType] = useState<"all" | "time_based" | "renko">(
-		"all"
-	)
-	const [showInactive, setShowInactive] = useState(false)
+	const urlParams = useUrlParams()
+
+	const filterType = (urlParams.get("tfType") ?? "all") as "all" | "time_based" | "renko"
+	const setFilterType = (value: "all" | "time_based" | "renko") => {
+		urlParams.set({ tfType: value === "all" ? null : value })
+	}
+
+	const showInactive = urlParams.getBoolean("inactive")
+	const setShowInactive = (value: boolean) => {
+		urlParams.set({ inactive: value })
+	}
+
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingTimeframe, setEditingTimeframe] = useState<Timeframe | null>(
 		null
@@ -87,7 +97,13 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						id="badge-timeframe-filter-all"
 						variant={filterType === "all" ? "default" : "outline"}
 						className="cursor-pointer"
+						tabIndex={0}
+						role="button"
+						aria-pressed={filterType === "all"}
 						onClick={() => setFilterType("all")}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") setFilterType("all")
+						}}
 					>
 						{tCommon("all")}
 					</Badge>
@@ -95,7 +111,13 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						id="badge-timeframe-filter-time-based"
 						variant={filterType === "time_based" ? "default" : "outline"}
 						className="cursor-pointer"
+						tabIndex={0}
+						role="button"
+						aria-pressed={filterType === "time_based"}
 						onClick={() => setFilterType("time_based")}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") setFilterType("time_based")
+						}}
 					>
 						<Clock className="mr-1 h-3 w-3" />
 						{t("timeBased")}
@@ -104,7 +126,13 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 						id="badge-timeframe-filter-renko"
 						variant={filterType === "renko" ? "default" : "outline"}
 						className="cursor-pointer"
+						tabIndex={0}
+						role="button"
+						aria-pressed={filterType === "renko"}
 						onClick={() => setFilterType("renko")}
+						onKeyDown={(e) => {
+							if (e.key === "Enter" || e.key === " ") setFilterType("renko")
+						}}
 					>
 						<BarChart3 className="mr-1 h-3 w-3" />
 						{t("renko")}

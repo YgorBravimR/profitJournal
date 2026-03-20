@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	Legend,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { fromCents } from "@/lib/money"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -105,7 +105,7 @@ const EquityCurveOverlay = ({ equityCurve }: EquityCurveOverlayProps) => {
 						tickFormatter={(val: number) => `${(val / 1000).toFixed(1)}k`}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip variant="line" content={<CustomTooltip />} />
 					<Legend
 						wrapperStyle={{ fontSize: 12, color: "var(--color-txt-300)" }}
 					/>

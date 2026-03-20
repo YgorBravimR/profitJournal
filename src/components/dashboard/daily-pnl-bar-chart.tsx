@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	Cell,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { APP_TIMEZONE } from "@/lib/dates"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -138,10 +138,7 @@ export const DailyPnLBarChart = ({
 						domain={[-domainMax, domainMax]}
 						width={yAxisWidth}
 					/>
-					<Tooltip
-						content={<CustomTooltip />}
-						cursor={{ fill: "var(--color-bg-300)", opacity: 0.3 }}
-					/>
+					<ChartTooltip content={<CustomTooltip />} />
 					<Bar
 						dataKey="pnl"
 						radius={[4, 4, 0, 0]}

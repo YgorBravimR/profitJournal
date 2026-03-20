@@ -1,7 +1,9 @@
+import { Suspense } from "react"
 import { getActiveMonthlyPlan } from "@/app/actions/monthly-plans"
 import { listActiveRiskProfiles } from "@/app/actions/risk-profiles"
 import { getTradeYears } from "@/app/actions/risk-simulation"
 import { RiskSimulationContent } from "@/components/risk-simulation"
+import { LoadingSpinner } from "@/components/shared"
 
 export const dynamic = "force-dynamic"
 
@@ -21,11 +23,13 @@ const RiskSimulationPage = async () => {
 
 	return (
 		<div className="p-m-400 sm:p-m-500 lg:p-m-600 container mx-auto max-w-7xl">
-			<RiskSimulationContent
-				monthlyPlan={monthlyPlan}
-				riskProfiles={riskProfiles}
-				tradeYears={tradeYears}
-			/>
+			<Suspense fallback={<LoadingSpinner size="md" className="h-50" />}>
+				<RiskSimulationContent
+					monthlyPlan={monthlyPlan}
+					riskProfiles={riskProfiles}
+					tradeYears={tradeYears}
+				/>
+			</Suspense>
 		</div>
 	)
 }

@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
 import type { DayEquityPoint } from "@/types"
@@ -116,7 +116,7 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 						width={yAxisWidth}
 					/>
 					<ReferenceLine y={0} stroke="var(--color-bg-300)" strokeDasharray="3 3" />
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip variant="line" content={<CustomTooltip />} />
 					<Line
 						type="stepAfter"
 						dataKey="cumulativePnl"

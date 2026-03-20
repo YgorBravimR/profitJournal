@@ -12,6 +12,8 @@ import {
 	toggleAssetActive,
 	type AssetWithType,
 } from "@/app/actions/assets"
+import { useUrlParams } from "@/hooks/use-url-params"
+import { useDebouncedSearch } from "@/hooks/use-debounced-search"
 import type { AssetType } from "@/db/schema"
 import type { ColumnDef } from "@tanstack/react-table"
 import {
@@ -33,9 +35,19 @@ interface AssetListProps {
 const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 	const t = useTranslations("settings.assets")
 	const tCommon = useTranslations("common")
-	const [search, setSearch] = useState("")
-	const [filterType, setFilterType] = useState<string | null>(null)
-	const [showInactive, setShowInactive] = useState(false)
+	const urlParams = useUrlParams()
+	const { value: search, setValue: setSearch } = useDebouncedSearch("assetQ")
+
+	const filterType = urlParams.get("assetType")
+	const setFilterType = (value: string | null) => {
+		urlParams.set({ assetType: value })
+	}
+
+	const showInactive = urlParams.getBoolean("inactive")
+	const setShowInactive = (value: boolean) => {
+		urlParams.set({ inactive: value })
+	}
+
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingAsset, setEditingAsset] = useState<AssetWithType | null>(null)
 	const [isPending, startTransition] = useTransition()
@@ -240,7 +252,13 @@ const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 							id="badge-asset-filter-all"
 							variant={filterType === null ? "default" : "outline"}
 							className="cursor-pointer"
+							tabIndex={0}
+							role="button"
+							aria-pressed={filterType === null}
 							onClick={() => setFilterType(null)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" || e.key === " ") setFilterType(null)
+							}}
 						>
 							{tCommon("all")}
 						</Badge>
@@ -250,9 +268,16 @@ const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 								key={type.id}
 								variant={filterType === type.id ? "default" : "outline"}
 								className="cursor-pointer"
+								tabIndex={0}
+								role="button"
+								aria-pressed={filterType === type.id}
 								onClick={() =>
 									setFilterType(filterType === type.id ? null : type.id)
 								}
+								onKeyDown={(e) => {
+									if (e.key === "Enter" || e.key === " ")
+										setFilterType(filterType === type.id ? null : type.id)
+								}}
 							>
 								{type.name}
 							</Badge>

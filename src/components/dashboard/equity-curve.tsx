@@ -1,8 +1,8 @@
 "use client"
 
 import { useState, useTransition, useEffect } from "react"
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { cn } from "@/lib/utils"
 import { formatCompactCurrency } from "@/lib/formatting"
@@ -362,7 +362,7 @@ export const EquityCurve = ({
 						domain={[minEquity - padding, maxEquity + padding]}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip variant="line" content={<CustomTooltip />} />
 					<Area
 						type="monotone"
 						dataKey="accountEquity"

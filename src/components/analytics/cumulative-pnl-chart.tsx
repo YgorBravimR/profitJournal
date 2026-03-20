@@ -6,10 +6,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -143,7 +143,7 @@ export const CumulativePnlChart = ({ data }: CumulativePnlChartProps) => {
 						domain={[minEquity - padding, maxEquity + padding]}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip locale={locale} />} />
+					<ChartTooltip variant="line" content={<CustomTooltip locale={locale} />} />
 					<ReferenceLine y={0} stroke="var(--color-bg-300)" strokeWidth={2} />
 					<Area
 						type="monotone"

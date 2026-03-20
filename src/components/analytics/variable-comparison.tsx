@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip as RechartsTooltip,
+
 	Cell,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 import {
@@ -239,7 +239,7 @@ export const VariableComparison = ({
 							tickFormatter={(value) => formatMetricValue(value, metric)}
 							width={yAxisWidth}
 						/>
-						<RechartsTooltip content={<CustomTooltip metric={metric} />} />
+						<ChartTooltip content={<CustomTooltip metric={metric} />} />
 						<Bar dataKey="value" radius={[4, 4, 0, 0]} maxBarSize={80}>
 							{chartData.map((entry, index) => (
 								<Cell

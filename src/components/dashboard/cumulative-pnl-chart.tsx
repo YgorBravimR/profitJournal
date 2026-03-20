@@ -1,8 +1,8 @@
 "use client"
 
 import { useTranslations } from "next-intl"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { APP_TIMEZONE } from "@/lib/dates"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -139,7 +139,7 @@ export const CumulativePnLChart = ({
 						domain={[minEquity - padding, maxEquity + padding]}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip variant="line" content={<CustomTooltip />} />
 					<Line
 						type="monotone"
 						dataKey="equity"

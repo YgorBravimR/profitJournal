@@ -1,5 +1,7 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { Suspense } from "react"
+import { setRequestLocale } from "next-intl/server"
 import { AnalyticsContent } from "@/components/analytics"
+import { LoadingSpinner } from "@/components/shared"
 import {
 	getPerformanceByVariable,
 	getExpectedValue,
@@ -26,8 +28,6 @@ interface AnalyticsPageProps {
 const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 	const { locale } = await params
 	setRequestLocale(locale)
-
-	const t = await getTranslations("analytics")
 
 	// Fetch all initial data server-side in parallel
 	const [
@@ -114,6 +114,7 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex-1 overflow-auto p-m-400 sm:p-m-500 lg:p-m-600">
+				<Suspense fallback={<LoadingSpinner size="md" className="h-50" />}>
 				<AnalyticsContent
 					initialPerformance={initialPerformance}
 					initialTagStats={initialTagStats}
@@ -129,6 +130,7 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 					availableTimeframes={availableTimeframes}
 					accountCount={accountCount}
 				/>
+				</Suspense>
 			</div>
 		</div>
 	)

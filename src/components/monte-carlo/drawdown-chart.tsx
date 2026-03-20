@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatR } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -118,7 +118,7 @@ export const DrawdownChart = ({ trades }: DrawdownChartProps) => {
 						reversed
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip variant="line" content={<CustomTooltip />} />
 					<ReferenceLine
 						y={0}
 						stroke="var(--color-txt-300)"

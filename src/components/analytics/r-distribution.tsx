@@ -6,11 +6,11 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip as RechartsTooltip,
+
 	Cell,
 	ReferenceLine,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { BarChart3, Info } from "lucide-react"
 import { useTranslations } from "next-intl"
 import {
@@ -185,7 +185,7 @@ export const RDistribution = ({ data }: RDistributionProps) => {
 							axisLine={false}
 							allowDecimals={false}
 						/>
-						<RechartsTooltip content={<CustomTooltip />} />
+						<ChartTooltip content={<CustomTooltip />} />
 						<ReferenceLine x="0R to 0.5R" stroke="var(--color-txt-300)" strokeDasharray="3 3" />
 						<Bar dataKey="count" radius={[4, 4, 0, 0]} maxBarSize={80}>
 							{data.map((entry, index) => (

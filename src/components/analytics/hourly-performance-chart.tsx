@@ -7,10 +7,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	Cell,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { formatCompactCurrencyWithSign, formatR } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
 import type { HourlyPerformance } from "@/types"
@@ -140,7 +140,7 @@ export const HourlyPerformanceChart = ({ data, expectancyMode }: HourlyPerforman
 							domain={[-domainMax, domainMax]}
 							width={yAxisWidth}
 						/>
-						<Tooltip content={<CustomTooltip />} cursor={{ fill: "var(--color-bg-300)", opacity: 0.3 }} />
+						<ChartTooltip content={<CustomTooltip />} />
 						<Bar dataKey={metricKey} radius={[4, 4, 0, 0]} maxBarSize={80}>
 							{data.map((entry, index) => (
 								<Cell

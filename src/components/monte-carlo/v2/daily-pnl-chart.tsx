@@ -7,11 +7,11 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 	Cell,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -126,7 +126,7 @@ const DailyPnlChart = ({ days, monthsToTrade = 1 }: DailyPnlChartProps) => {
 						domain={[minPnl - padding, maxPnl + padding]}
 						width={yAxisWidth}
 					/>
-					<Tooltip content={<CustomTooltip />} />
+					<ChartTooltip content={<CustomTooltip />} />
 					<ReferenceLine
 						y={0}
 						stroke="var(--color-txt-300)"

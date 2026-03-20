@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Search } from "lucide-react"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { useUrlParams } from "@/hooks/use-url-params"
+import { parseDateParam, serializeDateParam } from "@/lib/url-params"
 import type { JournalPeriod, TradesByDay } from "@/types"
 import { getTradesGroupedByDay, deleteTrade } from "@/app/actions/trades"
 import {
@@ -81,20 +83,15 @@ const getDateRange = (
 	}
 }
 
-interface JournalContentProps {
-	initialPeriod?: JournalPeriod
-}
+const VALID_PERIODS: JournalPeriod[] = ["day", "week", "month", "all", "custom"]
 
 /**
  * Main content component for the trading journal page.
  * Handles period filtering, data fetching, and displays trades grouped by day.
  * Manages inline trade deletion with two-step confirmation.
- *
- * @param initialPeriod - The initial period to display (defaults to "week")
+ * Period and custom date range are persisted in URL params.
  */
-export const JournalContent = ({
-	initialPeriod = "week",
-}: JournalContentProps) => {
+export const JournalContent = () => {
 	const router = useRouter()
 	useRegisterPageGuide(journalGuide)
 	const t = useTranslations("journal")
@@ -103,11 +100,24 @@ export const JournalContent = ({
 	const { showToast } = useToast()
 	const effectiveDate = useEffectiveDate()
 	const [isPending, startTransition] = useTransition()
+	const urlParams = useUrlParams()
 
-	const [period, setPeriod] = useState<JournalPeriod>(initialPeriod)
-	const [customDateRange, setCustomDateRange] = useState<
-		{ from: Date; to: Date } | undefined
-	>()
+	// Read period from URL, default to "week"
+	const periodParam = urlParams.get("period") ?? "week"
+	const period: JournalPeriod = VALID_PERIODS.includes(
+		periodParam as JournalPeriod
+	)
+		? (periodParam as JournalPeriod)
+		: "week"
+
+	// Read custom date range from URL (only relevant when period=custom)
+	const customFrom =
+		period === "custom" ? parseDateParam(urlParams.get("from")) : null
+	const customTo =
+		period === "custom" ? parseDateParam(urlParams.get("to")) : null
+	const customDateRange =
+		customFrom && customTo ? { from: customFrom, to: customTo } : undefined
+
 	const [tradesByDay, setTradesByDay] = useState<TradesByDay[]>([])
 	const [isLoading, setIsLoading] = useState(true)
 	const [totalTrades, setTotalTrades] = useState(0)
@@ -126,7 +136,6 @@ export const JournalContent = ({
 
 			if (result.status === "success" && result.data) {
 				setTradesByDay(result.data)
-				// Calculate total trades
 				const total = result.data.reduce(
 					(sum, day) => sum + day.trades.length,
 					0
@@ -143,17 +152,31 @@ export const JournalContent = ({
 		startTransition(() => {
 			fetchTrades()
 		})
-	}, [period, customDateRange, effectiveDate])
+	}, [
+		period,
+		customDateRange?.from?.getTime(),
+		customDateRange?.to?.getTime(),
+		effectiveDate,
+	]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	// Memoized handlers to prevent unnecessary re-renders in child components
 	const handlePeriodChange = useCallback(
 		(newPeriod: JournalPeriod, dateRange?: { from: Date; to: Date }) => {
-			setPeriod(newPeriod)
 			if (newPeriod === "custom" && dateRange) {
-				setCustomDateRange(dateRange)
+				urlParams.set({
+					period: "custom",
+					from: serializeDateParam(dateRange.from),
+					to: serializeDateParam(dateRange.to),
+				})
+			} else {
+				urlParams.set({
+					period: newPeriod === "week" ? null : newPeriod,
+					from: null,
+					to: null,
+				})
 			}
 		},
-		[]
+		[urlParams]
 	)
 
 	const handleTradeClick = useCallback(
@@ -224,7 +247,10 @@ export const JournalContent = ({
 	return (
 		<div className="gap-s-300 sm:gap-m-400 flex flex-col">
 			{/* Period Filter */}
-			<div id="journal-period-filter" className="gap-s-300 sm:gap-m-400 flex flex-wrap items-start justify-between">
+			<div
+				id="journal-period-filter"
+				className="gap-s-300 sm:gap-m-400 flex flex-wrap items-start justify-between"
+			>
 				<PeriodFilter
 					value={period}
 					onChange={handlePeriodChange}
@@ -233,7 +259,10 @@ export const JournalContent = ({
 
 				{/* Period Summary */}
 				{!isLoading && totalTrades > 0 && (
-					<div id="journal-period-summary" className="gap-s-300 sm:gap-m-400 text-small flex flex-wrap items-center">
+					<div
+						id="journal-period-summary"
+						className="gap-s-300 sm:gap-m-400 text-small flex flex-wrap items-center"
+					>
 						<span className="text-txt-300">
 							{totalTrades} {t("tradesCount")}
 						</span>
@@ -244,7 +273,9 @@ export const JournalContent = ({
 							className="font-medium"
 						/>
 						<span className="text-txt-300">
-							{periodSummary.wins}{tCommon("winAbbr")} {periodSummary.losses}{tCommon("lossAbbr")}
+							{periodSummary.wins}
+							{tCommon("winAbbr")} {periodSummary.losses}
+							{tCommon("lossAbbr")}
 							{periodSummary.breakevens > 0
 								? ` ${periodSummary.breakevens}${tCommon("breakevenAbbr")}`
 								: ""}{" "}
@@ -270,7 +301,10 @@ export const JournalContent = ({
 
 			{/* Trade Groups by Day */}
 			{!isLoading && tradesByDay.length > 0 && (
-				<div id="journal-trade-groups" className="space-y-s-300 sm:space-y-m-400">
+				<div
+					id="journal-trade-groups"
+					className="space-y-s-300 sm:space-y-m-400"
+				>
 					{tradesByDay.map((dayData) => (
 						<TradeDayGroup
 							key={dayData.date}

@@ -6,10 +6,10 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -176,7 +176,8 @@ const ComparisonEquityChart = ({
 						domain={[minVal - padding, maxVal + padding]}
 						width={yAxisWidth}
 					/>
-					<Tooltip
+					<ChartTooltip
+						variant="line"
 						content={
 							<CustomTooltip locale={locale} accountMap={accountMap} />
 						}

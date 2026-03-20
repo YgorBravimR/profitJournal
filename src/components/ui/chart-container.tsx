@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useRef, type ReactElement } from "react"
-import { ResponsiveContainer } from "recharts"
+import { useState, useEffect, useRef, type ReactElement, type ComponentProps } from "react"
+import { ResponsiveContainer, Tooltip } from "recharts"
 
 interface ChartContainerProps {
 	id: string
@@ -69,4 +69,23 @@ const ChartContainer = ({ id, children, className }: ChartContainerProps) => {
 	)
 }
 
-export { ChartContainer }
+/**
+ * Theme-aware Recharts Tooltip with dark-mode cursor defaults.
+ *
+ * BarCharts use a filled rectangle cursor; line/area charts use a
+ * subtle vertical stroke. Pass `variant` to pick the right one,
+ * or override `cursor` directly when you need something custom.
+ */
+type ChartTooltipProps = ComponentProps<typeof Tooltip> & {
+	variant?: "bar" | "line"
+}
+
+const BAR_CURSOR = { fill: "var(--color-bg-300)", opacity: 0.3 }
+const LINE_CURSOR = { stroke: "var(--color-bg-300)", strokeWidth: 1 }
+
+const ChartTooltip = ({ variant = "bar", cursor, ...rest }: ChartTooltipProps) => {
+	const defaultCursor = variant === "line" ? LINE_CURSOR : BAR_CURSOR
+	return <Tooltip cursor={cursor ?? defaultCursor} {...rest} />
+}
+
+export { ChartContainer, ChartTooltip }

@@ -7,9 +7,9 @@ import {
 	PolarGrid,
 	PolarAngleAxis,
 	PolarRadiusAxis,
-	Tooltip,
+
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useIsMobile } from "@/hooks/use-is-mobile"
 import type { RadarChartData } from "@/types"
 
@@ -107,7 +107,7 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 							tick={false}
 							axisLine={false}
 						/>
-						<Tooltip content={<CustomTooltip />} />
+						<ChartTooltip content={<CustomTooltip />} />
 						<Radar
 							name={tCharts("performance")}
 							dataKey="normalized"

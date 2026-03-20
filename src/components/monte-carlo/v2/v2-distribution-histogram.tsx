@@ -7,11 +7,11 @@ import {
 	XAxis,
 	YAxis,
 	CartesianGrid,
-	Tooltip,
+
 	ReferenceLine,
 	Cell,
 } from "recharts"
-import { ChartContainer } from "@/components/ui/chart-container"
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations } from "next-intl"
 import { formatCompactCurrency } from "@/lib/formatting"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -124,9 +124,7 @@ export const V2DistributionHistogram = ({
 						domain={[0, maxCount * 1.1]}
 						width={yAxisWidth}
 					/>
-					<Tooltip
-						content={<CustomTooltip currency={currency} />}
-					/>
+					<ChartTooltip content={<CustomTooltip currency={currency} />} />
 					<ReferenceLine
 						x={initialBalance}
 						stroke="var(--color-acc-100)"

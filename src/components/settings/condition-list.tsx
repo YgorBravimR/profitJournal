@@ -9,6 +9,7 @@ import {
 	getConditions,
 	deleteCondition,
 } from "@/app/actions/trading-conditions"
+import { useUrlParams } from "@/hooks/use-url-params"
 import type { TradingCondition } from "@/db/schema"
 import type { ConditionCategory } from "@/types/trading-condition"
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react"
@@ -30,9 +31,14 @@ type FilterCategory = "all" | ConditionCategory
 export const ConditionList = () => {
 	const t = useTranslations("settings.conditions")
 	const tCommon = useTranslations("common")
+	const urlParams = useUrlParams()
+	const filterCategory = (urlParams.get("conditionCat") ?? "all") as FilterCategory
+	const setFilterCategory = (value: FilterCategory) => {
+		urlParams.set({ conditionCat: value === "all" ? null : value })
+	}
+
 	const [conditions, setConditions] = useState<TradingCondition[]>([])
 	const [isLoading, setIsLoading] = useState(true)
-	const [filterCategory, setFilterCategory] = useState<FilterCategory>("all")
 	const [formOpen, setFormOpen] = useState(false)
 	const [editingCondition, setEditingCondition] =
 		useState<TradingCondition | null>(null)

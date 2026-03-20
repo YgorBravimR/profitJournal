@@ -1,8 +1,9 @@
 "use client"
 
-import { Fragment, useState, useTransition, useMemo, useCallback, type ChangeEvent, type KeyboardEvent } from "react"
+import { Fragment, useState, useTransition, useMemo, useCallback, type KeyboardEvent } from "react"
 import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
+import { useDebouncedSearch } from "@/hooks/use-debounced-search"
 import { ChevronRight, Loader2, Search, Trash2, Users } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -56,7 +57,7 @@ const UserList = ({ users, currentUserId }: UserListProps) => {
 	const { showToast } = useToast()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
-	const [search, setSearch] = useState("")
+	const { value: search, setValue: setSearch } = useDebouncedSearch("userQ")
 	const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 	const [pendingId, setPendingId] = useState<string | null>(null)
 	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -102,13 +103,6 @@ const UserList = ({ users, currentUserId }: UserListProps) => {
 		[showToast, t]
 	)
 
-	const handleSearchChange = useCallback(
-		(e: ChangeEvent<HTMLInputElement>) => {
-			setSearch(e.target.value)
-		},
-		[]
-	)
-
 	const handleRowKeyDown = useCallback(
 		(e: KeyboardEvent, userId: string) => {
 			if (e.key === "Enter" || e.key === " ") {
@@ -148,7 +142,7 @@ const UserList = ({ users, currentUserId }: UserListProps) => {
 					id="user-search"
 					placeholder={t("searchUsers")}
 					value={search}
-					onChange={handleSearchChange}
+					onChange={(e) => setSearch(e.target.value)}
 					className="pl-9"
 					aria-label={t("searchUsers")}
 				/>

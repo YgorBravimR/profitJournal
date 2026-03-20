@@ -18,6 +18,8 @@ import {
 	type ExpectancyMode,
 } from "./expectancy-mode-toggle"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
+import { useUrlParams } from "@/hooks/use-url-params"
+import { parseDateParam, serializeDateParam } from "@/lib/url-params"
 import { cn } from "@/lib/utils"
 
 interface FilterState {
@@ -35,16 +37,13 @@ interface TimeframeOption {
 }
 
 interface FilterPanelProps {
-	filters: FilterState
-	onFiltersChange: (filters: FilterState) => void
 	availableAssets: string[]
 	availableTimeframes: TimeframeOption[]
-	expectancyMode: ExpectancyMode
-	onExpectancyModeChange: (mode: ExpectancyMode) => void
 }
 
 interface DatePreset {
 	key: string
+	urlKey: string
 	getDates: (now: Date) => { from: Date | null; to: Date | null }
 }
 
@@ -61,10 +60,12 @@ const OUTCOME_VARIANT_MAP: Record<string, FilterVariant> = {
 const DATE_PRESET_CONFIGS: DatePreset[] = [
 	{
 		key: "today",
+		urlKey: "today",
 		getDates: (now) => ({ from: new Date(now), to: new Date(now) }),
 	},
 	{
 		key: "thisWeek",
+		urlKey: "week",
 		getDates: (now) => {
 			const start = new Date(now)
 			start.setDate(now.getDate() - now.getDay())
@@ -73,6 +74,7 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 	},
 	{
 		key: "thisMonth",
+		urlKey: "month",
 		getDates: (now) => {
 			const start = new Date(now.getFullYear(), now.getMonth(), 1)
 			return { from: start, to: new Date(now) }
@@ -80,6 +82,7 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 	},
 	{
 		key: "thisYear",
+		urlKey: "year",
 		getDates: (now) => {
 			const start = new Date(now.getFullYear(), 0, 1)
 			return { from: start, to: new Date(now) }
@@ -87,45 +90,143 @@ const DATE_PRESET_CONFIGS: DatePreset[] = [
 	},
 ]
 
-/**
- * Determines which preset key is currently active based on filter dates.
- * Returns null when no preset matches (custom range or allTime).
- */
-const getActivePresetKey = (
-	filters: FilterState,
-	effectiveDate: Date
-): string | null => {
-	if (!filters.dateFrom && !filters.dateTo) return null
+/** Maps URL datePreset param to a preset config */
+const PRESET_BY_URL_KEY = new Map(DATE_PRESET_CONFIGS.map((p) => [p.urlKey, p]))
 
-	for (const preset of DATE_PRESET_CONFIGS) {
-		const { from, to } = preset.getDates(effectiveDate)
-		if (
-			from &&
-			to &&
-			filters.dateFrom?.toDateString() === from.toDateString() &&
-			filters.dateTo?.toDateString() === to.toDateString()
-		) {
-			return preset.key
+/**
+ * Reads the current filter state from URL params.
+ * This is the single source of truth for all analytics filters.
+ */
+const useAnalyticsFilters = () => {
+	const urlParams = useUrlParams()
+	const effectiveDate = useEffectiveDate()
+
+	// Date handling: datePreset param wins, then custom from/to
+	const datePresetKey = urlParams.get("datePreset")
+	let dateFrom: Date | null = null
+	let dateTo: Date | null = null
+	let activePresetKey: string | null = null
+
+	if (datePresetKey && PRESET_BY_URL_KEY.has(datePresetKey)) {
+		const preset = PRESET_BY_URL_KEY.get(datePresetKey)!
+		const dates = preset.getDates(effectiveDate)
+		dateFrom = dates.from
+		dateTo = dates.to
+		activePresetKey = preset.key
+	} else if (!datePresetKey) {
+		// Check for custom from/to
+		dateFrom = parseDateParam(urlParams.get("from"))
+		dateTo = parseDateParam(urlParams.get("to"))
+		if (dateFrom || dateTo) {
+			activePresetKey = "custom"
 		}
 	}
-	return "custom"
+
+	const filters: FilterState = {
+		dateFrom,
+		dateTo,
+		assets: urlParams.getArray("assets"),
+		directions: urlParams.getArray("directions") as Array<"long" | "short">,
+		outcomes: urlParams.getArray("outcomes") as Array<
+			"win" | "loss" | "breakeven"
+		>,
+		timeframeIds: urlParams.getArray("timeframeIds"),
+	}
+
+	const groupBy = (urlParams.get("groupBy") ?? "asset") as
+		| "asset"
+		| "timeframe"
+		| "hour"
+		| "dayOfWeek"
+		| "strategy"
+
+	const expectancyMode = (urlParams.get("expectancy") ??
+		"edge") as ExpectancyMode
+
+	const setDatePreset = (preset: DatePreset) => {
+		// Clicking the already-active preset deselects it (→ allTime)
+		if (activePresetKey === preset.key) {
+			urlParams.set({ datePreset: null, from: null, to: null })
+			return
+		}
+		urlParams.set({
+			datePreset: preset.urlKey,
+			from: null,
+			to: null,
+		})
+	}
+
+	const setCustomDateRange = (range: DateRange | undefined) => {
+		urlParams.set({
+			datePreset: null,
+			from: serializeDateParam(range?.from ?? null),
+			to: serializeDateParam(range?.to ?? null),
+		})
+	}
+
+	const toggleArrayFilter = <T extends string>(
+		array: T[],
+		value: T,
+		key: "assets" | "directions" | "outcomes" | "timeframeIds"
+	) => {
+		const newArray = array.includes(value)
+			? array.filter((v) => v !== value)
+			: [...array, value]
+		urlParams.set({ [key]: newArray })
+	}
+
+	const setGroupBy = (value: string) => {
+		urlParams.set({ groupBy: value === "asset" ? null : value })
+	}
+
+	const setExpectancyMode = (mode: ExpectancyMode) => {
+		urlParams.set({ expectancy: mode === "edge" ? null : mode })
+	}
+
+	const clearFilters = () => {
+		urlParams.set({
+			datePreset: null,
+			from: null,
+			to: null,
+			assets: [],
+			directions: [],
+			outcomes: [],
+			timeframeIds: [],
+		})
+	}
+
+	return {
+		filters,
+		groupBy,
+		expectancyMode,
+		activePresetKey,
+		setDatePreset,
+		setCustomDateRange,
+		toggleArrayFilter,
+		setGroupBy,
+		setExpectancyMode,
+		clearFilters,
+	}
 }
 
 const FilterPanel = ({
-	filters,
-	onFiltersChange,
 	availableAssets,
 	availableTimeframes,
-	expectancyMode,
-	onExpectancyModeChange,
 }: FilterPanelProps) => {
 	const t = useTranslations("analytics.filters")
 	const tTrade = useTranslations("trade")
-	const effectiveDate = useEffectiveDate()
+	const {
+		filters,
+		expectancyMode,
+		activePresetKey,
+		setDatePreset,
+		setCustomDateRange,
+		toggleArrayFilter,
+		setExpectancyMode,
+		clearFilters,
+	} = useAnalyticsFilters()
 	const [isSheetOpen, setIsSheetOpen] = useState(false)
 	const [isCustomDateOpen, setIsCustomDateOpen] = useState(false)
-
-	const activePresetKey = getActivePresetKey(filters, effectiveDate)
 
 	const directions = [
 		{ value: "long" as const, label: tTrade("direction.long") },
@@ -137,46 +238,6 @@ const FilterPanel = ({
 		{ value: "loss" as const, label: tTrade("outcome.loss") },
 		{ value: "breakeven" as const, label: tTrade("outcome.breakeven") },
 	]
-
-	const handleDatePreset = (preset: DatePreset) => {
-		// Clicking the already-active preset deselects it (→ allTime)
-		if (activePresetKey === preset.key) {
-			onFiltersChange({ ...filters, dateFrom: null, dateTo: null })
-			return
-		}
-		const { from, to } = preset.getDates(effectiveDate)
-		onFiltersChange({ ...filters, dateFrom: from, dateTo: to })
-	}
-
-	const handleDateRangeChange = (range: DateRange | undefined) => {
-		onFiltersChange({
-			...filters,
-			dateFrom: range?.from ?? null,
-			dateTo: range?.to ?? null,
-		})
-	}
-
-	const toggleArrayFilter = <T extends string>(
-		array: T[],
-		value: T,
-		key: keyof FilterState
-	) => {
-		const newArray = array.includes(value)
-			? array.filter((v) => v !== value)
-			: [...array, value]
-		onFiltersChange({ ...filters, [key]: newArray })
-	}
-
-	const clearFilters = () => {
-		onFiltersChange({
-			dateFrom: null,
-			dateTo: null,
-			assets: [],
-			directions: [],
-			outcomes: [],
-			timeframeIds: [],
-		})
-	}
 
 	// Count active advanced filters (excludes date since that's in the main bar)
 	const advancedFilterCount =
@@ -199,7 +260,7 @@ const FilterPanel = ({
 							key={preset.key}
 							type="button"
 							tabIndex={0}
-							onClick={() => handleDatePreset(preset)}
+							onClick={() => setDatePreset(preset)}
 							className={cn(
 								"px-s-300 py-s-100 text-tiny rounded-md font-medium whitespace-nowrap transition-colors",
 								activePresetKey === preset.key
@@ -245,7 +306,7 @@ const FilterPanel = ({
 
 					<ExpectancyModeToggle
 						mode={expectancyMode}
-						onModeChange={onExpectancyModeChange}
+						onModeChange={setExpectancyMode}
 					/>
 
 					{/* Advanced Filters button */}
@@ -269,7 +330,7 @@ const FilterPanel = ({
 						<SheetContent
 							id="advanced-filters-sheet"
 							side="right"
-							className="w-80 sm:w-96 px-m-400 pt-m-400 pb-m-500"
+							className="px-m-400 pt-m-400 pb-m-500 w-80 sm:w-96"
 							aria-describedby={undefined}
 						>
 							<SheetTitle className="text-small text-txt-100 font-semibold">
@@ -384,7 +445,7 @@ const FilterPanel = ({
 									}
 								: undefined
 						}
-						onChange={handleDateRangeChange}
+						onChange={setCustomDateRange}
 						className="w-full sm:max-w-sm"
 					/>
 				</div>
@@ -393,4 +454,4 @@ const FilterPanel = ({
 	)
 }
 
-export { FilterPanel, type FilterState }
+export { FilterPanel, useAnalyticsFilters, type FilterState }

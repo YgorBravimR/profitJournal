@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect, useTransition, useRef } from "react"
+import { useState, useEffect, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import {
 	FilterPanel,
+	useAnalyticsFilters,
 	VariableComparison,
 	TagCloud,
 	ExpectedValue,
@@ -16,7 +17,6 @@ import {
 	SessionAssetTable,
 	type FilterState,
 } from "@/components/analytics"
-import type { ExpectancyMode } from "./expectancy-mode-toggle"
 import { LoadingSpinner } from "@/components/shared"
 import { Link } from "@/i18n/routing"
 import { GitCompareArrows } from "lucide-react"
@@ -79,8 +79,21 @@ const toTradeFilters = (f: FilterState) => ({
 	timeframeIds: f.timeframeIds.length > 0 ? f.timeframeIds : undefined,
 })
 
+/** Creates a stable string key from filters + groupBy for change detection */
+const toFilterKey = (f: FilterState, groupBy: string): string =>
+	JSON.stringify({
+		dateFrom: f.dateFrom?.getTime() ?? null,
+		dateTo: f.dateTo?.getTime() ?? null,
+		assets: f.assets,
+		directions: f.directions,
+		outcomes: f.outcomes,
+		timeframeIds: f.timeframeIds,
+		groupBy,
+	})
+
 /**
  * Main analytics dashboard component.
+ * Filters, groupBy, and expectancyMode are driven by URL params.
  * Uses parallel data fetching for optimal performance when filters change.
  */
 const AnalyticsContent = ({
@@ -106,23 +119,8 @@ const AnalyticsContent = ({
 
 	useRegisterPageGuide(analyticsGuide)
 
-	const [filters, setFilters] = useState<FilterState>({
-		dateFrom: null,
-		dateTo: null,
-		assets: [],
-		directions: [],
-		outcomes: [],
-		timeframeIds: [],
-	})
-
-	const [groupBy, setGroupBy] = useState<
-		"asset" | "timeframe" | "hour" | "dayOfWeek" | "strategy"
-	>("asset")
-
-	// Skip the fetch effect on initial mount — data is already provided via server-side props
-	const hasUserInteracted = useRef(false)
-
-	const [expectancyMode, setExpectancyMode] = useState<ExpectancyMode>("edge")
+	// Read all filter state from URL params
+	const { filters, groupBy, expectancyMode, setGroupBy } = useAnalyticsFilters()
 
 	const [performance, setPerformance] =
 		useState<PerformanceByGroup[]>(initialPerformance)
@@ -174,13 +172,17 @@ const AnalyticsContent = ({
 		initialSessionAssetPerformance,
 	])
 
-	// Refetch data when filters or groupBy change (skip initial mount — server already fetched)
-	useEffect(() => {
-		if (!hasUserInteracted.current) {
-			hasUserInteracted.current = true
-			return
-		}
+	// Stable key for current filters — drives refetch when URL params change
+	const filterKey = toFilterKey(filters, groupBy)
 
+	// Refetch data when URL params change (filterKey changes)
+	// On first render with no URL filters, filterKey matches initial props, so we skip.
+	const [lastFetchedKey, setLastFetchedKey] = useState(filterKey)
+
+	useEffect(() => {
+		if (filterKey === lastFetchedKey) return
+
+		setLastFetchedKey(filterKey)
 		startTransition(async () => {
 			const tradeFilters = toTradeFilters(filters)
 
@@ -208,7 +210,6 @@ const AnalyticsContent = ({
 				getSessionAssetPerformance(tradeFilters),
 			])
 
-			// Update state with successful results
 			if (perfResult.status === "success") setPerformance(perfResult.data ?? [])
 			if (tagResult.status === "success") setTagStats(tagResult.data ?? [])
 			if (evResult.status === "success") setExpectedValue(evResult.data ?? null)
@@ -227,7 +228,7 @@ const AnalyticsContent = ({
 			if (sessionAssetResult.status === "success")
 				setSessionAssetPerformance(sessionAssetResult.data ?? [])
 		})
-	}, [filters, groupBy])
+	}, [filterKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
 	return (
 		<div className="space-y-m-400 sm:space-y-m-500 lg:space-y-m-600">
@@ -247,12 +248,8 @@ const AnalyticsContent = ({
 
 			{/* Filter Panel (includes ExpectancyModeToggle) */}
 			<FilterPanel
-				filters={filters}
-				onFiltersChange={setFilters}
 				availableAssets={availableAssets}
 				availableTimeframes={availableTimeframes}
-				expectancyMode={expectancyMode}
-				onExpectancyModeChange={setExpectancyMode}
 			/>
 
 			{/* Loading Indicator */}

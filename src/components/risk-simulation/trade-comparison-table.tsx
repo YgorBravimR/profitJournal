@@ -1,12 +1,16 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import { cn } from "@/lib/utils"
 import { fromCents } from "@/lib/money"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { translateRiskReason } from "@/lib/risk-reason-i18n"
-import type { SimulatedTrade, SimulatedTradeStatus } from "@/types/risk-simulation"
+import { useUrlParams } from "@/hooks/use-url-params"
+import type {
+	SimulatedTrade,
+	SimulatedTradeStatus,
+} from "@/types/risk-simulation"
 
 interface TradeComparisonTableProps {
 	trades: SimulatedTrade[]
@@ -30,7 +34,13 @@ const statusDotColors: Record<SimulatedTradeStatus, string> = {
 const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 	const t = useTranslations("riskSimulation.table")
 	const tReasons = useTranslations("riskSimulation")
-	const [page, setPage] = useState(0)
+	const urlParams = useUrlParams()
+
+	// URL param is 1-based for user-friendliness, internal logic is 0-based
+	const page = urlParams.getNumber("page", 1) - 1
+	const setPage = (newPage: number) => {
+		urlParams.set({ page: newPage + 1 })
+	}
 
 	const totalPages = Math.ceil(trades.length / PAGE_SIZE)
 	const paginatedTrades = useMemo(
@@ -38,13 +48,10 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 		[trades, page]
 	)
 
-	const activeStatuses = useMemo(() => {
-		const seen = new Set<SimulatedTradeStatus>()
-		for (const trade of trades) {
-			seen.add(trade.status)
-		}
-		return Array.from(seen)
-	}, [trades])
+	const activeStatuses = useMemo(
+		() => [...new Set(trades.map((trade) => trade.status))],
+		[trades]
+	)
 
 	const formatCurrency = (cents: number | null): string => {
 		if (cents === null) return "—"
@@ -61,11 +68,18 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 	return (
 		<div className="border-bg-300 overflow-hidden rounded-lg border">
 			{/* Status color legend */}
-			<div className="border-bg-300 flex flex-wrap gap-x-s-300 gap-y-s-100 border-b px-3 py-2">
+			<div className="border-bg-300 gap-x-s-300 gap-y-s-100 flex flex-wrap border-b px-3 py-2">
 				{activeStatuses.map((status) => (
-					<div key={status} className="flex items-center gap-s-100">
-						<span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", statusDotColors[status])} />
-						<span className="text-tiny text-txt-300">{t(`statuses.${status}`)}</span>
+					<div key={status} className="gap-s-100 flex items-center">
+						<span
+							className={cn(
+								"h-2.5 w-2.5 shrink-0 rounded-full",
+								statusDotColors[status]
+							)}
+						/>
+						<span className="text-tiny text-txt-300">
+							{t(`statuses.${status}`)}
+						</span>
 					</div>
 				))}
 			</div>
@@ -73,31 +87,31 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 				<table className="w-full" role="table" aria-label={t("title")}>
 					<thead>
 						<tr className="bg-bg-200 border-bg-300 border-b">
-							<th className="text-tiny text-txt-300 whitespace-nowrap px-3 py-2 text-left font-medium">
+							<th className="text-tiny text-txt-300 px-3 py-2 text-left font-medium whitespace-nowrap">
 								{t("day")}
 							</th>
-							<th className="text-tiny text-txt-300 whitespace-nowrap px-3 py-2 text-left font-medium">
+							<th className="text-tiny text-txt-300 px-3 py-2 text-left font-medium whitespace-nowrap">
 								{t("trade")}
 							</th>
-							<th className="text-tiny text-txt-300 whitespace-nowrap px-3 py-2 text-left font-medium">
+							<th className="text-tiny text-txt-300 px-3 py-2 text-left font-medium whitespace-nowrap">
 								{t("asset")}
 							</th>
-							<th className="text-tiny text-txt-300 whitespace-nowrap px-3 py-2 text-left font-medium">
+							<th className="text-tiny text-txt-300 px-3 py-2 text-left font-medium whitespace-nowrap">
 								{t("status")}
 							</th>
-							<th className="text-tiny text-txt-300 hidden whitespace-nowrap px-3 py-2 text-right font-medium md:table-cell">
+							<th className="text-tiny text-txt-300 hidden px-3 py-2 text-right font-medium whitespace-nowrap md:table-cell">
 								{t("risk")}
 							</th>
-							<th className="text-tiny text-txt-300 hidden whitespace-nowrap px-3 py-2 text-right font-medium md:table-cell">
+							<th className="text-tiny text-txt-300 hidden px-3 py-2 text-right font-medium whitespace-nowrap md:table-cell">
 								{t("originalPnl")}
 							</th>
-							<th className="text-tiny text-txt-300 whitespace-nowrap px-3 py-2 text-right font-medium">
+							<th className="text-tiny text-txt-300 px-3 py-2 text-right font-medium whitespace-nowrap">
 								{t("simulatedPnl")}
 							</th>
-							<th className="text-tiny text-txt-300 hidden whitespace-nowrap px-3 py-2 text-right font-medium lg:table-cell">
+							<th className="text-tiny text-txt-300 hidden px-3 py-2 text-right font-medium whitespace-nowrap lg:table-cell">
 								{t("simR")}
 							</th>
-							<th className="text-tiny text-txt-300 hidden whitespace-nowrap px-3 py-2 text-left font-medium lg:table-cell">
+							<th className="text-tiny text-txt-300 hidden px-3 py-2 text-left font-medium whitespace-nowrap lg:table-cell">
 								{t("riskReason")}
 							</th>
 						</tr>
@@ -126,17 +140,20 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 									</td>
 									<td className="px-3 py-2">
 										<span
-											className={cn("block h-2.5 w-2.5 rounded-full", statusDotColors[trade.status])}
+											className={cn(
+												"block h-2.5 w-2.5 rounded-full",
+												statusDotColors[trade.status]
+											)}
 											aria-label={t(`statuses.${trade.status}`)}
 										/>
 									</td>
-									<td className="text-tiny text-txt-200 hidden whitespace-nowrap px-3 py-2 text-right md:table-cell">
+									<td className="text-tiny text-txt-200 hidden px-3 py-2 text-right whitespace-nowrap md:table-cell">
 										{formatCurrency(trade.riskAmountCents)}
 									</td>
 									<td className="hidden px-3 py-2 text-right md:table-cell">
 										<span
 											className={cn(
-												"text-small whitespace-nowrap font-medium",
+												"text-small font-medium whitespace-nowrap",
 												trade.originalPnlCents > 0
 													? "text-trade-buy"
 													: trade.originalPnlCents < 0
@@ -150,7 +167,7 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 									<td className="px-3 py-2 text-right">
 										<span
 											className={cn(
-												"text-small whitespace-nowrap font-medium",
+												"text-small font-medium whitespace-nowrap",
 												(trade.simulatedPnlCents ?? 0) > 0
 													? "text-trade-buy"
 													: (trade.simulatedPnlCents ?? 0) < 0
@@ -161,7 +178,7 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 											{formatCurrency(trade.simulatedPnlCents)}
 										</span>
 									</td>
-									<td className="text-tiny text-txt-200 hidden whitespace-nowrap px-3 py-2 text-right lg:table-cell">
+									<td className="text-tiny text-txt-200 hidden px-3 py-2 text-right whitespace-nowrap lg:table-cell">
 										{formatR(trade.simulatedRMultiple)}
 									</td>
 									<td className="text-tiny text-txt-300 hidden max-w-50 truncate px-3 py-2 lg:table-cell">
@@ -183,7 +200,7 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 					<div className="flex gap-1">
 						<button
 							type="button"
-							onClick={() => setPage((p) => Math.max(0, p - 1))}
+							onClick={() => setPage(Math.max(0, page - 1))}
 							disabled={page === 0}
 							className="text-txt-200 hover:bg-bg-300 disabled:text-txt-placeholder rounded p-1 disabled:cursor-not-allowed"
 							aria-label={t("prevPage")}
@@ -192,7 +209,7 @@ const TradeComparisonTable = ({ trades }: TradeComparisonTableProps) => {
 						</button>
 						<button
 							type="button"
-							onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+							onClick={() => setPage(Math.min(totalPages - 1, page + 1))}
 							disabled={page >= totalPages - 1}
 							className="text-txt-200 hover:bg-bg-300 disabled:text-txt-placeholder rounded p-1 disabled:cursor-not-allowed"
 							aria-label={t("nextPage")}
