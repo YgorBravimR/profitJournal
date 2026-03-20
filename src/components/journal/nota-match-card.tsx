@@ -112,7 +112,7 @@ const NotaMatchCard = ({
 						checked={isEnriched ? reEnrich : isSelected}
 						onChange={isEnriched ? onToggleReEnrich : onToggleSelect}
 						className="accent-acc-100 h-4 w-4 shrink-0 rounded"
-						aria-label={`Select trade ${match.trade.asset}`}
+						aria-label={t("selectTrade", { asset: match.trade.asset })}
 					/>
 				)}
 

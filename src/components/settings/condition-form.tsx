@@ -117,7 +117,7 @@ export const ConditionForm = ({
 
 					{/* Name */}
 					<div className="space-y-s-200">
-						<Label id="label-condition-name" htmlFor="conditionName">
+						<Label id="label-condition-name" htmlFor="conditionName" required filled={!!formData.name.trim()}>
 							{t("name")}
 						</Label>
 						<Input
@@ -132,7 +132,7 @@ export const ConditionForm = ({
 
 					{/* Category */}
 					<div className="space-y-s-200">
-						<Label id="label-condition-category" htmlFor="conditionCategory">
+						<Label id="label-condition-category" htmlFor="conditionCategory" required filled={!!formData.category}>
 							{t("category")}
 						</Label>
 						<Select

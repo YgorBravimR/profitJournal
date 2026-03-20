@@ -205,7 +205,7 @@ const ScenarioForm = ({
 
 					{/* Name */}
 					<div className="space-y-s-200">
-						<Label id="label-scenario-name" htmlFor="scenarioName">
+						<Label id="label-scenario-name" htmlFor="scenarioName" required filled={!!formData.name.trim()}>
 							{t("name")}
 						</Label>
 						<Input

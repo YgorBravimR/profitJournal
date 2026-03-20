@@ -316,6 +316,8 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 		}))
 
 		const direction = watch("direction")
+		const asset = watch("asset")
+		const entryDate = watch("entryDate")
 		const entryPrice = watch("entryPrice")
 		const exitPrice = watch("exitPrice")
 		const positionSize = watch("positionSize")
@@ -652,7 +654,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 									render={({ field }) => (
 										<FormItem>
 											<div className="gap-s-200 flex items-center">
-												<FormLabel id="form-label-asset">
+												<FormLabel id="form-label-asset" required filled={!!asset}>
 													{t("assetRequired")}
 												</FormLabel>
 												{selectedAsset && (
@@ -776,7 +778,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 									name="entryDate"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel id="form-label-entry-date">
+											<FormLabel id="form-label-entry-date" required filled={!!entryDate}>
 												{t("entryDateRequired")}
 											</FormLabel>
 											<FormControl>
@@ -832,7 +834,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 									name="entryPrice"
 									render={({ field }) => (
 										<FormItem>
-											<FormLabel id="form-label-entry-price">
+											<FormLabel id="form-label-entry-price" required filled={!!entryPrice}>
 												{t("entryPriceRequired")}
 											</FormLabel>
 											<FormControl>
@@ -892,7 +894,7 @@ const TradeForm = forwardRef<TradeFormRef, TradeFormProps>(
 								name="positionSize"
 								render={({ field }) => (
 									<FormItem>
-										<FormLabel id="form-label-position-size">
+										<FormLabel id="form-label-position-size" required filled={!!positionSize}>
 											{t("positionSizeRequired")}
 										</FormLabel>
 										<FormControl>

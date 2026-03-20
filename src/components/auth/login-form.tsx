@@ -292,7 +292,7 @@ const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				)}
 
 				<div className="space-y-s-200">
-					<Label id="label-email" htmlFor="email">{t("email")}</Label>
+					<Label id="label-email" htmlFor="email" required filled={!!formData.email.trim()}>{t("email")}</Label>
 					<Input
 						id="email"
 						type="email"
@@ -306,7 +306,7 @@ const LoginForm = ({ callbackUrl = "/" }: LoginFormProps) => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label id="label-password" htmlFor="password">{t("password")}</Label>
+					<Label id="label-password" htmlFor="password" required filled={!!formData.password}>{t("password")}</Label>
 					<div className="relative">
 						<Input
 							id="password"

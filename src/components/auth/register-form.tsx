@@ -103,7 +103,7 @@ const RegisterForm = () => {
 				)}
 
 				<div className="space-y-s-200">
-					<Label id="label-name" htmlFor="name">{t("name")}</Label>
+					<Label id="label-name" htmlFor="name" required filled={!!formData.name.trim()}>{t("name")}</Label>
 					<Input
 						id="name"
 						type="text"
@@ -117,7 +117,7 @@ const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label id="label-email" htmlFor="email">{t("email")}</Label>
+					<Label id="label-email" htmlFor="email" required filled={!!formData.email.trim()}>{t("email")}</Label>
 					<Input
 						id="email"
 						type="email"
@@ -131,7 +131,7 @@ const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label id="label-password" htmlFor="password">{t("password")}</Label>
+					<Label id="label-password" htmlFor="password" required filled={!!formData.password}>{t("password")}</Label>
 					<div className="relative">
 						<Input
 							id="password"
@@ -181,7 +181,7 @@ const RegisterForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label id="label-confirm-password" htmlFor="confirmPassword">{t("confirmPassword")}</Label>
+					<Label id="label-confirm-password" htmlFor="confirmPassword" required filled={!!formData.confirmPassword}>{t("confirmPassword")}</Label>
 					<div className="relative">
 						<Input
 							id="confirmPassword"

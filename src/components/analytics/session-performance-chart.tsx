@@ -33,13 +33,7 @@ interface CustomTooltipProps {
 	}>
 }
 
-/** Abbreviated session labels for mobile (keyed by TradingSession) */
-const ABBREVIATED_SESSION: Record<string, string> = {
-	preOpen: "Pre",
-	morning: "AM",
-	afternoon: "PM",
-	close: "Close",
-}
+/** Abbreviated session labels are now loaded from i18n (analytics.session.abbreviatedLabels) */
 
 /** Format decimal hour to HH:MM string */
 const formatTime = (decimal: number): string => {
@@ -152,13 +146,14 @@ export const SessionPerformanceChart = ({
 	const t = useTranslations("analytics")
 	const tCommon = useTranslations("common")
 	const tLabels = useTranslations("analytics.session.labels")
+	const tAbbr = useTranslations("analytics.session.abbreviatedLabels")
 
 	const isRMode = expectancyMode === "edge"
 	const metricKey = isRMode ? "avgR" : "totalPnl"
 
 	const formatSessionTickLabel = (sessionKey: string): string =>
 		isMobile
-			? ABBREVIATED_SESSION[sessionKey] ?? sessionKey
+			? tAbbr(sessionKey)
 			: tLabels(sessionKey)
 
 	const formatMetric = (value: number): string =>

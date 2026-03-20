@@ -196,7 +196,7 @@ export const ExecutionForm = ({
 
 					{/* Execution Type */}
 					<div className="space-y-s-200">
-						<Label id="label-execution-type">{t("type")}</Label>
+						<Label id="label-execution-type" required filled={!!formData.executionType}>{t("type")}</Label>
 						<RadioGroup
 							id="execution-type-group"
 							value={formData.executionType}
@@ -229,7 +229,7 @@ export const ExecutionForm = ({
 					{/* Date and Time */}
 					<div className="gap-m-400 grid grid-cols-1 sm:grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-execution-date" htmlFor="executionDate">
+							<Label id="label-execution-date" htmlFor="executionDate" required filled={!!formData.executionDate}>
 								{t("date")}
 							</Label>
 							<DatePicker
@@ -240,7 +240,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-time" htmlFor="executionTime">
+							<Label id="label-execution-time" htmlFor="executionTime" required filled={!!formData.executionTime}>
 								{t("time")}
 							</Label>
 							<Input
@@ -257,7 +257,7 @@ export const ExecutionForm = ({
 					{/* Price and Quantity */}
 					<div className="gap-m-400 grid grid-cols-1 sm:grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-execution-price" htmlFor="price">
+							<Label id="label-execution-price" htmlFor="price" required filled={!!formData.price}>
 								{t("price")}
 							</Label>
 							<Input
@@ -271,7 +271,7 @@ export const ExecutionForm = ({
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-execution-quantity" htmlFor="quantity">
+							<Label id="label-execution-quantity" htmlFor="quantity" required filled={!!formData.quantity}>
 								{t("quantity")}
 							</Label>
 							<Input

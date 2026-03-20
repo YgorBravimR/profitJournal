@@ -143,7 +143,7 @@ export const AssetForm = ({
 
 					<div className="grid grid-cols-1 gap-m-400 sm:grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-asset-symbol" htmlFor="symbol">{t("symbol")}</Label>
+							<Label id="label-asset-symbol" htmlFor="symbol" required filled={!!formData.symbol.trim()}>{t("symbol")}</Label>
 							<Input
 								id="symbol"
 								placeholder={t("symbolPlaceholder")}
@@ -156,7 +156,7 @@ export const AssetForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label id="label-asset-type" htmlFor="assetTypeId">{t("type")}</Label>
+							<Label id="label-asset-type" htmlFor="assetTypeId" required filled={!!formData.assetTypeId}>{t("type")}</Label>
 							<Select
 								value={formData.assetTypeId}
 								onValueChange={(value) => handleChange("assetTypeId", value)}
@@ -177,7 +177,7 @@ export const AssetForm = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label id="label-asset-name" htmlFor="name">{t("name")}</Label>
+						<Label id="label-asset-name" htmlFor="name" required filled={!!formData.name.trim()}>{t("name")}</Label>
 						<Input
 							id="name"
 							placeholder={t("namePlaceholder")}
@@ -189,7 +189,7 @@ export const AssetForm = ({
 
 					<div className="grid grid-cols-1 gap-m-400 sm:grid-cols-3">
 						<div className="space-y-s-200">
-							<Label id="label-asset-tick-size" htmlFor="tickSize">{t("tickSize")}</Label>
+							<Label id="label-asset-tick-size" htmlFor="tickSize" required filled={!!formData.tickSize}>{t("tickSize")}</Label>
 							<Input
 								id="tickSize"
 								type="number"
@@ -202,7 +202,7 @@ export const AssetForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label id="label-asset-tick-value" htmlFor="tickValue">{t("tickValue")} ({formData.currency})</Label>
+							<Label id="label-asset-tick-value" htmlFor="tickValue" required filled={!!formData.tickValue}>{t("tickValue")} ({formData.currency})</Label>
 							<Input
 								id="tickValue"
 								type="number"

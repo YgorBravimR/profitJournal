@@ -147,7 +147,7 @@ export const CsvTradeCard = ({
 						checked={isSelected}
 						onCheckedChange={() => onToggleSelect()}
 						disabled={isSkipped}
-						aria-label={`Select trade ${trade.rowNumber}`}
+						aria-label={t("selectTrade", { identifier: trade.rowNumber })}
 					/>
 				</div>
 

@@ -22,6 +22,7 @@ const formatKellyCurrency = (value: number, symbol = "$"): string =>
 export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 	const t = useTranslations("monteCarlo.metrics")
 	const tTooltips = useTranslations("monteCarlo.tooltips")
+	const tKelly = useTranslations("monteCarlo.kelly")
 
 	const {
 		kellyFull,
@@ -199,7 +200,9 @@ export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 					<LevelIcon
 						className={cn("mt-0.5 h-4 w-4 flex-shrink-0", levelColor)}
 					/>
-					<p className="text-small text-txt-100">{kellyRecommendation}</p>
+					<p className="text-small text-txt-100">
+						{tKelly(kellyRecommendation.replace("monteCarlo.kelly.", ""))}
+					</p>
 				</div>
 			</div>
 

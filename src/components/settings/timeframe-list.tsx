@@ -60,7 +60,7 @@ export const TimeframeList = ({ timeframes }: TimeframeListProps) => {
 	}
 
 	const handleDelete = (timeframe: Timeframe) => {
-		if (!confirm(`Delete ${timeframe.name}?`)) return
+		if (!confirm(t("confirmDelete", { name: timeframe.name }))) return
 		setPendingId(timeframe.id)
 		startTransition(async () => {
 			await deleteTimeframe(timeframe.id)

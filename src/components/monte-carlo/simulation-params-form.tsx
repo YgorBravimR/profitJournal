@@ -47,6 +47,8 @@ export const SimulationParamsForm = ({
 					<Label
 						id="label-simulation-win-rate"
 						className="mb-s-200 text-small text-txt-200 block"
+						required
+						filled={!!params.winRate}
 					>
 						{t("winRate")}
 					</Label>
@@ -75,6 +77,8 @@ export const SimulationParamsForm = ({
 					<Label
 						id="label-simulation-reward-risk-ratio"
 						className="mb-s-200 text-small text-txt-200 block"
+						required
+						filled={!!params.rewardRiskRatio}
 					>
 						{t("rewardRiskRatio")}
 					</Label>
@@ -97,6 +101,8 @@ export const SimulationParamsForm = ({
 					<Label
 						id="label-simulation-number-of-trades"
 						className="mb-s-200 text-small text-txt-200 block"
+						required
+						filled={!!params.numberOfTrades}
 					>
 						{t("numberOfTrades")}
 					</Label>
@@ -119,6 +125,8 @@ export const SimulationParamsForm = ({
 					<Label
 						id="label-simulation-commission-impact"
 						className="mb-s-200 text-small text-txt-200 block"
+						required
+						filled={params.commissionImpactR !== undefined}
 					>
 						{t("commissionImpactR")}
 					</Label>
@@ -150,6 +158,8 @@ export const SimulationParamsForm = ({
 					<Label
 						id="label-simulation-count"
 						className="mb-s-200 text-small text-txt-200 block"
+						required
+						filled={!!params.simulationCount}
 					>
 						{t("simulationCount")}
 					</Label>

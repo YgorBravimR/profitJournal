@@ -65,7 +65,7 @@ const AccountSelector = ({
 							key={account.id}
 							type="button"
 							tabIndex={0}
-							aria-label={`${isSelected ? tCommon("deselect") ?? "Deselect" : tCommon("select") ?? "Select"} ${account.name}`}
+							aria-label={`${isSelected ? tCommon("deselect") : tCommon("select")} ${account.name}`}
 							aria-pressed={isSelected}
 							className={cn(
 								"flex items-center gap-s-200 rounded-md border px-s-300 py-s-200 text-small transition-colors",

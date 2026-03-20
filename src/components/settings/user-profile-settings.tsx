@@ -282,7 +282,7 @@ const UserProfileSettings = () => {
 				{isChangingPassword ? (
 					<div className="mt-m-400 space-y-m-400">
 						<div className="space-y-s-200">
-							<Label id="label-current-password" htmlFor="currentPassword">
+							<Label id="label-current-password" htmlFor="currentPassword" required filled={!!passwordForm.currentPassword}>
 								{t("currentPassword")}
 							</Label>
 							<Input
@@ -293,7 +293,7 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-new-password" htmlFor="newPassword">
+							<Label id="label-new-password" htmlFor="newPassword" required filled={!!passwordForm.newPassword}>
 								{t("newPassword")}
 							</Label>
 							<Input
@@ -304,7 +304,7 @@ const UserProfileSettings = () => {
 							/>
 						</div>
 						<div className="space-y-s-200">
-							<Label id="label-confirm-new-password" htmlFor="confirmPassword">
+							<Label id="label-confirm-new-password" htmlFor="confirmPassword" required filled={!!passwordForm.confirmPassword}>
 								{t("confirmNewPassword")}
 							</Label>
 							<Input

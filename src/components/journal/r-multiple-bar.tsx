@@ -77,7 +77,7 @@ export const RMultipleBar = ({
 							hitTarget ? "bg-trade-buy" : "bg-warning"
 						)}
 						style={{ left: `${plannedPercent}%` }}
-						title={`Planned: ${formatRMultiple(planned!)}`}
+						title={t("plannedTooltip", { value: formatRMultiple(planned!) })}
 					/>
 				)}
 			</div>

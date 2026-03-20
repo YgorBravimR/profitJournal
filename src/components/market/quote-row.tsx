@@ -81,6 +81,7 @@ export const QuoteCard = ({
 	showAdr = false,
 	adrQuote,
 }: QuoteCardProps) => {
+	const tQuote = useTranslations("market.quote")
 	const hasRange = quote.sessionHigh !== null && quote.sessionLow !== null
 	const isClosed = isQuoteStale(quote.updatedAt)
 	const isAdrClosed = adrQuote ? isQuoteStale(adrQuote.updatedAt) : true
@@ -97,7 +98,7 @@ export const QuoteCard = ({
 			<div
 				className="border-bg-300/50 hover:bg-bg-300/20 grid grid-cols-[2.5fr_2.5fr_1.2fr_1.8fr_1.2fr_1.8fr] items-center gap-x-2 rounded-lg border px-3 py-2 transition-colors"
 				role="listitem"
-				aria-label={`${quote.name}: ${formatPrice(quote.price)}${adrQuote ? `, ADR: ${formatPrice(adrQuote.price)}` : ""}`}
+				aria-label={`${quote.name}: ${formatPrice(quote.price)}${adrQuote ? `, ${tQuote("adrAriaLabel", { price: formatPrice(adrQuote.price) })}` : ""}`}
 			>
 				{/* Col 1: B3 Name + Symbol */}
 				<div className="flex min-w-0 items-center gap-2">

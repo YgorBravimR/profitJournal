@@ -148,7 +148,7 @@ export const ForgotPasswordForm = () => {
 					)}
 
 					<div className="space-y-s-200">
-						<Label id="label-reset-email" htmlFor="reset-email">{t("emailLabel")}</Label>
+						<Label id="label-reset-email" htmlFor="reset-email" required filled={!!email.trim()}>{t("emailLabel")}</Label>
 						<Input
 							id="reset-email"
 							type="email"
@@ -299,7 +299,7 @@ export const ForgotPasswordForm = () => {
 				)}
 
 				<div className="space-y-s-200">
-					<Label id="label-new-password" htmlFor="new-password">{t("newPassword")}</Label>
+					<Label id="label-new-password" htmlFor="new-password" required filled={!!newPassword}>{t("newPassword")}</Label>
 					<div className="relative">
 						<Input
 							id="new-password"
@@ -330,7 +330,7 @@ export const ForgotPasswordForm = () => {
 				</div>
 
 				<div className="space-y-s-200">
-					<Label id="label-confirm-password" htmlFor="confirm-password">{t("confirmPassword")}</Label>
+					<Label id="label-confirm-password" htmlFor="confirm-password" required filled={!!confirmPassword}>{t("confirmPassword")}</Label>
 					<Input
 						id="confirm-password"
 						type={showPassword ? "text" : "password"}

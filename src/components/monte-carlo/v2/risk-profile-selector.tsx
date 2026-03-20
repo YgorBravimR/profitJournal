@@ -25,7 +25,7 @@ const getRiskSizingLabel = (
 		case "fixedRatio":
 			return t("profileSummary.fixedRatioLabel")
 		case "kellyFractional":
-			return `Kelly ÷${profile.kellyDivisor ?? 4}`
+			return t("profileSummary.kellyLabel", { divisor: profile.kellyDivisor ?? 4 })
 		default:
 			return formatCompactCurrency(fromCents(profile.baseRiskCents), "R$")
 	}

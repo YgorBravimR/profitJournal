@@ -146,7 +146,7 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-1 gap-m-400 sm:grid-cols-2">
 						<div className="space-y-s-200">
-							<Label id="label-timeframe-code" htmlFor="code">{t("code")}</Label>
+							<Label id="label-timeframe-code" htmlFor="code" required filled={!!formData.code.trim()}>{t("code")}</Label>
 							<Input
 								id="code"
 								placeholder={t("codePlaceholder")}
@@ -159,7 +159,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label id="label-timeframe-type" htmlFor="type">{t("type")}</Label>
+							<Label id="label-timeframe-type" htmlFor="type" required filled={!!formData.type}>{t("type")}</Label>
 							<Select
 								value={formData.type}
 								onValueChange={(value) => {
@@ -182,7 +182,7 @@ export const TimeframeForm = ({
 					</div>
 
 					<div className="space-y-s-200">
-						<Label id="label-timeframe-name" htmlFor="name">{t("name")}</Label>
+						<Label id="label-timeframe-name" htmlFor="name" required filled={!!formData.name.trim()}>{t("name")}</Label>
 						<Input
 							id="name"
 							placeholder={t("namePlaceholder")}
@@ -194,7 +194,7 @@ export const TimeframeForm = ({
 
 					<div className="grid grid-cols-1 gap-m-400 sm:grid-cols-3">
 						<div className="space-y-s-200">
-							<Label id="label-timeframe-value" htmlFor="value">{t("value")}</Label>
+							<Label id="label-timeframe-value" htmlFor="value" required filled={!!formData.value}>{t("value")}</Label>
 							<Input
 								id="value"
 								type="number"
@@ -206,7 +206,7 @@ export const TimeframeForm = ({
 						</div>
 
 						<div className="space-y-s-200">
-							<Label id="label-timeframe-unit" htmlFor="unit">{t("unit")}</Label>
+							<Label id="label-timeframe-unit" htmlFor="unit" required filled={!!formData.unit}>{t("unit")}</Label>
 							<Select
 								value={formData.unit}
 								onValueChange={(value) => handleChange("unit", value)}

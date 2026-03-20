@@ -64,7 +64,7 @@ const AssetList = ({ assets, assetTypes }: AssetListProps) => {
 	}
 
 	const handleDelete = (asset: AssetWithType) => {
-		if (!confirm(`Delete ${asset.symbol}?`)) return
+		if (!confirm(t("confirmDelete", { symbol: asset.symbol }))) return
 		setPendingId(asset.id)
 		startTransition(async () => {
 			await deleteAsset(asset.id)

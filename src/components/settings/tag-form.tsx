@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +24,8 @@ import {
 import { createTag, updateTag } from "@/app/actions/tags"
 import type { Tag } from "@/db/schema"
 import type { TagType } from "@/types"
-import { Loader2 } from "lucide-react"
+import { ColorPicker } from "@/components/ui/color-picker"
+import { Loader2, Pipette } from "lucide-react"
 
 const TAG_COLORS = [
 	"#3B82F6", // blue
@@ -54,6 +55,7 @@ export const TagForm = ({
 	const tCommon = useTranslations("common")
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
+	const dialogRef = useRef<HTMLDivElement>(null)
 
 	const isEdit = !!tag
 
@@ -113,7 +115,7 @@ export const TagForm = ({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent id="tag-form-dialog" className="max-w-md">
+			<DialogContent ref={dialogRef} id="tag-form-dialog" className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>{isEdit ? t("editTag") : t("addTag")}</DialogTitle>
 					<DialogDescription>
@@ -130,7 +132,7 @@ export const TagForm = ({
 
 					{/* Name */}
 					<div className="space-y-s-200">
-						<Label id="label-tag-name" htmlFor="tagName">{t("name")}</Label>
+						<Label id="label-tag-name" htmlFor="tagName" required filled={!!formData.name.trim()}>{t("name")}</Label>
 						<Input
 							id="tagName"
 							placeholder={t("namePlaceholder")}
@@ -143,7 +145,7 @@ export const TagForm = ({
 
 					{/* Type */}
 					<div className="space-y-s-200">
-						<Label id="label-tag-type" htmlFor="tagType">{t("type")}</Label>
+						<Label id="label-tag-type" htmlFor="tagType" required filled={!!formData.type}>{t("type")}</Label>
 						<Select
 							value={formData.type}
 							onValueChange={(value) => handleChange("type", value)}
@@ -161,8 +163,8 @@ export const TagForm = ({
 
 					{/* Color */}
 					<div className="space-y-s-200">
-						<Label id="label-tag-color">{t("color")}</Label>
-						<div className="flex flex-wrap gap-s-200">
+						<Label id="label-tag-color" required filled={!!formData.color}>{t("color")}</Label>
+						<div className="flex flex-wrap items-center gap-s-200">
 							{TAG_COLORS.map((color) => (
 								<button
 									key={color}
@@ -173,10 +175,37 @@ export const TagForm = ({
 										backgroundColor: color,
 										borderColor: formData.color === color ? "white" : "transparent",
 									}}
-									aria-label={`Select color ${color}`}
+									aria-label={t("selectColor", { color })}
 									aria-pressed={formData.color === color}
 								/>
 							))}
+							{/* Custom color picker */}
+							<ColorPicker
+								value={formData.color}
+								onChange={(hex) => handleChange("color", hex)}
+								container={dialogRef.current}
+							>
+								<button
+									type="button"
+									className="size-10 sm:size-8 rounded-full border-2 border-dashed border-txt-300 transition-transform hover:scale-110 flex items-center justify-center"
+									style={{
+										backgroundColor: TAG_COLORS.includes(formData.color)
+											? undefined
+											: formData.color,
+										borderStyle: TAG_COLORS.includes(formData.color)
+											? "dashed"
+											: "solid",
+										borderColor: !TAG_COLORS.includes(formData.color)
+											? "white"
+											: undefined,
+									}}
+									aria-label={t("selectColor", { color: "custom" })}
+								>
+									{TAG_COLORS.includes(formData.color) && (
+										<Pipette className="h-4 w-4 text-txt-300" />
+									)}
+								</button>
+							</ColorPicker>
 						</div>
 					</div>
 
