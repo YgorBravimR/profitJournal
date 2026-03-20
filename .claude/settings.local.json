@@ -136,7 +136,16 @@
       "Bash(ffmpeg -version)",
       "Bash(brew install:*)",
       "Bash(npx remotion:*)",
-      "Bash(ffprobe:*)"
+      "Bash(ffprobe:*)",
+      "Bash(while read:*)",
+      "Bash(do if:*)",
+      "Bash(then echo:*)",
+      "Bash(fi)",
+      "Bash(gh api:*)",
+      "Bash(bun add:*)",
+      "Bash(sed -i '' '185s/<>/\\\\<Fragment\\\\>/' src/components/settings/user-list.tsx)",
+      "Bash(sed -i '' '186s/key={user.id}//' src/components/settings/user-list.tsx)",
+      "Bash(grep -n \"setError\\\\|error &&\\\\|error =\" src/app/[locale]/\\\\\\(app\\\\\\)/playbook/[id]/edit/page.tsx)"
     ],
     "deny": [],
     "ask": []
