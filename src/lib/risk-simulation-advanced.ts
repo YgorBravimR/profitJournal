@@ -251,7 +251,7 @@ const runAdvancedSimulation = (
 			for (const tier of decisionTree.drawdownControl.tiers) {
 				if (currentDd >= tier.drawdownPercent && tier.action === "reduceRisk") {
 					riskCents = Math.round(riskCents * (1 - tier.reducePercent / 100))
-					riskReason += ` (DD tier: -${tier.reducePercent}%)`
+					riskReason += `|ddTier:${tier.reducePercent}`
 					break
 				}
 			}

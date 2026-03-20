@@ -30,22 +30,52 @@ const translateRiskReason = (t: TranslateFn, raw: string | null | undefined): st
 	// Strip the "riskSimulation." prefix if present
 	const stripped = raw.startsWith("riskSimulation.") ? raw.slice("riskSimulation.".length) : raw
 
-	// Check for pipe-separated parameter (e.g. "reasons.gainReinvest|25")
-	const pipeIndex = stripped.indexOf("|")
+	// Split by pipe to extract base key and all params
+	const segments = stripped.split("|")
+	const baseKey = segments[0]
 
-	if (pipeIndex === -1) {
-		return t(stripped)
+	// No params — simple key
+	if (segments.length === 1) {
+		return t(baseKey)
 	}
 
-	const key = stripped.slice(0, pipeIndex)
-	const paramValue = stripped.slice(pipeIndex + 1)
+	// Build translated base, then append param-based suffixes
+	let result = ""
+	let baseParam: string | undefined
 
-	// Determine the correct parameter name based on the key
-	if (key.endsWith("Step")) {
-		return t(key, { step: paramValue })
+	// First param may be a plain value (e.g. "reasons.gainReinvest|25") or key:value (e.g. "ddTier:50")
+	for (let i = 1; i < segments.length; i++) {
+		const segment = segments[i]
+		const colonIndex = segment.indexOf(":")
+
+		if (colonIndex === -1) {
+			// Plain value param (legacy format: "reasons.gainReinvest|25")
+			baseParam = segment
+		} else {
+			const paramKey = segment.slice(0, colonIndex)
+			const paramVal = segment.slice(colonIndex + 1)
+
+			if (paramKey === "ddTier") {
+				// Translate base key first if not yet done
+				if (!result) {
+					result = baseParam
+						? t(baseKey, baseKey.endsWith("Step") ? { step: baseParam } : { percent: baseParam })
+						: t(baseKey)
+				}
+				result += t("reasons.ddTierSuffix", { percent: paramVal })
+			}
+		}
 	}
 
-	return t(key, { percent: paramValue })
+	// If result was never set (no special params like ddTier), translate with plain param
+	if (!result) {
+		if (baseParam) {
+			return t(baseKey, baseKey.endsWith("Step") ? { step: baseParam } : { percent: baseParam })
+		}
+		return t(baseKey)
+	}
+
+	return result
 }
 
 export { translateRiskReason }
