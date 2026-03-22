@@ -472,6 +472,9 @@ export const trades = pgTable(
 			.defaultNow()
 			.notNull(),
 		isArchived: boolean("is_archived").default(false),
+
+		// Trade source (manual = web UI, arch = Arch API, csv = CSV imports)
+		source: varchar("source", { length: 20 }).default("manual"),
 	},
 	(table) => [
 		index("trades_account_idx").on(table.accountId),

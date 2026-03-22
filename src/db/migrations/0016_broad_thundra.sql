@@ -1,0 +1,1 @@
+ALTER TABLE "trades" ADD COLUMN "source" varchar(20) DEFAULT 'manual';
