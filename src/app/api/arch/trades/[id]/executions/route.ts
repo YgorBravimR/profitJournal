@@ -2,9 +2,14 @@ import type { NextRequest } from "next/server"
 import { db } from "@/db/drizzle"
 import { trades, tradeExecutions } from "@/db/schema"
 import type { TradeExecution } from "@/db/schema"
-import { eq, and, asc, inArray } from "drizzle-orm"
+import { eq, and, asc } from "drizzle-orm"
 import { archAuth } from "../../../_lib/auth"
-import { archSuccess, archError, formatExecutionForArch } from "../../../_lib/helpers"
+import {
+	archSuccess,
+	archError,
+	formatExecutionForArch,
+} from "../../../_lib/helpers"
+import { buildAccountCondition } from "../../../_lib/filters"
 import { getUserDek, decryptExecutionFields } from "@/lib/user-crypto"
 import { calculateExecutionSummary } from "@/lib/calculations"
 
@@ -23,9 +28,10 @@ const GET = async (
 	try {
 		const { id: tradeId } = await params
 
-		const tradeCondition = auth.showAllAccounts
-			? and(eq(trades.id, tradeId), inArray(trades.accountId, auth.allAccountIds))
-			: and(eq(trades.id, tradeId), eq(trades.accountId, auth.accountId))
+		const tradeCondition = and(
+			eq(trades.id, tradeId),
+			buildAccountCondition(auth)
+		)
 
 		const trade = await db.query.trades.findFirst({
 			where: tradeCondition,
@@ -34,7 +40,12 @@ const GET = async (
 		if (!trade) {
 			return archError(
 				"Trade not found",
-				[{ code: "NOT_FOUND", detail: "Trade does not exist or you do not have access" }],
+				[
+					{
+						code: "NOT_FOUND",
+						detail: "Trade does not exist or you do not have access",
+					},
+				],
 				404
 			)
 		}
@@ -47,9 +58,13 @@ const GET = async (
 		const dek = await getUserDek(auth.userId)
 
 		const decryptedExecutions = dek
-			? rawExecutions.map((ex) =>
-				decryptExecutionFields(ex as unknown as Record<string, unknown>, dek) as unknown as TradeExecution
-			)
+			? rawExecutions.map(
+					(ex) =>
+						decryptExecutionFields(
+							ex as unknown as Record<string, unknown>,
+							dek
+						) as unknown as TradeExecution
+				)
 			: rawExecutions
 
 		const executions = decryptedExecutions.map((ex) =>
@@ -58,7 +73,10 @@ const GET = async (
 
 		const summary = calculateExecutionSummary(decryptedExecutions)
 
-		return archSuccess("Executions retrieved successfully", { executions, summary })
+		return archSuccess("Executions retrieved successfully", {
+			executions,
+			summary,
+		})
 	} catch (error) {
 		return archError(
 			"Failed to fetch executions",
