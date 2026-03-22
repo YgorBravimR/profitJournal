@@ -3,7 +3,7 @@ import type { NextAuthConfig } from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 
 // Public paths that don't require authentication
-const publicPaths = ["/login", "/register", "/forgot-password", "/verify-email", "/api/auth", "/monitor"]
+const publicPaths = ["/login", "/register", "/forgot-password", "/verify-email", "/api/auth", "/api/arch", "/monitor"]
 
 // Supported locales
 const locales = ["pt-BR", "en"]
