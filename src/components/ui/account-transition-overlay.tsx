@@ -155,7 +155,7 @@ const TransitionOverlay = ({
 					/>
 
 					{/* Video container with logo fallback */}
-					<div className="relative h-60 w-60 overflow-hidden rounded-full bg-[url('/logo_nobg.png')] bg-cover bg-center">
+					<div className="relative h-60 w-60 overflow-hidden rounded-full bg-[url('/axion-mark-white.png')] bg-cover bg-center">
 						<video
 							autoPlay
 							muted

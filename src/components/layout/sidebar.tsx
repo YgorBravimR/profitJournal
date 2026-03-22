@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl"
 import { Link, usePathname } from "@/i18n/routing"
-import { ChevronLeft, ChevronRight, Plus, RotateCcw } from "lucide-react"
+import { PanelLeftClose, PanelLeftOpen, Plus, RotateCcw } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { navItems } from "@/lib/navigation"
@@ -47,58 +47,60 @@ const Sidebar = ({
 				"border-bg-300 bg-bg-200 flex flex-col border-r",
 				isSheet
 					? "h-full w-full"
-					: "fixed top-0 left-0 z-40 h-dvh transition-[width] duration-300",
-				!isSheet && (isCollapsed ? "w-16" : "w-64")
+					: "fixed top-0 left-0 z-40 h-dvh transition-[width] duration-500",
+				!isSheet && (isCollapsed ? "w-20" : "w-64")
 			)}
 		>
 			{/* Logo */}
-			<div className="border-bg-300 flex h-16 items-center justify-between border-b px-4">
-				{isCompact ? (
-					<Image
-						src="/logo_nobg.png"
-						alt="Bravo"
-						width={32}
-						height={32}
-						className="h-8 w-8 object-contain"
-						priority
-					/>
-				) : (
-					<Image
-						src="/bravo-nobg.png"
-						alt="Bravo"
-						width={140}
-						height={40}
-						className="h-10 w-auto object-contain"
-						style={{ width: "auto", height: "auto" }}
-						priority
-					/>
-				)}
-				{!isSheet && !hideCollapseToggle && (
-					<button
-						type="button"
-						onClick={onToggleCollapse}
-						className="text-txt-200 hover:bg-bg-300 hover:text-txt-100 focus-visible:ring-acc-100 rounded-md p-2 focus-visible:ring-2 focus-visible:outline-none"
-						aria-label={
-							isCollapsed
-								? tCommon("expandSidebar")
-								: tCommon("collapseSidebar")
-						}
-					>
-						{isCollapsed ? (
-							<ChevronRight className="h-5 w-5" />
-						) : (
-							<ChevronLeft className="h-5 w-5" />
-						)}
-					</button>
-				)}
+			<div className="border-bg-300 flex h-16 items-center justify-center border-b">
+				<Image
+					src="/axion-mark-white.png"
+					alt="Axion"
+					width={32}
+					height={32}
+					className={cn(
+						"absolute h-8 w-auto object-contain transition-opacity duration-1000",
+						isCompact ? "opacity-100" : "opacity-0"
+					)}
+					priority
+				/>
+				<Image
+					src="/axion-wordmark-white.png"
+					alt="Axion"
+					width={120}
+					height={32}
+					className={cn(
+						"absolute h-8 w-auto object-contain transition-opacity duration-1000",
+						isCompact ? "opacity-0" : "opacity-100"
+					)}
+					priority
+				/>
 			</div>
+
+			{/* Sidebar toggle — floats outside the sidebar edge */}
+			{!isSheet && !hideCollapseToggle && (
+				<button
+					type="button"
+					onClick={onToggleCollapse}
+					className="bg-bg-200 border-bg-300 text-txt-300 hover:text-txt-100 focus-visible:ring-acc-100 absolute top-3.5 -right-5 z-50 flex h-6 w-6 items-center justify-center rounded-full border shadow-sm focus-visible:ring-2 focus-visible:outline-none"
+					aria-label={
+						isCollapsed ? tCommon("expandSidebar") : tCommon("collapseSidebar")
+					}
+				>
+					{isCollapsed ? (
+						<PanelLeftOpen className="h-6 w-6" />
+					) : (
+						<PanelLeftClose className="h-6 w-6" />
+					)}
+				</button>
+			)}
 
 			{/* New Trade Button */}
 			<div className="px-2 pt-2">
 				{pathname === "/journal/new" ? (
 					<span
 						className={cn(
-							"bg-acc-100/10 text-acc-100 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium",
+							"bg-acc-100/10 text-acc-100 text-small flex h-10 items-center gap-3 truncate rounded-md px-3 py-2 font-medium",
 							isCompact && "justify-center"
 						)}
 						aria-current="page"
@@ -110,7 +112,7 @@ const Sidebar = ({
 					<Link
 						href="/journal/new"
 						className={cn(
-							"bg-acc-100 hover:bg-acc-100/90 text-small flex items-center gap-3 rounded-md px-3 py-2 font-medium text-white transition-colors",
+							"bg-acc-100 hover:bg-acc-100/90 text-small flex h-10 items-center gap-3 truncate rounded-md px-3 py-2 font-medium text-white transition-colors",
 							isCompact && "justify-center"
 						)}
 						aria-label={t("newTrade")}
@@ -124,41 +126,43 @@ const Sidebar = ({
 
 			{/* Navigation */}
 			<ScrollArea className="flex-1">
-			<nav className="space-y-1 p-2">
-				{filteredNavItems.map((item) => {
-					const isActive =
-						item.href === "/"
-							? pathname === "/"
-							: pathname.startsWith(item.href)
+				<nav className="space-y-1 p-2">
+					{filteredNavItems.map((item) => {
+						const isActive =
+							item.href === "/"
+								? pathname === "/"
+								: pathname.startsWith(item.href)
 
-					return (
-						<Link
-							key={item.href}
-							href={item.href}
-							className={cn(
-								"text-small flex items-center gap-3 rounded-md px-3 py-2 transition-colors",
-								isActive
-									? "bg-acc-100/10 text-acc-100"
-									: "text-txt-200 hover:bg-bg-300 hover:text-txt-100",
-								isCompact && "justify-center"
-							)}
-							aria-current={isActive ? "page" : undefined}
-							tabIndex={isActive ? -1 : 0}
-							onClick={onNavigate}
-							ref={
-								isActive
-									? (el) => {
-											if (el && el === document.activeElement) el.blur()
-										}
-									: undefined
-							}
-						>
-							<item.icon className="h-5 w-5 shrink-0" />
-							{showLabels && <span>{t(item.labelKey)}</span>}
-						</Link>
-					)
-				})}
-			</nav>
+						return (
+							<Link
+								key={item.href}
+								href={item.href}
+								className={cn(
+									"text-small flex h-10 items-center gap-3 rounded-md px-3 py-2 transition-colors",
+									isActive
+										? "bg-acc-100/10 text-acc-100"
+										: "text-txt-200 hover:bg-bg-300 hover:text-txt-100",
+									isCompact && "justify-center"
+								)}
+								aria-current={isActive ? "page" : undefined}
+								tabIndex={isActive ? -1 : 0}
+								onClick={onNavigate}
+								ref={
+									isActive
+										? (el) => {
+												if (el && el === document.activeElement) el.blur()
+											}
+										: undefined
+								}
+							>
+								<item.icon className="h-5 w-5 shrink-0" />
+								{showLabels && (
+									<span className="truncate">{t(item.labelKey)}</span>
+								)}
+							</Link>
+						)
+					})}
+				</nav>
 			</ScrollArea>
 
 			{/* Replay Mode Badge */}
@@ -203,6 +207,16 @@ const Sidebar = ({
 			>
 				<AccountSwitcher isCollapsed={isCompact} />
 			</div>
+
+			{/* by Bravo badge */}
+			{!isCompact && (
+				<div className="flex items-center justify-center gap-1.5 pb-3">
+					<span className="text-micro text-txt-placeholder tracking-wide">by</span>
+					<span className="text-micro text-acc-200 tracking-[0.15em] font-medium">
+						BRAVO
+					</span>
+				</div>
+			)}
 		</aside>
 	)
 }

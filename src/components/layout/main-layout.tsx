@@ -20,7 +20,7 @@ const MainLayout = ({ children }: MainLayoutProps) => {
 			<main
 				className={cn(
 					"min-h-dvh transition-[margin-left] duration-300",
-					isSidebarCollapsed ? "ml-16" : "ml-64"
+					isSidebarCollapsed ? "ml-20" : "ml-64"
 				)}
 			>
 				{children}

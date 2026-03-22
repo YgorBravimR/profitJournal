@@ -109,12 +109,11 @@ const AppShell = ({
 						</Sheet>
 
 						<Image
-							src="/bravo-nobg.png"
-							alt="Bravo"
+							src="/axion-wordmark-white.png"
+							alt="Axion"
 							width={100}
 							height={28}
 							className="ml-2 h-7 w-auto object-contain"
-							style={{ width: "auto", height: "auto" }}
 							priority
 						/>
 
@@ -148,11 +147,11 @@ const AppShell = ({
 					<div
 						className={cn(
 							"flex min-h-dvh flex-col transition-[margin-left] duration-300",
-							effectiveCollapsed ? "ml-16" : "ml-64"
+							effectiveCollapsed ? "ml-20" : "ml-64"
 						)}
 					>
 						{/* Top bar: breadcrumbs | search | notifications + user */}
-						<div className="border-bg-300 bg-bg-200 gap-m-400 flex h-12 shrink-0 items-center border-b px-4 lg:px-6">
+						<div className="border-bg-300 bg-bg-200 gap-m-400 flex h-12 shrink-0 items-center border-b px-6 lg:px-8 lg:pl-12">
 							<PageBreadcrumb />
 							<div className="flex-1" />
 							{/* Fixed-width slot so search bar position is stable */}

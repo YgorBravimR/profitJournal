@@ -81,8 +81,8 @@ const RegisterForm = () => {
 			{/* Logo */}
 			<div className="flex justify-center">
 				<Image
-					src="/bravo_written.png"
-					alt="Bravo"
+					src="/axion-wordmark-white.png"
+					alt="Axion"
 					width={200}
 					height={57}
 					className="h-14 w-auto object-contain"
