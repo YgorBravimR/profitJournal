@@ -5,11 +5,12 @@
  * server components and client components without leaking module boundaries.
  */
 
-type Brand = "bravo" | "midnight" | "retro" | "luxury" | "tsr" | "neon" | "lannister" | "default"
+type Brand = "axion" | "bravo" | "midnight" | "retro" | "luxury" | "tsr" | "neon" | "lannister" | "default"
 
-const DEFAULT_BRAND: Brand = "bravo"
+const DEFAULT_BRAND: Brand = "axion"
 
 const BRANDS: readonly Brand[] = [
+	"axion",
 	"bravo",
 	"midnight",
 	"retro",

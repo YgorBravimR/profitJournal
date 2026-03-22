@@ -14,6 +14,7 @@ import {
 
 /** Color swatches for each brand to give visual preview */
 const brandColors: Record<Brand, { primary: string; bg: string }> = {
+	axion: { primary: "#8B5CF6", bg: "#08090A" },
 	default: { primary: "#8080ff", bg: "#151C2C" },
 	bravo: { primary: "#D4AF37", bg: "#151C2C" },
 	midnight: { primary: "#AAAF37", bg: "#181a1b" },

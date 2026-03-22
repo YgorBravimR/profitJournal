@@ -759,6 +759,165 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   AXION THEME - Near-Black + Navy Structure + Violet Plasma + Gold Heritage
+   To activate: add data-brand="axion" to the html in layout
+   Scientific, precise, truth-seeking. The "X" glows violet in the dark.
+   Bravo DNA (gold) appears as heritage accent; Violet owns the interaction layer.
+   ═══════════════════════════════════════════════════════════════════════════ */
+[data-brand="axion"] {
+  --color-guide: rgb(251 191 36);
+
+  /* Near-Black Canvas — darker than Bravo, maximum contrast */
+  --color-bg-100: #08090A;
+  --color-bg-200: #0F1114;
+  --color-bg-300: #1A1D22;
+  --color-bg-stripe: #0C0D10;
+
+  /* Crisp Silver-White Text */
+  --color-txt-100: #F0F2F5;
+  --color-txt-200: #8C96A5;
+  --color-txt-300: #505A66;
+  --color-txt-placeholder: #353B44;
+
+  /* Violet Plasma Primary + Bravo Gold Secondary */
+  --color-acc-100: #8B5CF6;
+  --color-acc-200: #D4AF37;
+  --color-fb-error: #EF4444;
+
+  /* Trading Colors — clean, high-contrast on near-black */
+  --color-trade-buy: #34D399;
+  --color-trade-sell: #F87171;
+  --color-warning: #FBBF24;
+  --color-trade-buy-muted: rgba(52, 211, 153, 0.15);
+  --color-trade-sell-muted: rgba(248, 113, 113, 0.15);
+
+  /* Action Colors — Steel Blue buy, Warm Orange sell */
+  --color-action-buy: #60A5FA;
+  --color-action-sell: #FB923C;
+  --color-action-buy-muted: rgba(96, 165, 250, 0.2);
+  --color-action-sell-muted: rgba(251, 146, 60, 0.2);
+
+  /* Brand Colors — Violet Plasma scale (Axion signature) */
+  --color-brand-400: #A78BFA;
+  --color-brand-500: #8B5CF6;
+  --color-brand-600: #7C3AED;
+
+  /* Semantic mappings */
+  --color-background: var(--color-bg-100);
+  --color-foreground: var(--color-txt-100);
+  --color-card: var(--color-bg-200);
+  --color-card-foreground: var(--color-txt-100);
+  --color-popover: var(--color-bg-200);
+  --color-popover-foreground: var(--color-txt-100);
+  --color-primary: var(--color-acc-100);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--color-acc-200);
+  --color-secondary-foreground: var(--color-bg-100);
+  --color-muted: var(--color-bg-300);
+  --color-muted-foreground: var(--color-txt-200);
+  --color-accent: var(--color-bg-300);
+  --color-accent-foreground: var(--color-txt-100);
+  --color-destructive: var(--color-fb-error);
+  --color-border: #252A33;
+  --color-input: var(--color-bg-300);
+  --color-ring: var(--color-acc-100);
+  --color-chart-1: var(--color-acc-100);
+  --color-chart-2: var(--color-acc-200);
+  --color-chart-3: var(--color-bg-100);
+  --color-chart-4: var(--color-bg-200);
+  --color-chart-5: var(--color-bg-300);
+  --color-sidebar: var(--color-bg-100);
+  --color-sidebar-foreground: var(--color-txt-100);
+  --color-sidebar-primary: var(--color-acc-100);
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: var(--color-bg-300);
+  --color-sidebar-accent-foreground: var(--color-txt-100);
+  --color-sidebar-border: #252A33;
+  --color-sidebar-ring: var(--color-acc-100);
+
+  /* Trading semantic colors */
+  --color-profit: var(--color-trade-buy);
+  --color-loss: var(--color-trade-sell);
+  --color-win: var(--color-trade-buy);
+  --color-lose: var(--color-trade-sell);
+  --color-long: var(--color-action-buy);
+  --color-short: var(--color-action-sell);
+}
+
+/* Axion theme + Light mode — Slate paper with violet ink */
+[data-brand="axion"][data-theme="light"] {
+  --color-guide: rgb(217 119 6);
+
+  /* Warm Stone-White Backgrounds — less clinical, more depth */
+  --color-bg-100: #F5F4F2;
+  --color-bg-200: #ECEAE7;
+  --color-bg-300: #DDDAD5;
+  --color-bg-stripe: #F0EEEC;
+
+  /* Warm Dark Text */
+  --color-txt-100: #1A1818;
+  --color-txt-200: #4A4744;
+  --color-txt-300: #6E6A66;
+  --color-txt-placeholder: #9E9A96;
+
+  /* Deeper Violet for light backgrounds + Muted Gold */
+  --color-acc-100: #7C3AED;
+  --color-acc-200: #B8941F;
+  --color-fb-error: #DC2626;
+
+  /* Trading Colors — darker for light mode readability */
+  --color-trade-buy: #059669;
+  --color-trade-sell: #DC2626;
+  --color-warning: #D97706;
+  --color-trade-buy-muted: rgba(5, 150, 105, 0.12);
+  --color-trade-sell-muted: rgba(220, 38, 38, 0.12);
+
+  /* Action Colors — deeper for light */
+  --color-action-buy: #2563EB;
+  --color-action-sell: #EA580C;
+  --color-action-buy-muted: rgba(37, 99, 235, 0.12);
+  --color-action-sell-muted: rgba(234, 88, 12, 0.12);
+
+  /* Brand Colors — Deep Violet scale */
+  --color-brand-400: #8B5CF6;
+  --color-brand-500: #7C3AED;
+  --color-brand-600: #6D28D9;
+
+  /* Semantic mappings — light mode */
+  --color-background: var(--color-bg-100);
+  --color-foreground: var(--color-txt-100);
+  --color-card: var(--color-bg-200);
+  --color-card-foreground: var(--color-txt-100);
+  --color-popover: var(--color-bg-200);
+  --color-popover-foreground: var(--color-txt-100);
+  --color-primary: var(--color-acc-100);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--color-acc-200);
+  --color-secondary-foreground: var(--color-bg-100);
+  --color-muted: var(--color-bg-300);
+  --color-muted-foreground: var(--color-txt-300);
+  --color-accent: var(--color-bg-300);
+  --color-accent-foreground: var(--color-txt-100);
+  --color-destructive: var(--color-fb-error);
+  --color-border: var(--color-bg-300);
+  --color-input: var(--color-bg-300);
+  --color-ring: var(--color-acc-100);
+  --color-chart-1: var(--color-acc-100);
+  --color-chart-2: var(--color-acc-200);
+  --color-chart-3: var(--color-bg-300);
+  --color-chart-4: var(--color-bg-200);
+  --color-chart-5: var(--color-bg-100);
+  --color-sidebar: var(--color-bg-100);
+  --color-sidebar-foreground: var(--color-txt-100);
+  --color-sidebar-primary: var(--color-acc-100);
+  --color-sidebar-primary-foreground: #FFFFFF;
+  --color-sidebar-accent: var(--color-bg-300);
+  --color-sidebar-accent-foreground: var(--color-txt-100);
+  --color-sidebar-border: var(--color-bg-300);
+  --color-sidebar-ring: var(--color-acc-100);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CALENDAR UTILITIES
    Gradient for days where both B3 and NYSE are closed (holidays)
    ═══════════════════════════════════════════════════════════════════════════ */

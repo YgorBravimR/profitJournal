@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import type { Metadata } from "next"
 import { Public_Sans, Geist_Mono } from "next/font/google"
-import { BrandScript } from "@/components/providers/brand-script"
 import "./globals.css"
 
 const publicSans = Public_Sans({
@@ -16,12 +15,12 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-	title: "Profit Journal",
-	description: "Personal trading performance analysis and journaling platform",
+	title: "Axion",
+	description: "Axion — Your trading source of truth",
 	icons: {
-		icon: "/logo_nobg.png",
-		shortcut: "/logo_nobg.png",
-		apple: "/logo_nobg.png",
+		icon: "/axion-favicon-32.png",
+		shortcut: "/axion-favicon-32.png",
+		apple: "/axion-icon-192.png",
 	},
 }
 
@@ -31,10 +30,7 @@ interface RootLayoutProps {
 
 const RootLayout = ({ children }: RootLayoutProps) => {
 	return (
-		<html suppressHydrationWarning data-brand="bravo">
-			{/* <head>
-				<BrandScript />
-			</head> */}
+		<html suppressHydrationWarning data-brand="axion">
 			<body
 				className={`${publicSans.variable} ${geistMono.variable} font-sans antialiased`}
 			>
