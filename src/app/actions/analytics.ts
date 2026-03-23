@@ -2,7 +2,7 @@
 
 import { db } from "@/db/drizzle"
 import { trades, settings, tradingAccounts } from "@/db/schema"
-import { eq, and, gte, lte, desc, asc, sql, inArray } from "drizzle-orm"
+import { eq, and, gte, lte, desc, asc, inArray } from "drizzle-orm"
 import type {
 	ActionResponse,
 	OverallStats,
@@ -25,6 +25,7 @@ import type {
 	SessionPerformance,
 	SessionAssetPerformance,
 	AnalyticsDashboardData,
+	DashboardBatchData,
 } from "@/types"
 import { calculateWinRate, calculateProfitFactor } from "@/lib/calculations"
 import {
@@ -41,8 +42,10 @@ import { requireAuth } from "@/app/actions/auth"
 import { toSafeErrorMessage } from "@/lib/error-utils"
 import { getUserDek, decryptTradeFields } from "@/lib/user-crypto"
 import { getTranslations } from "next-intl/server"
-import { getCachedAnalyticsDashboard, getCachedDashboardData } from "@/lib/cache/cached-queries"
-import type { DashboardBatchData } from "@/types"
+import {
+	getCachedAnalyticsDashboard,
+	getCachedDashboardData,
+} from "@/lib/cache/cached-queries"
 
 interface AccountFilter {
 	accountId: string

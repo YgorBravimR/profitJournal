@@ -15,13 +15,12 @@
 
 import { cacheTag, cacheLife } from "next/cache"
 import { db } from "@/db/drizzle"
-import { trades, settings, tradingAccounts } from "@/db/schema"
+import { trades, settings } from "@/db/schema"
 import { and, asc, desc, eq, gte, lte, inArray } from "drizzle-orm"
 import type {
 	TradeFilters,
 	AnalyticsDashboardData,
 	DashboardBatchData,
-	OverallStats,
 	DisciplineData,
 	EquityPoint,
 	StreakData,
@@ -66,12 +65,17 @@ const buildCacheConditions = (
 
 	const conditions = [accountCondition, eq(trades.isArchived, false)]
 
-	if (filters?.dateFrom) conditions.push(gte(trades.entryDate, filters.dateFrom))
+	if (filters?.dateFrom)
+		conditions.push(gte(trades.entryDate, filters.dateFrom))
 	if (filters?.dateTo) conditions.push(lte(trades.entryDate, filters.dateTo))
-	if (filters?.assets?.length) conditions.push(inArray(trades.asset, filters.assets))
-	if (filters?.directions?.length) conditions.push(inArray(trades.direction, filters.directions))
-	if (filters?.outcomes?.length) conditions.push(inArray(trades.outcome, filters.outcomes))
-	if (filters?.timeframeIds?.length) conditions.push(inArray(trades.timeframeId, filters.timeframeIds))
+	if (filters?.assets?.length)
+		conditions.push(inArray(trades.asset, filters.assets))
+	if (filters?.directions?.length)
+		conditions.push(inArray(trades.direction, filters.directions))
+	if (filters?.outcomes?.length)
+		conditions.push(inArray(trades.outcome, filters.outcomes))
+	if (filters?.timeframeIds?.length)
+		conditions.push(inArray(trades.timeframeId, filters.timeframeIds))
 
 	return conditions
 }
@@ -134,7 +138,8 @@ const getCachedAnalyticsDashboard = async (
 		dayOfWeekPerformance: computeDayOfWeekPerformance(tradesForComputation),
 		timeHeatmap: computeTimeHeatmap(tradesForComputation),
 		sessionPerformance: computeSessionPerformance(tradesForComputation),
-		sessionAssetPerformance: computeSessionAssetPerformance(tradesForComputation),
+		sessionAssetPerformance:
+			computeSessionAssetPerformance(tradesForComputation),
 	}
 	const computeMs = (performance.now() - computeStart).toFixed(1)
 
@@ -153,22 +158,35 @@ const getCachedAnalyticsDashboard = async (
  * Compute discipline score from trades array (pure function).
  */
 const computeDiscipline = (
-	sortedDescTrades: Array<{ followedPlan: boolean | null; outcome: string | null }>
+	sortedDescTrades: Array<{
+		followedPlan: boolean | null
+		outcome: string | null
+	}>
 ): DisciplineData => {
-	const tradesWithPlanData = sortedDescTrades.filter((t) => t.followedPlan !== null)
-	const followedCount = tradesWithPlanData.filter((t) => t.followedPlan === true).length
+	const tradesWithPlanData = sortedDescTrades.filter(
+		(t) => t.followedPlan !== null
+	)
+	const followedCount = tradesWithPlanData.filter(
+		(t) => t.followedPlan === true
+	).length
 	const totalTrades = tradesWithPlanData.length
 	const score = totalTrades > 0 ? (followedCount / totalTrades) * 100 : 0
 
 	const recentTrades = tradesWithPlanData.slice(0, 10)
-	const recentFollowed = recentTrades.filter((t) => t.followedPlan === true).length
-	const recentCompliance = recentTrades.length > 0 ? (recentFollowed / recentTrades.length) * 100 : 0
+	const recentFollowed = recentTrades.filter(
+		(t) => t.followedPlan === true
+	).length
+	const recentCompliance =
+		recentTrades.length > 0 ? (recentFollowed / recentTrades.length) * 100 : 0
 
 	let trend: "up" | "down" | "stable" = "stable"
 	if (recentTrades.length >= 5 && totalTrades >= 10) {
 		const olderTrades = tradesWithPlanData.slice(10, 20)
-		const olderFollowed = olderTrades.filter((t) => t.followedPlan === true).length
-		const olderCompliance = olderTrades.length > 0 ? (olderFollowed / olderTrades.length) * 100 : 0
+		const olderFollowed = olderTrades.filter(
+			(t) => t.followedPlan === true
+		).length
+		const olderCompliance =
+			olderTrades.length > 0 ? (olderFollowed / olderTrades.length) * 100 : 0
 		if (recentCompliance > olderCompliance + 5) trend = "up"
 		else if (recentCompliance < olderCompliance - 5) trend = "down"
 	}
@@ -180,20 +198,38 @@ const computeDiscipline = (
  * Compute streak data from trades sorted newest-first (pure function).
  */
 const computeStreaks = (
-	sortedDescTrades: Array<{ outcome: string | null; entryDate: Date; pnl: number | string | null }>
+	sortedDescTrades: Array<{
+		outcome: string | null
+		entryDate: Date
+		pnl: number | string | null
+	}>
 ): StreakData => {
 	if (sortedDescTrades.length === 0) {
-		return { currentStreak: 0, currentStreakType: "none", longestWinStreak: 0, longestLossStreak: 0, bestDay: null, worstDay: null }
+		return {
+			currentStreak: 0,
+			currentStreakType: "none",
+			longestWinStreak: 0,
+			longestLossStreak: 0,
+			bestDay: null,
+			worstDay: null,
+		}
 	}
 
 	let currentStreak = 0
 	let currentStreakType: "win" | "loss" | "none" = "none"
 
 	if (sortedDescTrades[0].outcome) {
-		currentStreakType = sortedDescTrades[0].outcome === "win" ? "win" : sortedDescTrades[0].outcome === "loss" ? "loss" : "none"
+		currentStreakType =
+			sortedDescTrades[0].outcome === "win"
+				? "win"
+				: sortedDescTrades[0].outcome === "loss"
+					? "loss"
+					: "none"
 		for (const trade of sortedDescTrades) {
-			if (currentStreakType === "win" && trade.outcome === "win") currentStreak++
-			else if (currentStreakType === "loss" && trade.outcome === "loss") currentStreak++
+			if (currentStreakType === "win" && trade.outcome === "win")
+				currentStreak++
+			else if (currentStreakType === "loss" && trade.outcome === "loss")
+				currentStreak++
 			else break
 		}
 	}
@@ -233,7 +269,14 @@ const computeStreaks = (
 		if (!worstDay || pnl < worstDay.pnl) worstDay = { date, pnl }
 	}
 
-	return { currentStreak, currentStreakType, longestWinStreak, longestLossStreak, bestDay, worstDay }
+	return {
+		currentStreak,
+		currentStreakType,
+		longestWinStreak,
+		longestLossStreak,
+		bestDay,
+		worstDay,
+	}
 }
 
 /**
@@ -327,10 +370,18 @@ const computeRadar = (
 		const pnl = fromCents(trade.pnl)
 		pnls.push(pnl)
 
-		if (trade.outcome === "win") { wins++; grossProfit += pnl }
-		else if (trade.outcome === "loss") { losses++; grossLoss += Math.abs(pnl) }
+		if (trade.outcome === "win") {
+			wins++
+			grossProfit += pnl
+		} else if (trade.outcome === "loss") {
+			losses++
+			grossLoss += Math.abs(pnl)
+		}
 
-		if (trade.realizedRMultiple) { totalR += Number(trade.realizedRMultiple); rCount++ }
+		if (trade.realizedRMultiple) {
+			totalR += Number(trade.realizedRMultiple)
+			rCount++
+		}
 		if (trade.followedPlan !== null) {
 			planTradesCount++
 			if (trade.followedPlan === true) followedPlanCount++
@@ -339,21 +390,51 @@ const computeRadar = (
 
 	const winRate = calculateWinRate(wins, wins + losses)
 	const avgR = rCount > 0 ? totalR / rCount : 0
-	const profitFactor = Math.min(calculateProfitFactor(grossProfit, grossLoss), 5)
-	const disciplineScore = planTradesCount > 0 ? (followedPlanCount / planTradesCount) * 100 : 0
+	const profitFactor = Math.min(
+		calculateProfitFactor(grossProfit, grossLoss),
+		5
+	)
+	const disciplineScore =
+		planTradesCount > 0 ? (followedPlanCount / planTradesCount) * 100 : 0
 
 	const mean = pnls.reduce((a, b) => a + b, 0) / pnls.length
-	const variance = pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / pnls.length
+	const variance =
+		pnls.reduce((sum, pnl) => sum + Math.pow(pnl - mean, 2), 0) / pnls.length
 	const stdDev = Math.sqrt(variance)
 	const cv = mean !== 0 ? stdDev / Math.abs(mean) : 0
 	const consistency = Math.max(0, Math.min(100, 100 - cv * 50))
 
 	return [
-		{ metric: "Win Rate", metricKey: "winRate", value: winRate, normalized: winRate },
-		{ metric: "Avg R", metricKey: "avgR", value: avgR, normalized: Math.max(0, Math.min(100, ((avgR + 2) / 6) * 100)) },
-		{ metric: "Profit Factor", metricKey: "profitFactor", value: profitFactor, normalized: (profitFactor / 5) * 100 },
-		{ metric: "Discipline", metricKey: "discipline", value: disciplineScore, normalized: disciplineScore },
-		{ metric: "Consistency", metricKey: "consistency", value: consistency, normalized: consistency },
+		{
+			metric: "Win Rate",
+			metricKey: "winRate",
+			value: winRate,
+			normalized: winRate,
+		},
+		{
+			metric: "Avg R",
+			metricKey: "avgR",
+			value: avgR,
+			normalized: Math.max(0, Math.min(100, ((avgR + 2) / 6) * 100)),
+		},
+		{
+			metric: "Profit Factor",
+			metricKey: "profitFactor",
+			value: profitFactor,
+			normalized: (profitFactor / 5) * 100,
+		},
+		{
+			metric: "Discipline",
+			metricKey: "discipline",
+			value: disciplineScore,
+			normalized: disciplineScore,
+		},
+		{
+			metric: "Consistency",
+			metricKey: "consistency",
+			value: consistency,
+			normalized: consistency,
+		},
 	]
 }
 
@@ -418,4 +499,8 @@ const getCachedDashboardData = async (
 	return { stats, discipline, equityCurve, streakData, dailyPnL, radarData }
 }
 
-export { getCachedAnalyticsDashboard, getCachedDashboardData, type CacheAccountContext }
+export {
+	getCachedAnalyticsDashboard,
+	getCachedDashboardData,
+	type CacheAccountContext,
+}

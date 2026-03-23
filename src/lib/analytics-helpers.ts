@@ -205,9 +205,7 @@ const computeExpectedValue = (trades: TradeForStats[]): ExpectedValueData => {
 	const avgWinR =
 		rWins.length > 0 ? rWins.reduce((a, b) => a + b, 0) / rWins.length : 0
 	const avgLossR =
-		rLosses.length > 0
-			? rLosses.reduce((a, b) => a + b, 0) / rLosses.length
-			: 0
+		rLosses.length > 0 ? rLosses.reduce((a, b) => a + b, 0) / rLosses.length : 0
 	const expectedR =
 		rDecisiveCount > 0 ? rWinRate * avgWinR - (1 - rWinRate) * avgLossR : 0
 	const projectedR100 = expectedR * 100
@@ -318,6 +316,18 @@ const computeAvgRiskPerTrade = (trades: TradeForRisk[]): number => {
 	if (risks.length === 0) return 0
 	return risks.reduce((a, b) => a + b, 0) / risks.length
 }
+
+// --- Shared constants ---
+
+const DAY_NAME_KEYS = [
+	"Sunday",
+	"Monday",
+	"Tuesday",
+	"Wednesday",
+	"Thursday",
+	"Friday",
+	"Saturday",
+] as const
 
 // --- New interfaces for pure computation functions ---
 
@@ -516,16 +526,6 @@ const computeDayOfWeekPerformance = (
 		return []
 	}
 
-	const dayNameKeys = [
-		"Sunday",
-		"Monday",
-		"Tuesday",
-		"Wednesday",
-		"Thursday",
-		"Friday",
-		"Saturday",
-	] as const
-
 	const dayMap = new Map<
 		number,
 		{
@@ -600,7 +600,7 @@ const computeDayOfWeekPerformance = (
 
 			return {
 				dayOfWeek,
-				dayName: dayNameKeys[dayOfWeek],
+				dayName: DAY_NAME_KEYS[dayOfWeek],
 				totalTrades: data.tradeCount,
 				wins: data.wins,
 				losses: data.losses,
@@ -625,16 +625,6 @@ const computeTimeHeatmap = (trades: TradeForHourly[]): TimeHeatmapCell[] => {
 	if (trades.length === 0) {
 		return []
 	}
-
-	const dayNameKeys = [
-		"Sunday",
-		"Monday",
-		"Tuesday",
-		"Wednesday",
-		"Thursday",
-		"Friday",
-		"Saturday",
-	] as const
 
 	const cellMap = new Map<
 		string,
@@ -682,7 +672,7 @@ const computeTimeHeatmap = (trades: TradeForHourly[]): TimeHeatmapCell[] => {
 		const [dayOfWeek, hour] = key.split("-").map(Number)
 		return {
 			dayOfWeek,
-			dayName: dayNameKeys[dayOfWeek],
+			dayName: DAY_NAME_KEYS[dayOfWeek],
 			hour,
 			hourLabel: `${hour.toString().padStart(2, "0")}:00`,
 			totalTrades: data.totalTrades,
@@ -922,16 +912,6 @@ const computePerformanceByVariable = (
 		}
 	>()
 
-	const dayNameKeys = [
-		"Sunday",
-		"Monday",
-		"Tuesday",
-		"Wednesday",
-		"Thursday",
-		"Friday",
-		"Saturday",
-	] as const
-
 	for (const trade of trades) {
 		let groupKey: string
 
@@ -949,7 +929,7 @@ const computePerformanceByVariable = (
 			}
 			case "dayOfWeek": {
 				const { dayOfWeek } = getBrtTimeParts(trade.entryDate)
-				groupKey = dayNameKeys[dayOfWeek]
+				groupKey = DAY_NAME_KEYS[dayOfWeek]
 				break
 			}
 			case "strategy":
