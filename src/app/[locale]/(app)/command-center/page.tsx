@@ -1,4 +1,4 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { setRequestLocale } from "next-intl/server"
 import { CommandCenterTabs } from "./command-center-tabs"
 import {
 	getChecklists,
@@ -35,8 +35,6 @@ const CommandCenterPage = async ({ params, searchParams }: CommandCenterPageProp
 	const { locale } = await params
 	const { date: dateParam } = await searchParams
 	setRequestLocale(locale)
-
-	const t = await getTranslations("commandCenter")
 
 	// Fetch account first so we can resolve effective date for replay accounts
 	const account = await getCurrentAccount()

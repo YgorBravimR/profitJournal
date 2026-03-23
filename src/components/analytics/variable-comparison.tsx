@@ -92,11 +92,22 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload, metric }: CustomTooltipProps) => {
 	const t = useTranslations("analytics.tableHeaders")
+	const tDays = useTranslations("days")
+	const tCommon = useTranslations("common")
+
+	const translateLabel = (group: string): string => {
+		const dayKey = DAY_KEY_MAP[group]
+		if (dayKey) return tDays(dayKey as "sunday")
+		if (group === "No Strategy") return tCommon("noStrategy")
+		if (group === "Unknown") return tCommon("unknown")
+		return group
+	}
+
 	if (active && payload && payload.length > 0) {
 		const data = payload[0].payload
 		return (
 			<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border shadow-lg">
-				<p className="text-small text-txt-100 font-semibold">{data.group}</p>
+				<p className="text-small text-txt-100 font-semibold">{translateLabel(data.group)}</p>
 				<div className="mt-s-200 space-y-s-100 text-tiny">
 					<p className={data.pnl >= 0 ? "text-trade-buy" : "text-trade-sell"}>
 						{t("pnl")}: {formatCompactCurrency(data.pnl, "R$")}
@@ -121,6 +132,17 @@ const CustomTooltip = ({ active, payload, metric }: CustomTooltipProps) => {
 	return null
 }
 
+/** Map day name keys from analytics-helpers to translation keys */
+const DAY_KEY_MAP: Record<string, string> = {
+	Sunday: "sunday",
+	Monday: "monday",
+	Tuesday: "tuesday",
+	Wednesday: "wednesday",
+	Thursday: "thursday",
+	Friday: "friday",
+	Saturday: "saturday",
+}
+
 export const VariableComparison = ({
 	data,
 	groupBy,
@@ -130,6 +152,18 @@ export const VariableComparison = ({
 	const t = useTranslations("analytics.variableComparison")
 	const tHeaders = useTranslations("analytics.tableHeaders")
 	const tTooltips = useTranslations("analytics.tableTooltips")
+	const tDays = useTranslations("days")
+	const tCommon = useTranslations("common")
+
+	/** Translate group labels that come as English keys from pure computation functions */
+	const translateGroup = (group: string): string => {
+		if (groupBy === "dayOfWeek" && DAY_KEY_MAP[group]) {
+			return tDays(DAY_KEY_MAP[group] as "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday")
+		}
+		if (group === "No Strategy") return tCommon("noStrategy")
+		if (group === "Unknown") return tCommon("unknown")
+		return group
+	}
 	const [metric, setMetric] = useState<MetricType>("pnl")
 
 	const groupOptions: { value: GroupByType; label: string }[] = [
@@ -230,6 +264,7 @@ export const VariableComparison = ({
 							angle={-45}
 							textAnchor="end"
 							height={60}
+							tickFormatter={translateGroup}
 						/>
 						<YAxis
 							stroke="var(--color-txt-300)"
@@ -335,7 +370,7 @@ export const VariableComparison = ({
 							{data.map((row) => (
 								<tr key={row.group} className="border-bg-300/50 border-b">
 									<td className="px-s-300 py-s-200 text-small text-txt-100 font-medium">
-										{row.group}
+										{translateGroup(row.group)}
 									</td>
 									<td className="px-s-300 py-s-200 text-small text-txt-200 text-right">
 										{row.tradeCount}

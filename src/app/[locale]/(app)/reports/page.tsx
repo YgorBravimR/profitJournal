@@ -1,4 +1,4 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { setRequestLocale } from "next-intl/server"
 import { ReportsContent } from "@/components/reports"
 import {
 	getWeeklyReport,
@@ -16,8 +16,6 @@ const ReportsPage = async ({ params }: ReportsPageProps) => {
 
 	const { locale } = await params
 	setRequestLocale(locale)
-
-	const t = await getTranslations("reports")
 
 	const [weeklyResult, monthlyResult, mistakeResult] = await Promise.all([
 		getWeeklyReport(0).catch(() => ({ status: "error" as const, data: null })),

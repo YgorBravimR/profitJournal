@@ -1,4 +1,4 @@
-import { getTranslations, setRequestLocale } from "next-intl/server"
+import { setRequestLocale } from "next-intl/server"
 import { PlaybookContent } from "@/components/playbook"
 import { getStrategies, getComplianceOverview } from "@/app/actions/strategies"
 
@@ -12,8 +12,6 @@ const PlaybookPage = async ({ params }: PlaybookPageProps) => {
 
 	const { locale } = await params
 	setRequestLocale(locale)
-
-	const t = await getTranslations("playbook")
 
 	const [strategiesResult, complianceResult] = await Promise.all([
 		getStrategies(),

@@ -1,4 +1,4 @@
-import { setRequestLocale, getTranslations } from "next-intl/server"
+import { setRequestLocale } from "next-intl/server"
 import { MonthlyContent } from "@/components/monthly"
 import {
 	getMonthlyResultsWithProp,
@@ -16,8 +16,6 @@ const MonthlyPage = async ({ params }: MonthlyPageProps) => {
 
 	const { locale } = await params
 	setRequestLocale(locale)
-
-	const t = await getTranslations("monthly")
 
 	// Fetch initial data server-side
 	const [monthlyResult, projectionResult, comparisonResult] = await Promise.all([
