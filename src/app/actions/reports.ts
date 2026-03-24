@@ -20,6 +20,7 @@ import { requireAuth } from "@/app/actions/auth"
 import { getServerEffectiveNow } from "@/lib/effective-date"
 import { getUserDek, decryptAccountFields } from "@/lib/user-crypto"
 import { getTranslations } from "next-intl/server"
+import { isFrameworkSignal } from "@/lib/error-utils"
 
 // ============================================================================
 // TYPES
@@ -339,7 +340,8 @@ export const getWeeklyReport = async (
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching weekly report:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching weekly report:", error)
 		return { status: "error", message: "Failed to fetch weekly report" }
 	}
 }
@@ -504,7 +506,8 @@ export const getMonthlyReport = async (
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching monthly report:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching monthly report:", error)
 		return { status: "error", message: "Failed to fetch monthly report" }
 	}
 }
@@ -608,7 +611,8 @@ export const getMistakeCostAnalysis = async (): Promise<{
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching mistake cost analysis:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching mistake cost analysis:", error)
 		return { status: "error", message: "Failed to fetch mistake cost analysis" }
 	}
 }
@@ -769,7 +773,10 @@ export const getMonthlyResultsWithProp = async (
 		// Decrypt account fields before reading numeric values
 		const dek = await getUserDek(authContext.userId)
 		const decryptedAccount = dek
-			? decryptAccountFields(account as unknown as Record<string, unknown>, dek) as unknown as typeof account
+			? (decryptAccountFields(
+					account as unknown as Record<string, unknown>,
+					dek
+				) as unknown as typeof account)
 			: account
 
 		// Use account-specific settings (from tradingAccounts table)
@@ -808,7 +815,8 @@ export const getMonthlyResultsWithProp = async (
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching monthly results with prop:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching monthly results with prop:", error)
 		return { status: "error", message: "Failed to fetch monthly results" }
 	}
 }
@@ -859,7 +867,10 @@ export const getMonthlyProjection = async (): Promise<{
 		// Decrypt account fields (personal account info may be encrypted)
 		const dek = await getUserDek(authContext.userId)
 		const decryptedAccount = dek
-			? decryptAccountFields(account as unknown as Record<string, unknown>, dek) as unknown as typeof account
+			? (decryptAccountFields(
+					account as unknown as Record<string, unknown>,
+					dek
+				) as unknown as typeof account)
 			: account
 
 		const userSettings = settingsResult.data
@@ -908,7 +919,8 @@ export const getMonthlyProjection = async (): Promise<{
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching monthly projection:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching monthly projection:", error)
 		return { status: "error", message: "Failed to fetch monthly projection" }
 	}
 }
@@ -972,7 +984,8 @@ export const getMonthComparison = async (
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching month comparison:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching month comparison:", error)
 		return { status: "error", message: "Failed to fetch month comparison" }
 	}
 }
@@ -1047,7 +1060,8 @@ export const getYearlyOverview = async (
 			},
 		}
 	} catch (error) {
-		if (!(error instanceof Error && "digest" in error)) console.error("Error fetching yearly overview:", error)
+		if (!isFrameworkSignal(error))
+			console.error("Error fetching yearly overview:", error)
 		return { status: "error", message: "Failed to fetch yearly overview" }
 	}
 }

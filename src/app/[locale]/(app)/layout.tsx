@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import { connection } from "next/server"
 import { getCurrentAccount } from "@/app/actions/auth"
 import { getEffectiveDate } from "@/lib/effective-date"
@@ -7,11 +8,12 @@ import { EffectiveDateProvider } from "@/components/providers/effective-date-pro
 import { AppShell } from "@/components/layout/app-shell"
 
 interface AppLayoutProps {
-	children: React.ReactNode
+	children: ReactNode
 }
 
+/** Root layout for the authenticated app shell. Resolves account, effective date, and brand context. */
 const AppLayout = async ({ children }: AppLayoutProps) => {
-	await connection() // Opt into dynamic rendering — prevents prerender errors from auth()
+	await connection()
 	const account = await getCurrentAccount()
 	const effectiveDate = getEffectiveDate(account)
 	const isReplayAccount = account?.accountType === "replay"
@@ -33,5 +35,5 @@ const AppLayout = async ({ children }: AppLayoutProps) => {
 	)
 }
 
-export default AppLayout
+export { AppLayout as default }
 
