@@ -73,7 +73,7 @@ test.describe("Authentication", () => {
 			await page.waitForLoadState("networkidle")
 
 			await page.getByLabel("Full Name").fill("Test User")
-			await page.getByLabel("Email").fill("admin@profitjournal.com") // Already exists from seed
+			await page.getByLabel("Email").fill("admin@axion.com") // Already exists from seed
 			await page.locator('input[type="password"]').first().fill("TestPassword123")
 			await page.locator('input[type="password"]').nth(1).fill("TestPassword123")
 
@@ -121,7 +121,7 @@ test.describe("Authentication", () => {
 			await page.goto(ROUTES.login)
 			await page.waitForLoadState("networkidle")
 
-			await page.locator("#email").fill("admin@profitjournal.com")
+			await page.locator("#email").fill("admin@axion.com")
 			await page.locator("#password").fill("Admin123!")
 			await page.getByRole("button", { name: "Sign In" }).click()
 

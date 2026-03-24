@@ -1,6 +1,6 @@
 /**
  * Scene definitions with real timestamps from the recorded video.
- * Source video: video/public/profitjournal-demo.webm (313s / 5:13)
+ * Source video: video/public/axion-demo.webm (313s / 5:13)
  *
  * All sourceStartSec/sourceEndSec refer to the ORIGINAL video.
  * Remotion skips gaps between scenes (cuts) and adds title cards.
@@ -20,7 +20,7 @@ const scenes: SceneDefinition[] = [
 			{
 				offsetSec: 2,
 				durationSec: 5,
-				text: "ProfitJournal suporta múltiplas contas de trading — pessoal, prop firm e replay.",
+				text: "Axion suporta múltiplas contas de trading — pessoal, prop firm e replay.",
 			},
 			{
 				offsetSec: 8,
@@ -42,7 +42,7 @@ const scenes: SceneDefinition[] = [
 			{
 				offsetSec: 2,
 				durationSec: 7,
-				text: "Importe seus trades via CSV. O ProfitJournal valida cada operação contra seus ativos configurados.",
+				text: "Importe seus trades via CSV. O Axion valida cada operação contra seus ativos configurados.",
 			},
 		],
 		zoom: [],
@@ -379,7 +379,7 @@ const scenes: SceneDefinition[] = [
 			{
 				offsetSec: 0,
 				durationSec: 5,
-				text: "ProfitJournal — Transforme sua disciplina em retorno financeiro.",
+				text: "Axion — Transforme sua disciplina em retorno financeiro.",
 			},
 		],
 		zoom: [],

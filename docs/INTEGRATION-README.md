@@ -1,6 +1,6 @@
-# ProfitJournal - Broker Integration Documentation
+# Axion - Broker Integration Documentation
 
-Complete technical guide for integrating ProfitJournal with B3, ProfitChart, and MetaTrader 5 to automatically import trades without manual intervention.
+Complete technical guide for integrating Axion with B3, ProfitChart, and MetaTrader 5 to automatically import trades without manual intervention.
 
 ## 📚 Documentation Structure
 
@@ -35,12 +35,12 @@ This integration guide is organized into 4 files:
 
 ## 🎯 The Challenge
 
-Currently, ProfitJournal requires users to:
+Currently, Axion requires users to:
 1. Export trades manually from ProfitChart/MetaTrader
 2. Upload CSV file
 3. Manually generate SL/TP values in UI
 
-**Goal:** Automate this entirely so trades flow directly from broker to ProfitJournal in real-time.
+**Goal:** Automate this entirely so trades flow directly from broker to Axion in real-time.
 
 ---
 
@@ -95,7 +95,7 @@ Currently, ProfitJournal requires users to:
        │ Webhook/CSV/API
        ▼
 ┌─────────────────────────────────────────┐
-│  ProfitJournal Backend                  │
+│  Axion Backend                  │
 │  ├─ Trade Webhook Receivers             │
 │  ├─ Data Normalization                  │
 │  ├─ Encryption (AES-256-GCM)            │
@@ -104,7 +104,7 @@ Currently, ProfitJournal requires users to:
        │ WebSocket/REST
        ▼
 ┌─────────────────────────────────────────┐
-│  ProfitJournal Frontend                 │
+│  Axion Frontend                 │
 │  (Real-time trade display)              │
 └─────────────────────────────────────────┘
 ```

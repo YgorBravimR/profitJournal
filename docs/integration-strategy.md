@@ -1,10 +1,10 @@
-# ProfitJournal - Direct Broker Integration Strategy
+# Axion - Direct Broker Integration Strategy
 
 ## Executive Summary
 
-This document outlines technical approaches to integrate ProfitJournal with B3 (Brazilian Stock Exchange), ProfitChart, and MetaTrader 5 to automatically import trades without manual CSV intervention. Three integration tiers are proposed:
+This document outlines technical approaches to integrate Axion with B3 (Brazilian Stock Exchange), ProfitChart, and MetaTrader 5 to automatically import trades without manual CSV intervention. Three integration tiers are proposed:
 
-- **Tier 1 (Quick Win)**: Automated CSV export from ProfitChart → ProfitJournal webhook
+- **Tier 1 (Quick Win)**: Automated CSV export from ProfitChart → Axion webhook
 - **Tier 2 (Production)**: MetaTrader 5 webhook + B3 market data feed for real-time sync
 - **Tier 3 (Enterprise)**: Full broker adapter pattern with direct B3 API integration
 
@@ -23,7 +23,7 @@ This document outlines technical approaches to integrate ProfitJournal with B3 (
           │                  │                  │
           ▼                  ▼                  ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          ProfitJournal Backend (Next.js API Routes)         │
+│          Axion Backend (Next.js API Routes)         │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │    Webhook Receivers & Data Normalization Layer      │   │
 │  │  ┌─────────────┐ ┌─────────────┐ ┌──────────────┐    │   │
@@ -34,7 +34,7 @@ This document outlines technical approaches to integrate ProfitJournal with B3 (
 │          │                │                │                │
 │  ┌───────▼────────────────▼────────────────▼────────────┐   │
 │  │  Trade Normalization & Validation Service           │   │
-│  │  - Map broker fields to ProfitJournal schema        │   │
+│  │  - Map broker fields to Axion schema        │   │
 │  │  - Calculate R-multiple, plannedRiskAmount          │   │
 │  │  - Encrypt sensitive fields (SL, TP, prices)        │   │
 │  │  - Validate trade integrity                         │   │
@@ -62,7 +62,7 @@ This document outlines technical approaches to integrate ProfitJournal with B3 (
 
 ### Current State
 - Users manually export CSV from ProfitChart
-- Upload to ProfitJournal
+- Upload to Axion
 - Manual SL/TP generation with component
 
 ### Proposed Approach: Automated CSV Export via Scheduled Task
@@ -213,7 +213,7 @@ This document outlines technical approaches to integrate ProfitJournal with B3 (
          )
        }
 
-       // Find account mapping (MT5 account ID → ProfitJournal account ID)
+       // Find account mapping (MT5 account ID → Axion account ID)
        const accountMapping = await db.query.brokerAccounts.findFirst({
          where: (t, { eq, and }) => and(
            eq(t.brokerName, "METATRADER5"),
@@ -407,7 +407,7 @@ export const POST = async (req: NextRequest) => {
 **Pros:**
 - ✅ Free B3 API (no authentication needed initially)
 - ✅ Real-time quote updates
-- ✅ Integrated with ProfitJournal schema
+- ✅ Integrated with Axion schema
 - ✅ Useful for trade analytics (entry/exit prices validation)
 
 **Cons:**
@@ -636,7 +636,7 @@ export const processBatchTrades = async (
 ### Phase 2 (Week 3-4): MetaTrader 5 Real-Time
 - [ ] Implement `/api/integrations/metatrader5/webhooks` receiver
 - [ ] Add MT5 webhook signature verification
-- [ ] Create MT5 → ProfitJournal field mapping
+- [ ] Create MT5 → Axion field mapping
 - [ ] Build MT5 account linking UI
 
 ### Phase 3 (Week 5-6): B3 Market Data

@@ -2,7 +2,7 @@ import { test as setup, expect } from "@playwright/test"
 
 // Use the admin user from seed.ts for full access to all features
 const TEST_USER = {
-	email: "admin@profitjournal.com",
+	email: "admin@axion.com",
 	password: "Admin123!",
 }
 

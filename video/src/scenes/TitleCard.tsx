@@ -76,7 +76,7 @@ const TitleCard = ({ label, durationFrames }: TitleCardProps) => {
 					transform: `scale(${titleScale})`,
 				}}
 			>
-				ProfitJournal
+				Axion
 			</p>
 		</AbsoluteFill>
 	)

@@ -3,11 +3,11 @@ import { neon } from "@neondatabase/serverless"
 import bcrypt from "bcryptjs"
 
 /**
- * Seed script for profitJournal
+ * Seed script for Axion
  * Run with: pnpm db:seed
  *
  * Creates:
- * - 1 Admin user (admin@profitjournal.com / Admin123!)
+ * - 1 Admin user (admin@axion.com / Admin123!)
  * - 3 Trading accounts:
  *   1. Personal (default) - with trades (Nov 2025 - Jan 2026)
  *   2. Atom Prop Firm - with trades (Nov 2025 - Jan 2026)
@@ -21,7 +21,7 @@ import bcrypt from "bcryptjs"
  * Date Range: November 1, 2025 to January 31, 2026
  */
 
-const ADMIN_EMAIL = "admin@profitjournal.com"
+const ADMIN_EMAIL = "admin@axion.com"
 const ADMIN_PASSWORD = "Admin123!"
 const SALT_ROUNDS = 12
 

@@ -435,7 +435,7 @@ const verify = async (): Promise<boolean> => {
 
 const main = async () => {
 	console.log("========================================")
-	console.log("ProfitJournal — Encrypt Existing Data")
+	console.log("Axion — Encrypt Existing Data")
 	console.log("========================================\n")
 
 	const failedUsers: string[] = []

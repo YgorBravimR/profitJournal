@@ -1,11 +1,11 @@
 {
-	"name": "profitjournal-video",
+	"name": "axion-video",
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
 		"preview": "remotion preview src/index.tsx --port 4010",
-		"render": "remotion render src/index.tsx DemoVideo --output ../demo-videos/profitjournal-final.mp4 --codec h264",
-		"render:hd": "remotion render src/index.tsx DemoVideo --output ../demo-videos/profitjournal-final-hd.mp4 --codec h264 --width 1920 --height 1080"
+		"render": "remotion render src/index.tsx DemoVideo --output ../demo-videos/axion-final.mp4 --codec h264",
+		"render:hd": "remotion render src/index.tsx DemoVideo --output ../demo-videos/axion-final-hd.mp4 --codec h264 --width 1920 --height 1080"
 	},
 	"dependencies": {
 		"@remotion/cli": "^4.0.0",

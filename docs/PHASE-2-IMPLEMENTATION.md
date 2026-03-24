@@ -14,7 +14,7 @@
    Genial: Operações → Histórico → Exportar → CSV
    ```
 
-2. **Upload to ProfitJournal:**
+2. **Upload to Axion:**
    - Settings → Import Detailed Trades
    - Upload CSV file
    - See preview of detected executions

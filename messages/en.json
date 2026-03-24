@@ -1,6 +1,6 @@
 {
 	"common": {
-		"appName": "Profit Journal",
+		"appName": "Axion",
 		"loading": "Loading...",
 		"saving": "Saving...",
 		"error": "Error",
@@ -2776,7 +2776,7 @@
 	"auth": {
 		"login": {
 			"title": "Sign In",
-			"subtitle": "Welcome back to Profit Journal",
+			"subtitle": "Welcome back to Axion",
 			"email": "Email",
 			"password": "Password",
 			"rememberMe": "Remember me",

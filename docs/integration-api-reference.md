@@ -4,7 +4,7 @@
 
 ### POST `/api/integrations/profitchart/import`
 
-**Purpose:** Accept CSV trade data from ProfitChart and import into ProfitJournal
+**Purpose:** Accept CSV trade data from ProfitChart and import into Axion
 
 **Request Body:**
 ```json
@@ -128,7 +128,7 @@ WDO,VENDA,30.50,29.80,100,2026-02-25,10:00:00,2026-02-25,11:45:00,25.00
 {
   "success": false,
   "error": "Account not found",
-  "message": "MT5 account MT5_12345 is not linked to any ProfitJournal account"
+  "message": "MT5 account MT5_12345 is not linked to any Axion account"
 }
 ```
 
@@ -190,7 +190,7 @@ WDO,VENDA,30.50,29.80,100,2026-02-25,10:00:00,2026-02-25,11:45:00,25.00
 
 ### POST `/api/integrations/account/link`
 
-**Purpose:** Link external broker account to ProfitJournal account
+**Purpose:** Link external broker account to Axion account
 
 **Request Body:**
 ```json
@@ -208,7 +208,7 @@ WDO,VENDA,30.50,29.80,100,2026-02-25,10:00:00,2026-02-25,11:45:00,25.00
 {
   "success": true,
   "linkedAccountId": "ba_550e8400e29b41d4",
-  "webhookUrl": "https://app.profitjournal.com/api/integrations/metatrader5/webhooks",
+  "webhookUrl": "https://app.axion.com/api/integrations/metatrader5/webhooks",
   "status": "connected"
 }
 ```
@@ -255,7 +255,7 @@ WDO,VENDA,30.50,29.80,100,2026-02-25,10:00:00,2026-02-25,11:45:00,25.00
 
 ## WebSocket Real-Time Updates
 
-### WS `wss://app.profitjournal.com/ws/trades`
+### WS `wss://app.axion.com/ws/trades`
 
 **Subscribe to trade updates:**
 ```json

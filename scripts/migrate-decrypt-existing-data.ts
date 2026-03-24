@@ -402,7 +402,7 @@ const verify = async (): Promise<boolean> => {
 
 const main = async () => {
 	console.log("========================================")
-	console.log("ProfitJournal — Decrypt Existing Data")
+	console.log("Axion — Decrypt Existing Data")
 	console.log("========================================\n")
 
 	console.log("WARNING: This will convert all encrypted data to plaintext.")

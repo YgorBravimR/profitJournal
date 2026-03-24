@@ -1,4 +1,4 @@
-# Profit Journal - Component Architecture
+# Axion - Component Architecture
 
 ## Overview
 

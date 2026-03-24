@@ -1,4 +1,4 @@
-# Profit Journal - Implementation Plan
+# Axion - Implementation Plan
 
 ## Project Overview
 
@@ -2515,7 +2515,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 ┌────────────────────────────────────────────────────────────────────┐
 │                                                                    │
 │                    ┌─────────────────────────┐                     │
-│                    │      Profit Journal      │                     │
+│                    │      Axion      │                     │
 │                    │                          │                     │
 │                    │  Email                   │                     │
 │                    │  [____________________]  │                     │
@@ -2567,7 +2567,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
-│ Profit Journal                          [Personal ▼]  [User Menu ▼]  │
+│ Axion                          [Personal ▼]  [User Menu ▼]  │
 ├──────────────────────────────────────────────────────────────────────┤
 │                                         ┌─────────────────────────┐  │
 │                                         │ ✓ Personal Account      │  │

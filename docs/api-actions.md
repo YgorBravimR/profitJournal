@@ -1,8 +1,8 @@
-# Profit Journal - Server Actions & API Design
+# Axion - Server Actions & API Design
 
 ## Overview
 
-This document defines all server actions for the Profit Journal platform. Server actions use Next.js 15's built-in server action pattern with "use server" directive.
+This document defines all server actions for the Axion platform. Server actions use Next.js 15's built-in server action pattern with "use server" directive.
 
 ---
 

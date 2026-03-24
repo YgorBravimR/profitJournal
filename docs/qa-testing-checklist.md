@@ -1,4 +1,4 @@
-# QA Testing Checklist - ProfitJournal
+# QA Testing Checklist - Axion
 
 Complete testing checklist for QA validation of all features and user interactions.
 

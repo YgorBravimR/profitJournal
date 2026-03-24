@@ -1,5 +1,5 @@
 /**
- * ProfitJournal Demo Video Recorder
+ * Axion Demo Video Recorder
  *
  * Usage:
  *   npx tsx scripts/record-demo.ts
@@ -17,7 +17,7 @@ const CONFIG = {
 	baseUrl: "http://localhost:3003",
 	locale: "pt-BR",
 	credentials: {
-		email: "admin@profitjournal.com",
+		email: "admin@axion.com",
 		password: "Admin123!",
 	},
 	accountName: "T100",
@@ -1139,7 +1139,7 @@ const saveVideo = (videoDir: string) => {
 	if (files.length === 0) return
 	const latestFile = files.sort().pop()!
 	const src = path.join(videoDir, latestFile)
-	const dest = path.join(videoDir, "profitjournal-demo.webm")
+	const dest = path.join(videoDir, "axion-demo.webm")
 	if (src === dest) {
 		console.log(`\n🎬 Video saved to: ${dest}`)
 		return

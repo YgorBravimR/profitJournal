@@ -1,8 +1,8 @@
-# Profit Journal - Database Schema Design
+# Axion - Database Schema Design
 
 ## Overview
 
-This document defines the complete database schema for the Profit Journal trading platform. The schema is designed for **Drizzle ORM** with **PostgreSQL (Neon serverless)**.
+This document defines the complete database schema for the Axion trading platform. The schema is designed for **Drizzle ORM** with **PostgreSQL (Neon serverless)**.
 
 ---
 

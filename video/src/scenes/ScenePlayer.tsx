@@ -20,7 +20,7 @@ const ScenePlayer = ({ startSec }: ScenePlayerProps) => {
 	return (
 		<div style={{ width: WIDTH, height: HEIGHT, overflow: "hidden", position: "relative" }}>
 			<OffthreadVideo
-				src={staticFile("profitjournal-demo.webm")}
+				src={staticFile("axion-demo.webm")}
 				startFrom={Math.round(startSec * FPS)}
 				style={{
 					position: "absolute",

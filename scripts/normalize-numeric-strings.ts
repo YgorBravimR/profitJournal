@@ -119,7 +119,7 @@ const normalizeAll = async (): Promise<void> => {
 
 const main = async () => {
 	console.log("========================================")
-	console.log("ProfitJournal — Normalize Numeric Strings")
+	console.log("Axion — Normalize Numeric Strings")
 	console.log("========================================\n")
 
 	// Count before

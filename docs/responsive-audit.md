@@ -1,4 +1,4 @@
-# ProfitJournal — Mobile Responsiveness Audit (360px)
+# Axion — Mobile Responsiveness Audit (360px)
 
 > Domain-by-domain assessment following `docs/app-audit.md` structure.
 > CSS patterns informed by `css-mastery.md` responsive concepts.

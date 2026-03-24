@@ -1,4 +1,4 @@
-# ProfitJournal Integration - Quick Start Guide
+# Axion Integration - Quick Start Guide
 
 ## Three Integration Tiers Explained
 
@@ -14,7 +14,7 @@
 
 ### What It Does
 - Automatically exports trades from ProfitChart daily
-- Sends CSV to ProfitJournal webhook
+- Sends CSV to Axion webhook
 - Applies SL/TP auto-generation
 - No manual intervention needed
 
@@ -77,7 +77,7 @@ export const mapProfitChartTrade = (row: any) => ({
 ## Tier 2: MetaTrader 5 Real-Time Webhooks ⚡
 
 ### What It Does
-- MetaTrader 5 automatically sends trade notifications to ProfitJournal
+- MetaTrader 5 automatically sends trade notifications to Axion
 - Trades imported within seconds of execution
 - Works with any MT5 broker
 - Real-time SL/TP and P&L tracking
@@ -92,7 +92,7 @@ MT5 Terminal (Expert Advisor)
         ↓
  POST /api/integrations/metatrader5/webhooks
         ↓
-ProfitJournal Backend
+Axion Backend
         ↓
   Normalize & Encrypt
         ↓
@@ -140,7 +140,7 @@ void OnTrade() {
 ```
 
 **Step 3: Account Mapping UI** (2 hours)
-- Settings page to link MT5 account ID → ProfitJournal account
+- Settings page to link MT5 account ID → Axion account
 - Webhook URL generation
 - Connection test button
 

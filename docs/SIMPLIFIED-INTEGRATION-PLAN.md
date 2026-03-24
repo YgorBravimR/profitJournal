@@ -1,4 +1,4 @@
-# ProfitJournal - Simplified Integration Plan
+# Axion - Simplified Integration Plan
 ## Focus: Exact Trade Data (All Entries, All Exits, Exact Prices & Quantities)
 
 ---
@@ -15,7 +15,7 @@
 - Capture **EVERY entry and EVERY exit** with exact prices and quantities
 - Automation first (direct connection to account)
 - CSV fallback (most detailed export possible)
-- Direct data flow: Broker → ProfitJournal (no manual CSV uploads)
+- Direct data flow: Broker → Axion (no manual CSV uploads)
 
 ---
 
@@ -42,7 +42,7 @@ Each execution = {
         ↓
 Multiple executions in same trade = partial fills
         ↓
-ProfitJournal (group by trade logic)
+Axion (group by trade logic)
 ```
 
 **Key Insight:** Brokers track EVERY execution separately (partial fills included). If you buy 100 shares and it fills as 30 + 70, the broker API returns both fills with separate timestamps and prices.
@@ -96,8 +96,8 @@ User Action:
 1. Goes to Settings → Connect Broker Account
 2. Selects "Clear" or "XP"
 3. Generates API key from broker portal
-4. Pastes into ProfitJournal
-5. ProfitJournal tests connection
+4. Pastes into Axion
+5. Axion tests connection
 ```
 
 #### Step 2: Create Broker Adapters

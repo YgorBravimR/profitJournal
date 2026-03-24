@@ -1,4 +1,4 @@
-# ProfitJournal — Complete Application Audit
+# Axion — Complete Application Audit
 
 > Full inventory of every page, component, feature, API route, and infrastructure piece.
 > Generated: March 2026
@@ -89,7 +89,7 @@
 ```
 src/app/layout.tsx (ROOT)
 ├── Fonts: Plus Jakarta Sans, Geist Mono
-├── Metadata: "Profit Journal"
+├── Metadata: "Axion"
 └── children only
 
 [locale]/layout.tsx

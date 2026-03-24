@@ -1,6 +1,6 @@
 # ProfitDLL Research
 
-Research document summarizing findings on Nelogica's DLL Real Time product, its capabilities, limitations, and potential integration strategy for ProfitJournal.
+Research document summarizing findings on Nelogica's DLL Real Time product, its capabilities, limitations, and potential integration strategy for Axion.
 
 **Last updated:** 2026-02-26
 **Status:** Parked for later implementation
@@ -115,10 +115,10 @@ ProfitDLL operates in two modes:
 
 ## Architecture for Future Integration
 
-A bridge pattern is needed to connect the Windows-only DLL to ProfitJournal's web infrastructure.
+A bridge pattern is needed to connect the Windows-only DLL to Axion's web infrastructure.
 
 ```
-[User's Windows PC]                         [ProfitJournal Server]
+[User's Windows PC]                         [Axion Server]
 ProfitDLL Agent (Python)  ---HTTPS POST--->  /api/integrations/profitdll/webhook
   - GetOrders()                                - Validate payload
   - GetPosition()                              - Encrypt fields (AES-256-GCM)
@@ -133,7 +133,7 @@ The user would install a lightweight Python agent on their Windows machine that:
 2. Listens for `newTradeCallback` events to capture real-time trade executions.
 3. Periodically calls `GetOrders()` to sync order history.
 4. Calls `GetPosition()` to track intraday positions.
-5. POSTs normalized trade data to ProfitJournal's API endpoint over HTTPS.
+5. POSTs normalized trade data to Axion's API endpoint over HTTPS.
 
 ### Security Considerations
 
@@ -141,7 +141,7 @@ The user would install a lightweight Python agent on their Windows machine that:
 - AES-256-GCM encryption for sensitive price fields (entry, exit, SL, TP).
 - Rate limiting (429 response for more than 100 requests per minute).
 - Audit logging for all imports.
-- Per-user DEK (Data Encryption Key) system, consistent with ProfitJournal's existing encryption architecture.
+- Per-user DEK (Data Encryption Key) system, consistent with Axion's existing encryption architecture.
 
 ---
 
