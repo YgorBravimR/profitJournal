@@ -63,7 +63,7 @@ const ModeDistributionChart = ({ statistics }: ModeDistributionChartProps) => {
 			slices.push({
 				name: t("skipped") + " (Weekly)",
 				value: statistics.avgDaysSkippedWeeklyLimit,
-				color: "var(--color-fb-warning)",
+				color: "var(--color-warning)",
 			})
 		}
 		if (statistics.avgDaysSkippedMonthlyLimit > 0) {

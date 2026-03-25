@@ -27,8 +27,8 @@ export const InputModeSelector = ({
 					className={cn(
 						"px-m-400 py-s-300 text-small flex-1 rounded-md border font-medium transition-colors",
 						mode === "auto"
-							? "border-accent-primary bg-accent-primary/10 text-accent-primary"
-							: "border-bg-300 bg-bg-100 text-txt-200 hover:border-bg-400"
+							? "border-acc-100 bg-acc-100/10 text-acc-100"
+							: "border-bg-300 bg-bg-100 text-txt-200 hover:border-bg-200"
 					)}
 				>
 					{t("auto")}
@@ -40,8 +40,8 @@ export const InputModeSelector = ({
 					className={cn(
 						"px-m-400 py-s-300 text-small flex-1 rounded-md border font-medium transition-colors",
 						mode === "manual"
-							? "border-accent-primary bg-accent-primary/10 text-accent-primary"
-							: "border-bg-300 bg-bg-100 text-txt-200 hover:border-bg-400"
+							? "border-acc-100 bg-acc-100/10 text-acc-100"
+							: "border-bg-300 bg-bg-100 text-txt-200 hover:border-bg-200"
 					)}
 				>
 					{t("manual")}

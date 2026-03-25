@@ -35,13 +35,13 @@ export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 	const levelConfig = {
 		aggressive: {
 			Icon: AlertTriangle,
-			color: "text-fb-warning",
-			bgColor: "bg-fb-warning/10 border-fb-warning/30",
+			color: "text-warning",
+			bgColor: "bg-warning/10 border-warning/30",
 		},
 		balanced: {
 			Icon: Info,
-			color: "text-accent-primary",
-			bgColor: "bg-accent-primary/10 border-accent-primary/30",
+			color: "text-acc-100",
+			bgColor: "bg-acc-100/10 border-acc-100/30",
 		},
 		conservative: {
 			Icon: CheckCircle,
@@ -132,7 +132,7 @@ export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 							</p>
 						</TooltipContent>
 					</Tooltip>
-					<p className="text-h4 text-txt-100 font-bold">
+					<p className="text-h3 text-txt-100 font-bold">
 						{formatKellyPercent(kellyQuarter)}
 					</p>
 				</div>
@@ -159,7 +159,7 @@ export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 							</p>
 						</TooltipContent>
 					</Tooltip>
-					<p className="text-h4 text-txt-100 font-bold">
+					<p className="text-h3 text-txt-100 font-bold">
 						{formatKellyPercent(kellyHalf)}
 					</p>
 				</div>
@@ -188,7 +188,7 @@ export const KellyCriterionCard = ({ statistics }: KellyCriterionCardProps) => {
 							</p>
 						</TooltipContent>
 					</Tooltip>
-					<p className="text-h4 text-txt-100 font-bold">
+					<p className="text-h3 text-txt-100 font-bold">
 						{formatKellyPercent(kellyFull)}
 					</p>
 				</div>

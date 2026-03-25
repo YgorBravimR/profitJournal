@@ -241,7 +241,7 @@ const MonteCarloV2Content = ({
 			</div>
 
 			{/* Info banner explaining Capital Expectancy */}
-			<div className="border-accent-primary/30 bg-accent-primary/5 p-m-400 text-small text-txt-200 rounded-lg border">
+			<div className="border-acc-100/30 bg-acc-100/5 p-m-400 text-small text-txt-200 rounded-lg border">
 				{t("capitalExplanation")}
 			</div>
 
@@ -519,7 +519,7 @@ const MonteCarloV2Content = ({
 								budgetInfo.isOverBudget
 									? "text-fb-error font-semibold"
 									: budgetInfo.budgetUsage > 0.8
-										? "text-fb-warning"
+										? "text-warning"
 										: "text-txt-300"
 							)}
 						>
@@ -527,7 +527,7 @@ const MonteCarloV2Content = ({
 						</span>
 					</div>
 					{budgetInfo.isOverBudget && (
-						<p className="mt-s-200 text-caption text-fb-error">
+						<p className="mt-s-200 text-tiny text-fb-error">
 							{t("params.budgetExceeded")}
 						</p>
 					)}

@@ -189,7 +189,7 @@ export const SimulationParamsForm = ({
 						isOverBudget
 							? "text-fb-error font-semibold"
 							: budgetUsage > 0.8
-								? "text-fb-warning"
+								? "text-warning"
 								: "text-txt-300"
 					)}
 				>
@@ -197,7 +197,7 @@ export const SimulationParamsForm = ({
 				</span>
 			</div>
 			{isOverBudget && (
-				<p className="mt-s-200 text-caption text-fb-error">
+				<p className="mt-s-200 text-tiny text-fb-error">
 					{t("budgetExceeded", {
 						maxTrades: Math.floor(
 							budgetCap / params.simulationCount

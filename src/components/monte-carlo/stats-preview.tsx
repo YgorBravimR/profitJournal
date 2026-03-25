@@ -41,7 +41,7 @@ export const StatsPreview = ({
 	}
 
 	return (
-		<div className="border-accent-primary/30 bg-accent-primary/5 p-s-300 sm:p-m-400 rounded-lg border">
+		<div className="border-acc-100/30 bg-acc-100/5 p-s-300 sm:p-m-400 rounded-lg border">
 			{/* Header */}
 			<div className="mb-s-300">
 				<h4 className="text-small text-txt-100 font-medium">

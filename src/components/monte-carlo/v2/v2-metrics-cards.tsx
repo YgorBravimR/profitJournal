@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useTranslations } from "next-intl"
 import { Info } from "lucide-react"
 import {
@@ -23,7 +24,7 @@ interface V2MetricsCardsProps {
 
 interface MetricCardProps {
 	title: string
-	children: React.ReactNode
+	children: ReactNode
 }
 
 const MetricCard = ({ title, children }: MetricCardProps) => (
@@ -191,7 +192,7 @@ const V2MetricsCards = ({
 						statistics.riskOfRuinPercent <= 5
 							? "text-trade-buy"
 							: statistics.riskOfRuinPercent <= 20
-								? "text-fb-warning"
+								? "text-warning"
 								: "text-trade-sell"
 					}
 					tooltip={tTooltips("riskOfRuin")}
@@ -203,7 +204,7 @@ const V2MetricsCards = ({
 						statistics.medianMinBalancePercent >= 80
 							? "text-trade-buy"
 							: statistics.medianMinBalancePercent >= 60
-								? "text-fb-warning"
+								? "text-warning"
 								: "text-trade-sell"
 					}
 				/>
