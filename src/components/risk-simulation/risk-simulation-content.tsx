@@ -170,7 +170,7 @@ const RiskSimulationContent = ({
 					id="btn-run-simulation"
 					onClick={handleRunSimulation}
 					disabled={!canRun}
-					className="bg-acc-100 hover:bg-acc-100/90 text-white"
+					className="bg-acc-100 hover:bg-acc-100/90 text-bg-100"
 					aria-label={t("runSimulation")}
 				>
 					<FlaskConical className="mr-2 h-4 w-4" />

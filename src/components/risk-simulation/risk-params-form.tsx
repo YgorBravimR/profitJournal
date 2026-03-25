@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ChangeEvent } from "react"
 import { useTranslations } from "next-intl"
 import { Lock } from "lucide-react"
 import { fromCents } from "@/lib/money"
@@ -76,7 +76,7 @@ const CurrencyField = ({ label, valueCents, onChange, suffix, disabled, locked }
 		}
 	}, [valueCents, isFocused])
 
-	const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+	const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const raw = event.target.value
 		setLocalValue(raw)
 		onChange(raw)

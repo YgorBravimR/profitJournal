@@ -7,8 +7,6 @@ import { LoadingSpinner } from "@/components/shared"
 
 
 const RiskSimulationPage = async () => {
-	const pageStart = performance.now()
-
 	const [planResponse, profilesResponse, yearsResponse] = await Promise.all([
 		getActiveMonthlyPlan(),
 		listActiveRiskProfiles(),
@@ -21,9 +19,6 @@ const RiskSimulationPage = async () => {
 		profilesResponse.status === "success" ? (profilesResponse.data ?? []) : []
 	const tradeYears =
 		yearsResponse.status === "success" ? (yearsResponse.data ?? []) : []
-
-	const pageMs = (performance.now() - pageStart).toFixed(1)
-	console.log(`[YGORDEV:risk-simulation] SSR: ${pageMs}ms | queries: 3`)
 
 	return (
 		<div className="p-m-400 sm:p-m-500 lg:p-m-600 container mx-auto max-w-7xl">
@@ -38,4 +33,4 @@ const RiskSimulationPage = async () => {
 	)
 }
 
-export default RiskSimulationPage
+export { RiskSimulationPage as default }
