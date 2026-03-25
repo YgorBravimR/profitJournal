@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo } from "react"
 import { useTranslations } from "next-intl"
 import {
 	RadarChart,
@@ -70,11 +71,14 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 	const tCharts = useTranslations("charts")
 	const isMobile = useIsMobile()
 
-	// Transform data with translated labels
-	const chartData = data.map((item) => ({
-		...item,
-		metric: t(`radar.${item.metricKey}`),
-	}))
+	const chartData = useMemo(
+		() =>
+			data.map((item) => ({
+				...item,
+				metric: t(`radar.${item.metricKey}`),
+			})),
+		[data, t]
+	)
 
 	if (data.length === 0) {
 		return (
@@ -90,7 +94,7 @@ export const PerformanceRadarChart = ({ data }: PerformanceRadarChartProps) => {
 	}
 
 	return (
-		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400">
+		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400" role="region" aria-label={t("radar.title")}>
 			<h3 className="mb-s-300 text-small font-semibold text-txt-100 sm:mb-m-400 sm:text-body">
 				{t("radar.title")}
 			</h3>

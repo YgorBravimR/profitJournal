@@ -1,9 +1,10 @@
 "use client"
 
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import { Flame, Trophy, AlertTriangle, Activity } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
 import type { StreakData, OverallStats } from "@/types"
+import { cn } from "@/lib/utils"
 import { formatCompactCurrencyWithSign, formatDateLocale } from "@/lib/formatting"
 import type { Locale } from "@/i18n/config"
 
@@ -30,7 +31,7 @@ const StatRow = ({ icon, label, value, subValue, valueClass }: StatRowProps) => 
 			<span className="text-small text-txt-200 truncate">{label}</span>
 		</div>
 		<div className="text-right min-w-0 shrink-0">
-			<span className={`text-small font-medium truncate ${valueClass || "text-txt-100"}`}>
+			<span className={cn("text-small font-medium truncate", valueClass || "text-txt-100")}>
 				{value}
 			</span>
 			{subValue && (
@@ -55,7 +56,7 @@ export const QuickStats = ({ streakData, stats }: QuickStatsProps) => {
 		return formatDateLocale(date, locale, { month: "short", day: "numeric" })
 	}
 
-	const getStreakDisplay = () => {
+	const streak = useMemo(() => {
 		if (!streakData || streakData.currentStreakType === "none") {
 			return { value: "0", label: "", colorClass: "text-txt-300" }
 		}
@@ -66,9 +67,7 @@ export const QuickStats = ({ streakData, stats }: QuickStatsProps) => {
 			label: isWinStreak ? t("w") : t("l"),
 			colorClass: isWinStreak ? "text-trade-buy" : "text-trade-sell",
 		}
-	}
-
-	const streak = getStreakDisplay()
+	}, [streakData, t])
 
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 p-s-300 sm:p-m-400 lg:p-m-500">

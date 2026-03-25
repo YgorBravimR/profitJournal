@@ -1,8 +1,9 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
+import { cn } from "@/lib/utils"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { APP_TIMEZONE } from "@/lib/dates"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -10,7 +11,6 @@ import type { EquityPoint } from "@/types"
 
 interface CumulativePnLChartProps {
 	data: EquityPoint[]
-	showDrawdown?: boolean
 }
 
 interface CustomTooltipProps {
@@ -24,6 +24,7 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("dashboard")
+	const locale = useLocale()
 
 	if (!active || !payload || payload.length === 0) {
 		return null
@@ -35,7 +36,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	return (
 		<div className="border-bg-300 bg-bg-100 px-s-300 py-s-200 rounded-lg border shadow-lg">
 			<p className="text-small text-txt-100 font-medium">
-				{new Date(data.date).toLocaleDateString("pt-BR", {
+				{new Date(data.date).toLocaleDateString(locale, {
 					day: "numeric",
 					month: "short",
 					year: "numeric",
@@ -46,7 +47,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 				<p className="text-caption text-txt-300">
 					{t("cumulativePnL.cumulative")}:{" "}
 					<span
-						className={`font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}
+						className={cn("font-semibold", isProfit ? "text-trade-buy" : "text-trade-sell")}
 					>
 						{formatCompactCurrencyWithSign(data.equity, "R$")}
 					</span>
@@ -66,14 +67,14 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 
 export const CumulativePnLChart = ({
 	data,
-	showDrawdown = false,
 }: CumulativePnLChartProps) => {
 	const { yAxisWidth } = useChartConfig()
 	const t = useTranslations("dashboard")
+	const locale = useLocale()
 
 	const formatDate = (date: string) => {
 		const d = new Date(date)
-		return d.toLocaleDateString("pt-BR", {
+		return d.toLocaleDateString(locale, {
 			day: "numeric",
 			month: "short",
 			timeZone: APP_TIMEZONE,
@@ -87,8 +88,8 @@ export const CumulativePnLChart = ({
 
 	if (data.length === 0) {
 		return (
-			<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
-				<h3 className="mb-m-400 text-body text-txt-100 font-semibold">
+			<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border sm:p-m-400">
+				<h3 className="mb-s-300 text-small sm:mb-m-400 sm:text-body text-txt-100 font-semibold">
 					{t("cumulativePnL.title")}
 				</h3>
 				<div className="text-txt-300 flex h-[150px] sm:h-[200px] items-center justify-center">
@@ -103,8 +104,8 @@ export const CumulativePnLChart = ({
 		finalPnl >= 0 ? "var(--color-trade-buy)" : "var(--color-trade-sell)"
 
 	return (
-		<div className="border-bg-300 bg-bg-200 p-m-400 rounded-lg border">
-			<h3 className="mb-m-400 text-body text-txt-100 font-semibold">
+		<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border sm:p-m-400">
+			<h3 className="mb-s-300 text-small sm:mb-m-400 sm:text-body text-txt-100 font-semibold">
 				{t("cumulativePnL.title")}
 			</h3>
 			<ChartContainer

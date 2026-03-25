@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useCallback, useMemo } from "react"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
 import { useTranslations, useLocale } from "next-intl"
@@ -50,13 +50,14 @@ const PeriodToggle = ({
 	]
 
 	return (
-		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border">
+		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border" role="group">
 			{options.map((option) => (
 				<button
 					key={option.value}
 					type="button"
 					onClick={() => onChange(option.value)}
 					disabled={disabled}
+					aria-pressed={period === option.value}
 					className={cn(
 						"px-s-300 py-s-100 text-tiny rounded-md font-medium transition-colors",
 						period === option.value
@@ -91,13 +92,14 @@ const ViewModeToggle = ({
 	]
 
 	return (
-		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border">
+		<div className="border-bg-300 bg-bg-100 p-s-100 flex rounded-lg border" role="group">
 			{options.map((option) => (
 				<button
 					key={option.value}
 					type="button"
 					onClick={() => onChange(option.value)}
 					disabled={disabled}
+					aria-pressed={mode === option.value}
 					className={cn(
 						"px-s-300 py-s-100 text-tiny rounded-md font-medium transition-colors",
 						mode === option.value
@@ -113,20 +115,35 @@ const ViewModeToggle = ({
 	)
 }
 
-interface TooltipContextProps {
+interface EquityTooltipProps extends CustomTooltipProps {
 	viewMode: ViewMode
 	locale: string
 	drawdownLabel: string
 	tradeNumberLabel: (number: number) => string
 }
 
-const createCustomTooltip = ({
+const EquityTooltip = ({
+	active,
+	payload,
+	label,
 	viewMode,
 	locale,
 	drawdownLabel,
 	tradeNumberLabel,
-}: TooltipContextProps) => {
-	const formatDateLocale = (dateStr: string): string => {
+}: EquityTooltipProps) => {
+	if (!active || !payload || payload.length === 0) {
+		return null
+	}
+
+	const data = payload[0].payload
+	// Calculate drawdown value: if we're X% down from peak, the dollar amount is
+	// accountEquity * (drawdown / (100 - drawdown))
+	const drawdownValue =
+		data.drawdown > 0
+			? data.accountEquity * (data.drawdown / (100 - data.drawdown))
+			: 0
+
+	const formatDateStr = (dateStr: string): string => {
 		const date = new Date(dateStr)
 		return date.toLocaleDateString(locale === "pt-BR" ? "pt-BR" : "en-US", {
 			month: "short",
@@ -135,48 +152,30 @@ const createCustomTooltip = ({
 		})
 	}
 
-	const CustomTooltipInner = ({
-		active,
-		payload,
-		label,
-	}: CustomTooltipProps) => {
-		if (active && payload && payload.length > 0) {
-			const data = payload[0].payload
-			// Calculate drawdown value: if we're X% down from peak, the dollar amount is
-			// accountEquity * (drawdown / (100 - drawdown))
-			const drawdownValue =
-				data.drawdown > 0
-					? data.accountEquity * (data.drawdown / (100 - data.drawdown))
-					: 0
+	const labelDisplay =
+		viewMode === "trades" && data.tradeNumber
+			? tradeNumberLabel(data.tradeNumber)
+			: formatDateStr(label || "")
 
-			const labelDisplay =
-				viewMode === "trades" && data.tradeNumber
-					? tradeNumberLabel(data.tradeNumber)
-					: formatDateLocale(label || "")
-
-			return (
-				<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border shadow-lg">
-					<p className="text-tiny text-txt-300">{labelDisplay}</p>
-					{viewMode === "trades" && (
-						<p className="text-tiny text-txt-300">
-							{formatDateLocale(data.date)}
-						</p>
-					)}
-					<p className="text-small text-txt-100 font-semibold">
-						{formatCompactCurrency(data.accountEquity, "R$")}
-					</p>
-					{data.drawdown > 0 && (
-						<p className="text-tiny text-trade-sell">
-							{drawdownLabel}: {formatCompactCurrency(drawdownValue, "R$")} (
-							{data.drawdown.toFixed(1)}%)
-						</p>
-					)}
-				</div>
-			)
-		}
-		return null
-	}
-	return CustomTooltipInner
+	return (
+		<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border shadow-lg">
+			<p className="text-tiny text-txt-300">{labelDisplay}</p>
+			{viewMode === "trades" && (
+				<p className="text-tiny text-txt-300">
+					{formatDateStr(data.date)}
+				</p>
+			)}
+			<p className="text-small text-txt-100 font-semibold">
+				{formatCompactCurrency(data.accountEquity, "R$")}
+			</p>
+			{data.drawdown > 0 && (
+				<p className="text-tiny text-trade-sell">
+					{drawdownLabel}: {formatCompactCurrency(drawdownValue, "R$")} (
+					{data.drawdown.toFixed(1)}%)
+				</p>
+			)}
+		</div>
+	)
 }
 
 export const EquityCurve = ({
@@ -193,12 +192,47 @@ export const EquityCurve = ({
 	const [data, setData] = useState<EquityPoint[]>(initialData)
 	const [isPending, startTransition] = useTransition()
 
+	const fetchData = useCallback(
+		(newPeriod: Period, newMode: ViewMode) => {
+			startTransition(async () => {
+				let dateFrom: Date | undefined
+				let dateTo: Date | undefined
+
+				if (newPeriod === "month") {
+					// Use calendar month instead of current month
+					dateFrom = new Date(
+						calendarMonth.getFullYear(),
+						calendarMonth.getMonth(),
+						1
+					)
+					dateTo = new Date(
+						calendarMonth.getFullYear(),
+						calendarMonth.getMonth() + 1,
+						0
+					)
+				} else if (newPeriod === "year") {
+					dateFrom = new Date(effectiveDate.getFullYear(), 0, 1)
+					dateTo = new Date(effectiveDate.getFullYear(), 11, 31)
+				}
+				// "all" leaves both undefined
+
+				const mode: EquityCurveMode =
+					newMode === "trades" ? "trade" : "daily"
+				const result = await getEquityCurve(dateFrom, dateTo, mode)
+				if (result.status === "success" && result.data) {
+					setData(result.data)
+				}
+			})
+		},
+		[calendarMonth, effectiveDate, startTransition]
+	)
+
 	// Refetch when calendar month changes and period is "month"
 	useEffect(() => {
 		if (period === "month") {
 			fetchData("month", viewMode)
 		}
-	}, [calendarMonth]) // eslint-disable-line react-hooks/exhaustive-deps
+	}, [calendarMonth, fetchData, period, viewMode])
 
 	const periodLabels = {
 		month: t("period.month"),
@@ -217,37 +251,6 @@ export const EquityCurve = ({
 			month: "short",
 			day: "numeric",
 			timeZone: APP_TIMEZONE,
-		})
-	}
-
-	const fetchData = (newPeriod: Period, newMode: ViewMode) => {
-		startTransition(async () => {
-			let dateFrom: Date | undefined
-			let dateTo: Date | undefined
-
-			if (newPeriod === "month") {
-				// Use calendar month instead of current month
-				dateFrom = new Date(
-					calendarMonth.getFullYear(),
-					calendarMonth.getMonth(),
-					1
-				)
-				dateTo = new Date(
-					calendarMonth.getFullYear(),
-					calendarMonth.getMonth() + 1,
-					0
-				)
-			} else if (newPeriod === "year") {
-				dateFrom = new Date(effectiveDate.getFullYear(), 0, 1)
-				dateTo = new Date(effectiveDate.getFullYear(), 11, 31)
-			}
-			// "all" leaves both undefined
-
-			const mode: EquityCurveMode = newMode === "trades" ? "trade" : "daily"
-			const result = await getEquityCurve(dateFrom, dateTo, mode)
-			if (result.status === "success" && result.data) {
-				setData(result.data)
-			}
 		})
 	}
 
@@ -286,19 +289,20 @@ export const EquityCurve = ({
 		)
 	}
 
-	const minEquity = Math.min(...data.map((d) => d.accountEquity))
-	const maxEquity = Math.max(...data.map((d) => d.accountEquity))
-	const padding = (maxEquity - minEquity) * 0.1 || 100
+	const { minEquity, maxEquity, padding } = useMemo(() => {
+		const min = Math.min(...data.map((d) => d.accountEquity))
+		const max = Math.max(...data.map((d) => d.accountEquity))
+		return { minEquity: min, maxEquity: max, padding: (max - min) * 0.1 || 100 }
+	}, [data])
 
-	const CustomTooltip = createCustomTooltip({
-		viewMode,
-		locale,
-		drawdownLabel: t("drawdown"),
-		tradeNumberLabel: (number: number) => tCharts("tradeNumber", { number }),
-	})
+	const drawdownLabel = t("drawdown")
+	const handleTradeNumberLabel = useCallback(
+		(number: number) => tCharts("tradeNumber", { number }),
+		[tCharts]
+	)
 
 	return (
-		<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border sm:p-m-400 lg:p-m-500">
+		<div className="border-bg-300 bg-bg-200 p-s-300 rounded-lg border sm:p-m-400 lg:p-m-500" role="region" aria-label={t("title")}>
 			<div className="flex flex-col gap-s-200 sm:flex-row sm:items-center sm:justify-between">
 				<h2 className="text-small text-txt-100 font-semibold sm:text-body">{t("title")}</h2>
 				<div className="gap-s-200 flex items-center">
@@ -318,7 +322,7 @@ export const EquityCurve = ({
 			</div>
 			<ChartContainer
 				id="chart-dashboard-equity-curve"
-				className={cn("mt-s-300 h-48 sm:mt-m-400 sm:h-64", isPending && "opacity-50")}
+				className={cn("mt-s-300 h-48 sm:mt-m-400 sm:h-64 transition-opacity duration-200", isPending && "opacity-50")}
 			>
 				<AreaChart
 					data={data}
@@ -362,7 +366,17 @@ export const EquityCurve = ({
 						domain={[minEquity - padding, maxEquity + padding]}
 						width={yAxisWidth}
 					/>
-					<ChartTooltip variant="line" content={<CustomTooltip />} />
+					<ChartTooltip
+						variant="line"
+						content={
+							<EquityTooltip
+								viewMode={viewMode}
+								locale={locale}
+								drawdownLabel={drawdownLabel}
+								tradeNumberLabel={handleTradeNumberLabel}
+							/>
+						}
+					/>
 					<Area
 						type="monotone"
 						dataKey="accountEquity"

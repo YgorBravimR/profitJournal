@@ -3,6 +3,7 @@
 import { useMemo, useCallback, memo, type KeyboardEvent } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { useTranslations, useLocale } from "next-intl"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useEffectiveDate } from "@/components/providers/effective-date-provider"
 import type { DailyPnL } from "@/types"
@@ -131,7 +132,7 @@ export const TradingCalendar = memo(
 						{daysOfWeek.map((day, index) => (
 							<div
 								key={index}
-								className="py-s-100 text-center font-medium text-txt-300 text-[0.625rem] sm:py-s-200 sm:text-tiny"
+								className="py-s-100 text-center font-medium text-txt-300 text-micro sm:py-s-200 sm:text-tiny"
 							>
 								{day}
 							</div>
@@ -184,7 +185,12 @@ export const TradingCalendar = memo(
 							return (
 								<div
 									key={dateKey}
-									className={`p-0.5 sm:p-s-100 aspect-square rounded sm:rounded-md ${bgClass} ${isToday ? "ring-acc-100 ring-1 sm:ring-2" : ""} ${isClickable ? "cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 focus-visible:ring-2 focus-visible:ring-acc-100 focus-visible:outline-none" : ""}`}
+									className={cn(
+										"p-s-100 aspect-square rounded sm:rounded-md",
+										bgClass,
+										isToday && "ring-acc-100 ring-1 sm:ring-2",
+										isClickable && "cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 focus-visible:ring-2 focus-visible:ring-acc-100 focus-visible:outline-none"
+									)}
 									onClick={handleClick}
 									onKeyDown={handleKeyDown}
 									tabIndex={isClickable ? 0 : -1}
@@ -196,12 +202,12 @@ export const TradingCalendar = memo(
 									}
 								>
 									<div className="flex h-full flex-col">
-										<span className="text-[0.625rem] text-txt-200 leading-tight sm:text-tiny">
+										<span className="text-micro text-txt-200 leading-tight sm:text-tiny">
 											{dayData.date.getDate()}
 										</span>
 										{dailyData && (
 											<div className="mt-auto hidden sm:block">
-												<span className={`text-tiny font-medium ${textClass}`}>
+												<span className={cn("text-tiny font-medium", textClass)}>
 													{formatCompactCurrencyWithSign(dailyData.pnl, "R$")}
 												</span>
 												<span className="text-tiny text-txt-300 block">

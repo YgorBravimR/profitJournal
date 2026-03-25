@@ -82,7 +82,7 @@ const StatCard = ({
 			<span className={cn("font-medium uppercase tracking-wider text-txt-300", sizes.label)}>
 				{label}
 			</span>
-			<div className="mt-1 flex items-baseline gap-s-200">
+			<div className="mt-s-100 flex items-baseline gap-s-200">
 				{typeof value === "string" ? (
 					<p className={cn("font-bold", sizes.value, valueColorClass || "text-txt-100")}>
 						{value}
@@ -106,7 +106,7 @@ const StatCard = ({
 			)}
 		>
 			{indicator ? (
-				<div className="flex justify-between items-start gap-2">
+				<div className="flex justify-between items-start gap-s-200">
 					{labelAndValue}
 					<div className="shrink-0">{indicator}</div>
 				</div>

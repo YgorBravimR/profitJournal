@@ -1,6 +1,7 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+import { cn } from "@/lib/utils"
 import {
 	LineChart,
 	Line,
@@ -42,7 +43,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	return (
 		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
 			<p className="text-small font-medium text-txt-100">{data.time}</p>
-			<p className={`text-body font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}>
+			<p className={cn("text-body font-semibold", isProfit ? "text-trade-buy" : "text-trade-sell")}>
 				{formatCompactCurrencyWithSign(data.cumulativePnl, "R$")}
 			</p>
 			{data.tradeId && (
@@ -87,6 +88,7 @@ export const DayEquityCurve = ({ data, onPointClick }: DayEquityCurveProps) => {
 				<LineChart
 					data={data}
 					margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+					// @see Recharts lacks typed onClick payloads — cast is required
 					onClick={(e) => {
 						const payload = (e as unknown as { activePayload?: Array<{ payload: DayEquityPoint }> })?.activePayload?.[0]?.payload
 						if (payload) {

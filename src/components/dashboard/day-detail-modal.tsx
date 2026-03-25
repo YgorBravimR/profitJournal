@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import {
 	Dialog,
 	DialogContent,
@@ -34,6 +34,7 @@ export const DayDetailModal = ({
 	onOpenChange,
 }: DayDetailModalProps) => {
 	const t = useTranslations("dashboard")
+	const locale = useLocale()
 	const router = useRouter()
 	const [isPending, startTransition] = useTransition()
 	const [summary, setSummary] = useState<DaySummary | null>(null)
@@ -71,7 +72,7 @@ export const DayDetailModal = ({
 
 	const formatDate = (dateStr: string) => {
 		const d = new Date(dateStr)
-		return d.toLocaleDateString("pt-BR", {
+		return d.toLocaleDateString(locale, {
 			weekday: "long",
 			day: "numeric",
 			month: "long",

@@ -27,7 +27,7 @@ const ProfitFactorCard = ({
 			valueColorClass={colorClass}
 			subValue={
 				hasData ? (
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-s-200">
 						<span className="text-trade-buy">
 							{t("avg")}: {formatCompactCurrency(avgWin ?? 0, "R$")}
 						</span>

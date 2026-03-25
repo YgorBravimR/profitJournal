@@ -1,6 +1,7 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useMemo } from "react"
+import { useTranslations, useLocale } from "next-intl"
 import {
 	BarChart,
 	Bar,
@@ -11,6 +12,7 @@ import {
 	Cell,
 } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart-container"
+import { cn } from "@/lib/utils"
 import { formatCompactCurrencyWithSign } from "@/lib/formatting"
 import { APP_TIMEZONE } from "@/lib/dates"
 import { useChartConfig } from "@/hooks/use-chart-config"
@@ -32,6 +34,7 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	const t = useTranslations("dashboard")
+	const locale = useLocale()
 
 	if (!active || !payload || payload.length === 0) {
 		return null
@@ -43,7 +46,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 	return (
 		<div className="border-bg-300 bg-bg-100 px-s-300 py-s-200 rounded-lg border shadow-lg">
 			<p className="text-small text-txt-100 font-medium">
-				{new Date(data.date).toLocaleDateString("pt-BR", {
+				{new Date(data.date).toLocaleDateString(locale, {
 					weekday: "short",
 					day: "numeric",
 					month: "short",
@@ -51,7 +54,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 				})}
 			</p>
 			<p
-				className={`text-body font-semibold ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}
+				className={cn("text-body font-semibold", isProfit ? "text-trade-buy" : "text-trade-sell")}
 			>
 				{formatCompactCurrencyWithSign(data.pnl, "R$")}
 			</p>
@@ -69,9 +72,12 @@ export const DailyPnLBarChart = ({
 	const { yAxisWidth } = useChartConfig()
 	const t = useTranslations("dashboard")
 
-	// Sort by date (using toSorted for immutability)
-	const sortedData = data.toSorted(
-		(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+	const sortedData = useMemo(
+		() =>
+			data.toSorted(
+				(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+			),
+		[data]
 	)
 
 	const formatDay = (date: string) => {
@@ -79,8 +85,10 @@ export const DailyPnLBarChart = ({
 		return d.getDate().toString()
 	}
 
-	const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.pnl)), 100)
-	const domainMax = Math.ceil(maxAbsPnl * 1.1)
+	const domainMax = useMemo(() => {
+		const maxAbsPnl = Math.max(...data.map((d) => Math.abs(d.pnl)), 100)
+		return Math.ceil(maxAbsPnl * 1.1)
+	}, [data])
 
 	const handleBarClick = (entry: DailyPnL) => {
 		if (onDayClick) {
@@ -143,6 +151,7 @@ export const DailyPnLBarChart = ({
 						dataKey="pnl"
 						radius={[4, 4, 0, 0]}
 						cursor={onDayClick ? "pointer" : "default"}
+						// @see Recharts Bar onClick provides untyped payload — cast is required
 						onClick={(data) => handleBarClick(data as unknown as DailyPnL)}
 					>
 						{sortedData.map((entry, index) => (

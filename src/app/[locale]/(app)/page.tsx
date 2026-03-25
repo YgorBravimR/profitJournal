@@ -8,8 +8,6 @@ interface DashboardPageProps {
 }
 
 const DashboardPage = async ({ params }: DashboardPageProps) => {
-	const pageStart = performance.now()
-
 	const { locale } = await params
 	setRequestLocale(locale)
 
@@ -29,11 +27,6 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	const dailyPnL = batchData?.dailyPnL ?? []
 	const radarData = batchData?.radarData ?? []
 
-	const pageMs = (performance.now() - pageStart).toFixed(1)
-	console.log(
-		`[YGORDEV:dashboard] SSR: ${pageMs}ms | queries: 1 (batched from 6)`
-	)
-
 	return (
 		<div className="flex h-full flex-col">
 			<div className="p-m-400 sm:p-m-500 lg:p-m-600 flex-1">
@@ -52,4 +45,4 @@ const DashboardPage = async ({ params }: DashboardPageProps) => {
 	)
 }
 
-export default DashboardPage
+export { DashboardPage as default }

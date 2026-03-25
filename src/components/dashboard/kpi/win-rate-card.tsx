@@ -73,7 +73,7 @@ const WinRateCard = ({
 			}
 			subValue={
 				hasData ? (
-					<p className="flex gap-2">
+					<p className="flex gap-s-200">
 						<span className="text-trade-buy">
 							{winCount}
 							{t("w")}
