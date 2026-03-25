@@ -14,8 +14,25 @@ import { getUserDek } from "@/lib/user-crypto"
 import { toNumericString } from "@/lib/money"
 import type { GroupedTrade } from "@/lib/csv-parsers"
 
-// TODO: Import importLogs table after it's added to schema
-// import { importLogs } from "@/db/schema"
+/**
+ * Converts a numeric value to string, throwing if null.
+ * Used for required DB fields where the parser guarantees a value.
+ */
+const requireNumericString = (value: number | string | null | undefined): string => {
+	const result = toNumericString(value)
+	if (result === null) throw new Error("Required numeric value is null")
+	return result
+}
+
+/**
+ * Encrypts a guaranteed non-null value. Returns string (never null).
+ * Wraps encryptField which accepts nullable input but we pre-validate.
+ */
+const encryptRequired = (value: string, dek: string): string => {
+	const result = encryptField(value, dek)
+	if (result === null) throw new Error("Encryption produced null for non-null input")
+	return result
+}
 
 export const POST = async (req: NextRequest) => {
 	try {
@@ -60,12 +77,16 @@ export const POST = async (req: NextRequest) => {
 		const dek = await getUserDek(userId)
 
 		// Convert trades to database format (plaintext when dek is null)
-		const tradesToInsert = preview.trades.map((trade: GroupedTrade) => {
+		type TradeInsert = typeof tradesTable.$inferInsert
+		const tradesToInsert: TradeInsert[] = preview.trades.map((trade: GroupedTrade) => {
 			// Use the already-correct Date objects from the parser (constructed with BRT offset)
 			const entryDate = trade.entryGroup.firstExecutionTime
 			const exitDate = trade.exitGroup
 				? trade.exitGroup.firstExecutionTime
 				: null
+
+			const entryPriceStr = requireNumericString(trade.entryPrice)
+			const positionSizeStr = requireNumericString(trade.entryQuantity)
 
 			return {
 				accountId,
@@ -73,13 +94,13 @@ export const POST = async (req: NextRequest) => {
 				direction: trade.direction,
 				entryDate,
 				exitDate,
-				entryPrice: dek ? encryptField(toNumericString(trade.entryPrice)!, dek) : toNumericString(trade.entryPrice)!,
+				entryPrice: dek ? encryptRequired(entryPriceStr, dek) : entryPriceStr,
 				exitPrice: trade.exitPrice
-					? (dek ? encryptField(toNumericString(trade.exitPrice)!, dek) : toNumericString(trade.exitPrice)!)
+					? (dek ? encryptRequired(requireNumericString(trade.exitPrice), dek) : requireNumericString(trade.exitPrice))
 					: null,
-				positionSize: dek ? encryptField(toNumericString(trade.entryQuantity)!, dek) : toNumericString(trade.entryQuantity)!,
+				positionSize: dek ? encryptRequired(positionSizeStr, dek) : positionSizeStr,
 				pnl: trade.netPnl
-					? (dek ? encryptField(toNumericString(trade.netPnl)!, dek) : toNumericString(trade.netPnl)!)
+					? (dek ? encryptRequired(requireNumericString(trade.netPnl), dek) : requireNumericString(trade.netPnl))
 					: null,
 				stopLoss: null,
 				takeProfit: null,
@@ -90,10 +111,10 @@ export const POST = async (req: NextRequest) => {
 				followedPlan: true,
 				plannedRiskAmount: null,
 				plannedRMultiple: null,
-				realizedRMultiple: null,
 				isArchived: false,
 				importedAt: new Date(),
 				importSource: `${preview.brokerName}_DETAILED_CSV`,
+				source: "csv",
 				isEncrypted: !!dek,
 			}
 		})

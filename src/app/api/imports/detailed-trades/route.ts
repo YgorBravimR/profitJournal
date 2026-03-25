@@ -13,6 +13,7 @@ import {
 	groupExecutionsIntoTrades,
 	createImportPreview,
 	type BrokerName,
+	type ImportPreview,
 } from "@/lib/csv-parsers"
 
 import { createDbRateLimiter } from "@/lib/db-rate-limiter"
@@ -28,7 +29,7 @@ const importLimiter = createDbRateLimiter({
 // Cache for import previews (1 hour TTL)
 const previewCache = new Map<
 	string,
-	{ preview: any; timestamp: number; accountId: string }
+	{ preview: ImportPreview; timestamp: number; accountId: string }
 >()
 
 const CACHE_TTL = 3600000 // 1 hour
