@@ -48,10 +48,10 @@ export const InsightCard = ({ type, label, title, detail, action }: InsightCardP
 				<Icon className={`h-4 w-4 ${styles.text}`} />
 			</div>
 			<div className="min-w-0">
-				<p className="text-caption text-txt-300">{label}</p>
+				<p className="text-tiny text-txt-300">{label}</p>
 				<p className={`text-small font-semibold ${styles.text}`}>{title}</p>
-				<p className={`text-caption ${styles.detailText}`}>{detail}</p>
-				<p className="text-caption text-txt-300 mt-s-100">{action}</p>
+				<p className={`text-tiny ${styles.detailText}`}>{detail}</p>
+				<p className="text-tiny text-txt-300 mt-s-100">{action}</p>
 			</div>
 		</div>
 	)
@@ -66,9 +66,9 @@ export const InsightCardPlaceholder = ({ type, label, placeholderText }: Insight
 				<Icon className="h-4 w-4 text-txt-300" />
 			</div>
 			<div className="min-w-0">
-				<p className="text-caption text-txt-300">{label}</p>
+				<p className="text-tiny text-txt-300">{label}</p>
 				<p className="text-small text-txt-300 font-medium">—</p>
-				<p className="text-caption text-txt-300 mt-s-100">{placeholderText}</p>
+				<p className="text-tiny text-txt-300 mt-s-100">{placeholderText}</p>
 			</div>
 		</div>
 	)

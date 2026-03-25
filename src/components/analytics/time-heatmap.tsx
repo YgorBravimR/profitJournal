@@ -185,7 +185,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 				<h3 className="text-small sm:text-body text-txt-100 font-semibold">
 					{t("time.heatmapTitle")}
 				</h3>
-				<p className="text-caption text-txt-300 mt-s-100">
+				<p className="text-tiny text-txt-300 mt-s-100">
 					{t("time.heatmapSubtitle")}
 				</p>
 			</div>
@@ -203,7 +203,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 					{TRADING_HOURS.map((hour) => (
 						<div
 							key={hour}
-							className="text-caption text-txt-300 pb-s-100 text-center font-medium"
+							className="text-tiny text-txt-300 pb-s-100 text-center font-medium"
 						>
 							{hour}h
 						</div>
@@ -251,7 +251,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 										>
 											{/* Trade count inside cell */}
 											{hasData && (
-												<span className="text-micro font-semibold text-white/90 drop-shadow-sm">
+												<span className="text-micro font-semibold text-txt-100 drop-shadow-sm">
 													{cell.totalTrades}
 												</span>
 											)}
@@ -279,13 +279,13 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 							<p className="text-small text-txt-100 font-semibold">
 								{tDayNames(hoveredCell.dayName as "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday")} {hoveredCell.hourLabel}
 							</p>
-							<p className="text-caption text-txt-300">
+							<p className="text-tiny text-txt-300">
 								{t("time.totalTrades", { count: hoveredCell.totalTrades })}
 							</p>
 						</div>
 						<div className="gap-m-500 flex items-center">
 							<div className="text-right">
-								<p className="text-caption text-txt-300">{t("time.winRate")}</p>
+								<p className="text-tiny text-txt-300">{t("time.winRate")}</p>
 								<p
 									className={cn(
 										"text-small font-semibold",
@@ -300,7 +300,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 							{isRMode ? (
 								<>
 									<div className="text-right">
-										<p className="text-caption text-txt-300">
+										<p className="text-tiny text-txt-300">
 											{t("time.avgR")}
 										</p>
 										<p
@@ -315,7 +315,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 										</p>
 									</div>
 									<div className="text-right">
-										<p className="text-caption text-txt-300">{t("time.pnl")}</p>
+										<p className="text-tiny text-txt-300">{t("time.pnl")}</p>
 										<p
 											className={cn(
 												"text-small font-semibold",
@@ -331,7 +331,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 							) : (
 								<>
 									<div className="text-right">
-										<p className="text-caption text-txt-300">{t("time.pnl")}</p>
+										<p className="text-tiny text-txt-300">{t("time.pnl")}</p>
 										<p
 											className={cn(
 												"text-small font-semibold",
@@ -345,7 +345,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 									</div>
 									{hoveredCell.avgR !== 0 && (
 										<div className="text-right">
-											<p className="text-caption text-txt-300">
+											<p className="text-tiny text-txt-300">
 												{t("time.avgR")}
 											</p>
 											<p
@@ -366,14 +366,14 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 						</div>
 					</div>
 				) : (
-					<p className="text-caption text-txt-300 text-center">
+					<p className="text-tiny text-txt-300 text-center">
 						{t("time.heatmapSubtitle")}
 					</p>
 				)}
 			</div>
 
 			{/* Legend */}
-			<div className="mt-s-300 sm:mt-m-400 gap-s-300 sm:gap-m-500 text-caption text-txt-300 flex flex-wrap items-center justify-center">
+			<div className="mt-s-300 sm:mt-m-400 gap-s-300 sm:gap-m-500 text-tiny text-txt-300 flex flex-wrap items-center justify-center">
 				<div className="gap-s-200 flex items-center">
 					<div className="bg-trade-buy/70 h-3 w-3 rounded-sm" />
 					<span>{t("time.profitable")}</span>
@@ -392,7 +392,7 @@ const TimeHeatmap = ({ data, expectancyMode }: TimeHeatmapProps) => {
 			{cellsWithTrades.length > 0 && (
 				<div className="mt-s-300 sm:mt-m-400">
 					<div className="border-bg-300 rounded-lg border overflow-x-auto">
-						<table className="w-full text-caption">
+						<table className="w-full text-tiny">
 							<thead>
 								<tr className="border-bg-300 border-b">
 									<th className="px-s-300 py-s-200 text-txt-300 text-left font-medium" />

@@ -64,9 +64,9 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 			<p className="text-small font-semibold text-txt-100">
 				{translatedLabel}
 			</p>
-			<p className="text-caption text-txt-300">{timeRange}</p>
+			<p className="text-tiny text-txt-300">{timeRange}</p>
 			<div className="mt-s-200 space-y-s-100">
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("session.pnl")}:</span>{" "}
 					<span
 						className={cn(
@@ -77,13 +77,13 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 						{formatCompactCurrencyWithSign(data.totalPnl, "R$")}
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("session.trades")}:</span>{" "}
 					<span className="font-medium text-txt-100">
 						{data.totalTrades}
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("session.winRate")}:</span>{" "}
 					<span
 						className={cn(
@@ -96,7 +96,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 						{data.winRate.toFixed(0)}%
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("session.avgR")}:</span>{" "}
 					<span
 						className={cn(
@@ -110,7 +110,7 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 						{data.avgR.toFixed(2)}R
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">
 						{t("session.profitFactor")}:
 					</span>{" "}
@@ -210,7 +210,7 @@ export const SessionPerformanceChart = ({
 					<h3 className="text-small sm:text-body font-semibold text-txt-100">
 						{t("session.title")}
 					</h3>
-					<p className="text-caption text-txt-300 mt-s-100">
+					<p className="text-tiny text-txt-300 mt-s-100">
 						{t("session.description")}
 					</p>
 				</div>
@@ -225,7 +225,7 @@ export const SessionPerformanceChart = ({
 					>
 						{formatMetric(headerMetricValue)}
 					</p>
-					<p className="text-caption text-txt-300">
+					<p className="text-tiny text-txt-300">
 						{t("session.totalTrades", { count: totalTrades })}
 					</p>
 				</div>
@@ -304,7 +304,7 @@ export const SessionPerformanceChart = ({
 									: "border-bg-300/50 bg-bg-300/20"
 							)}
 						>
-							<p className="text-caption text-txt-300">
+							<p className="text-tiny text-txt-300">
 								{tLabels(session.session)}
 							</p>
 							<p
@@ -322,7 +322,7 @@ export const SessionPerformanceChart = ({
 									: "\u2014"}
 							</p>
 							{hasTrades && (
-								<p className="text-caption text-txt-300 mt-s-100">
+								<p className="text-tiny text-txt-300 mt-s-100">
 									{session.winRate.toFixed(0)}% {tCommon("winRateAbbr")} ·{" "}
 									{t("session.totalTrades", {
 										count: session.totalTrades,
@@ -343,7 +343,7 @@ export const SessionPerformanceChart = ({
 				return (
 					<div className="mt-s-300 sm:mt-m-400">
 						<div className="border-bg-300 rounded-lg border overflow-x-auto">
-							<table className="w-full text-caption">
+							<table className="w-full text-tiny">
 								<thead>
 									<tr className="border-bg-300 border-b">
 										<th className="px-s-300 py-s-200 text-center font-medium" colSpan={3}>

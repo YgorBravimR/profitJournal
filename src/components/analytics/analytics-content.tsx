@@ -174,7 +174,6 @@ const AnalyticsContent = ({
 		if (lastAccountKey.current !== accountKey) {
 			lastAccountKey.current = accountKey
 			clearAnalyticsCache()
-			console.log(`[YGORDEV] 🔄 Account changed — cache cleared`)
 		}
 	}, [initialDashboard, initialTagStats, accountKey])
 
@@ -200,36 +199,24 @@ const AnalyticsContent = ({
 	const [lastFetchedKey, setLastFetchedKey] = useState(filterKey)
 
 	useEffect(() => {
-		if (filterKey === lastFetchedKey) {
-			console.log(`[YGORDEV] ⏭️ SKIP — filterKey unchanged`)
-			return
-		}
+		if (filterKey === lastFetchedKey) return
 
-		console.log(
-			`[YGORDEV] 🔄 filterKey changed: ${lastFetchedKey.slice(0, 40)}... → ${filterKey.slice(0, 40)}...`
-		)
 		setLastFetchedKey(filterKey)
 
 		// Check module-level cache first — persists across navigations
 		const cached = getAnalyticsCacheEntry(filterKey)
 		if (cached) {
-			console.log(`[YGORDEV] cache HIT — filterKey: ${filterKey}`)
 			applyDashboard(cached.dashboard, cached.tags)
 			return
 		}
 
-		console.log(`[YGORDEV] FETCHING from server — filterKey: ${filterKey}`)
 		startTransition(async () => {
-			const fetchStart = globalThis.performance.now()
 			const tradeFilters = toTradeFilters(filters, groupBy)
 
 			const [dashResult, tagResult] = await Promise.all([
 				getAnalyticsDashboard(tradeFilters),
 				getTagStats(tradeFilters),
 			])
-
-			const fetchMs = (globalThis.performance.now() - fetchStart).toFixed(1)
-			console.log(`[YGORDEV] Server responded in ${fetchMs}ms`)
 
 			const dashData =
 				dashResult.status === "success" && dashResult.data
@@ -241,9 +228,6 @@ const AnalyticsContent = ({
 			if (dashData) {
 				// Store in module cache — persists across navigations
 				setAnalyticsCacheEntry(filterKey, dashData, tagData)
-				console.log(
-					`[YGORDEV] Cached result — cache size: ${getAnalyticsCacheSize()}`
-				)
 				applyDashboard(dashData, tagData)
 			}
 		})
@@ -300,7 +284,7 @@ const AnalyticsContent = ({
 
 			{/* Time-Based Analysis Section */}
 			<div id="analytics-time-section" className="mt-m-400 sm:mt-m-500 lg:mt-m-600">
-				<h2 className="mb-s-300 sm:mb-m-400 text-body sm:text-heading text-txt-100 font-semibold">
+				<h2 className="mb-s-300 sm:mb-m-400 text-body sm:text-h3 text-txt-100 font-semibold">
 					{t("time.title")}
 				</h2>
 

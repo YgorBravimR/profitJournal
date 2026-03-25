@@ -58,6 +58,24 @@ Both components use two `useEffect` hooks to sync form state from props and trac
 
 **Complexity**: Low — simple refactor, but should test that save/refresh cycle still works correctly.
 
+## Analytics — Architectural & Design Items (deferred 2026-03-25)
+
+### Hardcoded hex colors in comparison-colors.ts
+
+**File**: `src/components/account-comparison/comparison-colors.ts`
+
+Four hardcoded hex colors (`#f59e0b`, `#ef4444`, `#14b8a6`, `#f97316`) bypass the design token system. These won't adapt to theme changes.
+
+**Recommended fix**: Replace with CSS variable references or define new chart-specific tokens in globals.css.
+
+### Inline export pattern
+
+10 analytics components use `export const` inline instead of exporting at the end of the file. This is a style preference from CLAUDE.md but doesn't affect behavior — lower priority than the functional issues.
+
+### String concat → cn() in analytics charts
+
+Multiple chart components (insight-card, tag-cloud, expected-value, hourly/day-of-week/session charts) use template literal string concatenation for className instead of the `cn()` utility. ~20 locations across 8 files.
+
 ---
 
 *Add new deferred findings below as more scans are completed.*

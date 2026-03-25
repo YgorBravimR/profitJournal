@@ -81,7 +81,7 @@ const ExpectancyModeToggle = ({
 					<p className="text-small font-semibold text-txt-100 mb-s-200">
 						{t("expectancyTooltipTitle")}
 					</p>
-					<div className="space-y-s-200 text-caption">
+					<div className="space-y-s-200 text-tiny">
 						<p>
 							<span className="font-semibold text-txt-100">R</span>{" "}
 							— {t("expectancyTooltipR")}

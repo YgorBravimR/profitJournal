@@ -44,23 +44,23 @@ const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
 		<div className="rounded-lg border border-bg-300 bg-bg-200 px-s-300 py-s-200 shadow-lg">
 			<p className="text-small font-semibold text-txt-100">{data.hourLabel}</p>
 			<div className="mt-s-200 space-y-s-100">
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("time.pnl")}:</span>{" "}
 					<span className={`font-medium ${isProfit ? "text-trade-buy" : "text-trade-sell"}`}>
 						{formatCompactCurrencyWithSign(data.totalPnl, "R$")}
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("time.trades")}:</span>{" "}
 					<span className="font-medium text-txt-100">{data.totalTrades}</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("time.winRate")}:</span>{" "}
 					<span className={`font-medium ${data.winRate >= 50 ? "text-trade-buy" : "text-trade-sell"}`}>
 						{data.winRate.toFixed(0)}%
 					</span>
 				</p>
-				<p className="text-caption">
+				<p className="text-tiny">
 					<span className="text-txt-300">{t("time.avgR")}:</span>{" "}
 					<span className={`font-medium ${data.avgR >= 0 ? "text-trade-buy" : "text-trade-sell"}`}>
 						{data.avgR >= 0 ? "+" : ""}{data.avgR.toFixed(2)}R
@@ -154,13 +154,13 @@ export const HourlyPerformanceChart = ({ data, expectancyMode }: HourlyPerforman
 			{/* Summary */}
 			<div className="mt-s-300 sm:mt-m-400 grid grid-cols-1 sm:grid-cols-2 gap-s-300 sm:gap-m-400 border-t border-bg-300 pt-s-300 sm:pt-m-400">
 				<div>
-					<p className="text-caption text-txt-300">{t("time.bestHour")}</p>
+					<p className="text-tiny text-txt-300">{t("time.bestHour")}</p>
 					<p className="text-small font-medium text-trade-buy">
 						{bestHour?.hourLabel} ({bestHour?.winRate.toFixed(0)}% {tCommon("winRateAbbr")}, {formatMetric(bestHour?.[metricKey] ?? 0)}, {bestHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>
 				</div>
 				<div>
-					<p className="text-caption text-txt-300">{t("time.worstHour")}</p>
+					<p className="text-tiny text-txt-300">{t("time.worstHour")}</p>
 					<p className="text-small font-medium text-trade-sell">
 						{worstHour?.hourLabel} ({worstHour?.winRate.toFixed(0)}% {tCommon("winRateAbbr")}, {formatMetric(worstHour?.[metricKey] ?? 0)}, {worstHour?.totalTrades} {t("time.trades").toLowerCase()})
 					</p>

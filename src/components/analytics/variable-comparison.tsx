@@ -34,7 +34,7 @@ const HeaderWithTooltip = ({
 		<TooltipTrigger asChild>
 			<span className="gap-s-100 inline-flex cursor-help items-center">
 				{label}
-				<Info className="text-txt-400 h-3 w-3" />
+				<Info className="text-txt-300 h-3 w-3" />
 			</span>
 		</TooltipTrigger>
 		<TooltipContent

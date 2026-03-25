@@ -76,7 +76,7 @@ export const SessionAssetTable = ({
 			<h3 className="mb-s-300 text-small sm:text-body text-txt-100 font-semibold">
 				{t("session.assetTitle")}
 			</h3>
-			<p className="mb-s-300 text-caption text-txt-300">
+			<p className="mb-s-300 text-tiny text-txt-300">
 				{t("session.assetDescription")}
 			</p>
 
@@ -84,21 +84,21 @@ export const SessionAssetTable = ({
 				<table className="w-full">
 					<thead>
 						<tr className="border-bg-300 border-b">
-							<th className="pb-s-200 text-caption text-txt-300 text-left font-medium">
+							<th className="pb-s-200 text-tiny text-txt-300 text-left font-medium">
 								{t("session.asset")}
 							</th>
 							{sessions.map((session) => (
 								<th
 									key={session}
-									className="pb-s-200 text-caption text-txt-300 hidden text-center font-medium sm:table-cell"
+									className="pb-s-200 text-tiny text-txt-300 hidden text-center font-medium sm:table-cell"
 								>
 									{getSessionLabel(session)}
 								</th>
 							))}
-							<th className="pb-s-200 text-caption text-txt-300 text-center font-medium">
+							<th className="pb-s-200 text-tiny text-txt-300 text-center font-medium">
 								{t("session.bestSession")}
 							</th>
-							<th className="pb-s-200 text-caption text-txt-300 text-right font-medium">
+							<th className="pb-s-200 text-tiny text-txt-300 text-right font-medium">
 								{t("session.total")}
 							</th>
 						</tr>
@@ -117,7 +117,7 @@ export const SessionAssetTable = ({
 									if (!sessionData || sessionData.trades === 0) {
 										return (
 											<td key={session} className="py-s-200 hidden text-center sm:table-cell">
-												<span className="text-caption text-txt-300">-</span>
+												<span className="text-tiny text-txt-300">-</span>
 											</td>
 										)
 									}
@@ -134,7 +134,7 @@ export const SessionAssetTable = ({
 												}`}
 											>
 												<span
-													className={`text-caption font-medium ${
+													className={`text-tiny font-medium ${
 														metricValue >= 0
 															? "text-trade-buy"
 															: "text-trade-sell"
@@ -154,12 +154,12 @@ export const SessionAssetTable = ({
 								})}
 								<td className="py-s-200 text-center">
 									{asset.bestSession ? (
-										<span className="gap-s-100 bg-acc-100/10 px-s-200 text-caption text-acc-100 inline-flex items-center rounded-full py-px font-medium">
+										<span className="gap-s-100 bg-acc-100/10 px-s-200 text-tiny text-acc-100 inline-flex items-center rounded-full py-px font-medium">
 											<Trophy className="h-3 w-3" />
 											{getSessionLabel(asset.bestSession)}
 										</span>
 									) : (
-										<span className="text-caption text-txt-300">-</span>
+										<span className="text-tiny text-txt-300">-</span>
 									)}
 								</td>
 								<td className="py-s-200 text-right">

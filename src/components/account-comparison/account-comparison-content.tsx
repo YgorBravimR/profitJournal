@@ -56,7 +56,7 @@ const AccountComparisonContent = ({
 						<ArrowLeft className="h-5 w-5" />
 					</Link>
 					<div>
-						<h1 className="text-body sm:text-heading text-txt-100 font-semibold">
+						<h1 className="text-body sm:text-h3 text-txt-100 font-semibold">
 							{t("title")}
 						</h1>
 						<p className="text-tiny sm:text-small text-txt-300">

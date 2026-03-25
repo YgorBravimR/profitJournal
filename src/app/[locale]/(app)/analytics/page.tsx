@@ -14,8 +14,6 @@ interface AnalyticsPageProps {
 }
 
 const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
-	const pageStart = performance.now()
-
 	const { locale } = await params
 	setRequestLocale(locale)
 
@@ -49,9 +47,6 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 	const userAccounts = await getUserAccounts()
 	const accountCount = userAccounts.length
 
-	const pageMs = (performance.now() - pageStart).toFixed(1)
-	console.log(`[YGORDEV:analytics] SSR: ${pageMs}ms | queries: 5`)
-
 	return (
 		<div className="flex h-full flex-col">
 			<div className="flex-1 overflow-auto p-m-400 sm:p-m-500 lg:p-m-600">
@@ -69,4 +64,4 @@ const AnalyticsPage = async ({ params }: AnalyticsPageProps) => {
 	)
 }
 
-export default AnalyticsPage
+export { AnalyticsPage as default }

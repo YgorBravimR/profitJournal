@@ -36,4 +36,4 @@ const AccountComparisonPage = async ({
 	)
 }
 
-export default AccountComparisonPage
+export { AccountComparisonPage as default }
