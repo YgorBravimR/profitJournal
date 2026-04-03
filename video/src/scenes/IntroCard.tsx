@@ -80,16 +80,15 @@ const IntroCard = ({ durationFrames }: IntroCardProps) => {
 			<p
 				style={{
 					color: COLORS.textMuted,
-					fontSize: 20,
+					fontSize: 22,
 					fontFamily: "system-ui, -apple-system, sans-serif",
-					letterSpacing: "0.1em",
-					textTransform: "uppercase",
+					letterSpacing: "0.05em",
 					opacity: taglineOpacity,
 					margin: 0,
 					marginTop: 4,
 				}}
 			>
-				Trading Journal
+				O cockpit do trader profissional
 			</p>
 		</AbsoluteFill>
 	)

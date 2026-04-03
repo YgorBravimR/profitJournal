@@ -70,15 +70,16 @@ const OutroCard = ({ durationFrames }: OutroCardProps) => {
 			<p
 				style={{
 					color: COLORS.text,
-					fontSize: 24,
+					fontSize: 28,
 					fontFamily: "system-ui, -apple-system, sans-serif",
 					fontWeight: 500,
 					opacity: taglineOpacity,
 					transform: `translateY(${taglineY}px)`,
 					margin: 0,
+					letterSpacing: "0.02em",
 				}}
 			>
-				Transforme sua disciplina em retorno financeiro.
+				Seus números não mentem.
 			</p>
 		</AbsoluteFill>
 	)

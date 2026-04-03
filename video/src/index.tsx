@@ -17,15 +17,29 @@ const calculateTotalFrames = (): number => {
 }
 
 const Root = () => {
+	const totalFrames = calculateTotalFrames()
+
 	return (
-		<Composition
-			id="DemoVideo"
-			component={DemoVideo}
-			durationInFrames={calculateTotalFrames()}
-			fps={FPS}
-			width={WIDTH}
-			height={HEIGHT}
-		/>
+		<>
+			<Composition
+				id="DemoVideo"
+				component={DemoVideo}
+				durationInFrames={totalFrames}
+				fps={FPS}
+				width={WIDTH}
+				height={HEIGHT}
+				defaultProps={{ showNarration: true }}
+			/>
+			<Composition
+				id="DemoVideoClean"
+				component={DemoVideo}
+				durationInFrames={totalFrames}
+				fps={FPS}
+				width={WIDTH}
+				height={HEIGHT}
+				defaultProps={{ showNarration: false }}
+			/>
+		</>
 	)
 }
 

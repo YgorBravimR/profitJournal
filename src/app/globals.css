@@ -784,16 +784,16 @@
   --color-guide: rgb(251 191 36);
 
   /* Near-Black Canvas — darker than Bravo, maximum contrast */
-  --color-bg-100: #08090A;
-  --color-bg-200: #0F1114;
-  --color-bg-300: #1A1D22;
-  --color-bg-stripe: #0C0D10;
+  --color-bg-100: #0c0e0f;
+  --color-bg-200: #171a1d;
+  --color-bg-300: #282c34;
+  --color-bg-stripe: #131419;
 
   /* Crisp Silver-White Text */
-  --color-txt-100: #F0F2F5;
-  --color-txt-200: #8C96A5;
-  --color-txt-300: #505A66;
-  --color-txt-placeholder: #353B44;
+  --color-txt-100: #eff1f4;
+  --color-txt-200: #a5afbe;
+  --color-txt-300: #7a8592;
+  --color-txt-placeholder: #6b747f;
 
   /* Violet Plasma Primary + Bravo Gold Secondary */
   --color-acc-100: #8B5CF6;

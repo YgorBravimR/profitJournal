@@ -154,22 +154,13 @@ const TransitionOverlay = ({
 						aria-hidden="true"
 					/>
 
-					{/* Video container with logo fallback */}
-					<div className="relative h-60 w-60 overflow-hidden rounded-full bg-[url('/axion-mark-white.png')] bg-cover bg-center">
-						<video
-							autoPlay
-							muted
-							playsInline
-							loop
-							className="h-full w-full object-cover"
-							onLoadedMetadata={(e) => {
-								const video = e.currentTarget
-								// Skip the beginning -- start 2s into the video
-								video.currentTime = 2
-							}}
-						>
-							<source src="/Lion_Video_Details_and_Generation.mp4" type="video/mp4" />
-						</video>
+					{/* Brand mark */}
+					<div className="relative flex h-60 w-60 items-center justify-center overflow-hidden rounded-full bg-bg-100">
+						<img
+							src="/bravo-mark-gold-nobg.png"
+							alt=""
+							className="h-36 w-36 object-contain"
+						/>
 					</div>
 				</div>
 
@@ -227,11 +218,11 @@ const AccountTransitionOverlayProvider = ({ children }: { children: React.ReactN
 		})
 		setPhase("entering")
 
-		// 300ms enter + 4000ms active + 500ms expand, then hard reload
+		// 300ms enter + 1800ms active + 500ms expand, then hard reload
 		setTimeout(async () => {
 			setPhase("active")
 
-			const minimumDelay = sleep(4000)
+			const minimumDelay = sleep(1800)
 
 			try {
 				await Promise.all([transitionOptions.onTransition(), minimumDelay])

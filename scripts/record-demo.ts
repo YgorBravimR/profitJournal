@@ -47,10 +47,35 @@ const capture = async (page: Page, label: string) => {
 	if (!CAPTURE_SCREENSHOTS) return
 	fs.mkdirSync(SCREENSHOT_DIR, { recursive: true })
 	frameCounter++
-	const paddedNum = String(frameCounter).padStart(3, "0")
+	const paddedNum = String(frameCounter).padStart(4, "0")
 	const safeLabel = label.replace(/[^a-zA-Z0-9_-]/g, "_")
 	const filename = `${paddedNum}_${currentScene}_${safeLabel}.png`
 	await page.screenshot({ path: path.join(SCREENSHOT_DIR, filename), fullPage: false })
+}
+
+/** Auto-capture: takes a screenshot every 1s while recording is active */
+let autoCaptureInterval: ReturnType<typeof setInterval> | null = null
+
+const startAutoCapture = (page: Page) => {
+	if (!CAPTURE_SCREENSHOTS) return
+	fs.mkdirSync(SCREENSHOT_DIR, { recursive: true })
+	autoCaptureInterval = setInterval(async () => {
+		try {
+			frameCounter++
+			const paddedNum = String(frameCounter).padStart(4, "0")
+			const filename = `${paddedNum}_${currentScene}_auto.png`
+			await page.screenshot({ path: path.join(SCREENSHOT_DIR, filename), fullPage: false })
+		} catch {
+			// Page may be navigating — skip this frame
+		}
+	}, 500)
+}
+
+const stopAutoCapture = () => {
+	if (autoCaptureInterval) {
+		clearInterval(autoCaptureInterval)
+		autoCaptureInterval = null
+	}
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -600,7 +625,7 @@ const sceneCommandCenter = async (page: Page) => {
 		await capture(page, "cc-main-today")
 	}
 
-	// Step 5: Select WINFUT asset in the calculator
+	// Step 5: Select WINFUT asset in the calculator (Radix Select combobox)
 	const calcAsset = page.locator("#calc-asset")
 	if (await calcAsset.isVisible().catch(() => false)) {
 		await scrollLocatorIntoView(page, calcAsset)
@@ -609,10 +634,16 @@ const sceneCommandCenter = async (page: Page) => {
 		if (box) {
 			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 15 })
 			await pause(timing.beforeClick)
+			await calcAsset.click()
+			await pause(timing.afterClick)
 		}
-		// Select WINFUT from the native dropdown
-		await page.selectOption("#calc-asset", { label: "WINFUT" })
-		await pause(timing.afterClick)
+		// Click the WINFUT option from the Radix dropdown (portal — needs force click)
+		const winfutOption = page.locator("[role='option']").filter({ hasText: "WINFUT" }).first()
+		if (await winfutOption.isVisible({ timeout: 3000 }).catch(() => false)) {
+			await pause(timing.shortPause)
+			await winfutOption.click({ force: true })
+			await pause(timing.afterClick)
+		}
 	}
 
 	// Fill stop distance = 200
@@ -1135,18 +1166,28 @@ const sceneCleanup = async () => {
 // ── Video Save ──────────────────────────────────────────────────────────────
 
 const saveVideo = (videoDir: string) => {
-	const files = fs.readdirSync(videoDir).filter((f) => f.endsWith(".webm"))
+	const files = fs.readdirSync(videoDir).filter((f) => f.endsWith(".webm") && f !== "axion-demo.webm")
 	if (files.length === 0) return
-	const latestFile = files.sort().pop()!
+	// Pick the most recently modified file (not alphabetically last)
+	const latestFile = files
+		.map((f) => ({ name: f, mtime: fs.statSync(path.join(videoDir, f)).mtimeMs }))
+		.sort((a, b) => b.mtime - a.mtime)[0].name
 	const src = path.join(videoDir, latestFile)
 	const dest = path.join(videoDir, "axion-demo.webm")
 	if (src === dest) {
 		console.log(`\n🎬 Video saved to: ${dest}`)
-		return
+	} else {
+		if (fs.existsSync(dest)) fs.unlinkSync(dest)
+		fs.renameSync(src, dest)
+		console.log(`\n🎬 Video saved to: ${dest}`)
 	}
-	if (fs.existsSync(dest)) fs.unlinkSync(dest)
-	fs.renameSync(src, dest)
-	console.log(`\n🎬 Video saved to: ${dest}`)
+
+	// Copy to video/public/ for Remotion rendering
+	const remotionPublic = path.resolve("video/public")
+	fs.mkdirSync(remotionPublic, { recursive: true })
+	const remotionDest = path.join(remotionPublic, "axion-demo.webm")
+	fs.copyFileSync(dest, remotionDest)
+	console.log(`📦 Copied to Remotion: ${remotionDest}`)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1159,7 +1200,7 @@ const SCENES: Array<{
 	run: (page: Page) => Promise<void>
 }> = [
 	{ name: "Login", enabled: true, run: sceneLogin },
-	{ name: "CSV Import", enabled: true, run: sceneCsvImport },
+	// { name: "CSV Import", enabled: true, run: sceneCsvImport },
 	{ name: "Journal", enabled: true, run: sceneJournal },
 	{ name: "Trade Detail", enabled: true, run: sceneTradeDetail },
 	{ name: "Dashboard", enabled: true, run: sceneDashboard },
@@ -1171,11 +1212,11 @@ const SCENES: Array<{
 	{ name: "Reports", enabled: true, run: sceneReports },
 	{ name: "Monthly", enabled: true, run: sceneMonthly },
 	{ name: "Playbook", enabled: true, run: scenePlaybook },
-	{ name: "Settings", enabled: true, run: sceneSettings },
+	{ name: "Settings", enabled: false, run: sceneSettings },
 	{ name: "End", enabled: true, run: sceneEnd },
 ]
 
-const CLEANUP_AFTER = true
+const CLEANUP_AFTER = false
 
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1185,7 +1226,7 @@ const run = async () => {
 	const enabledScenes = SCENES.filter((s) => s.enabled)
 	console.log(`\n🎬 Recording ${enabledScenes.length} scenes: ${enabledScenes.map((s) => s.name).join(" → ")}\n`)
 
-	const browser = await chromium.launch({ headless: false, slowMo: 30 })
+	const browser = await chromium.launch({ headless: true, slowMo: 30 })
 	const context = await browser.newContext({
 		viewport: CONFIG.viewport,
 		recordVideo: { dir: CONFIG.videoDir, size: CONFIG.viewport },
@@ -1194,6 +1235,7 @@ const run = async () => {
 	await injectClickIndicator(page)
 
 	try {
+		startAutoCapture(page)
 		for (const scene of enabledScenes) {
 			currentScene = scene.name.replace(/\s+/g, "-").toLowerCase()
 			await scene.run(page)
@@ -1203,6 +1245,7 @@ const run = async () => {
 	} catch (error) {
 		console.error("\n❌ Error during recording:", error)
 	} finally {
+		stopAutoCapture()
 		await page.close()
 		await context.close()
 		await browser.close()

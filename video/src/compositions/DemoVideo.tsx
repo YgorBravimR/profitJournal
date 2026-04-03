@@ -12,7 +12,11 @@ import { FPS, FADE_DURATION_FRAMES, TITLE_CARD_DURATION_FRAMES, COLORS } from ".
 const INTRO_DURATION_FRAMES = 120 // 4 seconds
 const OUTRO_DURATION_FRAMES = 150 // 5 seconds
 
-const DemoVideo = () => {
+interface DemoVideoProps {
+	showNarration?: boolean
+}
+
+const DemoVideo = ({ showNarration = true }: DemoVideoProps) => {
 	let currentFrame = 0
 
 	const elements: JSX.Element[] = []
@@ -71,6 +75,9 @@ const DemoVideo = () => {
 						endSec={scene.sourceEndSec}
 					/>
 				</ZoomEffect>
+				{showNarration && scene.narration.length > 0 && (
+					<NarrationOverlay cues={scene.narration} sceneStartFrame={currentFrame} />
+				)}
 			</Sequence>
 		)
 
